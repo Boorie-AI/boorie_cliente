@@ -504,8 +504,84 @@ export class AIProviderService {
   }
 
   private async testAnthropic(provider: IAIProvider): Promise<boolean> {
-    // Anthropic doesn't have a simple endpoint to test, so we just validate the key format
-    return !!provider.apiKey && provider.apiKey.startsWith('sk-ant-')
+    try {
+      if (!provider.apiKey) {
+        throw new Error('API key is required')
+      }
+
+      if (!provider.apiKey.startsWith('sk-ant-')) {
+        throw new Error('Invalid API key format. Anthropic API keys should start with "sk-ant-"')
+      }
+
+      // Test the API key by making a request to the models endpoint (doesn't require credits)
+      let response: Response
+      try {
+        this.logger.debug('Attempting to connect to Anthropic API...', { 
+          url: 'https://api.anthropic.com/v1/models',
+          hasApiKey: !!provider.apiKey
+        })
+        
+        response = await fetch('https://api.anthropic.com/v1/models', {
+          method: 'GET',
+          headers: {
+            'x-api-key': provider.apiKey,
+            'anthropic-version': '2023-06-01',
+            'Content-Type': 'application/json'
+          },
+          // Add timeout to prevent hanging
+          signal: AbortSignal.timeout(15000) // 15 second timeout
+        })
+        
+        this.logger.debug('Anthropic API response received', { 
+          status: response.status,
+          ok: response.ok 
+        })
+      } catch (fetchError) {
+        this.logger.error('Anthropic API connection failed', fetchError as Error)
+        
+        if (fetchError instanceof Error) {
+          if (fetchError.name === 'AbortError') {
+            throw new Error('Anthropic API request timed out. Please check your internet connection and try again.')
+          }
+          if (fetchError.message.includes('fetch') || fetchError.message.includes('network')) {
+            throw new Error('Unable to connect to Anthropic API. Please check your internet connection, firewall settings, or try using a VPN.')
+          }
+        }
+        throw new Error(`Network error: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`)
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({})) as any
+        const errorMessage = errorData.error?.message || 'Unknown error'
+        
+        switch (response.status) {
+          case 401:
+            throw new Error('Invalid API key')
+          case 403:
+            // For models endpoint, 403 usually means invalid API key, not credits
+            throw new Error('Access denied - check your API key permissions')
+          case 429:
+            throw new Error('Rate limit exceeded - please try again later')
+          case 500:
+          case 502:
+          case 503:
+          case 504:
+            throw new Error('Anthropic API is temporarily unavailable')
+          default:
+            throw new Error(`API error: ${errorMessage}`)
+        }
+      }
+
+      this.logger.success('Anthropic API key test successful')
+      return true
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.warn('Anthropic API key test failed', { error: error.message })
+        throw error
+      }
+      this.logger.warn('Anthropic API key test failed with unknown error')
+      throw new Error('Connection test failed')
+    }
   }
 
   private async testGoogleAI(provider: IAIProvider): Promise<boolean> {
@@ -631,7 +707,74 @@ export class AIProviderService {
   }
 
   private async fetchAnthropicModels(provider: IAIProvider): Promise<any[]> {
-    // Anthropic doesn't have a public models endpoint, so we return known models
+    try {
+      this.logger.debug('🚀 STARTING: Fetching Anthropic models from API', { 
+        provider: provider.name,
+        hasApiKey: !!provider.apiKey 
+      })
+      
+      const response = await fetch('https://api.anthropic.com/v1/models', {
+        headers: {
+          'x-api-key': provider.apiKey!,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json'
+        }
+      })
+
+      this.logger.debug('📡 Anthropic API Response received', { 
+        status: response.status,
+        ok: response.ok
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        this.logger.warn('❌ Anthropic models API failed, falling back to known models', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        })
+        return this.getKnownAnthropicModels()
+      }
+
+      const data = await response.json() as { data?: any[] }
+      this.logger.debug('📋 Anthropic API data received', { 
+        hasData: !!data.data,
+        dataLength: data.data?.length,
+        rawData: data
+      })
+      
+      if (!data.data || !Array.isArray(data.data)) {
+        this.logger.warn('Invalid response from Anthropic models API, falling back to known models')
+        return this.getKnownAnthropicModels()
+      }
+
+      const models = data.data.map((model: any) => ({
+        modelId: model.id,
+        modelName: model.display_name || model.id,
+        isDefault: model.id.includes('claude-3-5-sonnet') || model.id.includes('claude-sonnet-4'),
+        isAvailable: true,
+        isSelected: false,
+        description: this.getAnthropicModelDescription(model.id),
+        metadata: {
+          created_at: model.created_at,
+          type: model.type,
+          display_name: model.display_name
+        }
+      }))
+
+      this.logger.success('Successfully fetched Anthropic models from API', {
+        modelCount: models.length
+      })
+
+      return models
+    } catch (error) {
+      this.logger.warn('Failed to fetch Anthropic models from API, falling back to known models', error as Error)
+      return this.getKnownAnthropicModels()
+    }
+  }
+
+  private getKnownAnthropicModels(): any[] {
+    // Fallback to known models if API fails
     return [
       {
         modelId: 'claude-3-5-sonnet-20241022',
@@ -661,6 +804,19 @@ export class AIProviderService {
         metadata: { version: '20240229' }
       }
     ]
+  }
+
+  private getAnthropicModelDescription(modelId: string): string {
+    const descriptions: Record<string, string> = {
+      'claude-sonnet-4-20250514': 'Latest and most advanced Claude model',
+      'claude-3-5-sonnet-20241022': 'Most intelligent model, ideal for complex tasks',
+      'claude-3-5-sonnet-20240620': 'Most intelligent model, ideal for complex tasks',
+      'claude-3-haiku-20240307': 'Fastest model, ideal for simple tasks',
+      'claude-3-opus-20240229': 'Most powerful model for complex reasoning',
+      'claude-3-sonnet-20240229': 'Balanced model for most tasks'
+    }
+    
+    return descriptions[modelId] || `Anthropic Claude model: ${modelId}`
   }
 
   private async fetchGoogleAIModels(provider: IAIProvider): Promise<any[]> {

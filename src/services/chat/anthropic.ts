@@ -22,21 +22,118 @@ export const anthropicProvider: ChatProvider = {
       stream: isStreaming,
     }
 
-    console.log('Anthropic API Request:', { model, messagesCount: anthropicMessages.length, stream: isStreaming })
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify(requestBody),
+    console.log('Anthropic API Request:', { 
+      model, 
+      messagesCount: anthropicMessages.length, 
+      stream: isStreaming,
+      requestBody,
+      apiKeyPresent: !!apiKey,
+      apiKeyFormat: apiKey?.substring(0, 10) + '...'
     })
 
+    let response: Response
+    try {
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify(requestBody),
+        // Add timeout to prevent hanging
+        signal: AbortSignal.timeout(30000) // 30 second timeout
+      })
+      
+      console.log('Anthropic API Response:', { 
+        status: response.status, 
+        ok: response.ok, 
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      })
+    } catch (fetchError) {
+      console.error('Anthropic fetch error details:', {
+        error: fetchError,
+        name: fetchError instanceof Error ? fetchError.name : 'Unknown',
+        message: fetchError instanceof Error ? fetchError.message : 'Unknown',
+        stack: fetchError instanceof Error ? fetchError.stack : 'No stack'
+      })
+      
+      // Network-level errors
+      if (fetchError instanceof Error) {
+        if (fetchError.name === 'AbortError') {
+          throw new Error('⏱️ Request to Anthropic API timed out. Please check your internet connection and try again.')
+        }
+        if (fetchError instanceof TypeError && fetchError.message.includes('fetch')) {
+          throw new Error('🌐 Unable to connect to Anthropic API. Please check your internet connection and try again.')
+        }
+        if (fetchError.message.includes('Failed to fetch') || fetchError.message.includes('NetworkError')) {
+          throw new Error('🌐 Network error: Unable to reach Anthropic API. Please check your internet connection, firewall, or proxy settings.')
+        }
+      }
+      throw new Error(`🌐 Network error connecting to Anthropic: ${fetchError instanceof Error ? fetchError.message : 'Unknown network error'}`)
+    }
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(`Anthropic API error: ${response.status} ${response.statusText} - ${errorData.error?.message || 'Unknown error'}`)
+      let errorMessage = 'Unknown error'
+      let errorType = 'API_ERROR'
+      
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.error?.message || errorData.message || 'Unknown error'
+        errorType = errorData.error?.type || 'API_ERROR'
+        
+        // Provide specific error messages based on status code and error type
+        switch (response.status) {
+          case 400:
+            // Check for credit/billing errors in 400 responses too
+            if (errorMessage.toLowerCase().includes('credit') || errorMessage.toLowerCase().includes('billing') || errorMessage.toLowerCase().includes('balance')) {
+              throw new Error('💳 Insufficient Anthropic credits. Please go to Plans & Billing in your Anthropic account to add credits or upgrade your plan.')
+            }
+            if (errorType === 'invalid_request_error') {
+              throw new Error(`Invalid request to Anthropic: ${errorMessage}`)
+            }
+            throw new Error(`Bad request to Anthropic: ${errorMessage}`)
+          
+          case 401:
+            throw new Error('🔑 Invalid Anthropic API key. Please check your API key in settings.')
+          
+          case 403:
+            if (errorMessage.toLowerCase().includes('credit') || errorMessage.toLowerCase().includes('billing') || errorMessage.toLowerCase().includes('balance')) {
+              throw new Error('💳 Insufficient Anthropic credits. Please go to Plans & Billing in your Anthropic account to add credits or upgrade your plan.')
+            }
+            throw new Error('🚫 Access denied to Anthropic API. Please check your account permissions.')
+          
+          case 404:
+            throw new Error(`Anthropic model "${model}" not found. Please select a different model.`)
+          
+          case 429:
+            if (errorMessage.toLowerCase().includes('rate limit')) {
+              throw new Error('Anthropic rate limit exceeded. Please wait a moment and try again.')
+            }
+            throw new Error('Too many requests to Anthropic. Please try again later.')
+          
+          case 500:
+          case 502:
+          case 503:
+          case 504:
+            throw new Error('Anthropic API is temporarily unavailable. Please try again in a few moments.')
+          
+          default:
+            throw new Error(`Anthropic API error (${response.status}): ${errorMessage}`)
+        }
+      } catch (jsonError) {
+        // If we can't parse the error response
+        if (response.status === 401) {
+          throw new Error('Invalid Anthropic API key. Please check your API key in settings.')
+        } else if (response.status === 403) {
+          throw new Error('Access denied to Anthropic API. This might be due to insufficient credits or account restrictions.')
+        } else if (response.status >= 500) {
+          throw new Error('Anthropic API is temporarily unavailable. Please try again in a few moments.')
+        } else {
+          throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`)
+        }
+      }
     }
 
     if (isStreaming) {

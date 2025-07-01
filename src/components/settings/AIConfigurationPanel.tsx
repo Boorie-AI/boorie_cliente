@@ -752,36 +752,36 @@ export function AIConfigurationPanel() {
               {providers.map((provider) => (
                 <div key={provider.id} className="bg-card rounded-xl border border-border overflow-hidden">
                   {/* Provider Header */}
-                  <div className="p-6 border-b border-border">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-white shadow-sm border border-border/20">
+                  <div className="p-4 sm:p-6 border-b border-border">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                      <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center bg-white shadow-sm border border-border/20 flex-shrink-0">
                           {getProviderLogo(provider.id) && (
                             <img
                               src={getProviderLogo(provider.id)!}
                               alt={`${provider.name} logo`}
-                              className="w-8 h-8 object-contain"
+                              className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
                             />
                           )}
                         </div>
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <h3 className="font-semibold text-card-foreground flex items-center space-x-2">
-                            <span>{provider.name}</span>
+                            <span className="truncate">{provider.name}</span>
                             {provider.isConnected && (
-                              <CheckCircle className="w-4 h-4 text-green-500" />
+                              <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                             )}
                           </h3>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-muted-foreground line-clamp-2">
                             {provider.description}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 flex-shrink-0">
                         {provider.testStatus !== 'idle' && (
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-2 min-w-0">
                             {getStatusIcon(provider.testStatus)}
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-sm text-muted-foreground truncate">
                               {provider.testMessage}
                             </span>
                           </div>
@@ -790,7 +790,7 @@ export function AIConfigurationPanel() {
                         <Switch.Root
                           checked={provider.isActive}
                           onCheckedChange={(checked) => handleProviderToggle(provider.id, checked)}
-                          className="w-11 h-6 bg-gray-200 rounded-full data-[state=checked]:bg-primary relative"
+                          className="w-11 h-6 bg-gray-200 rounded-full data-[state=checked]:bg-primary relative flex-shrink-0"
                         >
                           <Switch.Thumb className="block w-5 h-5 bg-white rounded-full transition-transform duration-100 translate-x-0.5 data-[state=checked]:translate-x-[22px]" />
                         </Switch.Root>
@@ -800,20 +800,20 @@ export function AIConfigurationPanel() {
 
                   {/* Provider Configuration */}
                   {provider.isActive && (
-                    <div className="p-6 space-y-6">
+                    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                       {/* API Key Section */}
                       <div className="space-y-3">
                         <label className="text-sm font-medium text-card-foreground">
                           {t('ai.apiKey')}
                         </label>
-                        <div className="flex space-x-2">
-                          <div className="relative flex-1">
+                        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                          <div className="relative flex-1 min-w-0">
                             <input
                               type={showAPIKey[provider.id] ? "text" : "password"}
                               value={provider.apiKey}
                               onChange={(e) => handleAPIKeyUpdate(provider.id, e.target.value)}
                               placeholder={t('ai.enterApiKey')}
-                              className="w-full px-3 py-2 pr-10 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none"
+                              className="w-full px-3 py-2 pr-10 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none text-sm"
                             />
                             <button
                               onClick={() => toggleAPIKeyVisibility(provider.id)}
@@ -826,7 +826,7 @@ export function AIConfigurationPanel() {
                             onClick={() => testAPIConnection(provider.id)}
                             disabled={!provider.apiKey || provider.testStatus === 'testing'}
                             className={cn(
-                              "px-4 py-2 rounded-lg border transition-all flex items-center space-x-2 min-w-[80px]",
+                              "px-3 sm:px-4 py-2 rounded-lg border transition-all flex items-center justify-center space-x-2 text-sm whitespace-nowrap flex-shrink-0 min-w-[70px]",
                               provider.testStatus === 'testing' && "opacity-50 cursor-not-allowed",
                               provider.testStatus === 'success' && "border-green-500 bg-green-50 text-green-700",
                               provider.testStatus === 'error' && "border-red-500 bg-red-50 text-red-700",
@@ -836,7 +836,7 @@ export function AIConfigurationPanel() {
                             {provider.testStatus === 'testing' && <RefreshCw className="w-4 h-4 animate-spin" />}
                             {provider.testStatus === 'success' && <CheckCircle className="w-4 h-4" />}
                             {provider.testStatus === 'error' && <XCircle className="w-4 h-4" />}
-                            <span>{t('ai.test')}</span>
+                            <span className="hidden sm:inline">{t('ai.test')}</span>
                           </button>
                         </div>
                       </div>
@@ -844,7 +844,7 @@ export function AIConfigurationPanel() {
                       {/* Models Section */}
                       {provider.isConnected && provider.availableModels.length > 0 && (
                         <div className="space-y-3">
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                             <label className="text-sm font-medium text-card-foreground">
                               {t('ai.availableModels')} 
                               {modelSearchTerms[provider.id] ? (
@@ -861,7 +861,7 @@ export function AIConfigurationPanel() {
                                   setSelectedProviderId(provider.id)
                                   setShowAddModelDialog(true)
                                 }}
-                                className="flex items-center space-x-1 px-3 py-1 text-xs bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                                className="flex items-center space-x-1 px-3 py-1 text-xs bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors self-start sm:self-auto"
                               >
                                 <Plus className="w-3 h-3" />
                                 <span>{t('ai.addModel')}</span>
@@ -892,45 +892,41 @@ export function AIConfigurationPanel() {
                             ) : (
                               getFilteredModels(provider).map((model) => (
                               <div key={model.modelId} className={cn(
-                                "flex items-center justify-between p-4 rounded-lg border transition-all",
+                                "flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 rounded-lg border transition-all space-y-3 sm:space-y-0",
                                 model.isSelected
                                   ? "bg-primary/10 border-primary/30 shadow-sm"
                                   : "bg-accent/30 border-border/50 hover:bg-accent/50"
                               )}>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between">
-                                    <div className="min-w-0 flex-1">
-                                      <div className="font-medium text-card-foreground truncate">
-                                        {model.modelName}
-                                      </div>
-                                      <div className="text-xs text-muted-foreground truncate">
-                                        {model.description}
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center space-x-2 ml-4">
-                                      {model.isSelected && (
-                                        <div className="flex items-center space-x-1 text-xs text-primary">
-                                          <CheckCircle className="w-3 h-3" />
-                                          <span>{t('ai.active')}</span>
-                                        </div>
-                                      )}
-                                      <Switch.Root
-                                        checked={model.isSelected}
-                                        onCheckedChange={(checked) => handleModelToggle(provider.id, model.modelId, checked)}
-                                        className="w-9 h-5 bg-gray-200 rounded-full data-[state=checked]:bg-primary relative"
-                                      >
-                                        <Switch.Thumb className="block w-4 h-4 bg-white rounded-full transition-transform duration-100 translate-x-0.5 data-[state=checked]:translate-x-4" />
-                                      </Switch.Root>
-                                      {provider.id === 'openrouter' && (
-                                        <button
-                                          onClick={() => removeCustomModel(provider.id, model.modelId)}
-                                          className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors"
-                                        >
-                                          <X className="w-4 h-4" />
-                                        </button>
-                                      )}
-                                    </div>
+                                  <div className="font-medium text-card-foreground truncate text-sm sm:text-base">
+                                    {model.modelName}
                                   </div>
+                                  <div className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                    {model.description}
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-3 sm:ml-4 flex-shrink-0">
+                                  {model.isSelected && (
+                                    <div className="flex items-center space-x-1 text-xs text-primary">
+                                      <CheckCircle className="w-3 h-3" />
+                                      <span className="hidden sm:inline">{t('ai.active')}</span>
+                                    </div>
+                                  )}
+                                  <Switch.Root
+                                    checked={model.isSelected}
+                                    onCheckedChange={(checked) => handleModelToggle(provider.id, model.modelId, checked)}
+                                    className="w-9 h-5 bg-gray-200 rounded-full data-[state=checked]:bg-primary relative flex-shrink-0"
+                                  >
+                                    <Switch.Thumb className="block w-4 h-4 bg-white rounded-full transition-transform duration-100 translate-x-0.5 data-[state=checked]:translate-x-4" />
+                                  </Switch.Root>
+                                  {provider.id === 'openrouter' && (
+                                    <button
+                                      onClick={() => removeCustomModel(provider.id, model.modelId)}
+                                      className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors flex-shrink-0"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                               ))

@@ -3,11 +3,13 @@
 export { ConversationHandler } from './conversation.handler'
 export { AIProviderHandler } from './aiProvider.handler'
 export { DatabaseHandler } from './database.handler'
+export { ChatHandler } from './chat.handler'
 
 import { ServiceContainer } from '../../backend/services'
 import { ConversationHandler } from './conversation.handler'
 import { AIProviderHandler } from './aiProvider.handler'
 import { DatabaseHandler } from './database.handler'
+import { ChatHandler } from './chat.handler'
 import { createLogger } from '../../backend/utils/logger'
 
 const logger = createLogger('HandlersManager')
@@ -16,6 +18,7 @@ export class HandlersManager {
   private conversationHandler: ConversationHandler
   private aiProviderHandler: AIProviderHandler
   private databaseHandler: DatabaseHandler
+  private chatHandler: ChatHandler
   private isInitialized = false
 
   constructor(services: ServiceContainer) {
@@ -24,6 +27,7 @@ export class HandlersManager {
     this.conversationHandler = new ConversationHandler(services.conversation)
     this.aiProviderHandler = new AIProviderHandler(services.aiProvider)
     this.databaseHandler = new DatabaseHandler(services.database)
+    this.chatHandler = new ChatHandler()
     
     this.isInitialized = true
     logger.success('IPC handlers manager initialized successfully')
@@ -40,6 +44,10 @@ export class HandlersManager {
 
   get database(): DatabaseHandler {
     return this.databaseHandler
+  }
+
+  get chat(): ChatHandler {
+    return this.chatHandler
   }
 
   // Check if handlers are initialized
@@ -60,6 +68,7 @@ export class HandlersManager {
       this.conversationHandler.unregisterHandlers()
       this.aiProviderHandler.unregisterHandlers()
       this.databaseHandler.unregisterHandlers()
+      this.chatHandler.unregisterHandlers()
       
       this.isInitialized = false
       logger.success('IPC handlers cleaned up successfully')
@@ -76,6 +85,7 @@ export class HandlersManager {
       results.conversationHandler = this.conversationHandler ? true : false
       results.aiProviderHandler = this.aiProviderHandler ? true : false
       results.databaseHandler = this.databaseHandler ? true : false
+      results.chatHandler = this.chatHandler ? true : false
       results.initialized = this.isInitialized
       
       logger.info('Handlers health check completed', results)

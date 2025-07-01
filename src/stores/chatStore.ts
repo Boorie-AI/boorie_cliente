@@ -437,29 +437,30 @@ export const useChatStore = create<ChatState>()(
           // Add current prompt
           chatMessages.push({ role: 'user', content: prompt })
 
-          console.log(`Calling ${provider} API with model: ${model}`)
+          console.log(`Calling ${provider} API with model: ${model} via IPC`)
           console.log('Messages to send:', chatMessages)
 
-          // Call the appropriate provider with streaming support
-          const result = await sendChatMessage(
+          // Call through IPC instead of direct API call
+          const result = await window.electronAPI.chat.sendMessage({
             provider,
             model,
-            chatMessages,
-            providerConfig.apiKey,
-            (streamContent) => {
-              // Handle streaming updates immediately
-              get().setStreamingMessage(streamContent)
-            }
-          )
+            messages: chatMessages,
+            apiKey: providerConfig.apiKey,
+            stream: false // Disable streaming for now through IPC
+          })
+
+          if (!result.success) {
+            throw new Error(result.error || 'Unknown error from backend')
+          }
 
           return {
-            response: result.response,
-            metadata: result.metadata
+            response: result.data.response,
+            metadata: result.data.metadata
           }
 
         } catch (error) {
           console.error(`${provider} API call failed:`, error)
-          throw new Error(`Failed to connect to ${provider}: ${error.message}`)
+          throw new Error(`Failed to connect to ${provider}: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }
       }
     }),

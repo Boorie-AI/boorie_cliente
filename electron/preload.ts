@@ -70,6 +70,11 @@ const electronAPI = {
       ipcRenderer.invoke('openai-query', messages, options),
   },
 
+  // Chat services
+  chat: {
+    sendMessage: (params: any) => ipcRenderer.invoke('chat:send-message', params),
+  },
+
   // Authentication
   auth: {
     microsoftLogin: () => ipcRenderer.invoke('microsoft-login'),
