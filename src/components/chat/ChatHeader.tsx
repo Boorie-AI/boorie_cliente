@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useOnClickOutside } from '@/hooks/useOnClickOutside'
 import { cn } from '@/utils/cn'
 import { ModelSelector } from './ModelSelector'
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 
 interface ChatHeaderProps {
   conversation: Conversation
@@ -13,6 +14,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState(conversation.title)
   const [showMenu, setShowMenu] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const { updateConversationTitle, deleteConversation, createNewConversation } = useChatStore()
   
   const menuRef = useRef<HTMLDivElement>(null)
@@ -62,10 +64,12 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
   }
 
   const handleDeleteConversation = () => {
-    if (window.confirm('Are you sure you want to delete this conversation? This action cannot be undone.')) {
-      deleteConversation(conversation.id)
-    }
+    setShowDeleteConfirm(true)
     setShowMenu(false)
+  }
+
+  const confirmDeleteConversation = () => {
+    deleteConversation(conversation.id)
   }
 
   const handleCopyConversation = async () => {
@@ -199,6 +203,17 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
           )}
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDeleteConversation}
+        title="Delete Conversation"
+        message="Are you sure you want to delete this conversation? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </div>
   )
 }
