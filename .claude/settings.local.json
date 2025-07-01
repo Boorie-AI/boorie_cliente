@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm init:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm run dev:*)",
+      "Bash(ls:*)",
+      "Bash(npm run build:electron:*)",
+      "Bash(electron .)",
+      "Bash(npx electron:*)",
+      "Bash(find:*)",
+      "Bash(cp:*)",
+      "Bash(grep:*)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(rg:*)",
+      "Bash(npx prisma:*)",
+      "Bash(rm:*)"
+    ],
+    "deny": []
+  }
+}
