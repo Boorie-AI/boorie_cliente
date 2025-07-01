@@ -125,8 +125,8 @@ async function handleStreamingResponse(
                 const content = parsed.delta?.text
                 if (content) {
                   fullResponse += content
-                  // Throttle streaming updates
-                  setTimeout(() => onStream(fullResponse), Math.random() * 30 + 20)
+                  // Stream updates immediately for better responsiveness
+                  onStream(fullResponse)
                 }
               }
 

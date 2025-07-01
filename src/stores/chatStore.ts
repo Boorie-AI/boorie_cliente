@@ -383,10 +383,8 @@ export const useChatStore = create<ChatState>()(
                     if (data.message?.content) {
                       fullResponse += data.message.content
                       console.log('Updated fullResponse:', fullResponse) // Debug log
-                      // Update streaming message with throttling
-                      setTimeout(() => {
-                        get().setStreamingMessage(fullResponse)
-                      }, Math.random() * 50 + 30) // 30-80ms delay para efecto más natural
+                      // Update streaming message immediately
+                      get().setStreamingMessage(fullResponse)
                     }
                     if (data.eval_count) {
                       totalTokens = data.eval_count
@@ -449,10 +447,8 @@ export const useChatStore = create<ChatState>()(
             chatMessages,
             providerConfig.apiKey,
             (streamContent) => {
-              // Handle streaming updates
-              setTimeout(() => {
-                get().setStreamingMessage(streamContent)
-              }, Math.random() * 50 + 30)
+              // Handle streaming updates immediately
+              get().setStreamingMessage(streamContent)
             }
           )
 

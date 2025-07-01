@@ -95,8 +95,8 @@ async function handleStreamingResponse(
 
               if (content) {
                 fullResponse += content
-                // Throttle streaming updates for better UX
-                setTimeout(() => onStream(fullResponse), Math.random() * 30 + 20)
+                // Stream updates immediately for better responsiveness
+                onStream(fullResponse)
               }
 
               if (parsed.choices?.[0]?.finish_reason) {

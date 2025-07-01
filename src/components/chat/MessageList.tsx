@@ -20,7 +20,7 @@ export function MessageList({ messages, isLoading, streamingMessage }: MessageLi
 
       <TypingIndicator show={isLoading && showTypingIndicators && !streamingMessage} />
 
-      {streamingMessage && isLoading && (
+      {streamingMessage && (
         <MessageBubble
           message={{
             id: 'streaming',

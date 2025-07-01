@@ -17,8 +17,20 @@ export function MessageInput() {
 
     try {
       await sendMessage(messageToSend)
+      // Re-focus the input after sending
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus()
+        }
+      }, 100)
     } catch (error) {
       console.error('Failed to send message:', error)
+      // Re-focus even on error
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus()
+        }
+      }, 100)
     }
   }
 
@@ -48,9 +60,22 @@ export function MessageInput() {
     }
   }, [message])
 
+  // Auto-focus input when component mounts
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus()
+    }
+  }, [])
+
   return (
-    <div className="p-4 border-t border-border bg-card">
-      <form onSubmit={handleSubmit} className="flex items-center space-x-2">
+    <div className="p-4 border-t border-border bg-card relative z-10">
+      <form onSubmit={handleSubmit} className="flex items-center space-x-2"
+            onClick={(e) => {
+              // If clicking on the form but not on a button, focus the textarea
+              if (e.target === e.currentTarget) {
+                textareaRef.current?.focus()
+              }
+            }}>
         {/* File attachment button */}
         <button
           type="button"
@@ -70,10 +95,21 @@ export function MessageInput() {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
+            onClick={() => textareaRef.current?.focus()}
+            onFocus={() => {
+              // Ensure the textarea is properly focused
+              if (textareaRef.current) {
+                textareaRef.current.setSelectionRange(
+                  textareaRef.current.value.length,
+                  textareaRef.current.value.length
+                )
+              }
+            }}
             placeholder="Type your message... (Press Enter to send, Shift+Enter for new line)"
-            className="w-full p-3 bg-input text-foreground border border-border rounded-lg focus:border-ring focus:outline-none resize-none min-h-[44px] max-h-[200px] placeholder-muted-foreground"
+            className="w-full p-3 bg-input text-foreground border border-border rounded-lg focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 resize-none min-h-[44px] max-h-[200px] placeholder-muted-foreground transition-all duration-200"
             rows={1}
             disabled={isLoading}
+            tabIndex={0}
           />
         </div>
 
