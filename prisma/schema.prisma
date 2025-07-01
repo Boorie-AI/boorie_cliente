@@ -167,3 +167,19 @@ model CalendarEvent {
   @@unique([provider, eventId])
   @@map("calendar_events")
 }
+
+model UserProfile {
+  id          String   @id @default(cuid())
+  provider    String   // 'microsoft' | 'google'
+  providerId  String   // User ID from provider
+  email       String
+  name        String?
+  pictureUrl  String?
+  isActive    Boolean  @default(true)
+  metadata    String?  // Additional profile data as JSON
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([provider, providerId])
+  @@map("user_profiles")
+}

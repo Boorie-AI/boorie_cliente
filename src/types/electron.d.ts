@@ -59,10 +59,23 @@ export interface ElectronAPI {
   }
 
   auth: {
+    // OAuth login flows
     microsoftLogin: () => Promise<any>
     googleLogin: () => Promise<any>
-    logout: (provider: string) => Promise<void>
+    logout: (provider: string) => Promise<any>
+    
+    // Token management
     getTokens: (provider: string) => Promise<any>
+    refreshToken: (provider: string) => Promise<any>
+    validateToken: (provider: string) => Promise<any>
+    
+    // User profiles
+    getUserProfile: (provider: string) => Promise<any>
+    getActiveProfiles: () => Promise<any>
+    
+    // Connection status
+    getConnectionStatus: () => Promise<any>
+    testConnection: (provider: string) => Promise<any>
   }
 
   notifications: {

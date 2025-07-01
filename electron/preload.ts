@@ -77,10 +77,23 @@ const electronAPI = {
 
   // Authentication
   auth: {
-    microsoftLogin: () => ipcRenderer.invoke('microsoft-login'),
-    googleLogin: () => ipcRenderer.invoke('google-login'),
-    logout: (provider: string) => ipcRenderer.invoke('logout', provider),
-    getTokens: (provider: string) => ipcRenderer.invoke('get-tokens', provider),
+    // OAuth login flows
+    microsoftLogin: () => ipcRenderer.invoke('auth-microsoft-login'),
+    googleLogin: () => ipcRenderer.invoke('auth-google-login'),
+    logout: (provider: string) => ipcRenderer.invoke('auth-logout', provider),
+    
+    // Token management
+    getTokens: (provider: string) => ipcRenderer.invoke('auth-get-tokens', provider),
+    refreshToken: (provider: string) => ipcRenderer.invoke('auth-refresh-token', provider),
+    validateToken: (provider: string) => ipcRenderer.invoke('auth-validate-token', provider),
+    
+    // User profiles
+    getUserProfile: (provider: string) => ipcRenderer.invoke('auth-get-user-profile', provider),
+    getActiveProfiles: () => ipcRenderer.invoke('auth-get-active-profiles'),
+    
+    // Connection status
+    getConnectionStatus: () => ipcRenderer.invoke('auth-get-connection-status'),
+    testConnection: (provider: string) => ipcRenderer.invoke('auth-test-connection', provider),
   },
 
   // Notifications

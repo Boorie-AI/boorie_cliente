@@ -15,7 +15,8 @@
       "Bash(npm uninstall:*)",
       "Bash(rg:*)",
       "Bash(npx prisma:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(npm run:*)"
     ],
     "deny": []
   }
