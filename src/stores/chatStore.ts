@@ -231,7 +231,7 @@ export const useChatStore = create<ChatState>()(
             }
           }
           
-          // Clear streaming message and add final message
+          // Clear streaming message before adding final message
           get().clearStreamingMessage()
           
           // Add assistant message
@@ -248,13 +248,18 @@ export const useChatStore = create<ChatState>()(
             content: 'Sorry, I encountered an error while processing your request. Please try again.'
           })
         } finally {
-          set({ isLoading: false })
+          // Ensure streaming is cleared and loading is stopped
           get().clearStreamingMessage()
+          set({ isLoading: false })
         }
       },
 
       setStreamingMessage: (content) => {
-        set({ streamingMessage: content, streamingBuffer: content })
+        // Only update if we're still loading to prevent race conditions
+        const state = get()
+        if (state.isLoading) {
+          set({ streamingMessage: content, streamingBuffer: content })
+        }
       },
 
       clearStreamingMessage: () => {

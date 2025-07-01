@@ -2,6 +2,7 @@ import { Message } from '@/stores/chatStore'
 import { Copy, User, Bot } from 'lucide-react'
 import { useState } from 'react'
 import { TypewriterText } from './TypewriterText'
+import { MarkdownRenderer } from './MarkdownRenderer'
 
 interface MessageBubbleProps {
   message: Message
@@ -46,8 +47,8 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
               : 'bg-muted text-foreground'
           } ${isStreaming ? 'animate-pulse' : ''}`}>
             {/* Message text */}
-            <div className="whitespace-pre-wrap break-words">
-              {message.content}
+            <div className="relative">
+              <MarkdownRenderer content={message.content} />
               {isStreaming && !isUser && (
                 <span className="animate-pulse text-primary ml-1">▌</span>
               )}

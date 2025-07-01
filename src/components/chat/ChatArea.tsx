@@ -62,7 +62,7 @@ export function ChatArea() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="h-full flex flex-col bg-background min-h-0">
       {/* Header with conversation info and model selector */}
       <div className="flex-shrink-0 border-b border-border/50 bg-card z-10">
         <ChatHeader conversation={activeConversation} />

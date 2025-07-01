@@ -31,11 +31,11 @@ export function ChatLayout() {
   }
 
   return (
-    <div className="flex h-full w-full bg-background overflow-hidden">
+    <div className="flex h-full w-full bg-background">
       <Sidebar />
       <div
         className={cn(
-          "flex-1 flex flex-col transition-all duration-300 ease-in-out overflow-hidden",
+          "flex-1 flex flex-col transition-all duration-300 ease-in-out h-full min-h-0",
           "border-l border-border/50",
           sidebarCollapsed ? "ml-16" : "ml-64"
         )}
