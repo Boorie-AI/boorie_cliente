@@ -5,9 +5,7 @@ import MonthView from './views/MonthView'
 import WeekView from './views/WeekView'
 import DayView from './views/DayView'
 import CalendarNavigation from './CalendarNavigation'
-import '../../styles/components.css';
-import '../../styles/modals.css';
-import '../../styles/recurrence.css';
+import EventDetailsModal from './modals/EventDetailsModal'
 
 // Calendar View Component - Main calendar display component
 
@@ -97,33 +95,35 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   }
 
   return (
-    <div className="calendar-view">
+    <div className="flex flex-col h-full bg-background">
       {/* Calendar Header */}
-      <div className="calendar-header">
-        <CalendarNavigation
-          currentDate={currentDate}
-          currentView={currentView}
-          isLoading={isLoading}
-          onDateNavigation={onDateNavigation}
-          onViewChange={onViewChange}
-          onTodayClick={onTodayClick}
-          onDateSelect={onDateChange}
-        />
-        
-        <div className="calendar-actions">
-          <button 
-            className="btn btn-primary btn-sm create-event-btn"
-            onClick={() => handleCreateEvent()}
-            disabled={isLoading}
-          >
-            <PlusIcon className="w-4 h-4 mr-2" />
-            New Event
-          </button>
+      <div className="flex-shrink-0">
+        <div className="flex items-center justify-between p-6 border-b border-border/50">
+          <CalendarNavigation
+            currentDate={currentDate}
+            currentView={currentView}
+            isLoading={isLoading}
+            onDateNavigation={onDateNavigation}
+            onViewChange={onViewChange}
+            onTodayClick={onTodayClick}
+            onDateSelect={onDateChange}
+          />
+          
+          <div className="flex items-center gap-3">
+            <button 
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => handleCreateEvent()}
+              disabled={isLoading}
+            >
+              <PlusIcon className="w-4 h-4" />
+              New Event
+            </button>
+          </div>
         </div>
       </div>
       
       {/* Calendar Content */}
-      <div className="calendar-content">
+      <div className="flex-1 overflow-hidden bg-background">
         {isLoading ? (
           <CalendarLoadingState view={currentView} />
         ) : (
@@ -163,43 +163,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         )}
       </div>
 
-      {/* Event Modal Placeholder */}
-      {showEventModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>
-                {eventModalMode === 'create' 
-                  ? 'Create Event' 
-                  : eventModalMode === 'edit' 
-                    ? 'Edit Event' 
-                    : 'Event Details'
-                }
+      {/* Event Details Modal */}
+      {eventModalMode === 'view' && (
+        <EventDetailsModal
+          isOpen={showEventModal}
+          onClose={() => setShowEventModal(false)}
+          event={selectedEvent}
+        />
+      )}
+      
+      {/* Event Create/Edit Modal - Placeholder for now */}
+      {(eventModalMode === 'create' || eventModalMode === 'edit') && showEventModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-card border border-border rounded-lg shadow-lg max-w-2xl w-full mx-4">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">
+                {eventModalMode === 'create' ? 'Create Event' : 'Edit Event'}
               </h3>
               <button 
-                className="btn btn-ghost btn-sm"
+                className="p-2 hover:bg-accent rounded-lg transition-colors"
                 onClick={() => setShowEventModal(false)}
               >
                 <XIcon className="w-4 h-4" />
               </button>
             </div>
-            <div className="modal-body">
-              <p>Event modal content will be implemented in Phase 4</p>
-              {selectedEvent && (
-                <div className="event-preview">
-                  <h4>{selectedEvent.title}</h4>
-                  <p>{selectedEvent.description}</p>
-                  <p>
-                    {selectedEvent.startTime.toLocaleString()} - {selectedEvent.endTime.toLocaleString()}
-                  </p>
-                  {selectedEvent.location && <p>📍 {selectedEvent.location}</p>}
-                  {selectedEvent.hasOnlineMeeting && (
-                    <p>
-                      🎥 {selectedEvent.meetingProvider === 'teams' ? 'Teams Meeting' : 'Google Meet'}
-                    </p>
-                  )}
-                </div>
-              )}
+            <div className="p-6">
+              <p className="text-muted-foreground">Event creation/editing will be implemented in Phase 4</p>
             </div>
           </div>
         </div>
@@ -210,11 +199,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
 // No account selected state
 const NoAccountSelectedState: React.FC = () => (
-  <div className="calendar-empty-state">
-    <div className="empty-content">
-      <CalendarIcon className="w-16 h-16 text-gray-300 mb-4" />
-      <h3>Select a Calendar Account</h3>
-      <p>Choose an account from the sidebar to view and manage your calendar events.</p>
+  <div className="flex items-center justify-center h-full">
+    <div className="text-center space-y-4">
+      <CalendarIcon className="w-16 h-16 text-muted-foreground/50 mx-auto" />
+      <div className="space-y-2">
+        <h3 className="text-lg font-medium text-foreground">Select a Calendar Account</h3>
+        <p className="text-sm text-muted-foreground max-w-sm">Choose an account from the sidebar to view and manage your calendar events.</p>
+      </div>
     </div>
   </div>
 )
@@ -225,16 +216,24 @@ const ErrorState: React.FC<{
   onRetry: () => void 
   onDismiss: () => void 
 }> = ({ error, onRetry, onDismiss }) => (
-  <div className="calendar-error-state">
-    <div className="error-content">
-      <ExclamationIcon className="w-16 h-16 text-red-400 mb-4" />
-      <h3>Unable to Load Calendar</h3>
-      <p className="error-message">{error}</p>
-      <div className="error-actions">
-        <button className="btn btn-primary" onClick={onRetry}>
+  <div className="flex items-center justify-center h-full">
+    <div className="text-center space-y-4 max-w-md">
+      <ExclamationIcon className="w-16 h-16 text-destructive mx-auto" />
+      <div className="space-y-2">
+        <h3 className="text-lg font-medium text-foreground">Unable to Load Calendar</h3>
+        <p className="text-sm text-muted-foreground">{error}</p>
+      </div>
+      <div className="flex items-center justify-center gap-3">
+        <button 
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
+          onClick={onRetry}
+        >
           Try Again
         </button>
-        <button className="btn btn-ghost" onClick={onDismiss}>
+        <button 
+          className="px-4 py-2 bg-transparent text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-accent transition-colors font-medium text-sm"
+          onClick={onDismiss}
+        >
           Dismiss
         </button>
       </div>
@@ -244,12 +243,12 @@ const ErrorState: React.FC<{
 
 // Loading state component
 const CalendarLoadingState: React.FC<{ view: 'month' | 'week' | 'day' }> = ({ view }) => (
-  <div className="calendar-loading">
-    <div className="loading-content">
-      <div className="loading-spinner large"></div>
-      <p>Loading {view} view...</p>
+  <div className="flex items-center justify-center h-full">
+    <div className="text-center space-y-4">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+      <p className="text-sm text-muted-foreground">Loading {view} view...</p>
     </div>
-    <div className="loading-skeleton">
+    <div className="absolute inset-0 bg-background/50 backdrop-blur-sm">
       {/* Basic skeleton structure based on view */}
       {view === 'month' && <MonthSkeleton />}
       {view === 'week' && <WeekSkeleton />}
@@ -261,30 +260,30 @@ const CalendarLoadingState: React.FC<{ view: 'month' | 'week' | 'day' }> = ({ vi
 
 // Skeleton loading components
 const MonthSkeleton: React.FC = () => (
-  <div className="month-skeleton">
-    <div className="skeleton-grid">
+  <div className="p-4">
+    <div className="grid grid-cols-7 gap-1">
       {Array(35).fill(0).map((_, i) => (
-        <div key={i} className="skeleton-day"></div>
+        <div key={i} className="h-24 bg-muted/50 rounded-lg animate-pulse"></div>
       ))}
     </div>
   </div>
 )
 
 const WeekSkeleton: React.FC = () => (
-  <div className="week-skeleton">
-    <div className="skeleton-week">
+  <div className="p-4">
+    <div className="grid grid-cols-7 gap-1">
       {Array(7).fill(0).map((_, i) => (
-        <div key={i} className="skeleton-day-column"></div>
+        <div key={i} className="h-64 bg-muted/50 rounded-lg animate-pulse"></div>
       ))}
     </div>
   </div>
 )
 
 const DaySkeleton: React.FC = () => (
-  <div className="day-skeleton">
-    <div className="skeleton-day-view">
+  <div className="p-4">
+    <div className="space-y-1">
       {Array(24).fill(0).map((_, i) => (
-        <div key={i} className="skeleton-hour"></div>
+        <div key={i} className="h-16 bg-muted/50 rounded-lg animate-pulse"></div>
       ))}
     </div>
   </div>

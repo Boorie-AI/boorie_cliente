@@ -4,9 +4,6 @@ import React, { useState, useEffect } from 'react'
 import { useCalendarStore } from '../../../stores/calendarStore'
 //import { useAuthStore } from '../../../stores/authStore'
 import RecurrenceEditor from '../RecurrenceEditor'
-import '../../../styles/components.css';
-import '../../../styles/modals.css';
-import '../../../styles/recurrence.css';
 
 interface EventFormData {
   title: string

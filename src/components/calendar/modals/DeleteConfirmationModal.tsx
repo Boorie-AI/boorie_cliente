@@ -1,9 +1,6 @@
 // Delete Confirmation Modal Component - Confirm event deletion
 
 import React from 'react'
-import '../../../styles/components.css';
-import '../../../styles/modals.css';
-import '../../../styles/recurrence.css';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean

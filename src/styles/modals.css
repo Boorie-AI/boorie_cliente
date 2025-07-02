@@ -336,6 +336,9 @@
   padding: 0 2rem;
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .detail-section {
@@ -380,6 +383,9 @@
   color: #1f2937;
   font-size: 0.875rem;
   line-height: 1.5;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Date and Time Display */

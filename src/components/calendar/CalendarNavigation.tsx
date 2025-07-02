@@ -1,9 +1,6 @@
 // Calendar Navigation Component - Enhanced navigation controls
 
 import React from 'react'
-import '../../styles/components.css';
-import '../../styles/modals.css';
-import '../../styles/recurrence.css';
 
 interface CalendarNavigationProps {
   currentDate: Date
@@ -81,12 +78,12 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
   const isTodayView = isToday(currentDate)
 
   return (
-    <div className="calendar-navigation">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 border-b border-border/50">
       {/* Main navigation controls */}
-      <div className="nav-main-controls">
-        <div className="nav-buttons">
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-1">
           <button 
-            className="nav-btn nav-prev"
+            className="p-2 rounded-lg border border-border bg-background hover:bg-accent hover:border-accent-foreground/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             onClick={() => onDateNavigation('prev')}
             disabled={isLoading}
             title={stepText.prev}
@@ -95,7 +92,7 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
             <ChevronLeftIcon className="w-5 h-5" />
           </button>
           <button 
-            className="nav-btn nav-next"
+            className="p-2 rounded-lg border border-border bg-background hover:bg-accent hover:border-accent-foreground/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             onClick={() => onDateNavigation('next')}
             disabled={isLoading}
             title={stepText.next}
@@ -105,14 +102,18 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
           </button>
         </div>
         
-        <div className="current-date-display">
-          <h2 className="date-title">
+        <div className="flex items-center gap-2">
+          <h2 className="text-xl font-semibold text-foreground">
             {formatDateRange(currentDate, currentView)}
           </h2>
         </div>
         
         <button 
-          className={`today-btn ${isTodayView ? 'is-today' : ''}`}
+          className={`px-3 py-2 text-sm font-medium rounded-lg border transition-all ${
+            isTodayView 
+              ? 'bg-primary text-primary-foreground border-primary'
+              : 'bg-background text-foreground border-border hover:bg-accent hover:border-accent-foreground/20'
+          } disabled:opacity-50 disabled:cursor-not-allowed`}
           onClick={onTodayClick}
           disabled={isLoading || isTodayView}
           title="Go to today"
@@ -122,10 +123,14 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
       </div>
 
       {/* View switcher */}
-      <div className="view-switcher">
-        <div className="view-buttons" role="tablist" aria-label="Calendar view">
+      <div className="flex items-center">
+        <div className="flex items-center bg-muted rounded-lg p-1" role="tablist" aria-label="Calendar view">
           <button 
-            className={`view-btn ${currentView === 'month' ? 'active' : ''}`}
+            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all ${
+              currentView === 'month'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
             onClick={() => onViewChange('month')}
             disabled={isLoading}
             role="tab"
@@ -136,7 +141,11 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
             <span>Month</span>
           </button>
           <button 
-            className={`view-btn ${currentView === 'week' ? 'active' : ''}`}
+            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all ${
+              currentView === 'week'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
             onClick={() => onViewChange('week')}
             disabled={isLoading}
             role="tab"
@@ -147,7 +156,11 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
             <span>Week</span>
           </button>
           <button 
-            className={`view-btn ${currentView === 'day' ? 'active' : ''}`}
+            className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all ${
+              currentView === 'day'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
             onClick={() => onViewChange('day')}
             disabled={isLoading}
             role="tab"
@@ -159,58 +172,6 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
           </button>
         </div>
       </div>
-
-      {/* Quick navigation */}
-      <div className="quick-navigation">
-        <QuickDatePicker 
-          currentDate={currentDate}
-          onDateSelect={onDateSelect}
-          disabled={isLoading}
-        />
-      </div>
-    </div>
-  )
-}
-
-// Quick date picker component
-interface QuickDatePickerProps {
-  currentDate: Date
-  onDateSelect: (date: Date) => void
-  disabled: boolean
-}
-
-const QuickDatePicker: React.FC<QuickDatePickerProps> = ({
-  currentDate,
-  onDateSelect,
-  disabled
-}) => {
-  const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedDate = new Date(event.target.value)
-    if (!isNaN(selectedDate.getTime())) {
-      onDateSelect(selectedDate)
-    }
-  }
-
-  // Format date for input value (YYYY-MM-DD)
-  const formatDateForInput = (date: Date) => {
-    return date.toISOString().split('T')[0]
-  }
-
-  return (
-    <div className="quick-date-picker">
-      <label htmlFor="date-picker" className="sr-only">
-        Select date
-      </label>
-      <input
-        id="date-picker"
-        type="date"
-        value={formatDateForInput(currentDate)}
-        onChange={handleDateChange}
-        disabled={disabled}
-        className="date-input"
-        title="Select date"
-      />
-      <CalendarSelectorIcon className="date-picker-icon" />
     </div>
   )
 }

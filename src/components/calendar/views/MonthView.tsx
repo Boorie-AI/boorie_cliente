@@ -2,9 +2,6 @@
 
 import React from 'react'
 import { getProviderColor, getEventStyles } from '../../../utils/calendarColors'
-import '../../../styles/components.css';
-import '../../../styles/modals.css';
-import '../../../styles/recurrence.css';
 
 // Import types
 declare global {
@@ -131,10 +128,12 @@ const MonthView: React.FC<MonthViewProps> = ({
 
   if (isLoading) {
     return (
-      <div className="month-view loading">
-        <div className="month-loading">
-          <div className="loading-spinner"></div>
-          <p>Loading month view...</p>
+      <div className="relative h-full">
+        <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10">
+          <div className="text-center space-y-3">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-sm text-muted-foreground">Loading month view...</p>
+          </div>
         </div>
         <MonthSkeleton />
       </div>
@@ -142,20 +141,20 @@ const MonthView: React.FC<MonthViewProps> = ({
   }
 
   return (
-    <div className="month-view">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Days of week header */}
-      <div className="month-header">
+      <div className="grid grid-cols-7 bg-muted/50 border-b border-border">
         {weekDays.map(day => (
-          <div key={day} className="day-header">
-            <span className="day-name-full">{day}</span>
-            <span className="day-name-short">{day.substring(0, 3)}</span>
-            <span className="day-name-minimal">{day.substring(0, 1)}</span>
+          <div key={day} className="p-3 text-center font-medium text-muted-foreground border-r border-border last:border-r-0">
+            <span className="hidden sm:inline">{day}</span>
+            <span className="hidden xs:inline sm:hidden">{day.substring(0, 3)}</span>
+            <span className="inline xs:hidden">{day.substring(0, 1)}</span>
           </div>
         ))}
       </div>
 
       {/* Calendar grid */}
-      <div className="month-grid">
+      <div className="flex-1 grid grid-cols-7 grid-rows-6 overflow-hidden">
         {calendarDays.map((date, index) => {
           const dayEvents = getEventsForDate(date)
           const isCurrentMonthDay = isCurrentMonth(date)
@@ -164,38 +163,43 @@ const MonthView: React.FC<MonthViewProps> = ({
           return (
             <div
               key={index}
-              className={`month-day ${isCurrentMonthDay ? 'current-month' : 'other-month'} ${isTodayDate ? 'today' : ''}`}
+              className={`relative border-r border-b border-border p-2 cursor-pointer transition-colors hover:bg-accent/50 flex flex-col min-h-24 ${
+                !isCurrentMonthDay ? 'bg-muted/30 text-muted-foreground' : 'bg-background'
+              } ${isTodayDate ? 'bg-primary/5 border-primary/20' : ''} last:border-r-0`}
               onClick={() => onDateClick(date)}
               onDoubleClick={() => onEventCreate(date)}
             >
               {/* Day number */}
-              <div className="day-number">
-                <span className={`day-text ${isTodayDate ? 'today-text' : ''}`}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`text-sm font-medium ${
+                  isTodayDate ? 'text-primary font-semibold' : isCurrentMonthDay ? 'text-foreground' : 'text-muted-foreground'
+                }`}>
                   {date.getDate()}
                 </span>
-                {isTodayDate && <div className="today-indicator" />}
+                {isTodayDate && <div className="w-2 h-2 bg-primary rounded-full" />}
               </div>
 
               {/* Events for this day */}
-              <div className="day-events">
+              <div className="flex-1 space-y-1 overflow-hidden">
                 {dayEvents.slice(0, 3).map((event, eventIndex) => (
                   <div
                     key={event.id}
-                    className={`event-item ${event.isAllDay ? 'all-day' : 'timed'}`}
-                    style={getEventStyles(event.provider)}
+                    className={`px-2 py-1 rounded text-xs cursor-pointer transition-opacity hover:opacity-80 border-l-2 ${
+                      event.provider === 'microsoft' ? 'bg-blue-100 border-blue-500 text-blue-900' : 'bg-green-100 border-green-500 text-green-900'
+                    }`}
                     onClick={(e) => {
                       e.stopPropagation()
                       onEventClick(event)
                     }}
                     title={`${event.title}${event.location ? ` - ${event.location}` : ''}`}
                   >
-                    <div className="event-content">
-                      <div className="event-title">{event.title}</div>
+                    <div className="space-y-1">
+                      <div className="font-medium truncate">{event.title}</div>
                       {!event.isAllDay && (
-                        <div className="event-time">{formatEventTime(event)}</div>
+                        <div className="text-xs opacity-80 truncate">{formatEventTime(event)}</div>
                       )}
                       {event.hasOnlineMeeting && (
-                        <div className="event-meeting-indicator">
+                        <div className="text-xs">
                           {event.meetingProvider === 'teams' ? '📹' : '🎥'}
                         </div>
                       )}
@@ -205,19 +209,22 @@ const MonthView: React.FC<MonthViewProps> = ({
                 
                 {/* Show "more events" indicator if there are more than 3 */}
                 {dayEvents.length > 3 && (
-                  <div className="more-events" onClick={(e) => {
-                    e.stopPropagation()
-                    onDateClick(date)
-                  }}>
+                  <div 
+                    className="text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors text-center py-1 bg-muted/50 rounded"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDateClick(date)
+                    }}
+                  >
                     +{dayEvents.length - 3} more
                   </div>
                 )}
               </div>
 
               {/* Add event button on hover */}
-              <div className="day-add-event">
+              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
-                  className="add-event-btn"
+                  className="w-6 h-6 bg-primary text-primary-foreground rounded-full text-xs font-bold hover:bg-primary/90 transition-colors flex items-center justify-center"
                   onClick={(e) => {
                     e.stopPropagation()
                     onEventCreate(date)
@@ -237,22 +244,24 @@ const MonthView: React.FC<MonthViewProps> = ({
 
 // Skeleton loading component for month view
 const MonthSkeleton: React.FC = () => (
-  <div className="month-skeleton">
+  <div className="flex flex-col h-full">
     {/* Header skeleton */}
-    <div className="skeleton-header">
+    <div className="grid grid-cols-7 bg-muted/30 border-b border-border">
       {Array(7).fill(0).map((_, i) => (
-        <div key={i} className="skeleton-day-header"></div>
+        <div key={i} className="p-3 border-r border-border last:border-r-0">
+          <div className="w-16 h-4 bg-muted animate-pulse rounded mx-auto"></div>
+        </div>
       ))}
     </div>
     
     {/* Grid skeleton */}
-    <div className="skeleton-grid">
+    <div className="flex-1 grid grid-cols-7 grid-rows-6">
       {Array(42).fill(0).map((_, i) => (
-        <div key={i} className="skeleton-day">
-          <div className="skeleton-day-number"></div>
-          <div className="skeleton-events">
-            {Math.random() > 0.5 && <div className="skeleton-event"></div>}
-            {Math.random() > 0.7 && <div className="skeleton-event"></div>}
+        <div key={i} className="border-r border-b border-border p-2 space-y-2 last:border-r-0">
+          <div className="w-6 h-4 bg-muted animate-pulse rounded"></div>
+          <div className="space-y-1">
+            {Math.random() > 0.5 && <div className="w-full h-3 bg-muted/50 animate-pulse rounded"></div>}
+            {Math.random() > 0.7 && <div className="w-3/4 h-3 bg-muted/50 animate-pulse rounded"></div>}
           </div>
         </div>
       ))}

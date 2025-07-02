@@ -2,9 +2,6 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { getProviderColor, getEventStyles, getAllDayEventStyles } from '../../../utils/calendarColors'
-import '../../../styles/components.css';
-import '../../../styles/modals.css';
-import '../../../styles/recurrence.css';
 
 // Import types
 declare global {

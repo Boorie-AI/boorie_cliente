@@ -4,10 +4,6 @@ import React, { useEffect, useState } from 'react'
 import { useCalendarStore } from '../stores/calendarStore'
 import Sidebar from '../components/common/Sidebar'
 import CalendarView from '../components/calendar/CalendarView'
-import '../styles/components.css';
-import '../styles/modals.css';
-import '../styles/recurrence.css';
-import '../styles/calendar.css';
 
 const CalendarPage: React.FC = () => {
   const {
@@ -135,10 +131,10 @@ const CalendarPage: React.FC = () => {
   // Show loading state while initializing
   if (!isInitialized) {
     return (
-      <div className="calendar-page loading">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Loading calendar...</p>
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Loading calendar...</p>
         </div>
       </div>
     )
@@ -147,28 +143,28 @@ const CalendarPage: React.FC = () => {
   // Show error state if no accounts are available
   if (connectedAccounts.length === 0 && !isLoading.accounts) {
     return (
-      <div className="calendar-page no-accounts">
-        <div className="no-accounts-container">
-          <div className="no-accounts-content">
-            <h2>No Calendar Accounts</h2>
-            <p>
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="text-center space-y-6 max-w-md">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-foreground">No Calendar Accounts</h2>
+            <p className="text-muted-foreground">
               You need to connect a Microsoft or Google account to use the calendar feature.
             </p>
-            <div className="no-accounts-actions">
-              <button 
-                onClick={() => window.location.href = '/settings?tab=accounts'}
-                className="btn btn-primary"
-              >
-                Connect Account
-              </button>
-              <button 
-                onClick={loadConnectedAccounts}
-                className="btn btn-secondary"
-                disabled={isLoading.accounts}
-              >
-                {isLoading.accounts ? 'Refreshing...' : 'Refresh'}
-              </button>
-            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button 
+              onClick={() => window.location.href = '/settings?tab=accounts'}
+              className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+            >
+              Connect Account
+            </button>
+            <button 
+              onClick={loadConnectedAccounts}
+              className="px-6 py-3 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading.accounts}
+            >
+              {isLoading.accounts ? 'Refreshing...' : 'Refresh'}
+            </button>
           </div>
         </div>
       </div>
@@ -176,18 +172,17 @@ const CalendarPage: React.FC = () => {
   }
 
   return (
-    <div className="calendar-page">
+    <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar for account selection */}
       <Sidebar 
         accounts={connectedAccounts}
         selectedAccount={selectedAccount}
         onAccountSelect={handleAccountSelect}
         isLoading={isLoading.accounts || isLoading.accountSelection}
-        className="calendar-sidebar"
       />
       
       {/* Main calendar view */}
-      <div className="calendar-main">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <CalendarView 
           events={events}
           selectedAccount={selectedAccount}
@@ -219,12 +214,12 @@ const CalendarPage: React.FC = () => {
 
       {/* Global error display */}
       {errors.accounts && (
-        <div className="calendar-error-toast">
-          <div className="error-content">
-            <span className="error-message">{errors.accounts}</span>
+        <div className="fixed top-4 right-4 bg-destructive text-destructive-foreground px-4 py-3 rounded-lg shadow-lg border border-destructive/20 z-50">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">{errors.accounts}</span>
             <button 
               onClick={() => clearErrors()}
-              className="error-dismiss"
+              className="text-destructive-foreground/80 hover:text-destructive-foreground transition-colors"
               aria-label="Dismiss error"
             >
               ×

@@ -1,9 +1,6 @@
 // Recurrence Editor Component - Advanced recurring event configuration
 
 import React, { useState, useEffect } from 'react'
-import '../../styles/components.css';
-import '../../styles/modals.css';
-import '../../styles/recurrence.css';
 
 interface RecurrencePattern {
   type: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'

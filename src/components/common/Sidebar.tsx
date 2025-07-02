@@ -2,9 +2,6 @@
 
 import React from 'react'
 import AccountCard from './AccountCard'
-import '../../styles/components.css';
-import '../../styles/modals.css';
-import '../../styles/recurrence.css';
 
 // Import types from the electron calendar types
 declare global {
@@ -46,30 +43,30 @@ const Sidebar: React.FC<SidebarProps> = ({
   )
 
   return (
-    <div className={`sidebar ${className}`}>
+    <div className={`w-72 min-w-72 bg-muted/50 border-r border-border/50 overflow-y-auto ${className}`}>
       {/* Header */}
-      <div className="sidebar-header">
-        <h3>Calendar Accounts</h3>
+      <div className="flex items-center justify-between p-4 border-b border-border/50">
+        <h3 className="text-lg font-semibold text-foreground">Calendar Accounts</h3>
         {isLoading && (
-          <div className="loading-indicator">
-            <div className="loading-spinner small"></div>
+          <div className="flex items-center">
+            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
       </div>
       
       {/* Content */}
-      <div className="sidebar-content">
+      <div className="p-4 space-y-4">
         {accounts.length === 0 ? (
           <EmptyAccountsState />
         ) : (
           <>
             {/* Connected Accounts */}
             {connectedAccounts.length > 0 && (
-              <div className="account-section">
-                <div className="section-header">
-                  <h4>Connected ({connectedAccounts.length})</h4>
+              <div className="space-y-3">
+                <div className="flex items-center">
+                  <h4 className="text-sm font-medium text-foreground/80">Connected ({connectedAccounts.length})</h4>
                 </div>
-                <div className="account-list">
+                <div className="space-y-2">
                   {connectedAccounts.map(account => (
                     <AccountCard
                       key={account.id}
@@ -85,11 +82,11 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Disconnected Accounts */}
             {disconnectedAccounts.length > 0 && (
-              <div className="account-section">
-                <div className="section-header">
-                  <h4>Needs Attention ({disconnectedAccounts.length})</h4>
+              <div className="space-y-3">
+                <div className="flex items-center">
+                  <h4 className="text-sm font-medium text-destructive/80">Needs Attention ({disconnectedAccounts.length})</h4>
                 </div>
-                <div className="account-list">
+                <div className="space-y-2">
                   {disconnectedAccounts.map(account => (
                     <AccountCard
                       key={account.id}
@@ -112,15 +109,17 @@ const Sidebar: React.FC<SidebarProps> = ({
 
 // Empty state component
 const EmptyAccountsState: React.FC = () => (
-  <div className="empty-accounts-state">
-    <div className="empty-icon">
-      <CalendarIcon className="w-12 h-12 text-gray-300" />
+  <div className="flex flex-col items-center justify-center h-64 text-center">
+    <div className="mb-4">
+      <CalendarIcon className="w-16 h-16 text-muted-foreground/50" />
     </div>
-    <div className="empty-content">
-      <h4>No Calendar Accounts</h4>
-      <p>Connect your Microsoft or Google account to get started with calendar management.</p>
+    <div className="space-y-2">
+      <h4 className="text-lg font-medium text-foreground">No Calendar Accounts</h4>
+      <p className="text-sm text-muted-foreground max-w-xs">
+        Connect your Microsoft or Google account to get started with calendar management.
+      </p>
       <button 
-        className="btn btn-primary btn-sm"
+        className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
         onClick={() => window.location.href = '/settings?tab=accounts'}
       >
         Connect Account

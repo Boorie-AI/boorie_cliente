@@ -1,19 +1,62 @@
 // Event Details Modal Component - View and edit event details
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useCalendarStore } from '../../../stores/calendarStore'
 import EventModal from './EventModal'
 import DeleteConfirmationModal from './DeleteConfirmationModal'
 //import { UnifiedCalendarEvent } from '../../../types/calendar'
-import '../../../styles/components.css';
-import '../../../styles/modals.css';
-import '../../../styles/calendar.css';
 import '../../../styles/recurrence.css'
+import DOMPurify from 'dompurify'
+
 
 interface EventDetailsModalProps {
   isOpen: boolean
   onClose: () => void
   event: UnifiedCalendarEvent | null
+}
+
+function EventDescription({ html }: { html: string }) {
+  // 1 · Quitar envoltorio <html><head><body>…</body></html>
+  const cleanHtml = useMemo(() => {
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    return doc.body.innerHTML // sólo lo que había dentro de <body>
+  }, [html])
+
+  // 2 · Sanear
+  const safeHtml = useMemo(
+    () => DOMPurify.sanitize(cleanHtml, { 
+      USE_PROFILES: { html: true },
+      ADD_ATTR: ['style', 'class', 'id', 'title', 'aria-label'] 
+    }),
+    [cleanHtml]
+  )
+
+  // 3 · Pintar con estilos Tailwind
+  return (
+    <div
+      className="detail-value prose prose-sm max-w-none overflow-hidden
+        prose-p:my-2 prose-p:text-gray-700
+        prose-a:text-blue-600 prose-a:underline prose-a:font-medium hover:prose-a:text-blue-700 prose-a:break-words
+        prose-strong:text-gray-900 prose-strong:font-semibold
+        prose-headings:text-gray-900 prose-headings:font-bold
+        prose-hr:border-gray-300 prose-hr:my-4
+        prose-div:space-y-2 prose-div:overflow-x-hidden
+        [&_.me-email-text]:text-gray-700 [&_.me-email-text]:font-sans
+        [&_.me-email-headline]:text-xl [&_.me-email-headline]:font-semibold [&_.me-email-headline]:text-blue-600 [&_.me-email-headline]:underline [&_.me-email-headline]:break-words
+        [&_.me-email-link]:text-sm [&_.me-email-link]:text-blue-600 [&_.me-email-link]:underline
+        [&_.me-email-text-secondary]:text-sm [&_.me-email-text-secondary]:text-gray-700
+        [&_span.me-email-text]:text-sm [&_span.me-email-text]:text-gray-700
+        dark:prose-p:text-gray-200 dark:prose-a:text-blue-400 dark:hover:prose-a:text-blue-300
+        dark:prose-strong:text-gray-100 dark:prose-headings:text-gray-100
+        dark:prose-hr:border-gray-600
+        dark:[&_.me-email-text]:text-gray-200
+        dark:[&_.me-email-headline]:text-blue-400
+        dark:[&_.me-email-link]:text-blue-400
+        dark:[&_.me-email-text-secondary]:text-gray-300
+        dark:[&_span.me-email-text]:text-gray-200"
+      dangerouslySetInnerHTML={{ __html: safeHtml }}
+    />
+  )
 }
 
 const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
@@ -36,7 +79,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
         day: 'numeric'
       })
     }
-    
+
     return date.toLocaleString('en-US', {
       weekday: 'short',
       month: 'short',
@@ -135,7 +178,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
             </button>
           </div>
 
-          <div className="event-details-content">
+          <div className="event-details-content overflow-x-hidden pt-4">
             {/* Date and Time */}
             <div className="detail-section">
               <div className="detail-item">
@@ -155,10 +198,10 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                           <span className="end-time">
                             {endTime.getDate() === startTime.getDate()
                               ? endTime.toLocaleTimeString('en-US', {
-                                  hour: 'numeric',
-                                  minute: '2-digit',
-                                  hour12: true
-                                })
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                              })
                               : formatDateTime(endTime, false)
                             }
                           </span>
@@ -229,9 +272,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                   </div>
                   <div className="detail-content">
                     <div className="detail-label">Description</div>
-                    <div className="detail-value description-text">
-                      {event.description}
-                    </div>
+                    <EventDescription html={event.description} />
                   </div>
                 </div>
               </div>
@@ -262,7 +303,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
               <div className="detail-item">
                 <div className="detail-content">
                   <div className="detail-label">Event ID</div>
-                  <div className="detail-value event-id">{event.id}</div>
+                  <div className="detail-value event-id break-all">{event.id}</div>
                 </div>
               </div>
             </div>
