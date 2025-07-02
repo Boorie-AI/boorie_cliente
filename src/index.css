@@ -172,3 +172,6 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
 }
+
+/* Import calendar styles */
+@import './styles/calendar.css';

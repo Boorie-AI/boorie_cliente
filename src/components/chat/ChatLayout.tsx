@@ -4,9 +4,9 @@ import { ChatArea } from './ChatArea'
 import { SettingsPanel } from '@/components/settings/SettingsPanel'
 import { RAGPanel } from '@/components/rag/RAGPanel'
 import { EmailPanel } from '@/components/email/EmailPanel'
-import { CalendarPanel } from '@/components/calendar/CalendarPanel'
 import { TodoPanel } from '../todo/TodoPanel'
 import { cn } from '@/utils/cn'
+import CalendarPage from '@/pages/CalendarPage'
 
 export function ChatLayout() {
   const { currentView, sidebarCollapsed } = useAppStore()
@@ -22,7 +22,7 @@ export function ChatLayout() {
       case 'email':
         return <EmailPanel />
       case 'calendar':
-        return <CalendarPanel />
+        return <CalendarPage />
       case 'todo':
         return <TodoPanel />
       default:

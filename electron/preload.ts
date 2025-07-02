@@ -108,6 +108,46 @@ const electronAPI = {
     decryptData: (encryptedData: string) => ipcRenderer.invoke('decrypt-data', encryptedData),
     storeSecurely: (key: string, value: string) => ipcRenderer.invoke('store-securely', key, value),
     retrieveSecurely: (key: string) => ipcRenderer.invoke('retrieve-securely', key),
+  },
+
+  // Calendar
+  calendar: {
+    // Account management
+    getConnectedAccounts: () => ipcRenderer.invoke('calendar-get-connected-accounts'),
+    getAccountInfo: (accountId: string) => ipcRenderer.invoke('calendar-get-account-info', accountId),
+    
+    // Event operations
+    getEvents: (accountId: string, startDate: string, endDate: string) => 
+      ipcRenderer.invoke('calendar-get-events', accountId, startDate, endDate),
+    getAllEvents: (startDate: string, endDate: string) => 
+      ipcRenderer.invoke('calendar-get-all-events', startDate, endDate),
+    getEvent: (accountId: string, eventId: string) => 
+      ipcRenderer.invoke('calendar-get-event', accountId, eventId),
+    createEvent: (accountId: string, eventData: any) => 
+      ipcRenderer.invoke('calendar-create-event', accountId, eventData),
+    updateEvent: (accountId: string, eventId: string, eventData: any) => 
+      ipcRenderer.invoke('calendar-update-event', accountId, eventId, eventData),
+    deleteEvent: (accountId: string, eventId: string) => 
+      ipcRenderer.invoke('calendar-delete-event', accountId, eventId),
+    
+    // Teams meeting specific
+    createTeamsMeeting: (accountId: string, eventData: any) => 
+      ipcRenderer.invoke('calendar-create-teams-meeting', accountId, eventData),
+    addTeamsToEvent: (accountId: string, eventId: string) => 
+      ipcRenderer.invoke('calendar-add-teams-to-event', accountId, eventId),
+    
+    // Google Meet specific
+    addMeetToEvent: (accountId: string, eventId: string) => 
+      ipcRenderer.invoke('calendar-add-meet-to-event', accountId, eventId),
+    
+    // Calendar management
+    getCalendars: (accountId: string) => ipcRenderer.invoke('calendar-get-calendars', accountId),
+    testConnection: (accountId: string) => ipcRenderer.invoke('calendar-test-connection', accountId),
+    testAllConnections: () => ipcRenderer.invoke('calendar-test-all-connections'),
+    
+    // Cache management
+    clearCache: () => ipcRenderer.invoke('calendar-clear-cache'),
+    getCacheStats: () => ipcRenderer.invoke('calendar-get-cache-stats'),
   }
 }
 

@@ -5,6 +5,7 @@ export { AIProviderHandler } from './aiProvider.handler'
 export { DatabaseHandler } from './database.handler'
 export { ChatHandler } from './chat.handler'
 export { AuthHandler } from './auth.handler'
+export { CalendarHandler } from './calendar.handler'
 
 import { ServiceContainer } from '../../backend/services'
 import { ConversationHandler } from './conversation.handler'
@@ -12,6 +13,7 @@ import { AIProviderHandler } from './aiProvider.handler'
 import { DatabaseHandler } from './database.handler'
 import { ChatHandler } from './chat.handler'
 import { AuthHandler } from './auth.handler'
+import { CalendarHandler } from './calendar.handler'
 import { createLogger } from '../../backend/utils/logger'
 
 const logger = createLogger('HandlersManager')
@@ -22,6 +24,7 @@ export class HandlersManager {
   private databaseHandler: DatabaseHandler
   private chatHandler: ChatHandler
   private authHandler: AuthHandler
+  private calendarHandler: CalendarHandler
   private isInitialized = false
 
   constructor(services: ServiceContainer) {
@@ -32,6 +35,7 @@ export class HandlersManager {
     this.databaseHandler = new DatabaseHandler(services.database)
     this.chatHandler = new ChatHandler()
     this.authHandler = new AuthHandler(services.database)
+    this.calendarHandler = new CalendarHandler(services.database)
     
     this.isInitialized = true
     logger.success('IPC handlers manager initialized successfully')
@@ -58,13 +62,17 @@ export class HandlersManager {
     return this.authHandler
   }
 
+  get calendar(): CalendarHandler {
+    return this.calendarHandler
+  }
+
   // Check if handlers are initialized
   get initialized(): boolean {
     return this.isInitialized
   }
 
   // Cleanup method to unregister all handlers
-  cleanup(): void {
+  async cleanup(): Promise<void> {
     if (!this.isInitialized) {
       logger.warn('Handlers manager not initialized, skipping cleanup')
       return
@@ -78,6 +86,7 @@ export class HandlersManager {
       this.databaseHandler.unregisterHandlers()
       this.chatHandler.unregisterHandlers()
       // Note: AuthHandler doesn't have unregisterHandlers method yet
+      await this.calendarHandler.cleanup()
       
       this.isInitialized = false
       logger.success('IPC handlers cleaned up successfully')
@@ -96,6 +105,7 @@ export class HandlersManager {
       results.databaseHandler = this.databaseHandler ? true : false
       results.chatHandler = this.chatHandler ? true : false
       results.authHandler = this.authHandler ? true : false
+      results.calendarHandler = this.calendarHandler ? true : false
       results.initialized = this.isInitialized
       
       logger.info('Handlers health check completed', results)
@@ -108,6 +118,7 @@ export class HandlersManager {
         databaseHandler: false,
         chatHandler: false,
         authHandler: false,
+        calendarHandler: false,
         initialized: false,
         error: true
       }

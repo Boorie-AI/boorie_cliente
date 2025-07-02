@@ -88,7 +88,121 @@ export interface ElectronAPI {
     storeSecurely: (key: string, value: string) => Promise<void>
     retrieveSecurely: (key: string) => Promise<string | null>
   }
+
+  calendar: {
+    // Account management
+    getConnectedAccounts: () => Promise<IpcResult<CalendarAccount[]>>
+    getAccountInfo: (accountId: string) => Promise<IpcResult<CalendarAccount>>
+    
+    // Event operations
+    getEvents: (accountId: string, startDate: string, endDate: string) => Promise<IpcResult<UnifiedCalendarEvent[]>>
+    getAllEvents: (startDate: string, endDate: string) => Promise<IpcResult<UnifiedCalendarEvent[]>>
+    getEvent: (accountId: string, eventId: string) => Promise<IpcResult<UnifiedCalendarEvent>>
+    createEvent: (accountId: string, eventData: CreateEventData) => Promise<IpcResult<UnifiedCalendarEvent>>
+    updateEvent: (accountId: string, eventId: string, eventData: UpdateEventData) => Promise<IpcResult<UnifiedCalendarEvent>>
+    deleteEvent: (accountId: string, eventId: string) => Promise<IpcResult<void>>
+    
+    // Teams meeting specific
+    createTeamsMeeting: (accountId: string, eventData: CreateEventData) => Promise<IpcResult<UnifiedCalendarEvent>>
+    addTeamsToEvent: (accountId: string, eventId: string) => Promise<IpcResult<UnifiedCalendarEvent>>
+    
+    // Google Meet specific  
+    addMeetToEvent: (accountId: string, eventId: string) => Promise<IpcResult<UnifiedCalendarEvent>>
+    
+    // Calendar management
+    getCalendars: (accountId: string) => Promise<IpcResult<any[]>>
+    testConnection: (accountId: string) => Promise<IpcResult<boolean>>
+    testAllConnections: () => Promise<IpcResult<{ microsoft: boolean; google: boolean }>>
+    
+    // Cache management
+    clearCache: () => Promise<IpcResult<void>>
+    getCacheStats: () => Promise<IpcResult<any>>
+  }
 }
+
+// Calendar Type Definitions for Frontend
+interface IpcResult<T = any> {
+  success: boolean
+  data?: T
+  error?: string
+}
+
+interface CalendarAccount {
+  id: string
+  provider: 'microsoft' | 'google'
+  email: string
+  name: string
+  pictureUrl?: string
+  isConnected: boolean
+  hasCalendarAccess: boolean
+  lastSync?: Date
+  calendarCount?: number
+  defaultCalendarId?: string
+}
+
+interface UnifiedCalendarEvent {
+  id: string
+  provider: 'microsoft' | 'google'
+  accountId: string
+  title: string
+  description?: string
+  startTime: Date
+  endTime: Date
+  isAllDay: boolean
+  location?: string
+  attendees?: EventAttendee[]
+  reminderMinutes?: number
+  recurrence?: RecurrencePattern
+  
+  // Meeting integration
+  hasOnlineMeeting: boolean
+  meetingUrl?: string
+  meetingProvider?: 'teams' | 'meet' | 'other'
+  
+  // Provider-specific data
+  originalEvent: any
+  providerSpecific?: {
+    microsoft?: {
+      showAs: string
+      sensitivity: string
+      isTeamsMeeting: boolean
+    }
+    google?: {
+      visibility: string
+      status: string
+      conferenceData?: any
+    }
+  }
+}
+
+interface EventAttendee {
+  email: string
+  name?: string
+  status: 'needsAction' | 'declined' | 'tentative' | 'accepted' | 'none'
+}
+
+interface RecurrencePattern {
+  type: 'daily' | 'weekly' | 'monthly' | 'yearly'
+  interval: number
+  endDate?: Date
+  count?: number
+  daysOfWeek?: number[]
+}
+
+interface CreateEventData {
+  title: string
+  description?: string
+  startTime: Date
+  endTime: Date
+  isAllDay: boolean
+  location?: string
+  attendees?: string[]
+  reminderMinutes?: number
+  isTeamsMeeting?: boolean
+  isGoogleMeet?: boolean
+}
+
+interface UpdateEventData extends Partial<CreateEventData> {}
 
 declare global {
   interface Window {
