@@ -6,6 +6,7 @@ export { DatabaseHandler } from './database.handler'
 export { ChatHandler } from './chat.handler'
 export { AuthHandler } from './auth.handler'
 export { CalendarHandler } from './calendar.handler'
+export { TodoHandler } from './todo.handler'
 
 import { ServiceContainer } from '../../backend/services'
 import { ConversationHandler } from './conversation.handler'
@@ -14,6 +15,7 @@ import { DatabaseHandler } from './database.handler'
 import { ChatHandler } from './chat.handler'
 import { AuthHandler } from './auth.handler'
 import { CalendarHandler } from './calendar.handler'
+import { TodoHandler } from './todo.handler'
 import { createLogger } from '../../backend/utils/logger'
 
 const logger = createLogger('HandlersManager')
@@ -25,6 +27,7 @@ export class HandlersManager {
   private chatHandler: ChatHandler
   private authHandler: AuthHandler
   private calendarHandler: CalendarHandler
+  private todoHandler: TodoHandler
   private isInitialized = false
 
   constructor(services: ServiceContainer) {
@@ -36,6 +39,7 @@ export class HandlersManager {
     this.chatHandler = new ChatHandler()
     this.authHandler = new AuthHandler(services.database)
     this.calendarHandler = new CalendarHandler(services.database)
+    this.todoHandler = new TodoHandler(services.database)
     
     this.isInitialized = true
     logger.success('IPC handlers manager initialized successfully')
@@ -64,6 +68,10 @@ export class HandlersManager {
 
   get calendar(): CalendarHandler {
     return this.calendarHandler
+  }
+
+  get todo(): TodoHandler {
+    return this.todoHandler
   }
 
   // Check if handlers are initialized

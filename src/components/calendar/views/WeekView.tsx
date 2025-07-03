@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getProviderColor, getEventStyles, getAllDayEventStyles } from '../../../utils/calendarColors'
 
 // Import types
 declare global {
@@ -419,67 +418,5 @@ const WeekView: React.FC<WeekViewProps> = ({
     </div>
   )
 }
-
-// Skeleton loading component for week view
-const WeekSkeleton: React.FC = () => (
-  <div className="flex flex-col h-full bg-background">
-    {/* Header skeleton */}
-    <div className="flex border-b border-border bg-muted/30">
-      <div className="w-16 lg:w-20 flex items-center justify-center py-3 border-r border-border">
-        <div className="w-8 h-3 bg-muted animate-pulse rounded"></div>
-      </div>
-      {Array(7).fill(0).map((_, i) => (
-        <div key={i} className="flex-1 flex flex-col items-center py-3 border-r border-border last:border-r-0">
-          <div className="w-6 h-3 bg-muted animate-pulse rounded mb-1"></div>
-          <div className="w-4 h-4 bg-muted animate-pulse rounded"></div>
-        </div>
-      ))}
-    </div>
-
-    {/* All day skeleton */}
-    <div className="flex border-b border-border bg-muted/10">
-      <div className="w-16 lg:w-20 flex items-center justify-center py-2 border-r border-border">
-        <div className="w-10 h-3 bg-muted animate-pulse rounded"></div>
-      </div>
-      {Array(7).fill(0).map((_, i) => (
-        <div key={i} className="flex-1 border-r border-border last:border-r-0 p-1 min-h-12">
-          {Math.random() > 0.7 && <div className="w-full h-6 bg-muted/50 animate-pulse rounded"></div>}
-        </div>
-      ))}
-    </div>
-
-    {/* Time grid skeleton */}
-    <div className="flex-1 flex overflow-hidden">
-      <div className="flex w-full">
-        <div className="w-16 lg:w-20 border-r border-border bg-muted/10">
-          {Array(24).fill(0).map((_, i) => (
-            <div key={i} className="h-16 border-b border-border/30 flex items-start justify-end pr-2 pt-1">
-              <div className="w-8 h-3 bg-muted animate-pulse rounded"></div>
-            </div>
-          ))}
-        </div>
-        <div className="flex flex-1">
-          {Array(7).fill(0).map((_, dayIndex) => (
-            <div key={dayIndex} className="flex-1 relative border-r border-border last:border-r-0">
-              {Array(24).fill(0).map((_, hour) => (
-                <div key={hour} className="h-15 border-b border-border/30"></div>
-              ))}
-              {Array(Math.floor(Math.random() * 3) + 1).fill(0).map((_, eventIndex) => (
-                <div
-                  key={eventIndex}
-                  className="absolute left-1 right-1 bg-muted/50 animate-pulse rounded"
-                  style={{
-                    top: `${Math.random() * 1000}px`,
-                    height: `${60 + Math.random() * 120}px`
-                  }}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  </div>
-)
 
 export default WeekView

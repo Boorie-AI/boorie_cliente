@@ -54,6 +54,7 @@ export class MicrosoftAuthService {
         'https://graph.microsoft.com/Mail.Send',
         'https://graph.microsoft.com/Calendars.ReadWrite',
         'https://graph.microsoft.com/Files.ReadWrite.All',
+        'https://graph.microsoft.com/Tasks.ReadWrite',
         'offline_access' // Required for refresh tokens
       ]
     }

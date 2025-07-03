@@ -4,7 +4,7 @@ import { ChatArea } from './ChatArea'
 import { SettingsPanel } from '@/components/settings/SettingsPanel'
 import { RAGPanel } from '@/components/rag/RAGPanel'
 import { EmailPanel } from '@/components/email/EmailPanel'
-import { TodoPanel } from '../todo/TodoPanel'
+import { TodoPanel } from '../../pages/TodoPanel'
 import { cn } from '@/utils/cn'
 import CalendarPage from '@/pages/CalendarPage'
 

@@ -2,7 +2,6 @@
 
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { getProviderColor, getEventStyles } from '../../../utils/calendarColors'
 
 // Import types
 declare global {
@@ -241,7 +240,7 @@ const MonthView: React.FC<MonthViewProps> = ({
 
               {/* Events for this day */}
               <div className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden max-h-20 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-                {dayEvents.map((event, eventIndex) => {
+                {dayEvents.map((event) => {
                   const dayType = getEventDayType(event, date)
                   
                   return (
@@ -297,32 +296,5 @@ const MonthView: React.FC<MonthViewProps> = ({
     </div>
   )
 }
-
-// Skeleton loading component for month view
-const MonthSkeleton: React.FC = () => (
-  <div className="flex flex-col h-full">
-    {/* Header skeleton */}
-    <div className="grid grid-cols-7 bg-muted/30 border-b border-border">
-      {Array(7).fill(0).map((_, i) => (
-        <div key={i} className="p-3 border-r border-border last:border-r-0">
-          <div className="w-16 h-4 bg-muted animate-pulse rounded mx-auto"></div>
-        </div>
-      ))}
-    </div>
-    
-    {/* Grid skeleton */}
-    <div className="flex-1 grid grid-cols-7 grid-rows-6">
-      {Array(42).fill(0).map((_, i) => (
-        <div key={i} className="border-r border-b border-border p-2 space-y-2 last:border-r-0">
-          <div className="w-6 h-4 bg-muted animate-pulse rounded"></div>
-          <div className="space-y-1">
-            {Math.random() > 0.5 && <div className="w-full h-3 bg-muted/50 animate-pulse rounded"></div>}
-            {Math.random() > 0.7 && <div className="w-3/4 h-3 bg-muted/50 animate-pulse rounded"></div>}
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-)
 
 export default MonthView

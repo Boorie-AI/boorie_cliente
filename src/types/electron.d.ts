@@ -118,6 +118,47 @@ export interface ElectronAPI {
     clearCache: () => Promise<IpcResult<void>>
     getCacheStats: () => Promise<IpcResult<any>>
   }
+
+  todo: {
+    // Initialization
+    initializeData: () => Promise<TodoOperationResult<TodoInitializationData>>
+    getAuthenticatedAccounts: () => Promise<TodoOperationResult<TodoProvider[]>>
+    validateAccountTokens: () => Promise<TodoOperationResult<Record<string, boolean>>>
+    
+    // Google Tasks
+    google: {
+      getLists: () => Promise<TodoOperationResult<any[]>>
+      createList: (request: ListCreateRequest) => Promise<TodoOperationResult<any>>
+      updateList: (request: ListUpdateRequest) => Promise<TodoOperationResult<any>>
+      deleteList: (listId: string) => Promise<TodoOperationResult<void>>
+      getTasks: (listId: string) => Promise<TodoOperationResult<any[]>>
+      createTask: (request: TaskCreateRequest) => Promise<TodoOperationResult<any>>
+      updateTask: (request: TaskUpdateRequest) => Promise<TodoOperationResult<any>>
+      deleteTask: (listId: string, taskId: string) => Promise<TodoOperationResult<void>>
+      toggleStar: (listId: string, taskId: string, starred: boolean) => Promise<TodoOperationResult<any>>
+    }
+    
+    // Microsoft To Do
+    microsoft: {
+      getLists: () => Promise<TodoOperationResult<any[]>>
+      createList: (request: ListCreateRequest) => Promise<TodoOperationResult<any>>
+      updateList: (request: ListUpdateRequest) => Promise<TodoOperationResult<any>>
+      deleteList: (listId: string) => Promise<TodoOperationResult<void>>
+      getTasks: (listId: string) => Promise<TodoOperationResult<any[]>>
+      createTask: (request: TaskCreateRequest) => Promise<TodoOperationResult<any>>
+      updateTask: (request: TaskUpdateRequest) => Promise<TodoOperationResult<any>>
+      deleteTask: (listId: string, taskId: string) => Promise<TodoOperationResult<void>>
+      toggleStar: (listId: string, taskId: string, starred: boolean) => Promise<TodoOperationResult<any>>
+    }
+    
+    // Utility operations
+    syncAll: () => Promise<TodoOperationResult<any>>
+    getUnifiedData: () => Promise<TodoOperationResult<any>>
+  }
+
+  // Event listeners
+  on: (channel: string, listener: (...args: any[]) => void) => void
+  removeListener: (channel: string, listener: (...args: any[]) => void) => void
 }
 
 // Calendar Type Definitions for Frontend
@@ -203,6 +244,103 @@ interface CreateEventData {
 }
 
 interface UpdateEventData extends Partial<CreateEventData> {}
+
+// Todo Type Definitions for Frontend
+interface TodoOperationResult<T = any> {
+  success: boolean
+  data?: T
+  error?: string
+  provider?: 'google' | 'microsoft'
+}
+
+interface TodoProvider {
+  id: string
+  name: string
+  type: 'google' | 'microsoft'
+  email: string
+  isConnected: boolean
+  hasValidToken: boolean
+}
+
+interface TodoInitializationData {
+  providers: TodoProvider[]
+  lists: UnifiedTaskList[]
+  tasks: UnifiedTask[]
+  errors: ErrorState
+}
+
+interface UnifiedTaskList {
+  id: string
+  name: string
+  provider: 'google' | 'microsoft'
+  providerId: string
+  isDefault?: boolean
+  isSystem?: boolean
+  isStarred?: boolean
+  canEdit: boolean
+  canDelete: boolean
+  taskCount?: number
+  originalList: any
+}
+
+interface UnifiedTask {
+  id: string
+  title: string
+  description?: string
+  status: 'pending' | 'completed'
+  dueDate?: string
+  completedDate?: string
+  createdDate: string
+  updatedDate: string
+  provider: 'google' | 'microsoft'
+  providerId: string
+  listId: string
+  listName: string
+  isStarred?: boolean
+  priority?: 'low' | 'normal' | 'high'
+  hasAttachments?: boolean
+  originalTask: any
+}
+
+interface TaskCreateRequest {
+  title: string
+  description?: string
+  dueDate?: string
+  priority?: 'low' | 'normal' | 'high'
+  listId: string
+  provider: 'google' | 'microsoft'
+}
+
+interface TaskUpdateRequest {
+  id: string
+  title?: string
+  description?: string
+  dueDate?: string
+  priority?: 'low' | 'normal' | 'high'
+  status?: 'pending' | 'completed'
+  listId?: string
+  provider: 'google' | 'microsoft'
+  isStarred?: boolean
+}
+
+interface ListCreateRequest {
+  name: string
+  provider: 'google' | 'microsoft'
+}
+
+interface ListUpdateRequest {
+  id: string
+  name: string
+  provider: 'google' | 'microsoft'
+}
+
+interface ErrorState {
+  accounts?: string
+  lists?: string
+  tasks?: string
+  operation?: string
+  general?: string
+}
 
 declare global {
   interface Window {

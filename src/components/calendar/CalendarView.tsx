@@ -46,12 +46,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   currentDate,
   isLoading,
   error,
-  onEventCreate,
-  onEventUpdate,
-  onEventDelete,
   onEventClick,
-  onAddTeamsToEvent,
-  onAddMeetToEvent,
   onViewChange,
   onDateChange,
   onDateNavigation,
@@ -81,13 +76,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     setInitialMinute(minute || 0)
     setShowEventModal(true)
   }
-
-  const handleEditEvent = (event: UnifiedCalendarEvent) => {
-    setSelectedEvent(event)
-    setEventModalMode('edit')
-    setShowEventModal(true)
-  }
-
 
   if (!selectedAccount) {
     return <NoAccountSelectedState />

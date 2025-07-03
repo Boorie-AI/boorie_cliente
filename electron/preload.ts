@@ -148,6 +148,53 @@ const electronAPI = {
     // Cache management
     clearCache: () => ipcRenderer.invoke('calendar-clear-cache'),
     getCacheStats: () => ipcRenderer.invoke('calendar-get-cache-stats'),
+  },
+
+  // Todo
+  todo: {
+    // Initialization
+    initializeData: () => ipcRenderer.invoke('todo:initialize-data'),
+    getAuthenticatedAccounts: () => ipcRenderer.invoke('todo:get-authenticated-accounts'),
+    validateAccountTokens: () => ipcRenderer.invoke('todo:validate-account-tokens'),
+    
+    // Google Tasks
+    google: {
+      getLists: () => ipcRenderer.invoke('todo:google:get-lists'),
+      createList: (request: any) => ipcRenderer.invoke('todo:google:create-list', request),
+      updateList: (request: any) => ipcRenderer.invoke('todo:google:update-list', request),
+      deleteList: (listId: string) => ipcRenderer.invoke('todo:google:delete-list', listId),
+      getTasks: (listId: string) => ipcRenderer.invoke('todo:google:get-tasks', listId),
+      createTask: (request: any) => ipcRenderer.invoke('todo:google:create-task', request),
+      updateTask: (request: any) => ipcRenderer.invoke('todo:google:update-task', request),
+      deleteTask: (listId: string, taskId: string) => ipcRenderer.invoke('todo:google:delete-task', listId, taskId),
+      toggleStar: (listId: string, taskId: string, starred: boolean) => ipcRenderer.invoke('todo:google:toggle-star', listId, taskId, starred),
+    },
+    
+    // Microsoft To Do
+    microsoft: {
+      getLists: () => ipcRenderer.invoke('todo:microsoft:get-lists'),
+      createList: (request: any) => ipcRenderer.invoke('todo:microsoft:create-list', request),
+      updateList: (request: any) => ipcRenderer.invoke('todo:microsoft:update-list', request),
+      deleteList: (listId: string) => ipcRenderer.invoke('todo:microsoft:delete-list', listId),
+      getTasks: (listId: string) => ipcRenderer.invoke('todo:microsoft:get-tasks', listId),
+      createTask: (request: any) => ipcRenderer.invoke('todo:microsoft:create-task', request),
+      updateTask: (request: any) => ipcRenderer.invoke('todo:microsoft:update-task', request),
+      deleteTask: (listId: string, taskId: string) => ipcRenderer.invoke('todo:microsoft:delete-task', listId, taskId),
+      toggleStar: (listId: string, taskId: string, starred: boolean) => ipcRenderer.invoke('todo:microsoft:toggle-star', listId, taskId, starred),
+    },
+    
+    // Utility operations
+    syncAll: () => ipcRenderer.invoke('todo:sync-all'),
+    getUnifiedData: () => ipcRenderer.invoke('todo:get-unified-data'),
+  },
+
+  // Event listeners
+  on: (channel: string, listener: (...args: any[]) => void) => {
+    ipcRenderer.on(channel, listener);
+  },
+  
+  removeListener: (channel: string, listener: (...args: any[]) => void) => {
+    ipcRenderer.removeListener(channel, listener);
   }
 }
 

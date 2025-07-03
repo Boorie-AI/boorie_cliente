@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getProviderColor, getEventStyles, getAllDayEventStyles } from '../../../utils/calendarColors'
 
 // Import types
 declare global {
@@ -193,16 +192,6 @@ const DayView: React.FC<DayViewProps> = ({
     const totalMinutes = now.getHours() * 60 + now.getMinutes()
     // Each hour is 64px (h-16), so each minute is 64/60 px
     return (totalMinutes / 60) * 64
-  }
-
-  // Format date for header
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
   }
 
   const dayEvents = getDayEvents()
@@ -411,81 +400,5 @@ const DayView: React.FC<DayViewProps> = ({
     </div>
   )
 }
-
-// Skeleton loading component for day view
-const DaySkeleton: React.FC = () => (
-  <div className="flex flex-col h-full bg-background">
-    {/* Header skeleton */}
-    <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
-      <div className="flex items-center gap-3">
-        <div className="w-48 h-6 bg-muted animate-pulse rounded"></div>
-        <div className="w-12 h-5 bg-muted animate-pulse rounded-full"></div>
-      </div>
-      <div className="flex items-center gap-4">
-        <div className="w-16 h-4 bg-muted animate-pulse rounded"></div>
-        <div className="w-12 h-4 bg-muted animate-pulse rounded"></div>
-      </div>
-    </div>
-    
-    {/* All day skeleton */}
-    <div className="border-b border-border bg-muted/10">
-      <div className="flex">
-        <div className="w-20 flex items-center justify-center py-2 border-r border-border">
-          <div className="w-10 h-3 bg-muted animate-pulse rounded"></div>
-        </div>
-        <div className="flex-1 p-2">
-          <div className="w-full h-8 bg-muted/50 animate-pulse rounded"></div>
-        </div>
-      </div>
-    </div>
-    
-    {/* Time grid skeleton */}
-    <div className="flex-1 overflow-auto">
-      <div className="flex min-h-[1536px]">
-        <div className="w-20 border-r border-border bg-muted/10">
-          {Array(24).fill(0).map((_, i) => (
-            <div key={i} className="h-16 border-b border-border/30">
-              <div className="h-8 flex items-center justify-end pr-2">
-                <div className="w-8 h-3 bg-muted animate-pulse rounded"></div>
-              </div>
-              <div className="h-8 flex items-center justify-end pr-2 border-t border-border/10">
-                <div className="w-6 h-2 bg-muted/60 animate-pulse rounded"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="flex-1 relative">
-          {Array(48).fill(0).map((_, index) => (
-            <div key={index} className="h-8 border-b border-border/30"></div>
-          ))}
-          {Array(Math.floor(Math.random() * 5) + 2).fill(0).map((_, i) => (
-            <div
-              key={i}
-              className="absolute left-1 right-1 bg-muted/50 animate-pulse rounded"
-              style={{
-                top: `${Math.random() * 1200}px`,
-                height: `${30 + Math.random() * 90}px`
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-    
-    {/* Empty message skeleton */}
-    <div className="p-4 border-t border-border bg-muted/10">
-      <div className="text-center">
-        <div className="w-48 h-4 bg-muted animate-pulse rounded mx-auto"></div>
-      </div>
-    </div>
-  </div>
-)
-
-// Plus icon component
-const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-  </svg>
-)
 
 export default DayView

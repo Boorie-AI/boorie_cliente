@@ -76,15 +76,6 @@ const CalendarPage: React.FC = () => {
     setEventDetailsModalOpen(true)
   }
 
-  // Handle event edit
-  const handleEventEdit = (event: UnifiedCalendarEvent) => {
-    setEventModalState({
-      isOpen: true,
-      mode: 'edit',
-      event
-    })
-  }
-
   // Handle date click (navigate to day view)
   const handleDateClick = (date: Date) => {
     setCurrentDate(date)
@@ -92,7 +83,7 @@ const CalendarPage: React.FC = () => {
   }
 
   // Handle time slot click
-  const handleTimeSlotClick = (date: Date, hour: number, minute?: number) => {
+  const handleTimeSlotClick = (date: Date) => {
     setCurrentDate(date)
     // Optionally auto-create event on double-click
   }
