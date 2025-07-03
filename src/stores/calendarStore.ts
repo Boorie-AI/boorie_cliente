@@ -506,18 +506,6 @@ export const useCalendarStore = create<CalendarState>()(
           const result = await window.electronAPI.calendar.createEvent(eventData.accountId, eventData)
 
           if (result.success && result.data) {
-            const newEvent = {
-              ...result.data,
-              startTime: new Date(result.data.startTime),
-              endTime: new Date(result.data.endTime)
-            }
-
-            // Add to local state
-            set((state) => ({
-              events: [...state.events, newEvent],
-              lastUpdated: new Date()
-            }))
-
             // Clear cache for this account to force refresh
             const newEventCache = new Map(get().eventCache)
             for (const [key] of newEventCache) {
@@ -527,7 +515,20 @@ export const useCalendarStore = create<CalendarState>()(
             }
             set({ eventCache: newEventCache })
 
-            return newEvent
+            // Refresh events from server to get proper timezone data
+            await get().loadEvents(eventData.accountId)
+
+            // Find the newly created event in the refreshed data
+            const refreshedEvent = get().events.find(event => 
+              event.title === eventData.title && 
+              Math.abs(new Date(event.startTime).getTime() - eventData.startTime.getTime()) < 60000 // Within 1 minute
+            )
+
+            return refreshedEvent || {
+              ...result.data,
+              startTime: new Date(result.data.startTime),
+              endTime: new Date(result.data.endTime)
+            }
           } else {
             throw new Error(result.error || 'Failed to create event')
           }
@@ -560,25 +561,6 @@ export const useCalendarStore = create<CalendarState>()(
           const result = await window.electronAPI.calendar.updateEvent(existingEvent.accountId, eventId, eventData)
 
           if (result.success && result.data) {
-            const updatedEvent = {
-              ...result.data,
-              startTime: new Date(result.data.startTime),
-              endTime: new Date(result.data.endTime)
-            }
-
-            // Update in local state
-            set((state) => ({
-              events: state.events.map(event =>
-                event.id === eventId
-                  ? updatedEvent
-                  : event
-              ),
-              selectedEvent: state.selectedEvent?.id === eventId
-                ? updatedEvent
-                : state.selectedEvent,
-              lastUpdated: new Date()
-            }))
-
             // Clear cache for this account to force refresh
             const newEventCache = new Map(get().eventCache)
             for (const [key] of newEventCache) {
@@ -588,7 +570,22 @@ export const useCalendarStore = create<CalendarState>()(
             }
             set({ eventCache: newEventCache })
 
-            return updatedEvent
+            // Refresh events from server to get proper timezone data
+            await get().loadEvents(existingEvent.accountId)
+
+            // Find the updated event in the refreshed data
+            const refreshedEvent = get().events.find(event => event.id === eventId)
+
+            // Update selected event if it was the one being edited
+            if (get().selectedEvent?.id === eventId && refreshedEvent) {
+              set({ selectedEvent: refreshedEvent })
+            }
+
+            return refreshedEvent || {
+              ...result.data,
+              startTime: new Date(result.data.startTime),
+              endTime: new Date(result.data.endTime)
+            }
           } else {
             throw new Error(result.error || 'Failed to update event')
           }

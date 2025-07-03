@@ -25,7 +25,7 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
   const formatDateRange = (date: Date, view: 'month' | 'week' | 'day') => {
     switch (view) {
       case 'day':
-        return date.toLocaleDateString('en-US', { 
+        return date.toLocaleDateString('es-ES', { 
           weekday: 'long', 
           year: 'numeric', 
           month: 'long', 
@@ -33,18 +33,22 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
         })
       case 'week':
         const startOfWeek = new Date(date)
-        startOfWeek.setDate(date.getDate() - date.getDay())
+        // Calculate Monday-based week start (Monday = 1, Sunday = 0)
+        const dayOfWeek = startOfWeek.getDay()
+        const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // If Sunday (0), go back 6 days, otherwise go back (day - 1) days
+        startOfWeek.setDate(startOfWeek.getDate() - daysToSubtract)
+        
         const endOfWeek = new Date(startOfWeek)
         endOfWeek.setDate(startOfWeek.getDate() + 6)
         
         if (startOfWeek.getMonth() === endOfWeek.getMonth()) {
-          return `${startOfWeek.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} ${startOfWeek.getDate()}-${endOfWeek.getDate()}`
+          return `${startOfWeek.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })} ${startOfWeek.getDate()}-${endOfWeek.getDate()}`
         } else {
-          return `${startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+          return `${startOfWeek.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })} - ${endOfWeek.toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: 'numeric' })}`
         }
       case 'month':
       default:
-        return date.toLocaleDateString('en-US', { 
+        return date.toLocaleDateString('es-ES', { 
           year: 'numeric',
           month: 'long'
         })

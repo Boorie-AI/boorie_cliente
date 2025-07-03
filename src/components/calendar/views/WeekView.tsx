@@ -192,7 +192,7 @@ const WeekView: React.FC<WeekViewProps> = ({
   // Generate hours array (0-23)
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const weekDays = getWeekDays()
-  const weekDayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const weekDayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
   // Format hour display
   const formatHour = (hour: number) => {
@@ -264,7 +264,7 @@ const WeekView: React.FC<WeekViewProps> = ({
                 {allDayEvents.map(event => (
                   <div
                     key={event.id}
-                    className={`px-2 py-1 rounded text-xs cursor-pointer transition-opacity hover:opacity-80 border-l-2 truncate ${
+                    className={`px-2 py-1 rounded text-xs cursor-pointer transition-opacity hover:opacity-80 border-l-2 overflow-hidden ${
                       event.provider === 'microsoft' 
                         ? 'bg-blue-100 border-blue-500 text-blue-900' 
                         : 'bg-green-100 border-green-500 text-green-900'
@@ -272,10 +272,10 @@ const WeekView: React.FC<WeekViewProps> = ({
                     onClick={() => onEventClick(event)}
                     title={`${event.title}${event.location ? ` - ${event.location}` : ''}`}
                   >
-                    <div className="flex items-center gap-1">
-                      <span className="font-medium truncate">{event.title}</span>
+                    <div className="flex items-center gap-1 w-full">
+                      <span className="font-medium truncate flex-1 min-w-0">{event.title}</span>
                       {event.hasOnlineMeeting && (
-                        <span className="text-xs">
+                        <span className="text-xs flex-shrink-0">
                           {event.meetingProvider === 'teams' ? '📹' : '🎥'}
                         </span>
                       )}
@@ -347,7 +347,7 @@ const WeekView: React.FC<WeekViewProps> = ({
                       return (
                         <div
                           key={event.id}
-                          className={`absolute rounded shadow-sm cursor-pointer pointer-events-auto transition-opacity hover:opacity-90 border-l-2 ${
+                          className={`absolute rounded shadow-sm cursor-pointer pointer-events-auto transition-opacity hover:opacity-90 border-l-2 overflow-hidden ${
                             event.provider === 'microsoft' 
                               ? 'bg-blue-100 border-blue-500 text-blue-900' 
                               : 'bg-green-100 border-green-500 text-green-900'
@@ -361,10 +361,10 @@ const WeekView: React.FC<WeekViewProps> = ({
                           onClick={() => onEventClick(event)}
                           title={`${event.title}${event.location ? ` - ${event.location}` : ''}`}
                         >
-                          <div className="p-1 overflow-hidden">
+                          <div className="p-1 overflow-hidden h-full">
                             <div className="font-medium text-xs leading-tight truncate">{event.title}</div>
                             {height > 30 && (
-                              <div className="text-xs opacity-80 mt-1">
+                              <div className="text-xs opacity-80 mt-1 truncate">
                                 {new Date(event.startTime).toLocaleTimeString('en-US', {
                                   hour: 'numeric',
                                   minute: '2-digit',
@@ -376,7 +376,7 @@ const WeekView: React.FC<WeekViewProps> = ({
                               <div className="text-xs opacity-70 truncate">📍 {event.location}</div>
                             )}
                             {height > 40 && event.hasOnlineMeeting && (
-                              <div className="text-xs mt-1">
+                              <div className="text-xs mt-1 truncate">
                                 {event.meetingProvider === 'teams' ? '📹 Teams' : '🎥 Meet'}
                               </div>
                             )}

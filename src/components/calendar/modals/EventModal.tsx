@@ -32,6 +32,7 @@ interface EventFormData {
   accountId: string
   hasOnlineMeeting: boolean
   meetingProvider: 'teams' | 'meet' | 'other'
+  attendees: string[]
   recurrence?: {
     type: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'
     interval: number
@@ -89,6 +90,7 @@ const EventModal: React.FC<EventModalProps> = ({
         accountId: event.accountId,
         hasOnlineMeeting: event.hasOnlineMeeting,
         meetingProvider: event.meetingProvider || 'teams',
+        attendees: event.attendees?.map(att => att.email).filter(Boolean) || [],
         recurrence: {
           type: 'none',
           interval: 1
@@ -132,6 +134,7 @@ const EventModal: React.FC<EventModalProps> = ({
         accountId: defaultAccount?.id || '',
         hasOnlineMeeting: false,
         meetingProvider: defaultAccount?.provider === 'microsoft' ? 'teams' : 'meet',
+        attendees: [],
         recurrence: {
           type: 'none',
           interval: 1
@@ -143,12 +146,72 @@ const EventModal: React.FC<EventModalProps> = ({
   const [formData, setFormData] = useState<EventFormData>(createInitialFormData())
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [attendeeInput, setAttendeeInput] = useState('')
+
+  // Email validation function
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email.trim())
+  }
+
+  // Add attendee function
+  const addAttendee = () => {
+    const email = attendeeInput.trim()
+    if (!email) return
+
+    if (!isValidEmail(email)) {
+      setErrors(prev => ({
+        ...prev,
+        attendeeInput: 'Please enter a valid email address'
+      }))
+      return
+    }
+
+    if (formData.attendees.includes(email)) {
+      setErrors(prev => ({
+        ...prev,
+        attendeeInput: 'This attendee is already added'
+      }))
+      return
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      attendees: [...prev.attendees, email]
+    }))
+    setAttendeeInput('')
+    
+    // Clear any existing error
+    if (errors.attendeeInput) {
+      setErrors(prev => ({
+        ...prev,
+        attendeeInput: ''
+      }))
+    }
+  }
+
+  // Remove attendee function
+  const removeAttendee = (email: string) => {
+    setFormData(prev => ({
+      ...prev,
+      attendees: prev.attendees.filter(attendee => attendee !== email)
+    }))
+  }
+
+  // Handle Enter key in attendee input
+  const handleAttendeeKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addAttendee()
+    }
+  }
 
   // Reset form when modal opens/closes or mode changes
   useEffect(() => {
     if (isOpen) {
       setFormData(createInitialFormData())
       setErrors({})
+      setAttendeeInput('')
     }
   }, [isOpen, mode, event?.id])
 
@@ -266,6 +329,7 @@ const EventModal: React.FC<EventModalProps> = ({
         endTime: formData.isAllDay
           ? new Date(`${formData.endDate}T23:59:59`)
           : new Date(`${formData.endDate}T${formData.endTime}`),
+        attendees: formData.attendees,
         isTeamsMeeting: formData.hasOnlineMeeting && formData.meetingProvider === 'teams',
         isGoogleMeet: formData.hasOnlineMeeting && formData.meetingProvider === 'meet'
       }
@@ -280,6 +344,33 @@ const EventModal: React.FC<EventModalProps> = ({
         
         // If user wants to add a meeting to an existing event without one
         if (!wasOnlineMeeting && isNowOnlineMeeting) {
+          if (formData.meetingProvider === 'teams' && formData.provider === 'microsoft') {
+            await addTeamsToEvent(formData.accountId, event.id)
+          } else if (formData.meetingProvider === 'meet' && formData.provider === 'google') {
+            await addMeetToEvent(formData.accountId, event.id)
+          }
+        }
+        // If user wants to remove a meeting from an existing event that has one
+        else if (wasOnlineMeeting && !isNowOnlineMeeting) {
+          // For removing meetings, we need to update the event to remove meeting data
+          const updateDataWithoutMeeting = {
+            ...eventData,
+            isTeamsMeeting: false,
+            isGoogleMeet: false
+          }
+          await updateEvent(event.id, updateDataWithoutMeeting)
+        }
+        // If user wants to change meeting type (Teams to Meet or vice versa)
+        else if (wasOnlineMeeting && isNowOnlineMeeting && event.meetingProvider !== formData.meetingProvider) {
+          // First remove the old meeting, then add the new one
+          const updateDataWithoutMeeting = {
+            ...eventData,
+            isTeamsMeeting: false,
+            isGoogleMeet: false
+          }
+          await updateEvent(event.id, updateDataWithoutMeeting)
+          
+          // Add new meeting type
           if (formData.meetingProvider === 'teams' && formData.provider === 'microsoft') {
             await addTeamsToEvent(formData.accountId, event.id)
           } else if (formData.meetingProvider === 'meet' && formData.provider === 'google') {
@@ -402,7 +493,6 @@ const EventModal: React.FC<EventModalProps> = ({
                       value={formData.startDate}
                       onChange={e => handleInputChange('startDate', e.target.value)}
                     />
-                    {errors.startDate && <span className="error-message">{errors.startDate}</span>}
                   </div>
                 </div>
 
@@ -418,7 +508,6 @@ const EventModal: React.FC<EventModalProps> = ({
                         value={formData.startTime}
                         onChange={e => handleInputChange('startTime', e.target.value)}
                       />
-                      {errors.startTime && <span className="error-message">{errors.startTime}</span>}
                     </div>
                   </div>
                 )}
@@ -436,7 +525,6 @@ const EventModal: React.FC<EventModalProps> = ({
                       value={formData.endDate}
                       onChange={e => handleInputChange('endDate', e.target.value)}
                     />
-                    {errors.endDate && <span className="error-message">{errors.endDate}</span>}
                   </div>
                 </div>
 
@@ -452,7 +540,6 @@ const EventModal: React.FC<EventModalProps> = ({
                         value={formData.endTime}
                         onChange={e => handleInputChange('endTime', e.target.value)}
                       />
-                      {errors.endTime && <span className="error-message">{errors.endTime}</span>}
                     </div>
                   </div>
                 )}
@@ -494,6 +581,68 @@ const EventModal: React.FC<EventModalProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Attendees */}
+              <div className="detail-item">
+                <div className="detail-content">
+                  <div className="detail-label">Guests</div>
+                  <div className="attendees-section">
+                    <div className="attendee-input-wrapper">
+                      <input
+                        type="email"
+                        id="attendeeInput"
+                        name="attendeeInput"
+                        className={`form-input ${errors.attendeeInput ? 'error' : ''}`}
+                        value={attendeeInput}
+                        onChange={e => {
+                          setAttendeeInput(e.target.value)
+                          if (errors.attendeeInput) {
+                            setErrors(prev => ({ ...prev, attendeeInput: '' }))
+                          }
+                        }}
+                        onKeyPress={handleAttendeeKeyPress}
+                        placeholder="Enter email address and press Enter"
+                        autoComplete="off"
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={addAttendee}
+                        disabled={!attendeeInput.trim()}
+                      >
+                        Add
+                      </button>
+                    </div>
+                    {errors.attendeeInput && <span className="error-message">{errors.attendeeInput}</span>}
+                    
+                    {/* Attendees list */}
+                    {formData.attendees.length > 0 && (
+                      <div className="attendees-list">
+                        <div className="attendees-list-header">
+                          <span className="text-sm text-gray-600">
+                            {formData.attendees.length} guest{formData.attendees.length !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        <div className="attendees-tags">
+                          {formData.attendees.map((email, index) => (
+                            <div key={index} className="attendee-tag">
+                              <span className="attendee-email">{email}</span>
+                              <button
+                                type="button"
+                                className="attendee-remove"
+                                onClick={() => removeAttendee(email)}
+                                title="Remove guest"
+                              >
+                                <CloseIcon className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="detail-section">
@@ -528,12 +677,26 @@ const EventModal: React.FC<EventModalProps> = ({
               </div>
             </div>
 
-            {errors.submit && (
-              <div className="error-banner">{errors.submit}</div>
-            )}
           </div>
 
           <div className="modal-footer">
+            {/* Date and time validation errors */}
+            {(errors.startDate || errors.startTime || errors.endDate || errors.endTime) && (
+              <div className="error-banner mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+                <div className="space-y-1">
+                  {errors.startDate && <div>• {errors.startDate}</div>}
+                  {errors.startTime && <div>• {errors.startTime}</div>}
+                  {errors.endDate && <div>• {errors.endDate}</div>}
+                  {errors.endTime && <div>• {errors.endTime}</div>}
+                </div>
+              </div>
+            )}
+            {/* General submit errors */}
+            {errors.submit && (
+              <div className="error-banner mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+                {errors.submit}
+              </div>
+            )}
             <div className="footer-actions">
               <button
                 type="button"
