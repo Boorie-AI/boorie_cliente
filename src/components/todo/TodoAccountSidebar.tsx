@@ -1,6 +1,6 @@
-// TodoAccountSidebar Component - Sidebar for Todo account selection using the same UI as calendar
+// TodoSidebar Component - Sidebar with accounts and their lists
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTodoStore } from '../../stores/todoStore'
 import '../../styles/components.css'
@@ -18,21 +18,27 @@ interface TodoAccount {
   lastSync?: Date
 }
 
-interface TodoAccountSidebarProps {
+interface TodoSidebarProps {
   className?: string
 }
 
-const TodoAccountSidebar: React.FC<TodoAccountSidebarProps> = ({ className = '' }) => {
+const TodoSidebar: React.FC<TodoSidebarProps> = ({ className = '' }) => {
   const { t } = useTranslation()
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
+  const [showCreateListModal, setShowCreateListModal] = useState(false)
+  const [newListName, setNewListName] = useState('')
+  
   const {
     authenticatedAccounts,
     lists,
     tasks,
     loading,
     syncInProgress,
+    selectedList,
     syncAllTasks,
-    filters,
-    setFilters,
+    selectList,
+    createList,
+    deleteList,
     getTaskCounts
   } = useTodoStore()
 
@@ -42,20 +48,48 @@ const TodoAccountSidebar: React.FC<TodoAccountSidebarProps> = ({ className = '' 
     provider: provider.type,
     email: provider.email,
     name: provider.name,
-    pictureUrl: undefined, // Could be added if available
+    pictureUrl: undefined,
     isConnected: provider.isConnected,
     listCount: lists.filter(l => l.provider === provider.type).length,
     taskCount: tasks.filter(t => t.provider === provider.type).length,
-    lastSync: undefined // Could track this separately
+    lastSync: undefined
   }))
 
-  const selectedAccount = filters.provider !== 'all' ? filters.provider : null
   const taskCounts = getTaskCounts()
 
-  const handleAccountSelect = (accountId: string) => {
+  // Get lists for selected account
+  const getListsForAccount = (accountId: string) => {
     const account = accounts.find(a => a.id === accountId)
-    if (account) {
-      setFilters({ provider: account.provider })
+    if (!account) return []
+    return lists.filter(list => list.provider === account.provider)
+  }
+
+  const selectedAccount = selectedAccountId ? accounts.find(a => a.id === selectedAccountId) : null
+  const visibleLists = selectedAccountId ? getListsForAccount(selectedAccountId) : []
+
+  const handleAccountSelect = (accountId: string) => {
+    if (selectedAccountId === accountId) {
+      setSelectedAccountId(null) // Collapse if same account clicked
+    } else {
+      setSelectedAccountId(accountId)
+    }
+  }
+
+  const handleListSelect = (listId: string) => {
+    selectList(listId)
+  }
+
+  const handleCreateList = async () => {
+    if (!newListName.trim() || !selectedAccount) return
+    
+    const success = await createList({
+      name: newListName,
+      provider: selectedAccount.provider
+    })
+    
+    if (success) {
+      setNewListName('')
+      setShowCreateListModal(false)
     }
   }
 
@@ -63,15 +97,26 @@ const TodoAccountSidebar: React.FC<TodoAccountSidebarProps> = ({ className = '' 
     syncAllTasks()
   }
 
-  const handleSelectAll = () => {
-    setFilters({ provider: 'all' })
+  const getListIcon = (list: any) => {
+    if (list.provider === 'google') {
+      if (list.isDefault) return '📋'
+      return '📝'
+    } else {
+      if (list.isSystem) {
+        if (list.name.toLowerCase().includes('my tasks')) return '📋'
+        if (list.name.toLowerCase().includes('assigned')) return '👥'
+        if (list.name.toLowerCase().includes('flagged')) return '🚩'
+        return '🏢'
+      }
+      return '📝'
+    }
   }
 
   return (
     <div className={`w-72 min-w-72 bg-background border-r border-border/50 overflow-y-auto ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border/50">
-        <h3 className="text-lg font-semibold text-foreground">{t('todo.sidebar.todoAccounts', 'Todo Accounts')}</h3>
+        <h3 className="text-lg font-semibold text-foreground">{t('todo.title', 'Todo')}</h3>
         <div className="flex items-center gap-2">
           <button
             onClick={handleRefresh}
@@ -91,18 +136,7 @@ const TodoAccountSidebar: React.FC<TodoAccountSidebarProps> = ({ className = '' 
       
       {/* Summary Stats */}
       <div className="p-4 border-b border-border/50">
-        <div 
-          className={`p-3 rounded-lg cursor-pointer transition-colors ${
-            filters.provider === 'all' 
-              ? 'bg-primary/10 border border-primary/20' 
-              : 'hover:bg-accent'
-          }`}
-          onClick={handleSelectAll}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-medium text-foreground">{t('todo.sidebar.allAccounts', 'All Accounts')}</h4>
-            <span className="text-xs text-muted-foreground">{accounts.length}</span>
-          </div>
+        <div className="p-3 rounded-lg bg-muted/30">
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full bg-blue-500"></div>
@@ -125,28 +159,118 @@ const TodoAccountSidebar: React.FC<TodoAccountSidebarProps> = ({ className = '' 
       </div>
       
       {/* Content */}
-      <div className="p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto">
         {accounts.length === 0 ? (
           <EmptyAccountsState />
         ) : (
-          <div className="space-y-3">
-            <div className="flex items-center">
-              <h4 className="text-sm font-medium text-foreground/80">{t('todo.sidebar.connectedAccounts', 'Connected Accounts')} ({accounts.length})</h4>
-            </div>
+          <div className="p-4 space-y-4">
+            {/* Accounts */}
             <div className="space-y-2">
+              <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                {t('todo.accounts', 'Accounts')}
+              </h4>
               {accounts.map(account => (
-                <TodoAccountCard
-                  key={account.id}
-                  account={account}
-                  isSelected={selectedAccount === account.provider}
-                  onSelect={() => handleAccountSelect(account.id)}
-                  isLoading={loading.tasks}
-                />
+                <div key={account.id}>
+                  <TodoAccountCard
+                    account={account}
+                    isSelected={selectedAccountId === account.id}
+                    isExpanded={selectedAccountId === account.id}
+                    onSelect={() => handleAccountSelect(account.id)}
+                    isLoading={loading.tasks}
+                  />
+                  
+                  {/* Lists for selected account */}
+                  {selectedAccountId === account.id && visibleLists.length > 0 && (
+                    <div className="ml-4 mt-2 space-y-1">
+                      {visibleLists.map(list => (
+                        <div
+                          key={list.id}
+                          className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
+                            selectedList === list.id 
+                              ? 'bg-primary/10 text-primary border border-primary/20' 
+                              : 'hover:bg-accent text-foreground'
+                          }`}
+                          onClick={() => handleListSelect(list.id)}
+                        >
+                          <span className="text-sm">{getListIcon(list)}</span>
+                          <span className="text-sm font-medium flex-1 truncate">{list.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {tasks.filter(t => t.listId === list.id).length}
+                          </span>
+                          {list.canDelete && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                deleteList(list.id, list.provider)
+                              }}
+                              className="p-1 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <TrashIcon className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      
+                      {/* Add List Button */}
+                      <button
+                        onClick={() => setShowCreateListModal(true)}
+                        className="w-full flex items-center gap-2 p-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-primary/50 rounded transition-colors"
+                      >
+                        <PlusIcon className="w-3 h-3" />
+                        {t('todo.list.add', 'Add list')}
+                      </button>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
         )}
       </div>
+
+      {/* Create List Modal */}
+      {showCreateListModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg p-6 w-96 max-w-full mx-4 shadow-xl border border-border">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
+              {t('todo.list.create', 'Create New List')}
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  {t('todo.list.name', 'List Name')}
+                </label>
+                <input
+                  type="text"
+                  value={newListName}
+                  onChange={(e) => setNewListName(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder={t('todo.list.namePlaceholder', 'Enter list name...')}
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowCreateListModal(false)
+                  setNewListName('')
+                }}
+                className="px-4 py-2 text-foreground hover:bg-accent rounded-lg transition-colors"
+              >
+                {t('common.cancel', 'Cancel')}
+              </button>
+              <button
+                onClick={handleCreateList}
+                disabled={!newListName.trim() || loading.creating}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading.creating ? t('common.creating', 'Creating...') : t('common.create', 'Create')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -155,6 +279,7 @@ const TodoAccountSidebar: React.FC<TodoAccountSidebarProps> = ({ className = '' 
 interface TodoAccountCardProps {
   account: TodoAccount
   isSelected: boolean
+  isExpanded: boolean
   onSelect: () => void
   isLoading: boolean
 }
@@ -162,6 +287,7 @@ interface TodoAccountCardProps {
 const TodoAccountCard: React.FC<TodoAccountCardProps> = ({
   account,
   isSelected,
+  isExpanded,
   onSelect,
   isLoading
 }) => {
@@ -180,7 +306,11 @@ const TodoAccountCard: React.FC<TodoAccountCardProps> = ({
 
   return (
     <div
-      className={`account-card ${isSelected ? 'selected' : ''} ${isLoading ? 'loading' : ''}`}
+      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors group ${
+        isSelected 
+          ? 'bg-primary/10 border border-primary/20' 
+          : 'hover:bg-accent border border-transparent'
+      }`}
       onClick={onSelect}
       role="button"
       tabIndex={0}
@@ -190,62 +320,32 @@ const TodoAccountCard: React.FC<TodoAccountCardProps> = ({
         }
       }}
     >
-      {/* Header */}
-      <div className="account-card-header">
-        <div className="account-avatar">
-          {account.pictureUrl ? (
-            <img
-              src={account.pictureUrl}
-              alt={account.name}
-              className="avatar-image"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement
-                target.style.display = 'none'
-                target.nextElementSibling?.classList.remove('hidden')
-              }}
-            />
-          ) : null}
-          <div className={`avatar-placeholder ${account.pictureUrl ? 'hidden' : ''}`}>
+      {/* Avatar */}
+      <div className="relative">
+        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+          <span className="text-sm font-medium">
             {account.name.charAt(0).toUpperCase()}
-          </div>
-
-          {/* Provider badge */}
-          <div className="provider-badge">
-            {getProviderIcon(account.provider)}
-          </div>
+          </span>
         </div>
-
-        <div className="account-info">
-          <h4 className="account-name" title={account.name}>
-            {account.name}
-          </h4>
-          <p className="account-email" title={account.email}>
-            {account.email}
-          </p>
+        {/* Provider badge */}
+        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-background rounded-full flex items-center justify-center border border-border">
+          {getProviderIcon(account.provider)}
         </div>
       </div>
 
-      {/* Body - Account Details */}
-      <div className="account-card-body">
-        {/* Account Stats */}
-        <div className="account-stats">
-          <div className="stat">
-            <ListIcon className="w-3 h-3" />
-            <span>{account.listCount || 0} {t('todo.lists', 'lists')}</span>
-          </div>
-          <div className="stat">
-            <TaskIcon className="w-3 h-3" />
-            <span>{account.taskCount || 0} {t('todo.tasks', 'tasks')}</span>
-          </div>
+      {/* Account Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h4 className="text-sm font-medium text-foreground truncate">
+            {account.name}
+          </h4>
+          <ChevronIcon className={`w-3 h-3 text-muted-foreground transition-transform ${
+            isExpanded ? 'rotate-180' : ''
+          }`} />
         </div>
-
-        {/* Loading indicator for selected account */}
-        {isSelected && isLoading && (
-          <div className="loading-indicator">
-            <div className="loading-spinner xs"></div>
-            <span>{t('todo.loadingTasks', 'Loading tasks...')}</span>
-          </div>
-        )}
+        <p className="text-xs text-muted-foreground truncate">
+          {account.listCount || 0} lists, {account.taskCount || 0} tasks
+        </p>
       </div>
     </div>
   )
@@ -316,4 +416,22 @@ const TaskIcon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 )
 
-export default TodoAccountSidebar
+const ChevronIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+  </svg>
+)
+
+const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+  </svg>
+)
+
+const TrashIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+)
+
+export default TodoSidebar

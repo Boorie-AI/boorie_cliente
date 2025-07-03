@@ -2,8 +2,8 @@ import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTodoStore } from '../stores/todoStore';
 import InitialLoadingScreen from '../components/todo/InitialLoadingScreen';
-import TodoAccountSidebar from '../components/todo/TodoAccountSidebar';
-import TodoListPanel from '../components/todo/TodoListPanel';
+import TodoSidebar from '../components/todo/TodoAccountSidebar';
+import TodoTaskList from '../components/todo/TodoTaskList';
 import ErrorBoundary from '../components/todo/ErrorBoundary';
 
 export function TodoPanel() {
@@ -76,10 +76,10 @@ export function TodoPanel() {
     <ErrorBoundary>
       <div className="flex h-screen bg-background">
         {/* Sidebar */}
-        <TodoAccountSidebar className="flex-shrink-0" />
+        <TodoSidebar className="flex-shrink-0" />
 
-        {/* Main Content - List Panel */}
-        <TodoListPanel />
+        {/* Main Content - Task List */}
+        <TodoTaskList />
       </div>
     </ErrorBoundary>
   );
