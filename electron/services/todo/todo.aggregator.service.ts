@@ -248,6 +248,7 @@ export class TodoAggregatorService {
       priority: task.importance as 'low' | 'normal' | 'high' || 'normal',
       hasAttachments: task.hasAttachments,
       isStarred: task.isStarred || false,
+      isImportant: task.importance === 'high', // Map importance to isImportant
       originalTask: task
     }));
   }

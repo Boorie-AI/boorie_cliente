@@ -67,6 +67,12 @@ const TaskModal: React.FC<TaskModalProps> = ({
 
   // Get available lists for the selected provider
   const availableLists = lists.filter(list => list.provider === formData.provider)
+  
+  // Helper to get provider-specific list ID
+  const getProviderListId = (unifiedListId: string) => {
+    const list = lists.find(l => l.id === unifiedListId)
+    return list?.providerId || unifiedListId
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -79,7 +85,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
       title: formData.title.trim(),
       description: formData.description.trim(),
       dueDate: formData.dueDate || undefined,
-      listId: formData.listId,
+      listId: getProviderListId(formData.listId), // Use provider-specific list ID
       provider: formData.provider,
       ...(formData.provider === 'google' ? { isStarred: formData.isStarred } : { isImportant: formData.isImportant })
     }
@@ -88,7 +94,22 @@ const TaskModal: React.FC<TaskModalProps> = ({
       if (mode === 'create') {
         await createTask(taskData)
       } else if (mode === 'edit' && task) {
-        await updateTask(task.id, taskData)
+        // Get provider-specific list IDs
+        const originalProviderListId = lists.find(l => l.id === task.listId)?.providerId || task.listId
+        const newProviderListId = getProviderListId(formData.listId)
+        
+        // For updating, we need to use the correct format expected by the store
+        const updateRequest = {
+          id: task.providerId, // Use providerId for the API call
+          provider: task.provider,
+          title: formData.title.trim(),
+          description: formData.description.trim(),
+          dueDate: formData.dueDate || undefined,
+          listId: originalProviderListId, // Original provider list ID
+          ...(formData.listId !== task.listId ? { newListId: newProviderListId } : {}), // Add newListId if list changed
+          ...(task.provider === 'google' ? { isStarred: formData.isStarred } : { isImportant: formData.isImportant })
+        }
+        await updateTask(updateRequest)
       }
       onClose()
     } catch (error) {

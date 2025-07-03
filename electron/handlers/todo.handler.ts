@@ -243,11 +243,25 @@ export class TodoHandler {
 
   private async createGoogleTask(event: IpcMainInvokeEvent, request: TaskCreateRequest): Promise<TodoOperationResult> {
     try {
-      const task = await this.googleTasksService.createTask(request.listId, {
-        title: request.title,
-        notes: request.description,
-        due: request.dueDate
-      });
+      // Build task data with only valid fields
+      const taskData: any = {
+        title: request.title
+      };
+      
+      if (request.description) {
+        taskData.notes = request.description;
+      }
+      
+      if (request.dueDate) {
+        // Convert to RFC 3339 format for Google Tasks
+        const date = new Date(request.dueDate);
+        taskData.due = date.toISOString();
+      }
+      
+      const task = await this.googleTasksService.createTask(request.listId, taskData);
+      
+      // Note: Starred status is handled by the unified layer via metadata
+      
       return { success: true, data: task };
     } catch (error) {
       console.error('Error creating Google task:', error);
@@ -257,12 +271,49 @@ export class TodoHandler {
 
   private async updateGoogleTask(event: IpcMainInvokeEvent, request: TaskUpdateRequest): Promise<TodoOperationResult> {
     try {
-      const task = await this.googleTasksService.updateTask(request.listId || '', request.id, {
-        title: request.title,
-        notes: request.description,
-        due: request.dueDate,
-        status: request.status === 'completed' ? 'completed' : 'needsAction'
-      });
+      // Validate required fields
+      if (!request.id || !request.listId) {
+        throw new Error('Missing required fields: task ID or list ID');
+      }
+      
+      // First, get the existing task to merge with updates
+      const existingTask = await this.googleTasksService.getTask(request.listId, request.id);
+      
+      // Build update payload with full task data (Google Tasks API requires PUT with full object)
+      const updateData: any = {
+        id: existingTask.id,
+        title: request.title !== undefined ? request.title : existingTask.title,
+        notes: request.description !== undefined ? request.description : existingTask.notes || '',
+        status: existingTask.status
+      };
+      
+      // Handle due date
+      if (request.dueDate !== undefined) {
+        if (request.dueDate) {
+          // Convert date string to RFC 3339 format
+          const date = new Date(request.dueDate);
+          updateData.due = date.toISOString();
+        } else {
+          // Don't include due field to clear it
+        }
+      } else if (existingTask.due) {
+        updateData.due = existingTask.due;
+      }
+      
+      // Handle status
+      if (request.status !== undefined) {
+        updateData.status = request.status === 'completed' ? 'completed' : 'needsAction';
+      }
+      
+      // Include other required fields from existing task
+      if (existingTask.etag) updateData.etag = existingTask.etag;
+      if (existingTask.kind) updateData.kind = existingTask.kind;
+      if (existingTask.selfLink) updateData.selfLink = existingTask.selfLink;
+      if (existingTask.position) updateData.position = existingTask.position;
+      if (existingTask.parent) updateData.parent = existingTask.parent;
+      if (existingTask.hidden) updateData.hidden = existingTask.hidden;
+      
+      const task = await this.googleTasksService.updateTask(request.listId, request.id, updateData);
       return { success: true, data: task };
     } catch (error) {
       console.error('Error updating Google task:', error);
@@ -343,18 +394,36 @@ export class TodoHandler {
 
   private async createMicrosoftTask(event: IpcMainInvokeEvent, request: TaskCreateRequest): Promise<TodoOperationResult> {
     try {
-      const task = await this.microsoftTodoService.createTask(request.listId, {
-        title: request.title,
-        body: request.description ? {
+      const taskData: any = {
+        title: request.title
+      };
+      
+      if (request.description) {
+        taskData.body = {
           content: request.description,
           contentType: 'text'
-        } : undefined,
-        dueDateTime: request.dueDate ? {
-          dateTime: request.dueDate,
+        };
+      }
+      
+      if (request.dueDate) {
+        // Ensure proper date format
+        const date = new Date(request.dueDate);
+        taskData.dueDateTime = {
+          dateTime: date.toISOString(),
           timeZone: 'UTC'
-        } : undefined,
-        importance: request.priority || 'normal'
-      });
+        };
+      }
+      
+      // Handle importance correctly
+      if (request.isImportant !== undefined) {
+        taskData.importance = request.isImportant ? 'high' : 'normal';
+      } else if (request.priority) {
+        taskData.importance = request.priority;
+      } else {
+        taskData.importance = 'normal';
+      }
+      
+      const task = await this.microsoftTodoService.createTask(request.listId, taskData);
       return { success: true, data: task };
     } catch (error) {
       console.error('Error creating Microsoft task:', error);
@@ -364,28 +433,80 @@ export class TodoHandler {
 
   private async updateMicrosoftTask(event: IpcMainInvokeEvent, request: TaskUpdateRequest): Promise<TodoOperationResult> {
     try {
-      const updateData: any = {};
-      
-      if (request.title !== undefined) updateData.title = request.title;
-      if (request.description !== undefined) {
-        updateData.body = {
-          content: request.description,
-          contentType: 'text'
-        };
-      }
-      if (request.dueDate !== undefined) {
-        updateData.dueDateTime = request.dueDate ? {
-          dateTime: request.dueDate,
-          timeZone: 'UTC'
-        } : null;
-      }
-      if (request.priority !== undefined) updateData.importance = request.priority;
-      if (request.status !== undefined) {
-        updateData.status = request.status === 'completed' ? 'completed' : 'notStarted';
-      }
+      // Check if we need to move the task to a different list
+      if (request.newListId && request.newListId !== request.listId) {
+        // Move task to new list
+        const movedTask = await this.microsoftTodoService.moveTaskToList(
+          request.listId || '', 
+          request.newListId, 
+          request.id
+        );
+        
+        // Now update the task in the new list with other changes
+        const updateData: any = {};
+        
+        if (request.title !== undefined) updateData.title = request.title;
+        if (request.description !== undefined) {
+          updateData.body = {
+            content: request.description,
+            contentType: 'text'
+          };
+        }
+        if (request.dueDate !== undefined) {
+          if (request.dueDate) {
+            // Convert date string to ISO format for Microsoft
+            const date = new Date(request.dueDate);
+            updateData.dueDateTime = {
+              dateTime: date.toISOString(),
+              timeZone: 'UTC'
+            };
+          } else {
+            updateData.dueDateTime = null;
+          }
+        }
+        if (request.isImportant !== undefined) updateData.importance = request.isImportant ? 'high' : 'normal';
+        if (request.status !== undefined) {
+          updateData.status = request.status === 'completed' ? 'completed' : 'notStarted';
+        }
+        
+        // Only update if there are other changes besides the list move
+        if (Object.keys(updateData).length > 0) {
+          const finalTask = await this.microsoftTodoService.updateTask(request.newListId, movedTask.id, updateData);
+          return { success: true, data: finalTask };
+        }
+        
+        return { success: true, data: movedTask };
+      } else {
+        // Regular update without list change
+        const updateData: any = {};
+        
+        if (request.title !== undefined) updateData.title = request.title;
+        if (request.description !== undefined) {
+          updateData.body = {
+            content: request.description,
+            contentType: 'text'
+          };
+        }
+        if (request.dueDate !== undefined) {
+          if (request.dueDate) {
+            // Convert date string to ISO format for Microsoft
+            const date = new Date(request.dueDate);
+            updateData.dueDateTime = {
+              dateTime: date.toISOString(),
+              timeZone: 'UTC'
+            };
+          } else {
+            updateData.dueDateTime = null;
+          }
+        }
+        if (request.isImportant !== undefined) updateData.importance = request.isImportant ? 'high' : 'normal';
+        if (request.status !== undefined) {
+          updateData.status = request.status === 'completed' ? 'completed' : 'notStarted';
+        }
 
-      const task = await this.microsoftTodoService.updateTask(request.listId || '', request.id, updateData);
-      return { success: true, data: task };
+        const task = await this.microsoftTodoService.updateTask(request.listId || '', request.id, updateData);
+        return { success: true, data: task };
+      }
     } catch (error) {
       console.error('Error updating Microsoft task:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };

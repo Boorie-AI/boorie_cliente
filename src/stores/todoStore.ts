@@ -310,26 +310,37 @@ export const useTodoStore = create<TodoStore>()(
             : await window.electronAPI.todo.microsoft.createTask(request);
           
           if (result.success && result.data) {
-            // Add to local state
-            const list = get().lists.find(l => l.id === request.listId);
+            console.log('Task created successfully, refreshing list...');
+            // Find the list by providerId since request.listId contains the provider-specific ID
+            const list = get().lists.find(l => l.providerId === request.listId && l.provider === request.provider);
+            console.log('Found list for refresh:', list);
             if (list) {
-              const newTask: UnifiedTask = {
-                id: `${request.provider}-${result.data.id}`,
-                title: request.title,
-                description: request.description,
-                status: 'pending',
-                dueDate: request.dueDate,
-                createdDate: new Date().toISOString(),
-                updatedDate: new Date().toISOString(),
-                provider: request.provider,
-                providerId: result.data.id,
-                listId: request.listId,
-                listName: list.name,
-                priority: request.priority,
-                originalTask: result.data
-              };
+              // Re-fetch tasks for this list
+              const tasksResult = list.provider === 'google'
+                ? await window.electronAPI.todo.google.getTasks(list.providerId)
+                : await window.electronAPI.todo.microsoft.getTasks(list.providerId);
               
-              set({ tasks: [...get().tasks, newTask] });
+              if (tasksResult.success && tasksResult.data) {
+                console.log('Got updated tasks from API:', tasksResult.data.length);
+                // Update only tasks for this list using the unified list ID
+                const otherTasks = get().tasks.filter(t => t.listId !== list.id);
+                const updatedTasks = tasksResult.data.map((task: any) => {
+                  // For Microsoft tasks, map importance to isImportant
+                  const isImportant = list.provider === 'microsoft' && task.importance === 'high';
+                  
+                  return {
+                    ...task,
+                    id: `${list.provider}-${task.id}`,
+                    provider: list.provider,
+                    listId: list.id, // Use unified list ID
+                    listName: list.name,
+                    providerId: task.id,
+                    isImportant
+                  };
+                });
+                
+                set({ tasks: [...otherTasks, ...updatedTasks] });
+              }
             }
             return true;
           } else {
@@ -353,17 +364,79 @@ export const useTodoStore = create<TodoStore>()(
             : await window.electronAPI.todo.microsoft.updateTask(request);
           
           if (result.success) {
-            // Update local state
-            const tasks = get().tasks.map(task => 
-              task.id === `${request.provider}-${request.id}` 
-                ? { 
-                    ...task, 
-                    ...request,
-                    updatedDate: new Date().toISOString()
-                  }
-                : task
+            console.log('Task updated successfully, refreshing lists...');
+            // Find the original task's list (using provider-specific IDs)
+            const originalList = get().lists.find(l => 
+              l.providerId === request.listId && l.provider === request.provider
             );
-            set({ tasks });
+            console.log('Original list found:', originalList);
+            
+            // Determine which lists need to be refreshed
+            const listsToRefresh = new Set<string>();
+            
+            // Always refresh the original list
+            if (originalList) {
+              listsToRefresh.add(originalList.id);
+            }
+            
+            // If task was moved to a different list, also refresh the new list
+            if (request.newListId && request.newListId !== request.listId) {
+              const newList = get().lists.find(l => 
+                l.providerId === request.newListId && l.provider === request.provider
+              );
+              if (newList) {
+                listsToRefresh.add(newList.id);
+              }
+            }
+            
+            // Always refresh the currently selected list too
+            const currentListId = get().selectedList;
+            if (currentListId) {
+              listsToRefresh.add(currentListId);
+            }
+            
+            // Refresh all affected lists
+            console.log('Lists to refresh:', Array.from(listsToRefresh));
+            for (const listId of listsToRefresh) {
+              const list = get().lists.find(l => l.id === listId);
+              console.log('Refreshing list:', list);
+              if (list) {
+                // Re-fetch tasks for this list
+                const tasksResult = list.provider === 'google'
+                  ? await window.electronAPI.todo.google.getTasks(list.providerId)
+                  : await window.electronAPI.todo.microsoft.getTasks(list.providerId);
+                
+                if (tasksResult.success && tasksResult.data) {
+                  // Remove old tasks for this list
+                  const otherTasks = get().tasks.filter(t => t.listId !== listId);
+                  
+                  // Add updated tasks
+                  const updatedTasks = tasksResult.data.map((task: any) => {
+                    // For Microsoft tasks, map importance to isImportant
+                    const isImportant = list.provider === 'microsoft' && task.importance === 'high';
+                    
+                    return {
+                      ...task,
+                      id: `${list.provider}-${task.id}`,
+                      provider: list.provider,
+                      listId: listId,
+                      listName: list.name,
+                      providerId: task.id,
+                      isImportant
+                    };
+                  });
+                  
+                  // Force a complete state update to trigger re-renders
+                  const newTasks = [...otherTasks, ...updatedTasks];
+                  set({ 
+                    tasks: newTasks,
+                    // Force update timestamp to trigger re-renders
+                    lastSyncTime: Date.now()
+                  });
+                }
+              }
+            }
+            
             return true;
           } else {
             set({ error: { ...get().error, operation: result.error } });

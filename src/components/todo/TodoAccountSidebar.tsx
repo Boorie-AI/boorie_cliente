@@ -1,6 +1,6 @@
 // TodoSidebar Component - Sidebar with accounts and their lists
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTodoStore } from '../../stores/todoStore'
 import '../../styles/components.css'
@@ -27,6 +27,7 @@ const TodoSidebar: React.FC<TodoSidebarProps> = ({ className = '' }) => {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [showCreateListModal, setShowCreateListModal] = useState(false)
   const [newListName, setNewListName] = useState('')
+  const hasInitializedRef = useRef(false)
   
   const {
     authenticatedAccounts,
@@ -57,6 +58,39 @@ const TodoSidebar: React.FC<TodoSidebarProps> = ({ className = '' }) => {
 
   const taskCounts = getTaskCounts()
 
+  // Auto-initialize with first account if none selected
+  useEffect(() => {
+    if (!hasInitializedRef.current && accounts.length > 0 && lists.length > 0 && !selectedAccountId) {
+      const firstAccount = accounts[0]
+      setSelectedAccountId(firstAccount.id)
+      hasInitializedRef.current = true
+      
+      // Auto-select default list for first account
+      setTimeout(() => {
+        const accountLists = lists.filter(list => list.provider === firstAccount.provider)
+        let defaultList = null
+        
+        if (firstAccount.provider === 'google') {
+          defaultList = accountLists.find(list => 
+            list.name === 'My Tasks' || 
+            list.isDefault || 
+            list.name.toLowerCase().includes('tasks')
+          ) || accountLists[0]
+        } else if (firstAccount.provider === 'microsoft') {
+          defaultList = accountLists.find(list => 
+            list.name === 'Tasks' || 
+            list.wellknownListName === 'defaultList' ||
+            list.name.toLowerCase().includes('tasks')
+          ) || accountLists[0]
+        }
+        
+        if (defaultList) {
+          selectList(defaultList.id)
+        }
+      }, 0)
+    }
+  }, [accounts.length, lists.length])
+
   // Get lists for selected account
   const getListsForAccount = (accountId: string) => {
     const account = accounts.find(a => a.id === accountId)
@@ -70,8 +104,36 @@ const TodoSidebar: React.FC<TodoSidebarProps> = ({ className = '' }) => {
   const handleAccountSelect = (accountId: string) => {
     if (selectedAccountId === accountId) {
       setSelectedAccountId(null) // Collapse if same account clicked
+      selectList('') // Clear selected list
     } else {
       setSelectedAccountId(accountId)
+      
+      // Auto-select default list for the account
+      const account = accounts.find(a => a.id === accountId)
+      if (account) {
+        const accountLists = lists.filter(list => list.provider === account.provider)
+        let defaultList = null
+        
+        if (account.provider === 'google') {
+          // For Google, find "My Tasks" or any default list
+          defaultList = accountLists.find(list => 
+            list.name === 'My Tasks' || 
+            list.isDefault || 
+            list.name.toLowerCase().includes('tasks')
+          ) || accountLists[0]
+        } else if (account.provider === 'microsoft') {
+          // For Microsoft, find "Tasks" list or default list
+          defaultList = accountLists.find(list => 
+            list.name === 'Tasks' || 
+            list.wellknownListName === 'defaultList' ||
+            list.name.toLowerCase().includes('tasks')
+          ) || accountLists[0]
+        }
+        
+        if (defaultList) {
+          selectList(defaultList.id)
+        }
+      }
     }
   }
 

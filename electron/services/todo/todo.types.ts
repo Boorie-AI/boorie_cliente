@@ -104,6 +104,7 @@ export interface UnifiedTask {
   listId: string;
   listName: string;
   isStarred?: boolean;
+  isImportant?: boolean; // For Microsoft tasks
   priority?: 'low' | 'normal' | 'high';
   hasAttachments?: boolean;
   originalTask: GoogleTask | MicrosoftTask;
@@ -168,6 +169,8 @@ export interface TaskCreateRequest {
   priority?: 'low' | 'normal' | 'high';
   listId: string;
   provider: 'google' | 'microsoft';
+  isStarred?: boolean;
+  isImportant?: boolean;
 }
 
 export interface TaskUpdateRequest {
@@ -178,8 +181,10 @@ export interface TaskUpdateRequest {
   priority?: 'low' | 'normal' | 'high';
   status?: 'pending' | 'completed';
   listId?: string;
+  newListId?: string; // For moving tasks between lists
   provider: 'google' | 'microsoft';
   isStarred?: boolean;
+  isImportant?: boolean;
 }
 
 export interface ListCreateRequest {
