@@ -43,6 +43,12 @@ const TodoTaskList: React.FC = () => {
     }
   }
 
+  const handleTaskEdit = async (taskId: string, newTitle: string) => {
+    if (!currentList) return
+    
+    await updateTask(taskId, { title: newTitle })
+  }
+
   if (!selectedList || !currentList) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background">
@@ -155,6 +161,7 @@ const TodoTaskList: React.FC = () => {
                 onToggleCompletion={() => toggleTaskCompletion(task.id)}
                 onToggleStar={() => toggleTaskStar(task.id)}
                 onDelete={() => deleteTask(task.id, currentList.id, currentList.provider)}
+                onEdit={(newTitle) => handleTaskEdit(task.id, newTitle)}
               />
             ))}
             
@@ -183,6 +190,7 @@ const TodoTaskList: React.FC = () => {
                         onToggleCompletion={() => toggleTaskCompletion(task.id)}
                         onToggleStar={() => toggleTaskStar(task.id)}
                         onDelete={() => deleteTask(task.id, currentList.id, currentList.provider)}
+                        onEdit={(newTitle) => handleTaskEdit(task.id, newTitle)}
                       />
                     ))}
                   </div>
@@ -202,17 +210,33 @@ interface TaskItemProps {
   onToggleCompletion: () => void
   onToggleStar: () => void
   onDelete: () => void
+  onEdit: (newTitle: string) => void
 }
 
 const TaskItem: React.FC<TaskItemProps> = ({
   task,
   onToggleCompletion,
   onToggleStar,
-  onDelete
+  onDelete,
+  onEdit
 }) => {
   const { t } = useTranslation()
+  const [isEditing, setIsEditing] = useState(false)
+  const [editTitle, setEditTitle] = useState(task.title)
   const isCompleted = task.status === 'completed'
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !isCompleted
+
+  const handleEdit = () => {
+    if (editTitle.trim() && editTitle !== task.title) {
+      onEdit(editTitle.trim())
+    }
+    setIsEditing(false)
+  }
+
+  const handleCancelEdit = () => {
+    setEditTitle(task.title)
+    setIsEditing(false)
+  }
 
   return (
     <div className={`px-6 py-4 flex items-center gap-4 group hover:bg-accent/50 transition-all duration-200 shadow-sm hover:shadow-md rounded-lg mx-2 my-1 bg-background hover:bg-accent/30 border border-border/30 ${
@@ -233,10 +257,24 @@ const TaskItem: React.FC<TaskItemProps> = ({
       {/* Task Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className={`text-sm ${isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-            {task.title}
-          </p>
-          {task.isStarred && (
+          {isEditing ? (
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleEdit()
+                if (e.key === 'Escape') handleCancelEdit()
+              }}
+              className="flex-1 px-2 py-1 text-sm border border-border rounded bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              autoFocus
+            />
+          ) : (
+            <p className={`text-sm ${isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+              {task.title}
+            </p>
+          )}
+          {task.isStarred && !isEditing && (
             <StarIcon className="w-4 h-4 text-yellow-500" filled />
           )}
         </div>
@@ -261,24 +299,52 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
       {/* Actions */}
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          onClick={onToggleStar}
-          className={`p-2 rounded-full transition-all duration-200 ${
-            task.isStarred 
-              ? 'text-yellow-500 hover:text-yellow-600 bg-yellow-50 hover:bg-yellow-100' 
-              : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-          }`}
-          title={task.isStarred ? t('todo.task.unstar', 'Remove star') : t('todo.task.star', 'Add star')}
-        >
-          <StarIcon className="w-4 h-4" filled={task.isStarred} />
-        </button>
-        <button
-          onClick={onDelete}
-          className="p-2 text-muted-foreground hover:text-destructive rounded-full transition-all duration-200 hover:bg-destructive/10"
-          title={t('todo.task.delete', 'Delete task')}
-        >
-          <TrashIcon className="w-4 h-4" />
-        </button>
+        {isEditing ? (
+          <>
+            <button
+              onClick={handleEdit}
+              className="p-2 text-primary hover:text-primary/80 rounded-full transition-all duration-200 hover:bg-primary/10"
+              title={t('todo.task.save', 'Save')}
+            >
+              <CheckIcon className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleCancelEdit}
+              className="p-2 text-muted-foreground hover:text-foreground rounded-full transition-all duration-200 hover:bg-accent"
+              title={t('todo.task.cancel', 'Cancel')}
+            >
+              <XIcon className="w-4 h-4" />
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => setIsEditing(true)}
+              className="p-2 text-muted-foreground hover:text-foreground rounded-full transition-all duration-200 hover:bg-accent"
+              title={t('todo.task.edit', 'Edit task')}
+            >
+              <EditIcon className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onToggleStar}
+              className={`p-2 rounded-full transition-all duration-200 ${
+                task.isStarred 
+                  ? 'text-yellow-500 hover:text-yellow-600 bg-yellow-50 hover:bg-yellow-100' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+              }`}
+              title={task.isStarred ? t('todo.task.unstar', 'Remove star') : t('todo.task.star', 'Add star')}
+            >
+              <StarIcon className="w-4 h-4" filled={task.isStarred} />
+            </button>
+            <button
+              onClick={onDelete}
+              className="p-2 text-muted-foreground hover:text-destructive rounded-full transition-all duration-200 hover:bg-destructive/10"
+              title={t('todo.task.delete', 'Delete task')}
+            >
+              <TrashIcon className="w-4 h-4" />
+            </button>
+          </>
+        )}
       </div>
     </div>
   )
@@ -361,6 +427,12 @@ const CalendarIcon: React.FC<{ className?: string }> = ({ className }) => (
 const ChevronDownIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+  </svg>
+)
+
+const EditIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
   </svg>
 )
 

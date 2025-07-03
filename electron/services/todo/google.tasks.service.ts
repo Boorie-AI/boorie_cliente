@@ -59,7 +59,18 @@ export class GoogleTasksService {
       throw new Error(`Google Tasks API error: ${response.status} - ${errorText}`);
     }
 
-    return response.json();
+    // Handle empty responses (like DELETE operations)
+    const text = await response.text();
+    if (!text) {
+      return null;
+    }
+    
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      // If response is not JSON, return the text as is
+      return text;
+    }
   }
 
   async getTaskLists(): Promise<GoogleTaskList[]> {
@@ -555,6 +566,18 @@ export class GoogleTasksService {
       await this.metadataService.deleteTaskMetadata('google', taskId);
     } catch (error) {
       console.error('Error deleting Google task:', error);
+      
+      // If task is not found (404), it's already deleted - clean up metadata anyway
+      if (error instanceof Error && error.message && (error.message.includes('404') || error.message.includes('Not Found'))) {
+        console.log('Task not found, cleaning up metadata anyway');
+        try {
+          await this.metadataService.deleteTaskMetadata('google', taskId);
+        } catch (metadataError) {
+          console.error('Error cleaning up metadata for deleted task:', metadataError);
+        }
+        return; // Don't throw error for 404s
+      }
+      
       throw error;
     }
   }

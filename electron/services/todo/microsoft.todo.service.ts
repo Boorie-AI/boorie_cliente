@@ -59,7 +59,18 @@ export class MicrosoftTodoService {
       throw new Error(`Microsoft Graph API error: ${response.status} - ${errorText}`);
     }
 
-    return response.json();
+    // Handle empty responses (like DELETE operations)
+    const text = await response.text();
+    if (!text) {
+      return null;
+    }
+    
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      // If response is not JSON, return the text as is
+      return text;
+    }
   }
 
   async getTaskLists(): Promise<MicrosoftTaskList[]> {
@@ -654,6 +665,18 @@ export class MicrosoftTodoService {
       await this.metadataService.deleteTaskMetadata('microsoft', taskId);
     } catch (error) {
       console.error('Error deleting Microsoft task:', error);
+      
+      // If task is not found (404), it's already deleted - clean up metadata anyway
+      if (error instanceof Error && error.message && error.message.includes('404')) {
+        console.log('Task not found, cleaning up metadata anyway');
+        try {
+          await this.metadataService.deleteTaskMetadata('microsoft', taskId);
+        } catch (metadataError) {
+          console.error('Error cleaning up metadata for deleted task:', metadataError);
+        }
+        return; // Don't throw error for 404s
+      }
+      
       throw error;
     }
   }
