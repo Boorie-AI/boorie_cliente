@@ -141,25 +141,26 @@
 
 /* Event Form */
 .event-form {
-  padding: 0 2rem 1rem;
+  padding: 1rem 2rem 1rem;
   flex: 1;
   overflow-y: auto;
 }
 
 .form-section {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.75rem;
   border-bottom: 1px solid #f3f4f6;
 }
 
 .form-section:last-child {
   border-bottom: none;
   margin-bottom: 0;
+  padding-bottom: 0.5rem;
 }
 
 /* Form Groups */
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .form-group:last-child {
@@ -184,7 +185,7 @@
 .form-select,
 .form-textarea {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.875rem;
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
   font-size: 0.875rem;
@@ -194,6 +195,7 @@
   font-family: inherit;
   line-height: 1.5;
   margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .form-input:focus,
@@ -233,14 +235,16 @@
 .datetime-group {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
+  margin-top: 0.5rem;
 }
 
 .datetime-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+  margin-top: 0.5rem;
 }
 
 @media (max-width: 768px) {
@@ -263,6 +267,7 @@
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
+  margin: 0.75rem 0;
 }
 
 .form-checkbox {
@@ -401,11 +406,16 @@
 .detail-item {
   display: flex;
   gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
+  margin-top: 0.5rem;
 }
 
 .detail-item:last-child {
   margin-bottom: 0;
+}
+
+.detail-item:first-child {
+  margin-top: 0;
 }
 
 .detail-icon {
@@ -424,7 +434,8 @@
   color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
+  margin-top: 0.25rem;
 }
 
 .detail-value {
@@ -625,7 +636,7 @@
   }
 
   .event-form {
-    padding: 0 1.5rem 0.75rem;
+    padding: 1rem 1.5rem 0.75rem;
   }
 
   .event-details-content {
@@ -665,7 +676,7 @@
   }
 
   .event-form {
-    padding: 0 1rem 0.5rem;
+    padding: 0.75rem 1rem 0.5rem;
   }
 
   .event-details-content {
@@ -856,7 +867,9 @@
 .attendees-section {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .attendee-input-wrapper {

@@ -1,6 +1,7 @@
 // Recurrence Editor Component - Advanced recurring event configuration
 
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface RecurrencePattern {
   type: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'
@@ -23,6 +24,7 @@ const RecurrenceEditor: React.FC<RecurrenceEditorProps> = ({
   onChange,
   startDate
 }) => {
+  const { t } = useTranslation()
   const [endType, setEndType] = useState<'never' | 'on' | 'after'>('never')
 
   // Initialize end type based on value
@@ -121,25 +123,25 @@ const RecurrenceEditor: React.FC<RecurrenceEditorProps> = ({
     
     if (interval === 1) {
       switch (type) {
-        case 'daily': return 'day'
-        case 'weekly': return 'week'
-        case 'monthly': return 'month'
-        case 'yearly': return 'year'
+        case 'daily': return t('calendar.recurrence.day')
+        case 'weekly': return t('calendar.recurrence.week')
+        case 'monthly': return t('calendar.recurrence.month')
+        case 'yearly': return t('calendar.recurrence.year')
         default: return ''
       }
     } else {
       switch (type) {
-        case 'daily': return 'days'
-        case 'weekly': return 'weeks'
-        case 'monthly': return 'months'
-        case 'yearly': return 'years'
+        case 'daily': return t('calendar.recurrence.days')
+        case 'weekly': return t('calendar.recurrence.weeks')
+        case 'monthly': return t('calendar.recurrence.months')
+        case 'yearly': return t('calendar.recurrence.years')
         default: return ''
       }
     }
   }
 
   const getRecurrenceDescription = () => {
-    if (value.type === 'none') return 'Does not repeat'
+    if (value.type === 'none') return t('calendar.recurrence.doesNotRepeat')
 
     const { type, interval, daysOfWeek, endDate, count } = value
     const intervalLabel = getIntervalLabel()
@@ -150,34 +152,34 @@ const RecurrenceEditor: React.FC<RecurrenceEditorProps> = ({
     if (interval === 1) {
       switch (type) {
         case 'daily':
-          description = 'Daily'
+          description = t('calendar.recurrence.daily')
           break
         case 'weekly':
           if (daysOfWeek && daysOfWeek.length > 0) {
-            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+            const dayNames = [t('calendar.recurrence.sun'), t('calendar.recurrence.mon'), t('calendar.recurrence.tue'), t('calendar.recurrence.wed'), t('calendar.recurrence.thu'), t('calendar.recurrence.fri'), t('calendar.recurrence.sat')]
             const selectedDays = daysOfWeek.map(d => dayNames[d]).join(', ')
-            description = `Weekly on ${selectedDays}`
+            description = t('calendar.recurrence.weeklyOn', { days: selectedDays })
           } else {
-            description = 'Weekly'
+            description = t('calendar.recurrence.weekly')
           }
           break
         case 'monthly':
-          description = 'Monthly'
+          description = t('calendar.recurrence.monthly')
           break
         case 'yearly':
-          description = 'Yearly'
+          description = t('calendar.recurrence.yearly')
           break
       }
     } else {
-      description = `Every ${interval} ${intervalLabel}`
+      description = t('calendar.recurrence.every', { interval, label: intervalLabel })
     }
 
     // End condition
     if (endDate) {
       const endDateObj = new Date(endDate)
-      description += ` until ${endDateObj.toLocaleDateString()}`
+      description += ` ${t('calendar.recurrence.until', { date: endDateObj.toLocaleDateString() })}`
     } else if (count) {
-      description += ` for ${count} occurrences`
+      description += ` ${t('calendar.recurrence.forOccurrences', { count })}`
     }
 
     return description
@@ -187,17 +189,17 @@ const RecurrenceEditor: React.FC<RecurrenceEditorProps> = ({
     return (
       <div className="recurrence-editor">
         <div className="form-group">
-          <label className="form-label">Repeat</label>
+          <label className="form-label">{t('calendar.recurrence.repeat')}</label>
           <select
             className="form-select"
             value={value.type}
             onChange={e => handleTypeChange(e.target.value as RecurrencePattern['type'])}
           >
-            <option value="none">Does not repeat</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
+            <option value="none">{t('calendar.recurrence.doesNotRepeat')}</option>
+            <option value="daily">{t('calendar.recurrence.daily')}</option>
+            <option value="weekly">{t('calendar.recurrence.weekly')}</option>
+            <option value="monthly">{t('calendar.recurrence.monthly')}</option>
+            <option value="yearly">{t('calendar.recurrence.yearly')}</option>
           </select>
         </div>
       </div>
@@ -223,7 +225,7 @@ const RecurrenceEditor: React.FC<RecurrenceEditorProps> = ({
 
       {/* Interval */}
       <div className="form-group">
-        <label className="form-label">Every</label>
+        <label className="form-label">{t('calendar.recurrence.every')}</label>
         <div className="interval-input">
           <input
             type="number"
@@ -240,9 +242,9 @@ const RecurrenceEditor: React.FC<RecurrenceEditorProps> = ({
       {/* Days of week for weekly recurrence */}
       {value.type === 'weekly' && (
         <div className="form-group">
-          <label className="form-label">Repeat on</label>
+          <label className="form-label">{t('calendar.recurrence.repeatOn')}</label>
           <div className="days-of-week">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+            {[t('calendar.recurrence.sun'), t('calendar.recurrence.mon'), t('calendar.recurrence.tue'), t('calendar.recurrence.wed'), t('calendar.recurrence.thu'), t('calendar.recurrence.fri'), t('calendar.recurrence.sat')].map((day, index) => (
               <label key={index} className="day-checkbox">
                 <input
                   type="checkbox"
@@ -258,7 +260,7 @@ const RecurrenceEditor: React.FC<RecurrenceEditorProps> = ({
 
       {/* End condition */}
       <div className="form-group">
-        <label className="form-label">Ends</label>
+        <label className="form-label">{t('calendar.recurrence.ends')}</label>
         <div className="end-condition">
           <div className="end-type-options">
             <label className="end-option">
@@ -269,7 +271,7 @@ const RecurrenceEditor: React.FC<RecurrenceEditorProps> = ({
                 checked={endType === 'never'}
                 onChange={() => handleEndTypeChange('never')}
               />
-              <span>Never</span>
+              <span>{t('calendar.recurrence.never')}</span>
             </label>
             
             <label className="end-option">
@@ -280,7 +282,7 @@ const RecurrenceEditor: React.FC<RecurrenceEditorProps> = ({
                 checked={endType === 'on'}
                 onChange={() => handleEndTypeChange('on')}
               />
-              <span>On</span>
+              <span>{t('calendar.recurrence.on')}</span>
               {endType === 'on' && (
                 <input
                   type="date"
@@ -300,7 +302,7 @@ const RecurrenceEditor: React.FC<RecurrenceEditorProps> = ({
                 checked={endType === 'after'}
                 onChange={() => handleEndTypeChange('after')}
               />
-              <span>After</span>
+              <span>{t('calendar.recurrence.after')}</span>
               {endType === 'after' && (
                 <div className="after-count">
                   <input
@@ -311,7 +313,7 @@ const RecurrenceEditor: React.FC<RecurrenceEditorProps> = ({
                     value={value.count || 1}
                     onChange={e => handleCountChange(parseInt(e.target.value) || 1)}
                   />
-                  <span>occurrences</span>
+                  <span>{t('calendar.recurrence.occurrences')}</span>
                 </div>
               )}
             </label>
@@ -321,7 +323,7 @@ const RecurrenceEditor: React.FC<RecurrenceEditorProps> = ({
 
       {/* Summary */}
       <div className="recurrence-summary">
-        <div className="summary-label">Summary:</div>
+        <div className="summary-label">{t('calendar.recurrence.summary')}:</div>
         <div className="summary-text">{getRecurrenceDescription()}</div>
       </div>
     </div>

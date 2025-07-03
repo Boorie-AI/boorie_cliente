@@ -1,6 +1,7 @@
 // Keyboard Shortcuts Help Component - Display available keyboard shortcuts
 
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import '../../styles/components.css';
 import '../../styles/modals.css';
@@ -24,6 +25,7 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
   isOpen,
   onClose
 }) => {
+  const { t } = useTranslation()
   const { getShortcutsByCategory, formatShortcut } = useKeyboardShortcuts({})
 
   if (!isOpen) return null
@@ -31,10 +33,10 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
   const shortcuts = getShortcutsByCategory()
 
   const categoryTitles = {
-    navigation: 'Navigation',
-    view: 'View Controls',
-    event: 'Event Management',
-    general: 'General Actions'
+    navigation: t('calendar.shortcuts.navigation'),
+    view: t('calendar.shortcuts.viewControls'),
+    event: t('calendar.shortcuts.eventManagement'),
+    general: t('calendar.shortcuts.generalActions')
   }
 
   const categoryOrder = ['navigation', 'view', 'event', 'general']
@@ -43,7 +45,7 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
     <div className="shortcuts-modal-overlay">
       <div className="shortcuts-modal">
         <div className="modal-header">
-          <h2>Keyboard Shortcuts</h2>
+          <h2>{t('calendar.shortcuts.title')}</h2>
           <button onClick={onClose} className="close-btn">
             <XIcon className="w-5 h-5" />
           </button>
@@ -51,10 +53,10 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
 
         <div className="modal-content">
           <div className="shortcuts-intro">
-            <p>Use these keyboard shortcuts to navigate and control your calendar more efficiently.</p>
+            <p>{t('calendar.shortcuts.description')}</p>
             <div className="platform-note">
               <InfoIcon className="w-4 h-4" />
-              <span>On Mac, use Cmd instead of Ctrl</span>
+              <span>{t('calendar.shortcuts.macNote')}</span>
             </div>
           </div>
 
@@ -78,26 +80,26 @@ export const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({
           </div>
 
           <div className="shortcuts-tips">
-            <h3>Tips</h3>
+            <h3>{t('calendar.shortcuts.tips')}</h3>
             <ul>
-              <li>Shortcuts work when the calendar is focused (not when typing in input fields)</li>
-              <li>Use <kbd>?</kbd> to quickly open this help dialog</li>
-              <li>Press <kbd>Esc</kbd> to close dialogs and cancel actions</li>
-              <li>Arrow keys work differently depending on the current view</li>
-              <li>Hold <kbd>Shift</kbd> with arrow keys for month navigation</li>
+              <li>{t('calendar.shortcuts.tip1')}</li>
+              <li>{t('calendar.shortcuts.tip2')}</li>
+              <li>{t('calendar.shortcuts.tip3')}</li>
+              <li>{t('calendar.shortcuts.tip4')}</li>
+              <li>{t('calendar.shortcuts.tip5')}</li>
             </ul>
           </div>
 
           <div className="shortcuts-footer">
             <p>
-              Missing a shortcut? <a href="#" className="feedback-link">Send feedback</a>
+              {t('calendar.shortcuts.feedback')} <a href="#" className="feedback-link">{t('calendar.shortcuts.sendFeedback')}</a>
             </p>
           </div>
         </div>
 
         <div className="modal-actions">
           <button onClick={onClose} className="btn btn-primary">
-            Got it!
+            {t('calendar.shortcuts.gotIt')}
           </button>
         </div>
       </div>
@@ -311,7 +313,7 @@ export const CalendarWithShortcuts: React.FC<{
         <button
           onClick={() => setShowShortcutsHelp(true)}
           className="shortcuts-hint-btn"
-          title="Keyboard shortcuts (Press ? to open)"
+          title={t('calendar.shortcuts.helpTooltip')}
         >
           <KeyboardIcon className="w-4 h-4" />
           <span>?</span>

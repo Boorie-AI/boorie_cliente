@@ -1,6 +1,7 @@
 // Calendar View Component - Main calendar display component
 
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import MonthView from './views/MonthView'
 import WeekView from './views/WeekView'
 import DayView from './views/DayView'
@@ -57,6 +58,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onTodayClick,
   onErrorDismiss
 }) => {
+  const { t } = useTranslation()
   const [showEventModal, setShowEventModal] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<UnifiedCalendarEvent | null>(null)
   const [eventModalMode, setEventModalMode] = useState<'create' | 'edit' | 'view'>('view')
@@ -123,7 +125,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               disabled={isLoading}
             >
               <PlusIcon className="w-4 h-4" />
-              New Event
+              {t('calendar.view.newEvent')}
             </button>
           </div>
         </div>
@@ -196,58 +198,70 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 }
 
 // No account selected state
-const NoAccountSelectedState: React.FC = () => (
-  <div className="flex items-center justify-center h-full">
-    <div className="text-center space-y-4">
-      <CalendarIcon className="w-16 h-16 text-muted-foreground/50 mx-auto" />
-      <div className="space-y-2">
-        <h3 className="text-lg font-medium text-foreground">Select a Calendar Account</h3>
-        <p className="text-sm text-muted-foreground max-w-sm">Choose an account from the sidebar to view and manage your calendar events.</p>
+const NoAccountSelectedState: React.FC = () => {
+  const { t } = useTranslation()
+  
+  return (
+    <div className="flex items-center justify-center h-full">
+      <div className="text-center space-y-4">
+        <CalendarIcon className="w-16 h-16 text-muted-foreground/50 mx-auto" />
+        <div className="space-y-2">
+          <h3 className="text-lg font-medium text-foreground">{t('calendar.view.selectAccount')}</h3>
+          <p className="text-sm text-muted-foreground max-w-sm">{t('calendar.view.selectAccountDescription')}</p>
+        </div>
       </div>
     </div>
-  </div>
-)
+  )
+}
 
 // Error state component
 const ErrorState: React.FC<{ 
   error: string
   onRetry: () => void 
   onDismiss: () => void 
-}> = ({ error, onRetry, onDismiss }) => (
-  <div className="flex items-center justify-center h-full">
-    <div className="text-center space-y-4 max-w-md">
-      <ExclamationIcon className="w-16 h-16 text-destructive mx-auto" />
-      <div className="space-y-2">
-        <h3 className="text-lg font-medium text-foreground">Unable to Load Calendar</h3>
-        <p className="text-sm text-muted-foreground">{error}</p>
-      </div>
-      <div className="flex items-center justify-center gap-3">
-        <button 
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
-          onClick={onRetry}
-        >
-          Try Again
-        </button>
-        <button 
-          className="px-4 py-2 bg-transparent text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-accent transition-colors font-medium text-sm"
-          onClick={onDismiss}
-        >
-          Dismiss
-        </button>
+}> = ({ error, onRetry, onDismiss }) => {
+  const { t } = useTranslation()
+  
+  return (
+    <div className="flex items-center justify-center h-full">
+      <div className="text-center space-y-4 max-w-md">
+        <ExclamationIcon className="w-16 h-16 text-destructive mx-auto" />
+        <div className="space-y-2">
+          <h3 className="text-lg font-medium text-foreground">{t('calendar.view.unableToLoad')}</h3>
+          <p className="text-sm text-muted-foreground">{error}</p>
+        </div>
+        <div className="flex items-center justify-center gap-3">
+          <button 
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
+            onClick={onRetry}
+          >
+            {t('calendar.view.tryAgain')}
+          </button>
+          <button 
+            className="px-4 py-2 bg-transparent text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-accent transition-colors font-medium text-sm"
+            onClick={onDismiss}
+          >
+            {t('calendar.view.dismiss')}
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-)
+  )
+}
 
 // Loading state component
-const CalendarLoadingState: React.FC<{ view: 'month' | 'week' | 'day' }> = ({ view }) => (
-  <div className="flex items-center justify-center h-full">
-    <div className="text-center space-y-4">
-      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-      <p className="text-sm text-muted-foreground">Loading {view} view...</p>
+const CalendarLoadingState: React.FC<{ view: 'month' | 'week' | 'day' }> = ({ view }) => {
+  const { t } = useTranslation()
+  
+  return (
+    <div className="flex items-center justify-center h-full">
+      <div className="text-center space-y-4">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p className="text-sm text-muted-foreground">{t('calendar.view.loadingView', { view })}</p>
+      </div>
     </div>
-  </div>
-)
+  )
+}
 
 const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">

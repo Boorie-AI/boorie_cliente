@@ -1,6 +1,7 @@
 // Calendar Page Component - Main calendar interface with views and modals
 
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useCalendarStore } from '../../stores/calendarStore'
 import CalendarNavigation from './CalendarNavigation'
 import Sidebar from '@/components/common/Sidebar'
@@ -14,6 +15,7 @@ import '../../styles/modals.css';
 import '../../styles/recurrence.css';
 
 const CalendarPage: React.FC = () => {
+  const { t } = useTranslation()
   const {
     currentView,
     currentDate,
@@ -154,10 +156,10 @@ const CalendarPage: React.FC = () => {
               className="create-event-btn"
               onClick={() => handleEventCreate(currentDate)}
               disabled={!hasConnectedAccounts || isLoading.eventCreation}
-              title={!hasConnectedAccounts ? 'Connect an account to create events' : 'Create new event'}
+              title={!hasConnectedAccounts ? t('calendar.page.connectAccountTooltip') : t('calendar.page.createEventTooltip')}
             >
               <PlusIcon className="w-4 h-4" />
-              Create Event
+              {t('calendar.page.createEvent')}
             </button>
           </div>
         </div>
@@ -169,17 +171,17 @@ const CalendarPage: React.FC = () => {
             <div className="error-banner">
               {errors.accounts && (
                 <div className="error-message">
-                  <strong>Account Error:</strong> {errors.accounts}
+                  <strong>{t('calendar.page.accountError')}:</strong> {errors.accounts}
                 </div>
               )}
               {errors.events && (
                 <div className="error-message">
-                  <strong>Events Error:</strong> {errors.events}
+                  <strong>{t('calendar.page.eventsError')}:</strong> {errors.events}
                 </div>
               )}
               {errors.operations && (
                 <div className="error-message">
-                  <strong>Operation Error:</strong> {errors.operations}
+                  <strong>{t('calendar.page.operationError')}:</strong> {errors.operations}
                 </div>
               )}
             </div>
@@ -190,10 +192,10 @@ const CalendarPage: React.FC = () => {
             <div className="no-accounts-message">
               <div className="empty-state">
                 <CalendarIcon className="w-16 h-16 text-gray-400" />
-                <h3>No Calendar Accounts Connected</h3>
-                <p>Connect your Microsoft or Google account to start managing your calendar events.</p>
+                <h3>{t('calendar.page.noAccountsTitle')}</h3>
+                <p>{t('calendar.page.noAccountsDescription')}</p>
                 <button className="btn btn-primary">
-                  Connect Account
+                  {t('calendar.page.connectAccount')}
                 </button>
               </div>
             </div>

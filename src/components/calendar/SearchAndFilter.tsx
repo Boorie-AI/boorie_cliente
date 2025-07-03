@@ -1,6 +1,7 @@
 // Search and Filter Component - Advanced search UI for calendar events
 
 import React, { useState, useCallback, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import useEventSearch from '../../hooks/useEventSearch'
 import '../../styles/components.css';
 import '../../styles/modals.css';
@@ -20,6 +21,7 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
   onEventsFilter,
   className = ''
 }) => {
+  const { t } = useTranslation()
   const [showFilters, setShowFilters] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -67,7 +69,7 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
           <input
             ref={searchInputRef}
             type="text"
-            placeholder="Search events, people, locations..."
+            placeholder={t('calendar.search.placeholder')}
             value={filters.query}
             onChange={(e) => handleSearchChange(e.target.value)}
             onFocus={() => setShowSuggestions(true)}
@@ -96,7 +98,7 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
           <div className="search-suggestions">
             {filters.query && (
               <div className="suggestions-section">
-                <h4>Recent Searches</h4>
+                <h4>{t('calendar.search.recentSearches')}</h4>
                 {searchHistory
                   .filter(item => item.query.toLowerCase().includes(filters.query.toLowerCase()))
                   .slice(0, 3)
@@ -108,7 +110,7 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
                     >
                       <ClockIcon className="w-4 h-4" />
                       <span>{item.query}</span>
-                      <span className="result-count">{item.resultCount} results</span>
+                      <span className="result-count">{t('calendar.search.resultCount', { count: item.resultCount })}</span>
                     </button>
                   ))}
               </div>
@@ -116,7 +118,7 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
             
             {!filters.query && smartSuggestions.length > 0 && (
               <div className="suggestions-section">
-                <h4>Suggestions</h4>
+                <h4>{t('calendar.search.suggestions')}</h4>
                 {smartSuggestions.map(suggestion => (
                   <button
                     key={suggestion}
@@ -138,7 +140,7 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
           className={`filter-toggle-btn ${showFilters ? 'active' : ''}`}
         >
           <FilterIcon className="w-4 h-4" />
-          <span>Filters</span>
+          <span>{t('calendar.search.filters')}</span>
           {getActiveFilterCount() > 0 && (
             <span className="filter-count">{getActiveFilterCount()}</span>
           )}
@@ -148,19 +150,19 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
       {/* Quick Filters */}
       <div className="quick-filters">
         <button onClick={() => handleQuickFilter('today')} className="quick-filter">
-          Today
+          {t('calendar.search.today')}
         </button>
         <button onClick={() => handleQuickFilter('thisWeek')} className="quick-filter">
-          This Week
+          {t('calendar.search.thisWeek')}
         </button>
         <button onClick={() => handleQuickFilter('onlineMeetings')} className="quick-filter">
-          Online Meetings
+          {t('calendar.search.onlineMeetings')}
         </button>
         <button onClick={() => handleQuickFilter('longMeetings')} className="quick-filter">
-          Long Meetings
+          {t('calendar.search.longMeetings')}
         </button>
         <button onClick={() => handleQuickFilter('morningEvents')} className="quick-filter">
-          Morning Events
+          {t('calendar.search.morningEvents')}
         </button>
       </div>
 
@@ -169,16 +171,16 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
         <div className="search-results-summary">
           <div className="results-info">
             <span className="results-count">
-              {searchResults.filteredCount} of {searchResults.totalCount} events
+              {t('calendar.search.resultsCount', { filtered: searchResults.filteredCount, total: searchResults.totalCount })}
             </span>
             <span className="search-time">
-              ({searchResults.searchTime.toFixed(1)}ms)
+              ({t('calendar.search.searchTime', { time: searchResults.searchTime.toFixed(1) })})
             </span>
           </div>
           
           {getActiveFilterCount() > 0 && (
             <button onClick={clearFilters} className="clear-filters-btn">
-              Clear all filters
+              {t('calendar.search.clearFilters')}
             </button>
           )}
         </div>
@@ -213,6 +215,7 @@ export const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
 
 // Advanced Filter Panel
 const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation()
   const { filters, updateFilters, searchResults } = useEventSearch()
   
   if (!isOpen) return null
@@ -220,7 +223,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
   return (
     <div className="filter-panel">
       <div className="filter-panel-header">
-        <h3>Advanced Filters</h3>
+        <h3>{t('calendar.search.advancedFilters')}</h3>
         <button onClick={onClose} className="close-btn">
           <XIcon className="w-5 h-5" />
         </button>
@@ -229,7 +232,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
       <div className="filter-panel-content">
         {/* Date Range Filter */}
         <div className="filter-group">
-          <label className="filter-label">Date Range</label>
+          <label className="filter-label">{t('calendar.search.dateRange')}</label>
           <div className="date-range-inputs">
             <input
               type="date"
@@ -242,7 +245,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
               })}
               className="date-input"
             />
-            <span>to</span>
+            <span>{t('calendar.search.to')}</span>
             <input
               type="date"
               value={filters.dateRange.end?.toISOString().split('T')[0] || ''}
@@ -259,7 +262,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
 
         {/* Provider Filter */}
         <div className="filter-group">
-          <label className="filter-label">Providers</label>
+          <label className="filter-label">{t('calendar.search.providers')}</label>
           <div className="checkbox-group">
             {searchResults.facets.providers.map(({ name, count }) => (
               <label key={name} className="checkbox-item">
@@ -282,7 +285,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
 
         {/* Accounts Filter */}
         <div className="filter-group">
-          <label className="filter-label">Accounts</label>
+          <label className="filter-label">{t('calendar.search.accounts')}</label>
           <div className="checkbox-group">
             {searchResults.facets.accounts.map(({ id, name, count }) => (
               <label key={id} className="checkbox-item">
@@ -305,7 +308,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
 
         {/* Time of Day Filter */}
         <div className="filter-group">
-          <label className="filter-label">Time of Day</label>
+          <label className="filter-label">{t('calendar.search.timeOfDay')}</label>
           <div className="checkbox-group">
             {Object.entries(filters.timeOfDay).map(([period, enabled]) => {
               const facet = searchResults.facets.timeOfDay.find(f => f.period === period)
@@ -331,11 +334,11 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
 
         {/* Duration Filter */}
         <div className="filter-group">
-          <label className="filter-label">Duration (minutes)</label>
+          <label className="filter-label">{t('calendar.search.durationMinutes')}</label>
           <div className="range-inputs">
             <input
               type="number"
-              placeholder="Min"
+              placeholder={t('calendar.search.min')}
               value={filters.duration.min || ''}
               onChange={(e) => updateFilters({
                 duration: {
@@ -345,10 +348,10 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
               })}
               className="range-input"
             />
-            <span>to</span>
+            <span>{t('calendar.search.to')}</span>
             <input
               type="number"
-              placeholder="Max"
+              placeholder={t('calendar.search.max')}
               value={filters.duration.max || ''}
               onChange={(e) => updateFilters({
                 duration: {
@@ -363,7 +366,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
 
         {/* Meeting Type Filter */}
         <div className="filter-group">
-          <label className="filter-label">Meeting Type</label>
+          <label className="filter-label">{t('calendar.search.meetingType')}</label>
           <div className="radio-group">
             <label className="radio-item">
               <input
@@ -372,7 +375,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
                 checked={filters.hasOnlineMeeting === null}
                 onChange={() => updateFilters({ hasOnlineMeeting: null })}
               />
-              <span>All meetings</span>
+              <span>{t('calendar.search.allMeetings')}</span>
             </label>
             <label className="radio-item">
               <input
@@ -381,7 +384,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
                 checked={filters.hasOnlineMeeting === true}
                 onChange={() => updateFilters({ hasOnlineMeeting: true })}
               />
-              <span>Online meetings only</span>
+              <span>{t('calendar.search.onlineMeetingsOnly')}</span>
             </label>
             <label className="radio-item">
               <input
@@ -390,14 +393,14 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
                 checked={filters.hasOnlineMeeting === false}
                 onChange={() => updateFilters({ hasOnlineMeeting: false })}
               />
-              <span>In-person meetings only</span>
+              <span>{t('calendar.search.inPersonMeetingsOnly')}</span>
             </label>
           </div>
         </div>
 
         {/* Attendees Filter */}
         <div className="filter-group">
-          <label className="filter-label">Attendees</label>
+          <label className="filter-label">{t('calendar.search.attendees')}</label>
           <div className="attendees-filters">
             <label className="checkbox-item">
               <input
@@ -410,13 +413,13 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
                   }
                 })}
               />
-              <span>Has attendees</span>
+              <span>{t('calendar.search.hasAttendees')}</span>
             </label>
             
             <div className="range-inputs">
               <input
                 type="number"
-                placeholder="Min attendees"
+                placeholder={t('calendar.search.minAttendees')}
                 value={filters.attendees.minAttendees || ''}
                 onChange={(e) => updateFilters({
                   attendees: {
@@ -428,7 +431,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
               />
               <input
                 type="number"
-                placeholder="Max attendees"
+                placeholder={t('calendar.search.maxAttendees')}
                 value={filters.attendees.maxAttendees || ''}
                 onChange={(e) => updateFilters({
                   attendees: {
@@ -444,7 +447,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
 
         {/* Location Filter */}
         <div className="filter-group">
-          <label className="filter-label">Location</label>
+          <label className="filter-label">{t('calendar.search.location')}</label>
           <div className="checkbox-group">
             <label className="checkbox-item">
               <input
@@ -457,7 +460,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
                   }
                 })}
               />
-              <span>Has location</span>
+              <span>{t('calendar.search.hasLocation')}</span>
             </label>
             <label className="checkbox-item">
               <input
@@ -470,7 +473,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ isOpen, onClose }) => {
                   }
                 })}
               />
-              <span>Online location</span>
+              <span>{t('calendar.search.onlineLocation')}</span>
             </label>
           </div>
         </div>

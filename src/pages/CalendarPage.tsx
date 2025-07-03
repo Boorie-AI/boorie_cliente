@@ -1,11 +1,13 @@
 // Calendar Page - Main calendar interface with sidebar and calendar view
 
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useCalendarStore } from '../stores/calendarStore'
 import Sidebar from '../components/common/Sidebar'
 import CalendarView from '../components/calendar/CalendarView'
 
 const CalendarPage: React.FC = () => {
+  const { t } = useTranslation()
   const {
     connectedAccounts,
     selectedAccount,
@@ -66,7 +68,7 @@ const CalendarPage: React.FC = () => {
 
   const handleEventCreate = async (eventData: CreateEventData) => {
     if (!selectedAccount) {
-      throw new Error('No account selected')
+      throw new Error(t('calendar.page.noAccountSelected'))
     }
 
     if (eventData.isTeamsMeeting) {
@@ -78,7 +80,7 @@ const CalendarPage: React.FC = () => {
 
   const handleEventUpdate = async (eventId: string, eventData: UpdateEventData) => {
     if (!selectedAccount) {
-      throw new Error('No account selected')
+      throw new Error(t('calendar.page.noAccountSelected'))
     }
 
     return await updateEvent(eventId, eventData)
@@ -86,7 +88,7 @@ const CalendarPage: React.FC = () => {
 
   const handleEventDelete = async (eventId: string) => {
     if (!selectedAccount) {
-      throw new Error('No account selected')
+      throw new Error(t('calendar.page.noAccountSelected'))
     }
 
     return await deleteEvent(eventId)
@@ -94,7 +96,7 @@ const CalendarPage: React.FC = () => {
 
   const handleAddTeamsToEvent = async (eventId: string) => {
     if (!selectedAccount) {
-      throw new Error('No account selected')
+      throw new Error(t('calendar.page.noAccountSelected'))
     }
 
     return await addTeamsToEvent(selectedAccount, eventId)
@@ -102,7 +104,7 @@ const CalendarPage: React.FC = () => {
 
   const handleAddMeetToEvent = async (eventId: string) => {
     if (!selectedAccount) {
-      throw new Error('No account selected')
+      throw new Error(t('calendar.page.noAccountSelected'))
     }
 
     return await addMeetToEvent(selectedAccount, eventId)
@@ -134,7 +136,7 @@ const CalendarPage: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="text-center space-y-4">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-sm text-muted-foreground">Loading calendar...</p>
+          <p className="text-sm text-muted-foreground">{t('calendar.page.loadingCalendar')}</p>
         </div>
       </div>
     )
@@ -146,9 +148,9 @@ const CalendarPage: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-background">
         <div className="text-center space-y-6 max-w-md">
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-foreground">No Calendar Accounts</h2>
+            <h2 className="text-2xl font-bold text-foreground">{t('calendar.page.noAccountsConnected')}</h2>
             <p className="text-muted-foreground">
-              You need to connect a Microsoft or Google account to use the calendar feature.
+              {t('calendar.page.connectAccountDesc')}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -156,14 +158,14 @@ const CalendarPage: React.FC = () => {
               onClick={() => window.location.href = '/settings?tab=accounts'}
               className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
             >
-              Connect Account
+              {t('calendar.page.connectAccount')}
             </button>
             <button 
               onClick={loadConnectedAccounts}
               className="px-6 py-3 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isLoading.accounts}
             >
-              {isLoading.accounts ? 'Refreshing...' : 'Refresh'}
+              {isLoading.accounts ? t('calendar.page.refreshing') : t('calendar.page.refresh')}
             </button>
           </div>
         </div>
@@ -221,7 +223,7 @@ const CalendarPage: React.FC = () => {
             <button 
               onClick={() => clearErrors()}
               className="text-destructive-foreground/80 hover:text-destructive-foreground transition-colors"
-              aria-label="Dismiss error"
+              aria-label={t('calendar.page.dismissError')}
             >
               ×
             </button>

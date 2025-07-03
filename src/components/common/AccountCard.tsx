@@ -1,6 +1,7 @@
 // Account Card Component - Display individual account information
 
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import '../../styles/components.css';
 import '../../styles/modals.css';
 import '../../styles/recurrence.css';
@@ -36,6 +37,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
   isLoading,
   disabled = false
 }) => {
+  const { t } = useTranslation()
   const getProviderIcon = (provider: string) => {
     switch (provider) {
       case 'microsoft':
@@ -64,20 +66,20 @@ const AccountCard: React.FC<AccountCardProps> = ({
   }
 
   const formatLastSync = (lastSync: Date | undefined) => {
-    if (!lastSync) return 'Never'
+    if (!lastSync) return t('calendar.common.never')
 
     const now = new Date()
     const diffMs = now.getTime() - lastSync.getTime()
     const diffMins = Math.floor(diffMs / 60000)
 
-    if (diffMins < 1) return 'Just now'
-    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffMins < 1) return t('calendar.common.justNow')
+    if (diffMins < 60) return t('calendar.common.minutesAgo', { minutes: diffMins })
 
     const diffHours = Math.floor(diffMins / 60)
-    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffHours < 24) return t('calendar.common.hoursAgo', { hours: diffHours })
 
     const diffDays = Math.floor(diffHours / 24)
-    return `${diffDays}d ago`
+    return t('calendar.common.daysAgo', { days: diffDays })
   }
 
   const handleClick = () => {
@@ -140,10 +142,10 @@ const AccountCard: React.FC<AccountCardProps> = ({
         <div className="status-info">
           <span className={`status-text ${getStatusColor(account)}`}>
             {!account.isConnected
-              ? 'Disconnected'
+              ? t('calendar.common.disconnected')
               : !account.hasCalendarAccess
-                ? 'No Calendar Access'
-                : 'Connected'
+                ? t('calendar.common.noCalendarAccess')
+                : t('calendar.common.connected')
             }
           </span>
         </div>
@@ -154,7 +156,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
             {account.calendarCount !== undefined && (
               <div className="stat">
                 <CalendarIcon className="w-3 h-3" />
-                <span>{account.calendarCount} calendar{account.calendarCount !== 1 ? 's' : ''}</span>
+                <span>{account.calendarCount} {account.calendarCount === 1 ? t('calendar.common.calendarSingular') : t('calendar.common.calendarPlural')}</span>
               </div>
             )}
           </div>
@@ -164,7 +166,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
         {isSelected && isLoading && (
           <div className="loading-indicator">
             <div className="loading-spinner xs"></div>
-            <span>Loading events...</span>
+            <span>{t('calendar.common.loadingEvents')}</span>
           </div>
         )}
 
@@ -178,7 +180,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                 window.location.href = '/settings?tab=accounts'
               }}
             >
-              Fix Connection
+              {t('calendar.common.fixConnection')}
             </button>
           </div>
         )}

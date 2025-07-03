@@ -1,6 +1,7 @@
 // Sidebar Component - Generic sidebar for account selection
 
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import AccountCard from './AccountCard'
 
 // Import types from the electron calendar types
@@ -36,6 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   isLoading,
   className = ''
 }) => {
+  const { t } = useTranslation()
   const connectedAccounts = accounts.filter(account => 
     account.isConnected && account.hasCalendarAccess
   )
@@ -48,14 +50,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     <div className={`w-72 min-w-72 bg-background border-r border-border/50 overflow-y-auto ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border/50">
-        <h3 className="text-lg font-semibold text-foreground">Calendar Accounts</h3>
+        <h3 className="text-lg font-semibold text-foreground">{t('calendar.common.calendarAccounts')}</h3>
         <div className="flex items-center gap-2">
           {onRefresh && (
             <button
               onClick={onRefresh}
               disabled={isLoading}
               className="p-1.5 rounded-md hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Refresh calendar accounts"
+              title={t('calendar.common.refreshAccounts')}
             >
               <RefreshIcon className={`w-4 h-4 text-muted-foreground hover:text-foreground transition-colors ${isLoading ? 'animate-spin' : ''}`} />
             </button>
@@ -78,7 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             {connectedAccounts.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center">
-                  <h4 className="text-sm font-medium text-foreground/80">Connected ({connectedAccounts.length})</h4>
+                  <h4 className="text-sm font-medium text-foreground/80">{t('calendar.common.connectedSection')} ({connectedAccounts.length})</h4>
                 </div>
                 <div className="space-y-2">
                   {connectedAccounts.map(account => (
@@ -98,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             {disconnectedAccounts.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center">
-                  <h4 className="text-sm font-medium text-destructive/80">Needs Attention ({disconnectedAccounts.length})</h4>
+                  <h4 className="text-sm font-medium text-destructive/80">{t('calendar.common.needsAttention')} ({disconnectedAccounts.length})</h4>
                 </div>
                 <div className="space-y-2">
                   {disconnectedAccounts.map(account => (
@@ -122,25 +124,29 @@ const Sidebar: React.FC<SidebarProps> = ({
 }
 
 // Empty state component
-const EmptyAccountsState: React.FC = () => (
-  <div className="flex flex-col items-center justify-center h-64 text-center">
-    <div className="mb-4">
-      <CalendarIcon className="w-16 h-16 text-muted-foreground/50" />
+const EmptyAccountsState: React.FC = () => {
+  const { t } = useTranslation()
+  
+  return (
+    <div className="flex flex-col items-center justify-center h-64 text-center">
+      <div className="mb-4">
+        <CalendarIcon className="w-16 h-16 text-muted-foreground/50" />
+      </div>
+      <div className="space-y-2">
+        <h4 className="text-lg font-medium text-foreground">{t('calendar.common.noCalendarAccountsTitle')}</h4>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          {t('calendar.common.noCalendarAccountsDesc')}
+        </p>
+        <button 
+          className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
+          onClick={() => window.location.href = '/settings?tab=accounts'}
+        >
+          {t('calendar.common.connectAccount')}
+        </button>
+      </div>
     </div>
-    <div className="space-y-2">
-      <h4 className="text-lg font-medium text-foreground">No Calendar Accounts</h4>
-      <p className="text-sm text-muted-foreground max-w-xs">
-        Connect your Microsoft or Google account to get started with calendar management.
-      </p>
-      <button 
-        className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
-        onClick={() => window.location.href = '/settings?tab=accounts'}
-      >
-        Connect Account
-      </button>
-    </div>
-  </div>
-)
+  )
+}
 
 // Icon components (these would typically come from an icon library)
 const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (

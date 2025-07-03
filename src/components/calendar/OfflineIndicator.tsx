@@ -1,6 +1,7 @@
 // Offline Indicator Components - UI indicators for offline/online states
 
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import useOfflineDetection from '../../hooks/useOfflineDetection'
 import '../../styles/components.css';
 import '../../styles/modals.css';
@@ -42,6 +43,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   autoHide = true,
   className = ''
 }) => {
+  const { t } = useTranslation()
   const {
     isOnline,
     isOffline,
@@ -144,7 +146,7 @@ const FloatingIndicator: React.FC<{
         onClick={() => setExpanded(!expanded)}
       >
         <ConnectionQualityIcon quality={connectionQuality} />
-        <span className="status-text">{isOnline ? 'Online' : 'Offline'}</span>
+        <span className="status-text">{isOnline ? t('calendar.offline.online') : t('calendar.offline.offline')}</span>
       </div>
 
       {expanded && (
@@ -211,7 +213,7 @@ const OfflineBanner: React.FC<OfflineBannerProps> = ({
               className="retry-btn"
             >
               <RefreshIcon className="w-4 h-4" />
-              Try Again
+              {t('calendar.offline.tryAgain')}
             </button>
           )}
           
@@ -235,31 +237,32 @@ const ConnectionQuality: React.FC<ConnectionQualityProps> = ({
   showLabel = false,
   size = 'md'
 }) => {
+  const { t } = useTranslation()
   const getQualityConfig = () => {
     switch (quality) {
       case 'excellent':
         return {
           bars: 4,
           color: 'text-green-500',
-          label: 'Excellent'
+          label: t('calendar.offline.excellent')
         }
       case 'good':
         return {
           bars: 3,
           color: 'text-yellow-500',
-          label: 'Good'
+          label: t('calendar.offline.good')
         }
       case 'poor':
         return {
           bars: 1,
           color: 'text-red-500',
-          label: 'Poor'
+          label: t('calendar.offline.poor')
         }
       default:
         return {
           bars: 0,
           color: 'text-gray-400',
-          label: 'Unknown'
+          label: t('calendar.offline.unknown')
         }
     }
   }
@@ -317,7 +320,7 @@ const OfflineActions: React.FC<OfflineActionsProps> = ({
           className="action-btn primary"
         >
           <RefreshIcon className="w-4 h-4" />
-          Retry Connection ({retryCount}/{maxRetries})
+          {t('calendar.offline.retryConnection', { current: retryCount, max: maxRetries })}
         </button>
       ) : (
         <button 
@@ -325,7 +328,7 @@ const OfflineActions: React.FC<OfflineActionsProps> = ({
           className="action-btn secondary"
         >
           <RefreshIcon className="w-4 h-4" />
-          Refresh Page
+          {t('calendar.offline.refreshPage')}
         </button>
       )}
     </div>
@@ -336,6 +339,7 @@ const OfflineActions: React.FC<OfflineActionsProps> = ({
 export const CalendarOfflineMode: React.FC<{
   children: React.ReactNode
 }> = ({ children }) => {
+  const { t } = useTranslation()
   const { isOffline, isOnline, checkConnection } = useOfflineDetection()
   const [showOfflineOverlay, setShowOfflineOverlay] = useState(false)
 
@@ -361,20 +365,20 @@ export const CalendarOfflineMode: React.FC<{
         <div className="offline-overlay">
           <div className="offline-content">
             <WifiOffIcon className="w-16 h-16 text-gray-400 mb-4" />
-            <h3>You're offline</h3>
-            <p>Your calendar data might be outdated. Check your connection and try refreshing.</p>
+            <h3>{t('calendar.offline.youreOffline')}</h3>
+            <p>{t('calendar.offline.offlineDescription')}</p>
             <div className="offline-overlay-actions">
               <button 
                 onClick={checkConnection}
                 className="btn btn-primary"
               >
-                Check Connection
+                {t('calendar.offline.checkConnection')}
               </button>
               <button 
                 onClick={() => window.location.reload()}
                 className="btn btn-secondary"
               >
-                Refresh
+                {t('calendar.offline.refresh')}
               </button>
             </div>
           </div>
@@ -389,6 +393,7 @@ export const CalendarOfflineMode: React.FC<{
 
 // Enhanced Calendar Status Bar
 export const CalendarStatusBar: React.FC = () => {
+  const { t } = useTranslation()
   const {
     isOnline,
     connectionQuality,
@@ -411,14 +416,14 @@ export const CalendarStatusBar: React.FC = () => {
       <div className="status-right">
         {lastOnlineTime && (
           <span className="last-sync">
-            Last sync: {lastOnlineTime.toLocaleTimeString()}
+            {t('calendar.offline.lastSync', { time: lastOnlineTime.toLocaleTimeString() })}
           </span>
         )}
         
         <button 
           onClick={checkConnection}
           className="check-connection-btn"
-          title="Check connection"
+          title={t('calendar.offline.checkConnection')}
         >
           <RefreshIcon className="w-4 h-4" />
         </button>

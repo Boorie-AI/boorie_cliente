@@ -1,6 +1,7 @@
 // Calendar Navigation Component - Enhanced navigation controls
 
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface CalendarNavigationProps {
   currentDate: Date
@@ -21,6 +22,7 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
   onTodayClick,
   onDateSelect
 }) => {
+  const { t } = useTranslation()
   // Format date range for display
   const formatDateRange = (date: Date, view: 'month' | 'week' | 'day') => {
     switch (view) {
@@ -59,12 +61,12 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
   const getNavigationStepText = (view: 'month' | 'week' | 'day') => {
     switch (view) {
       case 'day':
-        return { prev: 'Previous day', next: 'Next day' }
+        return { prev: t('calendar.navigation.previousDay'), next: t('calendar.navigation.nextDay') }
       case 'week':
-        return { prev: 'Previous week', next: 'Next week' }
+        return { prev: t('calendar.navigation.previousWeek'), next: t('calendar.navigation.nextWeek') }
       case 'month':
       default:
-        return { prev: 'Previous month', next: 'Next month' }
+        return { prev: t('calendar.navigation.previousMonth'), next: t('calendar.navigation.nextMonth') }
     }
   }
 
@@ -120,15 +122,15 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
           } disabled:opacity-50 disabled:cursor-not-allowed`}
           onClick={onTodayClick}
           disabled={isLoading || isTodayView}
-          title="Go to today"
+          title={t('calendar.navigation.goToToday')}
         >
-          {isTodayView ? 'Today' : 'Go to Today'}
+          {isTodayView ? t('calendar.navigation.today') : t('calendar.navigation.goToToday')}
         </button>
       </div>
 
       {/* View switcher */}
       <div className="flex items-center">
-        <div className="flex items-center bg-muted rounded-lg p-1" role="tablist" aria-label="Calendar view">
+        <div className="flex items-center bg-muted rounded-lg p-1" role="tablist" aria-label={t('calendar.navigation.calendarView')}>
           <button 
             className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all ${
               currentView === 'month'
@@ -142,7 +144,7 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
             aria-controls="calendar-content"
           >
             <CalendarIcon className="w-4 h-4" />
-            <span>Month</span>
+            <span>{t('calendar.navigation.month')}</span>
           </button>
           <button 
             className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all ${
@@ -157,7 +159,7 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
             aria-controls="calendar-content"
           >
             <ViewWeekIcon className="w-4 h-4" />
-            <span>Week</span>
+            <span>{t('calendar.navigation.week')}</span>
           </button>
           <button 
             className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-all ${
@@ -172,7 +174,7 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
             aria-controls="calendar-content"
           >
             <ViewDayIcon className="w-4 h-4" />
-            <span>Day</span>
+            <span>{t('calendar.navigation.day')}</span>
           </button>
         </div>
       </div>

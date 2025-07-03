@@ -1,6 +1,7 @@
 // Month View Component - Calendar month grid display
 
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { getProviderColor, getEventStyles } from '../../../utils/calendarColors'
 
 // Import types
@@ -39,6 +40,7 @@ const MonthView: React.FC<MonthViewProps> = ({
   onEventCreate,
   isLoading
 }) => {
+  const { t } = useTranslation()
   // Calculate the calendar grid for the current month
   const getCalendarDays = () => {
     const year = currentDate.getFullYear()
@@ -156,7 +158,7 @@ const MonthView: React.FC<MonthViewProps> = ({
   // Format time for event display
   const formatEventTime = (event: UnifiedCalendarEvent) => {
     if (event.isAllDay) {
-      return 'All day'
+      return t('calendar.monthView.allDay')
     }
     
     const start = new Date(event.startTime)
@@ -179,14 +181,22 @@ const MonthView: React.FC<MonthViewProps> = ({
   }
 
   const calendarDays = getCalendarDays()
-  const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+  const weekDays = [
+    t('calendar.monthView.monday'),
+    t('calendar.monthView.tuesday'),
+    t('calendar.monthView.wednesday'),
+    t('calendar.monthView.thursday'),
+    t('calendar.monthView.friday'),
+    t('calendar.monthView.saturday'),
+    t('calendar.monthView.sunday')
+  ]
 
   if (isLoading) {
     return (
       <div className="flex flex-col h-full items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-sm text-muted-foreground">Loading month view...</p>
+          <p className="text-sm text-muted-foreground">{t('calendar.monthView.loading')}</p>
         </div>
       </div>
     )
@@ -244,7 +254,7 @@ const MonthView: React.FC<MonthViewProps> = ({
                         e.stopPropagation()
                         onEventClick(event)
                       }}
-                      title={`${event.title}${event.location ? ` - ${event.location}` : ''}${dayType.isMultiDay ? ` (Day ${dayType.dayNumber} of ${dayType.totalDays})` : ''}`}
+                      title={`${event.title}${event.location ? ` - ${event.location}` : ''}${dayType.isMultiDay ? ` (${t('calendar.monthView.day')} ${dayType.dayNumber} ${t('calendar.monthView.of')} ${dayType.totalDays})` : ''}`}
                     >
                       <div className="space-y-1">
                         <div className="font-medium truncate">{event.title}</div>
@@ -258,7 +268,7 @@ const MonthView: React.FC<MonthViewProps> = ({
                         )}
                         {dayType.isMultiDay && (
                           <div className="text-xs opacity-70">
-                            Day {dayType.dayNumber} of {dayType.totalDays}
+                            {t('calendar.monthView.day')} {dayType.dayNumber} {t('calendar.monthView.of')} {dayType.totalDays}
                           </div>
                         )}
                       </div>
@@ -275,7 +285,7 @@ const MonthView: React.FC<MonthViewProps> = ({
                     e.stopPropagation()
                     onEventCreate(date)
                   }}
-                  title="Add event"
+                  title={t('calendar.monthView.addEvent')}
                 >
                   +
                 </button>

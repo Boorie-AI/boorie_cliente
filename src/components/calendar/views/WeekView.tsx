@@ -1,6 +1,7 @@
 // Week View Component - Calendar week grid with time slots
 
 import React, { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getProviderColor, getEventStyles, getAllDayEventStyles } from '../../../utils/calendarColors'
 
 // Import types
@@ -41,6 +42,7 @@ const WeekView: React.FC<WeekViewProps> = ({
   onTimeSlotClick,
   isLoading
 }) => {
+  const { t } = useTranslation()
   const [currentTime, setCurrentTime] = useState(new Date())
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -71,14 +73,14 @@ const WeekView: React.FC<WeekViewProps> = ({
     const dayOfWeek = startOfWeek.getDay()
     const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
     startOfWeek.setDate(startOfWeek.getDate() - daysToSubtract)
-    
+
     const days: Date[] = []
     for (let i = 0; i < 7; i++) {
       const day = new Date(startOfWeek)
       day.setDate(startOfWeek.getDate() + i)
       days.push(day)
     }
-    
+
     return days
   }
 
@@ -119,18 +121,18 @@ const WeekView: React.FC<WeekViewProps> = ({
   const calculateEventPosition = (event: UnifiedCalendarEvent) => {
     const startTime = new Date(event.startTime)
     const endTime = new Date(event.endTime)
-    
+
     // Convert to minutes from midnight
     const startMinutes = startTime.getHours() * 60 + startTime.getMinutes()
     const endMinutes = endTime.getHours() * 60 + endTime.getMinutes()
-    
+
     // Height of one hour in pixels (64px for h-16)
     const hourHeight = 64
-    
+
     // Calculate position (top) and height
     const top = (startMinutes / 60) * hourHeight
     const height = Math.max(((endMinutes - startMinutes) / 60) * hourHeight, 20) // Minimum 20px height
-    
+
     return { top, height }
   }
 
@@ -138,10 +140,10 @@ const WeekView: React.FC<WeekViewProps> = ({
   const layoutEventsForDate = (date: Date) => {
     const timedEvents = getTimedEventsForDate(date)
     const layoutEvents: Array<UnifiedCalendarEvent & { column: number; width: number; left: number }> = []
-    
+
     // Sort events by start time
     timedEvents.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-    
+
     timedEvents.forEach(event => {
       // Find overlapping events that are already laid out
       const overlapping = layoutEvents.filter(layoutEvent => {
@@ -149,14 +151,14 @@ const WeekView: React.FC<WeekViewProps> = ({
         const eventEnd = new Date(event.endTime).getTime()
         const layoutStart = new Date(layoutEvent.startTime).getTime()
         const layoutEnd = new Date(layoutEvent.endTime).getTime()
-        
+
         return (eventStart < layoutEnd && eventEnd > layoutStart)
       })
-      
+
       // Find the first available column
       let column = 0
       const usedColumns = overlapping.map(e => e.column).sort((a, b) => a - b)
-      
+
       for (let i = 0; i < usedColumns.length; i++) {
         if (usedColumns[i] !== i) {
           column = i
@@ -166,18 +168,18 @@ const WeekView: React.FC<WeekViewProps> = ({
       if (column === 0 && usedColumns.length > 0) {
         column = usedColumns.length
       }
-      
+
       // Calculate width and left position based on overlapping events
       const maxColumns = Math.max(1, overlapping.length + 1)
       const width = 100 / maxColumns
       const left = column * width
-      
+
       // Update width for all overlapping events
       overlapping.forEach(overlappingEvent => {
         overlappingEvent.width = 100 / maxColumns
         overlappingEvent.left = overlappingEvent.column * (100 / maxColumns)
       })
-      
+
       layoutEvents.push({
         ...event,
         column,
@@ -185,19 +187,27 @@ const WeekView: React.FC<WeekViewProps> = ({
         left
       })
     })
-    
+
     return layoutEvents
   }
 
   // Generate hours array (0-23)
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const weekDays = getWeekDays()
-  const weekDayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+  const weekDayNames = [
+    t('calendar.monthView.monday'),
+    t('calendar.monthView.tuesday'),
+    t('calendar.monthView.wednesday'),
+    t('calendar.monthView.thursday'),
+    t('calendar.monthView.friday'),
+    t('calendar.monthView.saturday'),
+    t('calendar.monthView.sunday')
+  ]
 
   // Format hour display
   const formatHour = (hour: number) => {
-    if (hour === 0) return '12 AM'
-    if (hour === 12) return '12 PM'
+    if (hour === 0) return `12 AM`
+    if (hour === 12) return `12 PM`
     if (hour < 12) return `${hour} AM`
     return `${hour - 12} PM`
   }
@@ -220,7 +230,7 @@ const WeekView: React.FC<WeekViewProps> = ({
       <div className="flex flex-col h-full items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-sm text-muted-foreground">Loading week view...</p>
+          <p className="text-sm text-muted-foreground">{t('calendar.weekView.loading')}</p>
         </div>
       </div>
     )
@@ -236,15 +246,13 @@ const WeekView: React.FC<WeekViewProps> = ({
         {weekDays.map((date, index) => (
           <div
             key={index}
-            className={`flex-1 flex flex-col items-center py-3 cursor-pointer hover:bg-accent/50 transition-colors border-r border-border last:border-r-0 ${
-              isToday(date) ? 'bg-primary/10 border-primary/20' : ''
-            }`}
+            className={`flex-1 flex flex-col items-center py-3 cursor-pointer hover:bg-accent/50 transition-colors border-r border-border last:border-r-0 ${isToday(date) ? 'bg-primary/10 border-primary/20' : ''
+              }`}
             onClick={() => onDateClick(date)}
           >
             <div className="text-xs text-muted-foreground font-medium mb-1">{weekDayNames[index]}</div>
-            <div className={`text-sm font-semibold ${
-              isToday(date) ? 'text-primary bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center' : 'text-foreground'
-            }`}>
+            <div className={`text-sm font-semibold ${isToday(date) ? 'text-primary bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center' : 'text-foreground'
+              }`}>
               {date.getDate()}
             </div>
           </div>
@@ -254,7 +262,7 @@ const WeekView: React.FC<WeekViewProps> = ({
       {/* All-day events section */}
       <div className="flex border-b border-border bg-muted/10">
         <div className="w-16 lg:w-20 flex items-center justify-center py-2 border-r border-border">
-          <span className="text-xs text-muted-foreground font-medium">All day</span>
+          <span className="text-xs text-muted-foreground font-medium">{t('calendar.weekView.allDay')}</span>
         </div>
         {weekDays.map((date, index) => {
           const allDayEvents = getAllDayEventsForDate(date)
@@ -264,11 +272,10 @@ const WeekView: React.FC<WeekViewProps> = ({
                 {allDayEvents.map(event => (
                   <div
                     key={event.id}
-                    className={`px-2 py-1 rounded text-xs cursor-pointer transition-opacity hover:opacity-80 border-l-2 overflow-hidden ${
-                      event.provider === 'microsoft' 
-                        ? 'bg-blue-100 border-blue-500 text-blue-900' 
+                    className={`px-2 py-1 rounded text-xs cursor-pointer transition-opacity hover:opacity-80 border-l-2 overflow-hidden ${event.provider === 'microsoft'
+                        ? 'bg-blue-100 border-blue-500 text-blue-900'
                         : 'bg-green-100 border-green-500 text-green-900'
-                    }`}
+                      }`}
                     onClick={() => onEventClick(event)}
                     title={`${event.title}${event.location ? ` - ${event.location}` : ''}`}
                   >
@@ -283,7 +290,7 @@ const WeekView: React.FC<WeekViewProps> = ({
                   </div>
                 ))}
                 {allDayEvents.length === 0 && (
-                  <div 
+                  <div
                     className="h-full cursor-pointer hover:bg-accent/30 rounded transition-colors"
                     onClick={() => onEventCreate(date)}
                   />
@@ -311,11 +318,10 @@ const WeekView: React.FC<WeekViewProps> = ({
             {weekDays.map((date, dayIndex) => {
               const layoutedEvents = layoutEventsForDate(date)
               const showTimeLine = shouldShowCurrentTimeLine(date)
-              
+
               return (
-                <div key={dayIndex} className={`flex-1 relative border-r border-border last:border-r-0 ${
-                  isToday(date) ? 'bg-primary/5' : ''
-                }`}>
+                <div key={dayIndex} className={`flex-1 relative border-r border-border last:border-r-0 ${isToday(date) ? 'bg-primary/5' : ''
+                  }`}>
                   {/* Hour slots */}
                   {hours.map(hour => (
                     <div
@@ -329,7 +335,7 @@ const WeekView: React.FC<WeekViewProps> = ({
                         <div className="absolute inset-x-0 top-1/4 h-px bg-border/20"></div>
                         <div className="absolute inset-x-0 top-1/2 h-px bg-border/20"></div>
                         <div className="absolute inset-x-0 top-3/4 h-px bg-border/20"></div>
-                        
+
                         {/* Add event indicator on hover */}
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                           <div className="w-6 h-6 bg-primary/20 text-primary rounded-full flex items-center justify-center text-xs font-bold">
@@ -347,11 +353,10 @@ const WeekView: React.FC<WeekViewProps> = ({
                       return (
                         <div
                           key={event.id}
-                          className={`absolute rounded shadow-sm cursor-pointer pointer-events-auto transition-opacity hover:opacity-90 border-l-2 overflow-hidden ${
-                            event.provider === 'microsoft' 
-                              ? 'bg-blue-100 border-blue-500 text-blue-900' 
+                          className={`absolute rounded shadow-sm cursor-pointer pointer-events-auto transition-opacity hover:opacity-90 border-l-2 overflow-hidden ${event.provider === 'microsoft'
+                              ? 'bg-blue-100 border-blue-500 text-blue-900'
                               : 'bg-green-100 border-green-500 text-green-900'
-                          }`}
+                            }`}
                           style={{
                             top: `${top}px`,
                             height: `${height}px`,
@@ -377,7 +382,7 @@ const WeekView: React.FC<WeekViewProps> = ({
                             )}
                             {height > 40 && event.hasOnlineMeeting && (
                               <div className="text-xs mt-1 truncate">
-                                {event.meetingProvider === 'teams' ? '📹 Teams' : '🎥 Meet'}
+                                {event.meetingProvider === 'teams' ? `📹 ${t('calendar.weekView.meeting.teams')}` : `🎥 ${t('calendar.weekView.meeting.meet')}`}
                               </div>
                             )}
                           </div>
@@ -430,7 +435,7 @@ const WeekSkeleton: React.FC = () => (
         </div>
       ))}
     </div>
-    
+
     {/* All day skeleton */}
     <div className="flex border-b border-border bg-muted/10">
       <div className="w-16 lg:w-20 flex items-center justify-center py-2 border-r border-border">
@@ -442,7 +447,7 @@ const WeekSkeleton: React.FC = () => (
         </div>
       ))}
     </div>
-    
+
     {/* Time grid skeleton */}
     <div className="flex-1 flex overflow-hidden">
       <div className="flex w-full">

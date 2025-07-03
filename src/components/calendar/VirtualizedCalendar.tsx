@@ -1,6 +1,7 @@
 // Virtualized Calendar Component - Efficient rendering for large datasets
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { FixedSizeList as List, VariableSizeList, ListChildComponentProps } from 'react-window'
 import { useCalendarStore } from '../../stores/calendarStore'
 import useProgressiveLoading from '../../hooks/useProgressiveLoading'
@@ -63,6 +64,7 @@ export const VirtualizedCalendar: React.FC<VirtualizedCalendarProps> = ({
   height,
   width
 }) => {
+  const { t } = useTranslation()
   const listRef = useRef<VariableSizeList>(null)
   const [scrollOffset, setScrollOffset] = useState(0)
   
@@ -200,7 +202,7 @@ export const VirtualizedCalendar: React.FC<VirtualizedCalendarProps> = ({
                 style={{ width: `${loadingProgress}%` }}
               />
             </div>
-            <span>Loading events... {loadingProgress}%</span>
+            <span>{t('calendar.virtualized.loadingEvents', { progress: loadingProgress })}</span>
           </div>
         </div>
       )}
@@ -238,7 +240,7 @@ export const VirtualizedCalendar: React.FC<VirtualizedCalendarProps> = ({
       {hasMore && !isLoading && (
         <div className="virtual-load-more">
           <button onClick={loadMore} className="btn btn-ghost btn-sm">
-            Load More Events
+            {t('calendar.virtualized.loadMoreEvents')}
           </button>
         </div>
       )}
@@ -287,7 +289,7 @@ const MonthCell: React.FC<{
         
         {hiddenCount > 0 && (
           <div className="more-events">
-            +{hiddenCount} more
+            {t('calendar.virtualized.moreEvents', { count: hiddenCount })}
           </div>
         )}
       </div>

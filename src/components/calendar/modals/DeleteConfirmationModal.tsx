@@ -1,6 +1,7 @@
 // Delete Confirmation Modal Component - Confirm event deletion
 
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean
@@ -17,6 +18,8 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
   eventTitle,
   isLoading = false
 }) => {
+  const { t } = useTranslation()
+  
   if (!isOpen) return null
 
   return (
@@ -26,15 +29,15 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
           <div className="warning-icon">
             <WarningIcon className="w-6 h-6" />
           </div>
-          <h2>Delete Event</h2>
+          <h2>{t('calendar.modals.deleteConfirmation.title')}</h2>
         </div>
 
         <div className="modal-body">
           <p className="confirmation-message">
-            Are you sure you want to delete the event <strong>"{eventTitle}"</strong>?
+            {t('calendar.modals.deleteConfirmation.message')} <strong>"{eventTitle}"</strong>?
           </p>
           <p className="warning-text">
-            This action cannot be undone. The event will be permanently removed from your calendar.
+            {t('calendar.modals.deleteConfirmation.warning')}
           </p>
         </div>
 
@@ -45,7 +48,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
             onClick={onClose}
             disabled={isLoading}
           >
-            Cancel
+            {t('calendar.modals.deleteConfirmation.cancel')}
           </button>
           <button
             type="button"
@@ -56,12 +59,12 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
             {isLoading ? (
               <>
                 <LoadingSpinner className="w-4 h-4" />
-                Deleting...
+                {t('calendar.modals.deleteConfirmation.deleting')}
               </>
             ) : (
               <>
                 <TrashIcon className="w-4 h-4" />
-                Delete Event
+                {t('calendar.modals.deleteConfirmation.delete')}
               </>
             )}
           </button>

@@ -1,6 +1,7 @@
 // Event Details Modal Component - View and edit event details
 
 import React, { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useCalendarStore } from '../../../stores/calendarStore'
 import EventModal from './EventModal'
 import DeleteConfirmationModal from './DeleteConfirmationModal'
@@ -64,6 +65,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   onClose,
   event
 }) => {
+  const { t } = useTranslation()
   const { deleteEvent, isLoading } = useCalendarStore()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -94,7 +96,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   const formatDuration = (startTime: Date, endTime: Date, isAllDay: boolean) => {
     if (isAllDay) {
       const days = Math.ceil((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60 * 24))
-      return days === 1 ? 'All day' : `${days} days`
+      return days === 1 ? t('calendar.modals.eventDetails.allDay') : t('calendar.modals.eventDetails.days', { count: days })
     }
 
     const duration = endTime.getTime() - startTime.getTime()
@@ -102,9 +104,9 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
     const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60))
 
     if (hours === 0) {
-      return `${minutes} minutes`
+      return t('calendar.modals.eventDetails.minutes', { count: minutes })
     } else if (minutes === 0) {
-      return `${hours} ${hours === 1 ? 'hour' : 'hours'}`
+      return t('calendar.modals.eventDetails.hours', { count: hours })
     } else {
       return `${hours}h ${minutes}m`
     }
@@ -186,7 +188,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                   <CalendarIcon className="w-5 h-5" />
                 </div>
                 <div className="detail-content">
-                  <div className="detail-label">When</div>
+                  <div className="detail-label">{t('calendar.modals.eventDetails.when')}</div>
                   <div className="detail-value">
                     <div className="datetime-info">
                       <span className="start-time">
@@ -224,7 +226,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                     <LocationIcon className="w-5 h-5" />
                   </div>
                   <div className="detail-content">
-                    <div className="detail-label">Location</div>
+                    <div className="detail-label">{t('calendar.modals.eventDetails.location')}</div>
                     <div className="detail-value">{event.location}</div>
                   </div>
                 </div>
@@ -239,12 +241,12 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                     <VideoIcon className="w-5 h-5" />
                   </div>
                   <div className="detail-content">
-                    <div className="detail-label">Online Meeting</div>
+                    <div className="detail-label">{t('calendar.modals.eventDetails.onlineMeeting')}</div>
                     <div className="detail-value">
                       <div className="meeting-info">
                         {getMeetingIcon(event.meetingProvider)}
                         <span className="meeting-provider">
-                          {event.meetingProvider === 'teams' ? 'Microsoft Teams' : 'Google Meet'}
+                          {event.meetingProvider === 'teams' ? t('calendar.modals.eventDetails.microsoftTeams') : t('calendar.modals.eventDetails.googleMeet')}
                         </span>
                       </div>
                       {event.meetingUrl && (
@@ -254,7 +256,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                           rel="noopener noreferrer"
                           className="meeting-link"
                         >
-                          Join Meeting
+                          {t('calendar.modals.eventDetails.joinMeeting')}
                         </a>
                       )}
                     </div>
@@ -271,7 +273,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                     <DocumentIcon className="w-5 h-5" />
                   </div>
                   <div className="detail-content">
-                    <div className="detail-label">Description</div>
+                    <div className="detail-label">{t('calendar.modals.eventDetails.description')}</div>
                     <EventDescription html={event.description} />
                   </div>
                 </div>
@@ -285,12 +287,12 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                   <UserIcon className="w-5 h-5" />
                 </div>
                 <div className="detail-content">
-                  <div className="detail-label">Calendar</div>
+                  <div className="detail-label">{t('calendar.modals.eventDetails.calendar')}</div>
                   <div className="detail-value">
                     <div className="account-info">
                       {getProviderIcon(event.provider)}
                       <span className="account-name">
-                        {event.provider === 'microsoft' ? 'Microsoft Calendar' : 'Google Calendar'}
+                        {event.provider === 'microsoft' ? t('calendar.modals.eventDetails.microsoftCalendar') : t('calendar.modals.eventDetails.googleCalendar')}
                       </span>
                     </div>
                   </div>
@@ -302,7 +304,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
             <div className="detail-section metadata">
               <div className="detail-item">
                 <div className="detail-content">
-                  <div className="detail-label">Event ID</div>
+                  <div className="detail-label">{t('calendar.modals.eventDetails.eventId')}</div>
                   <div className="detail-value event-id break-all">{event.id}</div>
                 </div>
               </div>
@@ -319,12 +321,12 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                 {isLoading.eventDeletion ? (
                   <>
                     <LoadingSpinner className="w-4 h-4" />
-                    Deleting...
+                    {t('calendar.modals.eventDetails.deleting')}
                   </>
                 ) : (
                   <>
                     <TrashIcon className="w-4 h-4" />
-                    Delete
+                    {t('calendar.modals.eventDetails.delete')}
                   </>
                 )}
               </button>
@@ -334,7 +336,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                 disabled={isLoading.eventUpdate}
               >
                 <EditIcon className="w-4 h-4" />
-                Edit Event
+                {t('calendar.modals.eventDetails.editEvent')}
               </button>
             </div>
           </div>

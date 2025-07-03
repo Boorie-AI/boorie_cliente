@@ -1,6 +1,7 @@
 // Error Boundary Component - Comprehensive error handling UI
 
 import React, { Component, ErrorInfo, ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import CalendarErrorHandler, { CalendarError, ErrorType, ErrorSeverity } from '../../services/errorHandling.service'
 import '../../styles/components.css';
 import '../../styles/modals.css';
@@ -103,6 +104,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   onDismiss,
   showDetails = false
 }) => {
+  const { t } = useTranslation()
   const [detailsVisible, setDetailsVisible] = React.useState(showDetails)
   const errorHandler = CalendarErrorHandler.getInstance()
   const recoveryActions = errorHandler.getRecoveryActions(error)
@@ -145,7 +147,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
         </div>
         <div className="error-content">
           <h3 className="error-title">
-            {error.severity === ErrorSeverity.CRITICAL ? 'Critical Error' : 'Something went wrong'}
+            {error.severity === ErrorSeverity.CRITICAL ? t('calendar.errors.criticalError') : t('calendar.errors.somethingWentWrong')}
           </h3>
           <p className="error-message">{error.userMessage}</p>
         </div>
@@ -177,7 +179,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
           onClick={() => setDetailsVisible(!detailsVisible)}
           className="error-details-toggle"
         >
-          <span>Technical Details</span>
+          <span>{t('calendar.errors.technicalDetails')}</span>
           <ChevronDownIcon 
             className={`w-4 h-4 transition-transform ${detailsVisible ? 'rotate-180' : ''}`}
           />
@@ -186,26 +188,26 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
         {detailsVisible && (
           <div className="error-details">
             <div className="detail-item">
-              <strong>Error Type:</strong> {error.type}
+              <strong>{t('calendar.errors.errorType')}:</strong> {error.type}
             </div>
             <div className="detail-item">
-              <strong>Correlation ID:</strong> {error.correlationId}
+              <strong>{t('calendar.errors.correlationId')}:</strong> {error.correlationId}
             </div>
             <div className="detail-item">
-              <strong>Timestamp:</strong> {error.timestamp.toISOString()}
+              <strong>{t('calendar.errors.timestamp')}:</strong> {error.timestamp.toISOString()}
             </div>
             {error.context && (
               <div className="detail-item">
-                <strong>Context:</strong>
+                <strong>{t('calendar.errors.context')}:</strong>
                 <pre className="context-data">{JSON.stringify(error.context, null, 2)}</pre>
               </div>
             )}
             <div className="detail-item">
-              <strong>Technical Message:</strong> {error.technicalMessage}
+              <strong>{t('calendar.errors.technicalMessage')}:</strong> {error.technicalMessage}
             </div>
             {error.stack && (
               <div className="detail-item">
-                <strong>Stack Trace:</strong>
+                <strong>{t('calendar.errors.stackTrace')}:</strong>
                 <pre className="stack-trace">{error.stack}</pre>
               </div>
             )}
@@ -223,6 +225,7 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
   autoHide = true,
   duration = 5000
 }) => {
+  const { t } = useTranslation()
   const [isVisible, setIsVisible] = React.useState(true)
 
   React.useEffect(() => {
@@ -266,6 +269,7 @@ export const ErrorToast: React.FC<ErrorToastProps> = ({
 
 // Error Manager Component - Manages global error display
 export const ErrorManager: React.FC = () => {
+  const { t } = useTranslation()
   const [errors, setErrors] = React.useState<CalendarError[]>([])
   const errorHandler = CalendarErrorHandler.getInstance()
 
@@ -316,11 +320,11 @@ export const NetworkErrorDisplay: React.FC<{ onRetry: () => void }> = ({ onRetry
     <div className="error-illustration">
       <WifiOffIcon className="w-16 h-16 text-gray-400" />
     </div>
-    <h3>Connection Problem</h3>
-    <p>Unable to connect to the calendar service. Please check your internet connection.</p>
+    <h3>{t('calendar.errors.connectionProblem')}</h3>
+    <p>{t('calendar.errors.connectionDescription')}</p>
     <div className="error-actions">
       <button onClick={onRetry} className="btn btn-primary">
-        Try Again
+        {t('calendar.errors.tryAgain')}
       </button>
     </div>
   </div>
@@ -332,11 +336,11 @@ export const AuthErrorDisplay: React.FC<{ onSignIn: () => void }> = ({ onSignIn 
     <div className="error-illustration">
       <LockIcon className="w-16 h-16 text-gray-400" />
     </div>
-    <h3>Authentication Required</h3>
-    <p>Your session has expired. Please sign in again to continue.</p>
+    <h3>{t('calendar.errors.authRequired')}</h3>
+    <p>{t('calendar.errors.authDescription')}</p>
     <div className="error-actions">
       <button onClick={onSignIn} className="btn btn-primary">
-        Sign In
+        {t('calendar.errors.signIn')}
       </button>
     </div>
   </div>
@@ -351,11 +355,11 @@ export const AccountDisconnectedDisplay: React.FC<{
     <div className="error-illustration">
       <UserXIcon className="w-16 h-16 text-gray-400" />
     </div>
-    <h3>Account Disconnected</h3>
-    <p>Your {accountName} account has been disconnected. Please reconnect to continue accessing your calendar.</p>
+    <h3>{t('calendar.errors.accountDisconnected')}</h3>
+    <p>{t('calendar.errors.accountDisconnectedDescription', { accountName })}</p>
     <div className="error-actions">
       <button onClick={onReconnect} className="btn btn-primary">
-        Reconnect Account
+        {t('calendar.errors.reconnectAccount')}
       </button>
     </div>
   </div>

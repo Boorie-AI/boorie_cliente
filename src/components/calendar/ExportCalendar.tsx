@@ -1,6 +1,7 @@
 // Export Calendar Component - UI for exporting calendar events
 
 import React, { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useCalendarStore } from '../../stores/calendarStore'
 import CalendarExportService, { ExportOptions } from '../../services/calendarExport.service'
 import '../../styles/components.css';
@@ -23,6 +24,7 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
   isOpen,
   onClose
 }) => {
+  const { t } = useTranslation()
   const { connectedAccounts } = useCalendarStore()
   
   const [exportOptions, setExportOptions] = useState<ExportOptions>({
@@ -109,7 +111,7 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
     <div className="export-modal-overlay">
       <div className="export-modal">
         <div className="modal-header">
-          <h2>Export Calendar</h2>
+          <h2>{t('calendar.export.title')}</h2>
           <button onClick={onClose} className="close-btn">
             <XIcon className="w-5 h-5" />
           </button>
@@ -118,14 +120,14 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
         <div className="modal-content">
           {/* Export Format Selection */}
           <div className="form-group">
-            <label className="form-label">Export Format</label>
+            <label className="form-label">{t('calendar.export.format')}</label>
             <div className="format-options">
               {[
-                { value: 'ics', label: 'iCalendar (.ics)', description: 'Standard calendar format, works with most calendar apps' },
-                { value: 'csv', label: 'CSV (.csv)', description: 'Spreadsheet format for data analysis' },
-                { value: 'json', label: 'JSON (.json)', description: 'Structured data format for developers' },
-                { value: 'pdf', label: 'PDF (.pdf)', description: 'Printable document format' },
-                { value: 'xlsx', label: 'Excel (.xlsx)', description: 'Microsoft Excel spreadsheet' }
+                { value: 'ics', label: t('calendar.export.formats.ics.label'), description: t('calendar.export.formats.ics.description') },
+                { value: 'csv', label: t('calendar.export.formats.csv.label'), description: t('calendar.export.formats.csv.description') },
+                { value: 'json', label: t('calendar.export.formats.json.label'), description: t('calendar.export.formats.json.description') },
+                { value: 'pdf', label: t('calendar.export.formats.pdf.label'), description: t('calendar.export.formats.pdf.description') },
+                { value: 'xlsx', label: t('calendar.export.formats.xlsx.label'), description: t('calendar.export.formats.xlsx.description') }
               ].map(format => (
                 <label key={format.value} className="format-option">
                   <input
@@ -146,7 +148,7 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
 
           {/* Date Range Selection */}
           <div className="form-group">
-            <label className="form-label">Date Range</label>
+            <label className="form-label">{t('calendar.export.dateRange')}</label>
             <div className="date-range-controls">
               <div className="quick-ranges">
                 <button
@@ -158,7 +160,7 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
                   })}
                   className="quick-range-btn"
                 >
-                  Last 7 days
+                  {t('calendar.export.last7Days')}
                 </button>
                 <button
                   onClick={() => updateOptions({
@@ -169,7 +171,7 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
                   })}
                   className="quick-range-btn"
                 >
-                  Last 30 days
+                  {t('calendar.export.last30Days')}
                 </button>
                 <button
                   onClick={() => updateOptions({
@@ -180,7 +182,7 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
                   })}
                   className="quick-range-btn"
                 >
-                  Next 30 days
+                  {t('calendar.export.next30Days')}
                 </button>
               </div>
               
@@ -196,7 +198,7 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
                   })}
                   className="date-input"
                 />
-                <span>to</span>
+                <span>{t('calendar.export.to')}</span>
                 <input
                   type="date"
                   value={exportOptions.dateRange.end.toISOString().split('T')[0]}
@@ -215,10 +217,10 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
           {/* Account Selection */}
           <div className="form-group">
             <label className="form-label">
-              Accounts to Export
+              {t('calendar.export.accountsToExport')}
               <div className="account-controls">
-                <button onClick={handleSelectAllAccounts} className="text-btn">Select All</button>
-                <button onClick={handleClearAccountSelection} className="text-btn">Clear</button>
+                <button onClick={handleSelectAllAccounts} className="text-btn">{t('calendar.export.selectAll')}</button>
+                <button onClick={handleClearAccountSelection} className="text-btn">{t('calendar.export.clear')}</button>
               </div>
             </label>
             <div className="account-list">
@@ -248,7 +250,7 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
 
           {/* Export Options */}
           <div className="form-group">
-            <label className="form-label">Export Options</label>
+            <label className="form-label">{t('calendar.export.options')}</label>
             <div className="export-options">
               <label className="option-checkbox">
                 <input
@@ -256,7 +258,7 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
                   checked={exportOptions.includeDetails}
                   onChange={(e) => updateOptions({ includeDetails: e.target.checked })}
                 />
-                <span>Include event descriptions and notes</span>
+                <span>{t('calendar.export.includeDetails')}</span>
               </label>
               
               <label className="option-checkbox">
@@ -265,7 +267,7 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
                   checked={exportOptions.includeAttendees}
                   onChange={(e) => updateOptions({ includeAttendees: e.target.checked })}
                 />
-                <span>Include attendee information</span>
+                <span>{t('calendar.export.includeAttendees')}</span>
               </label>
               
               <label className="option-checkbox">
@@ -274,7 +276,7 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
                   checked={exportOptions.includeOnlineMeetingLinks}
                   onChange={(e) => updateOptions({ includeOnlineMeetingLinks: e.target.checked })}
                 />
-                <span>Include online meeting links</span>
+                <span>{t('calendar.export.includeMeetingLinks')}</span>
               </label>
             </div>
           </div>
@@ -285,17 +287,17 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
               <div className="summary-stats">
                 <div className="stat">
                   <span className="stat-number">{filteredEvents.length}</span>
-                  <span className="stat-label">Events to Export</span>
+                  <span className="stat-label">{t('calendar.export.eventsToExport')}</span>
                 </div>
                 <div className="stat">
                   <span className="stat-number">{exportOptions.accounts.length || connectedAccounts.length}</span>
-                  <span className="stat-label">Accounts</span>
+                  <span className="stat-label">{t('calendar.export.accounts')}</span>
                 </div>
                 <div className="stat">
                   <span className="stat-number">
                     {Math.ceil((exportOptions.dateRange.end.getTime() - exportOptions.dateRange.start.getTime()) / (1000 * 60 * 60 * 24))}
                   </span>
-                  <span className="stat-label">Days</span>
+                  <span className="stat-label">{t('calendar.export.days')}</span>
                 </div>
               </div>
               
@@ -303,7 +305,7 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
                 onClick={() => setShowPreview(!showPreview)}
                 className="preview-toggle-btn"
               >
-                {showPreview ? 'Hide Preview' : 'Show Preview'}
+                {showPreview ? t('calendar.export.hidePreview') : t('calendar.export.showPreview')}
                 <ChevronDownIcon className={`w-4 h-4 transition-transform ${showPreview ? 'rotate-180' : ''}`} />
               </button>
             </div>
@@ -320,16 +322,16 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
                 <div className="success-message">
                   <CheckIcon className="w-5 h-5" />
                   <div>
-                    <p><strong>Export completed successfully!</strong></p>
-                    <p>File: {exportResult.filename} ({formatFileSize(exportResult.size)})</p>
-                    <p>Events exported: {exportResult.eventCount}</p>
+                    <p><strong>{t('calendar.export.successMessage')}</strong></p>
+                    <p>{t('calendar.export.fileInfo', { filename: exportResult.filename, size: formatFileSize(exportResult.size) })}</p>
+                    <p>{t('calendar.export.eventsExported', { count: exportResult.eventCount })}</p>
                   </div>
                 </div>
               ) : (
                 <div className="error-message">
                   <AlertIcon className="w-5 h-5" />
                   <div>
-                    <p><strong>Export failed</strong></p>
+                    <p><strong>{t('calendar.export.errorMessage')}</strong></p>
                     <p>{exportResult.error}</p>
                   </div>
                 </div>
@@ -340,7 +342,7 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
 
         <div className="modal-footer">
           <button onClick={onClose} className="btn btn-secondary">
-            Cancel
+            {t('calendar.export.cancel')}
           </button>
           <button
             onClick={handleExport}
@@ -350,12 +352,12 @@ export const ExportCalendar: React.FC<ExportCalendarProps> = ({
             {isExporting ? (
               <>
                 <LoadingSpinner size="sm" />
-                Exporting...
+                {t('calendar.export.exporting')}
               </>
             ) : (
               <>
                 <DownloadIcon className="w-4 h-4" />
-                Export {filteredEvents.length} Events
+                {t('calendar.export.exportEvents', { count: filteredEvents.length })}
               </>
             )}
           </button>
@@ -372,7 +374,7 @@ const ExportPreview: React.FC<ExportPreviewProps> = ({ events, options }) => {
   return (
     <div className="export-preview">
       <div className="preview-header">
-        <h4>Preview ({events.length} events total)</h4>
+        <h4>{t('calendar.export.previewTitle', { count: events.length })}</h4>
       </div>
       
       <div className="preview-events">
@@ -401,7 +403,7 @@ const ExportPreview: React.FC<ExportPreviewProps> = ({ events, options }) => {
         
         {events.length > 5 && (
           <div className="preview-more">
-            ... and {events.length - 5} more events
+            {t('calendar.export.moreEvents', { count: events.length - 5 })}
           </div>
         )}
       </div>

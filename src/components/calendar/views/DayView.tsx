@@ -1,6 +1,7 @@
 // Day View Component - Single day calendar with detailed hourly breakdown
 
 import React, { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getProviderColor, getEventStyles, getAllDayEventStyles } from '../../../utils/calendarColors'
 
 // Import types
@@ -39,6 +40,7 @@ const DayView: React.FC<DayViewProps> = ({
   onTimeSlotClick,
   isLoading
 }) => {
+  const { t } = useTranslation()
   const [currentTime, setCurrentTime] = useState(new Date())
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -178,7 +180,7 @@ const DayView: React.FC<DayViewProps> = ({
 
   // Format time display
   const formatTime = (hour: number, minute: number = 0) => {
-    const period = hour >= 12 ? 'PM' : 'AM'
+    const period = hour >= 12 ? t('calendar.dayView.pm') : t('calendar.dayView.am')
     const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
     return minute === 0 
       ? `${displayHour} ${period}`
@@ -213,7 +215,7 @@ const DayView: React.FC<DayViewProps> = ({
       <div className="flex flex-col h-full items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-sm text-muted-foreground">Loading day view...</p>
+          <p className="text-sm text-muted-foreground">{t('calendar.dayView.loading')}</p>
         </div>
       </div>
     )
@@ -224,19 +226,16 @@ const DayView: React.FC<DayViewProps> = ({
       {/* Day header */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
         <div className="flex items-center gap-3">
-          <h2 className={`text-xl font-semibold ${isTodayView ? 'text-primary' : 'text-foreground'}`}>
-            {formatDate(currentDate)}
-          </h2>
           {isTodayView && (
             <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full font-medium">
-              Today
+              {t('calendar.dayView.today')}
             </span>
           )}
         </div>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span className="font-medium">{dayEvents.length} events</span>
+          <span className="font-medium">{dayEvents.length} {t('calendar.dayView.events')}</span>
           {allDayEvents.length > 0 && (
-            <span className="font-medium">{allDayEvents.length} all-day</span>
+            <span className="font-medium">{allDayEvents.length} {t('calendar.dayView.allDay')}</span>
           )}
         </div>
       </div>
@@ -246,7 +245,7 @@ const DayView: React.FC<DayViewProps> = ({
         <div className="border-b border-border bg-muted/10">
           <div className="flex">
             <div className="w-20 flex items-center justify-center py-2 border-r border-border">
-              <span className="text-xs text-muted-foreground font-medium">All day</span>
+              <span className="text-xs text-muted-foreground font-medium">{t('calendar.dayView.allDay')}</span>
             </div>
             <div className="flex-1 p-2">
               <div className="space-y-1">
@@ -266,7 +265,7 @@ const DayView: React.FC<DayViewProps> = ({
                         <span className="font-medium">{event.title}</span>
                         {event.hasOnlineMeeting && (
                           <span className="text-xs">
-                            {event.meetingProvider === 'teams' ? '📹 Teams' : '🎥 Meet'}
+                            {event.meetingProvider === 'teams' ? `📹 ${t('calendar.dayView.teams')}` : `🎥 ${t('calendar.dayView.meet')}`}
                           </span>
                         )}
                       </div>
@@ -369,7 +368,7 @@ const DayView: React.FC<DayViewProps> = ({
                       {height > 50 && event.hasOnlineMeeting && (
                         <div className="text-xs mt-1 flex items-center gap-1">
                           <span>{event.meetingProvider === 'teams' ? '📹' : '🎥'}</span>
-                          <span>{event.meetingProvider === 'teams' ? 'Teams' : 'Meet'}</span>
+                          <span>{event.meetingProvider === 'teams' ? t('calendar.dayView.teams') : t('calendar.dayView.meet')}</span>
                         </div>
                       )}
                     </div>
@@ -405,7 +404,7 @@ const DayView: React.FC<DayViewProps> = ({
       {dayEvents.length === 0 && (
         <div className="p-4 border-t border-border bg-muted/10">
           <div className="text-center text-sm text-muted-foreground">
-            <span>No events scheduled for this day</span>
+            <span>{t('calendar.dayView.noEvents')}</span>
           </div>
         </div>
       )}

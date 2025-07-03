@@ -1,6 +1,7 @@
 // Drag and Drop Calendar Component - Enhanced calendar with drag and drop functionality
 
 import React, { useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import useDragAndDrop from '../../hooks/useDragAndDrop'
 import { useCalendarStore } from '../../stores/calendarStore'
 import '../../styles/components.css';
@@ -45,6 +46,7 @@ export const DragDropCalendar: React.FC<DragDropCalendarProps> = ({
   onDateClick,
   className = ''
 }) => {
+  const { t } = useTranslation()
   const { updateEvent } = useCalendarStore()
   const calendarRef = useRef<HTMLDivElement>(null)
 
@@ -118,7 +120,7 @@ export const DragDropCalendar: React.FC<DragDropCalendarProps> = ({
       <div className="month-view-grid">
         {/* Header with day names */}
         <div className="month-header">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+          {[t('calendar.dragDrop.sun'), t('calendar.dragDrop.mon'), t('calendar.dragDrop.tue'), t('calendar.dragDrop.wed'), t('calendar.dragDrop.thu'), t('calendar.dragDrop.fri'), t('calendar.dragDrop.sat')].map(day => (
             <div key={day} className="day-header">{day}</div>
           ))}
         </div>
@@ -157,7 +159,7 @@ export const DragDropCalendar: React.FC<DragDropCalendarProps> = ({
                     
                     {dayEvents.length > 3 && (
                       <div className="more-events">
-                        +{dayEvents.length - 3} more
+                        {t('calendar.dragDrop.moreEvents', { count: dayEvents.length - 3 })}
                       </div>
                     )}
                   </div>
@@ -439,7 +441,7 @@ const DropZoneOverlay: React.FC<{
   return (
     <div className={`drop-zone-overlay ${canDrop ? 'valid' : 'invalid'}`}>
       <div className="drop-indicator">
-        {canDrop ? '✓ Drop here' : '✗ Cannot drop here'}
+        {canDrop ? t('calendar.dragDrop.dropHere') : t('calendar.dragDrop.cannotDrop')}
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 // Event Modal Component - Create and edit calendar events
 
 import React, { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useCalendarStore } from '../../../stores/calendarStore'
 import RecurrenceEditor from '../RecurrenceEditor'
 
@@ -60,6 +61,7 @@ const EventModal: React.FC<EventModalProps> = ({
   initialMinute = 0,
   mode
 }) => {
+  const { t } = useTranslation()
   const { createEvent, updateEvent, addTeamsToEvent, addMeetToEvent, connectedAccounts } = useCalendarStore()
 
   // Get connected accounts that can create events
@@ -162,7 +164,7 @@ const EventModal: React.FC<EventModalProps> = ({
     if (!isValidEmail(email)) {
       setErrors(prev => ({
         ...prev,
-        attendeeInput: 'Please enter a valid email address'
+        attendeeInput: t('calendar.modals.eventForm.invalidEmail')
       }))
       return
     }
@@ -170,7 +172,7 @@ const EventModal: React.FC<EventModalProps> = ({
     if (formData.attendees.includes(email)) {
       setErrors(prev => ({
         ...prev,
-        attendeeInput: 'This attendee is already added'
+        attendeeInput: t('calendar.modals.eventForm.attendeeAlreadyAdded')
       }))
       return
     }
@@ -233,28 +235,28 @@ const EventModal: React.FC<EventModalProps> = ({
 
     // Required fields
     if (!formData.title.trim()) {
-      newErrors.title = 'Event title is required'
+      newErrors.title = t('calendar.modals.eventForm.titleRequired')
     }
 
     // Account validation - ensure we have a valid account
     if (!formData.accountId && activeAccounts.length === 0) {
-      newErrors.accountId = 'No calendar account available'
+      newErrors.accountId = t('calendar.modals.eventForm.noAccountAvailable')
     }
 
     if (!formData.startDate) {
-      newErrors.startDate = 'Start date is required'
+      newErrors.startDate = t('calendar.modals.eventForm.startDateRequired')
     }
 
     if (!formData.endDate) {
-      newErrors.endDate = 'End date is required'
+      newErrors.endDate = t('calendar.modals.eventForm.endDateRequired')
     }
 
     if (!formData.isAllDay) {
       if (!formData.startTime) {
-        newErrors.startTime = 'Start time is required'
+        newErrors.startTime = t('calendar.modals.eventForm.startTimeRequired')
       }
       if (!formData.endTime) {
-        newErrors.endTime = 'End time is required'
+        newErrors.endTime = t('calendar.modals.eventForm.endTimeRequired')
       }
 
       // Validate time logic
@@ -264,12 +266,12 @@ const EventModal: React.FC<EventModalProps> = ({
 
         // Check if start date/time is in the past (only for new events)
         if (mode === 'create' && startDateTime < now) {
-          newErrors.startTime = 'Cannot create events in the past'
-          newErrors.startDate = 'Cannot create events in the past'
+          newErrors.startTime = t('calendar.modals.eventForm.cannotCreatePastEvent')
+          newErrors.startDate = t('calendar.modals.eventForm.cannotCreatePastEvent')
         }
 
         if (endDateTime <= startDateTime) {
-          newErrors.endTime = 'End time must be after start time'
+          newErrors.endTime = t('calendar.modals.eventForm.endTimeAfterStart')
         }
       }
     } else {
@@ -282,11 +284,11 @@ const EventModal: React.FC<EventModalProps> = ({
 
         // Check if start date is in the past (only for new events)
         if (mode === 'create' && startDate < today) {
-          newErrors.startDate = 'Cannot create events in the past'
+          newErrors.startDate = t('calendar.modals.eventForm.cannotCreatePastEvent')
         }
 
         if (endDate < startDate) {
-          newErrors.endDate = 'End date must be on or after start date'
+          newErrors.endDate = t('calendar.modals.eventForm.endDateAfterStart')
         }
       }
     }
@@ -384,7 +386,7 @@ const EventModal: React.FC<EventModalProps> = ({
       onClose()
     } catch (error) {
       console.error('Error saving event:', error)
-      setErrors({ submit: 'Failed to save event. Please try again.' })
+      setErrors({ submit: t('calendar.modals.eventForm.saveError') })
     } finally {
       setIsSubmitting(false)
     }
@@ -424,7 +426,7 @@ const EventModal: React.FC<EventModalProps> = ({
       <div className="modal-content event-modal" onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
         <div className="modal-header">
           <div className="event-title-section">
-            <h2 className="event-title">{mode === 'edit' ? 'Edit Event' : 'Create New Event'}</h2>
+            <h2 className="event-title">{mode === 'edit' ? t('calendar.modals.eventForm.editTitle') : t('calendar.modals.eventForm.createTitle')}</h2>
           </div>
           <button className="modal-close" onClick={handleClose}>
             <CloseIcon className="w-5 h-5" />
@@ -437,7 +439,7 @@ const EventModal: React.FC<EventModalProps> = ({
               {/* Event Title */}
               <div className="detail-item">
                 <div className="detail-content">
-                  <div className="detail-label">Event Title <span className="required">*</span></div>
+                  <div className="detail-label">{t('calendar.modals.eventForm.eventTitle')} <span className="required">*</span></div>
                   <input
                     type="text"
                     id="title"
@@ -445,7 +447,7 @@ const EventModal: React.FC<EventModalProps> = ({
                     className={`form-input ${errors.title ? 'error' : ''}`}
                     value={formData.title || ''}
                     onChange={e => handleInputChange('title', e.target.value)}
-                    placeholder="Enter event title"
+                    placeholder={t('calendar.modals.eventForm.titlePlaceholder')}
                     maxLength={255}
                     autoComplete="off"
                   />
@@ -475,7 +477,7 @@ const EventModal: React.FC<EventModalProps> = ({
                       onChange={e => handleInputChange('isAllDay', e.target.checked)}
                       className="form-checkbox"
                     />
-                    <label htmlFor="isAllDay" className="checkbox-label">All day event</label>
+                    <label htmlFor="isAllDay" className="checkbox-label">{t('calendar.modals.eventForm.allDayEvent')}</label>
                   </div>
                 </div>
               </div>
@@ -484,7 +486,7 @@ const EventModal: React.FC<EventModalProps> = ({
               <div className="datetime-grid">
                 <div className="detail-item">
                   <div className="detail-content">
-                    <div className="detail-label">Start Date <span className="required">*</span></div>
+                    <div className="detail-label">{t('calendar.modals.eventForm.startDate')} <span className="required">*</span></div>
                     <input
                       type="date"
                       id="startDate"
@@ -499,7 +501,7 @@ const EventModal: React.FC<EventModalProps> = ({
                 {!formData.isAllDay && (
                   <div className="detail-item">
                     <div className="detail-content">
-                      <div className="detail-label">Start Time <span className="required">*</span></div>
+                      <div className="detail-label">{t('calendar.modals.eventForm.startTime')} <span className="required">*</span></div>
                       <input
                         type="time"
                         id="startTime"
@@ -516,7 +518,7 @@ const EventModal: React.FC<EventModalProps> = ({
               <div className="datetime-grid">
                 <div className="detail-item">
                   <div className="detail-content">
-                    <div className="detail-label">End Date <span className="required">*</span></div>
+                    <div className="detail-label">{t('calendar.modals.eventForm.endDate')} <span className="required">*</span></div>
                     <input
                       type="date"
                       id="endDate"
@@ -531,7 +533,7 @@ const EventModal: React.FC<EventModalProps> = ({
                 {!formData.isAllDay && (
                   <div className="detail-item">
                     <div className="detail-content">
-                      <div className="detail-label">End Time <span className="required">*</span></div>
+                      <div className="detail-label">{t('calendar.modals.eventForm.endTime')} <span className="required">*</span></div>
                       <input
                         type="time"
                         id="endTime"
@@ -550,14 +552,14 @@ const EventModal: React.FC<EventModalProps> = ({
               {/* Description */}
               <div className="detail-item">
                 <div className="detail-content">
-                  <div className="detail-label">Description</div>
+                  <div className="detail-label">{t('calendar.modals.eventForm.description')}</div>
                   <textarea
                     id="description"
                     name="description"
                     className="form-textarea"
                     value={formData.description}
                     onChange={e => handleInputChange('description', e.target.value)}
-                    placeholder="Enter event description (optional)"
+                    placeholder={t('calendar.modals.eventForm.descriptionPlaceholder')}
                     rows={3}
                     maxLength={1000}
                   />
@@ -567,7 +569,7 @@ const EventModal: React.FC<EventModalProps> = ({
               {/* Location */}
               <div className="detail-item">
                 <div className="detail-content">
-                  <div className="detail-label">Location</div>
+                  <div className="detail-label">{t('calendar.modals.eventForm.location')}</div>
                   <input
                     type="text"
                     id="location"
@@ -575,7 +577,7 @@ const EventModal: React.FC<EventModalProps> = ({
                     className="form-input"
                     value={formData.location}
                     onChange={e => handleInputChange('location', e.target.value)}
-                    placeholder="Enter location (optional)"
+                    placeholder={t('calendar.modals.eventForm.locationPlaceholder')}
                     maxLength={255}
                     autoComplete="off"
                   />
@@ -585,7 +587,7 @@ const EventModal: React.FC<EventModalProps> = ({
               {/* Attendees */}
               <div className="detail-item">
                 <div className="detail-content">
-                  <div className="detail-label">Guests</div>
+                  <div className="detail-label">{t('calendar.modals.eventForm.guests')}</div>
                   <div className="attendees-section">
                     <div className="attendee-input-wrapper">
                       <input
@@ -601,7 +603,7 @@ const EventModal: React.FC<EventModalProps> = ({
                           }
                         }}
                         onKeyPress={handleAttendeeKeyPress}
-                        placeholder="Enter email address and press Enter"
+                        placeholder={t('calendar.modals.eventForm.guestsPlaceholder')}
                         autoComplete="off"
                       />
                       <button
@@ -610,7 +612,7 @@ const EventModal: React.FC<EventModalProps> = ({
                         onClick={addAttendee}
                         disabled={!attendeeInput.trim()}
                       >
-                        Add
+                        {t('calendar.modals.eventForm.add')}
                       </button>
                     </div>
                     {errors.attendeeInput && <span className="error-message">{errors.attendeeInput}</span>}
@@ -620,7 +622,7 @@ const EventModal: React.FC<EventModalProps> = ({
                       <div className="attendees-list">
                         <div className="attendees-list-header">
                           <span className="text-sm text-gray-600">
-                            {formData.attendees.length} guest{formData.attendees.length !== 1 ? 's' : ''}
+                            {formData.attendees.length} {formData.attendees.length === 1 ? t('calendar.modals.eventForm.guest') : t('calendar.modals.eventForm.guests')}
                           </span>
                         </div>
                         <div className="attendees-tags">
@@ -631,7 +633,7 @@ const EventModal: React.FC<EventModalProps> = ({
                                 type="button"
                                 className="attendee-remove"
                                 onClick={() => removeAttendee(email)}
-                                title="Remove guest"
+                                title={t('calendar.modals.eventForm.removeGuest')}
                               >
                                 <CloseIcon className="w-3 h-3" />
                               </button>
@@ -659,7 +661,7 @@ const EventModal: React.FC<EventModalProps> = ({
                       className="form-checkbox"
                     />
                     <label htmlFor="hasOnlineMeeting" className="checkbox-label">
-                      Add {formData.provider === 'microsoft' ? 'Teams' : 'Google Meet'} meeting
+                      {t('calendar.modals.eventForm.addMeeting', { provider: formData.provider === 'microsoft' ? 'Teams' : 'Google Meet' })}
                     </label>
                   </div>
                 </div>
@@ -704,7 +706,7 @@ const EventModal: React.FC<EventModalProps> = ({
                 onClick={handleClose}
                 disabled={isSubmitting}
               >
-                Cancel
+                {t('calendar.modals.eventForm.cancel')}
               </button>
               <button
                 type="submit"
@@ -714,11 +716,11 @@ const EventModal: React.FC<EventModalProps> = ({
                 {isSubmitting ? (
                   <>
                     <LoadingSpinner className="w-4 h-4" />
-                    {mode === 'edit' ? 'Updating...' : 'Creating...'}
+                    {mode === 'edit' ? t('calendar.modals.eventForm.updating') : t('calendar.modals.eventForm.creating')}
                   </>
                 ) : (
                   <>
-                    {mode === 'edit' ? 'Update Event' : 'Create Event'}
+                    {mode === 'edit' ? t('calendar.modals.eventForm.updateEvent') : t('calendar.modals.eventForm.createEvent')}
                   </>
                 )}
               </button>
