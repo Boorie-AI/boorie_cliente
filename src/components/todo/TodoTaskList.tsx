@@ -3,12 +3,14 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTodoStore } from '../../stores/todoStore'
+import TaskModal from './modals/TaskModal'
 
 const TodoTaskList: React.FC = () => {
   const { t } = useTranslation()
-  const [newTaskTitle, setNewTaskTitle] = useState('')
-  const [isCreatingTask, setIsCreatingTask] = useState(false)
   const [showCompletedTasks, setShowCompletedTasks] = useState(true)
+  const [showTaskModal, setShowTaskModal] = useState(false)
+  const [taskModalMode, setTaskModalMode] = useState<'create' | 'edit'>('create')
+  const [editingTask, setEditingTask] = useState<any>(null)
   
   const {
     lists,
@@ -28,25 +30,23 @@ const TodoTaskList: React.FC = () => {
   const pendingTasks = listTasks.filter(task => task.status !== 'completed')
   const completedTasks = listTasks.filter(task => task.status === 'completed')
 
-  const handleCreateTask = async () => {
-    if (!newTaskTitle.trim() || !currentList) return
-    
-    const success = await createTask({
-      title: newTaskTitle,
-      listId: currentList.id,
-      provider: currentList.provider
-    })
-    
-    if (success) {
-      setNewTaskTitle('')
-      setIsCreatingTask(false)
-    }
-  }
-
-  const handleTaskEdit = async (taskId: string, newTitle: string) => {
+  const handleCreateTask = () => {
     if (!currentList) return
     
-    await updateTask(taskId, { title: newTitle })
+    setTaskModalMode('create')
+    setEditingTask(null)
+    setShowTaskModal(true)
+  }
+
+  const handleEditTask = (task: any) => {
+    setTaskModalMode('edit')
+    setEditingTask(task)
+    setShowTaskModal(true)
+  }
+
+  const handleCloseModal = () => {
+    setShowTaskModal(false)
+    setEditingTask(null)
   }
 
   if (!selectedList || !currentList) {
@@ -83,7 +83,7 @@ const TodoTaskList: React.FC = () => {
           {/* Actions */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsCreatingTask(true)}
+              onClick={handleCreateTask}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium flex items-center gap-2"
             >
               <PlusIcon className="w-4 h-4" />
@@ -93,45 +93,6 @@ const TodoTaskList: React.FC = () => {
         </div>
       </div>
 
-      {/* Task Input */}
-      {isCreatingTask && (
-        <div className="px-6 py-4 border-b border-border/50 bg-muted/20 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 rounded border-2 border-border"></div>
-            <input
-              type="text"
-              value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCreateTask()
-                if (e.key === 'Escape') {
-                  setNewTaskTitle('')
-                  setIsCreatingTask(false)
-                }
-              }}
-              className="flex-1 px-3 py-2 text-sm border border-border rounded bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder={t('todo.task.titlePlaceholder', 'What needs to be done?')}
-              autoFocus
-            />
-            <button
-              onClick={handleCreateTask}
-              disabled={!newTaskTitle.trim() || loading.creating}
-              className="p-2 text-primary hover:bg-primary/10 rounded transition-colors disabled:opacity-50"
-            >
-              <CheckIcon className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => {
-                setNewTaskTitle('')
-                setIsCreatingTask(false)
-              }}
-              className="p-2 text-muted-foreground hover:bg-accent rounded transition-colors"
-            >
-              <XIcon className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Task List */}
       <div className="flex-1 overflow-y-auto pb-6">
@@ -145,7 +106,7 @@ const TodoTaskList: React.FC = () => {
               {t('todo.noTasksDescription', 'Add your first task to get started')}
             </p>
             <button
-              onClick={() => setIsCreatingTask(true)}
+              onClick={handleCreateTask}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
             >
               {t('todo.task.addFirst', 'Add your first task')}
@@ -161,7 +122,7 @@ const TodoTaskList: React.FC = () => {
                 onToggleCompletion={() => toggleTaskCompletion(task.id)}
                 onToggleStar={() => toggleTaskStar(task.id)}
                 onDelete={() => deleteTask(task.id, currentList.id, currentList.provider)}
-                onEdit={(newTitle) => handleTaskEdit(task.id, newTitle)}
+                onEdit={() => handleEditTask(task)}
               />
             ))}
             
@@ -190,7 +151,7 @@ const TodoTaskList: React.FC = () => {
                         onToggleCompletion={() => toggleTaskCompletion(task.id)}
                         onToggleStar={() => toggleTaskStar(task.id)}
                         onDelete={() => deleteTask(task.id, currentList.id, currentList.provider)}
-                        onEdit={(newTitle) => handleTaskEdit(task.id, newTitle)}
+                        onEdit={() => handleEditTask(task)}
                       />
                     ))}
                   </div>
@@ -200,6 +161,16 @@ const TodoTaskList: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Task Modal */}
+      <TaskModal
+        isOpen={showTaskModal}
+        onClose={handleCloseModal}
+        mode={taskModalMode}
+        task={editingTask}
+        initialListId={currentList?.id}
+        initialProvider={currentList?.provider}
+      />
     </div>
   )
 }
@@ -210,7 +181,7 @@ interface TaskItemProps {
   onToggleCompletion: () => void
   onToggleStar: () => void
   onDelete: () => void
-  onEdit: (newTitle: string) => void
+  onEdit: () => void
 }
 
 const TaskItem: React.FC<TaskItemProps> = ({
@@ -221,22 +192,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
   onEdit
 }) => {
   const { t } = useTranslation()
-  const [isEditing, setIsEditing] = useState(false)
-  const [editTitle, setEditTitle] = useState(task.title)
   const isCompleted = task.status === 'completed'
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !isCompleted
-
-  const handleEdit = () => {
-    if (editTitle.trim() && editTitle !== task.title) {
-      onEdit(editTitle.trim())
-    }
-    setIsEditing(false)
-  }
-
-  const handleCancelEdit = () => {
-    setEditTitle(task.title)
-    setIsEditing(false)
-  }
 
   return (
     <div className={`px-6 py-4 flex items-center gap-4 group hover:bg-accent/50 transition-all duration-200 shadow-sm hover:shadow-md rounded-lg mx-2 my-1 bg-background hover:bg-accent/30 border border-border/30 ${
@@ -257,25 +214,14 @@ const TaskItem: React.FC<TaskItemProps> = ({
       {/* Task Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          {isEditing ? (
-            <input
-              type="text"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleEdit()
-                if (e.key === 'Escape') handleCancelEdit()
-              }}
-              className="flex-1 px-2 py-1 text-sm border border-border rounded bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-              autoFocus
-            />
-          ) : (
-            <p className={`text-sm ${isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-              {task.title}
-            </p>
-          )}
-          {task.isStarred && !isEditing && (
+          <p className={`text-sm ${isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+            {task.title}
+          </p>
+          {task.isStarred && (
             <StarIcon className="w-4 h-4 text-yellow-500" filled />
+          )}
+          {task.isImportant && (
+            <ImportantIcon className="w-4 h-4 text-red-500" filled />
           )}
         </div>
         
@@ -299,52 +245,31 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
       {/* Actions */}
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        {isEditing ? (
-          <>
-            <button
-              onClick={handleEdit}
-              className="p-2 text-primary hover:text-primary/80 rounded-full transition-all duration-200 hover:bg-primary/10"
-              title={t('todo.task.save', 'Save')}
-            >
-              <CheckIcon className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleCancelEdit}
-              className="p-2 text-muted-foreground hover:text-foreground rounded-full transition-all duration-200 hover:bg-accent"
-              title={t('todo.task.cancel', 'Cancel')}
-            >
-              <XIcon className="w-4 h-4" />
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={() => setIsEditing(true)}
-              className="p-2 text-muted-foreground hover:text-foreground rounded-full transition-all duration-200 hover:bg-accent"
-              title={t('todo.task.edit', 'Edit task')}
-            >
-              <EditIcon className="w-4 h-4" />
-            </button>
-            <button
-              onClick={onToggleStar}
-              className={`p-2 rounded-full transition-all duration-200 ${
-                task.isStarred 
-                  ? 'text-yellow-500 hover:text-yellow-600 bg-yellow-50 hover:bg-yellow-100' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-              }`}
-              title={task.isStarred ? t('todo.task.unstar', 'Remove star') : t('todo.task.star', 'Add star')}
-            >
-              <StarIcon className="w-4 h-4" filled={task.isStarred} />
-            </button>
-            <button
-              onClick={onDelete}
-              className="p-2 text-muted-foreground hover:text-destructive rounded-full transition-all duration-200 hover:bg-destructive/10"
-              title={t('todo.task.delete', 'Delete task')}
-            >
-              <TrashIcon className="w-4 h-4" />
-            </button>
-          </>
-        )}
+        <button
+          onClick={onEdit}
+          className="p-2 text-muted-foreground hover:text-foreground rounded-full transition-all duration-200 hover:bg-accent"
+          title={t('todo.task.edit', 'Edit task')}
+        >
+          <EditIcon className="w-4 h-4" />
+        </button>
+        <button
+          onClick={onToggleStar}
+          className={`p-2 rounded-full transition-all duration-200 ${
+            task.isStarred 
+              ? 'text-yellow-500 hover:text-yellow-600 bg-yellow-50 hover:bg-yellow-100' 
+              : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+          }`}
+          title={task.isStarred ? t('todo.task.unstar', 'Remove star') : t('todo.task.star', 'Add star')}
+        >
+          <StarIcon className="w-4 h-4" filled={task.isStarred} />
+        </button>
+        <button
+          onClick={onDelete}
+          className="p-2 text-muted-foreground hover:text-destructive rounded-full transition-all duration-200 hover:bg-destructive/10"
+          title={t('todo.task.delete', 'Delete task')}
+        >
+          <TrashIcon className="w-4 h-4" />
+        </button>
       </div>
     </div>
   )
@@ -433,6 +358,12 @@ const ChevronDownIcon: React.FC<{ className?: string }> = ({ className }) => (
 const EditIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+)
+
+const ImportantIcon: React.FC<{ className?: string, filled?: boolean }> = ({ className, filled }) => (
+  <svg className={className} fill={filled ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
   </svg>
 )
 
