@@ -34,39 +34,9 @@ const InitialLoadingScreen: React.FC<InitialLoadingScreenProps> = ({
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
       <div className="text-center">
-        {/* Circular Progress Bar */}
-        <div className="relative w-20 h-20 mb-6 mx-auto">
-          {/* Background Circle */}
-          <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
-            <circle
-              cx="40"
-              cy="40"
-              r="36"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="6"
-              className="text-muted-foreground/20"
-            />
-            {/* Progress Circle */}
-            <circle
-              cx="40"
-              cy="40"
-              r="36"
-              fill="none"
-              strokeWidth="6"
-              strokeLinecap="round"
-              strokeDasharray={226.19} // 2 * π * 36
-              strokeDashoffset={226.19 - (226.19 * (isNaN(progress) ? 0 : progress)) / 100}
-              className="transition-all duration-500 ease-out stroke-primary"
-            />
-          </svg>
-          
-          {/* Progress Text */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-sm font-semibold text-foreground">
-              {Math.round(isNaN(progress) ? 0 : progress)}%
-            </span>
-          </div>
+        {/* Simple Loading Spinner */}
+        <div className="w-8 h-8 mb-6 mx-auto">
+          <div className="w-8 h-8 border-2 border-muted-foreground/20 border-t-primary rounded-full animate-spin"></div>
         </div>
 
         {/* Loading Message */}
