@@ -4,7 +4,7 @@ import { GoogleTaskList, GoogleTask } from './todo.types';
 import { DatabaseService } from '../../../backend/services/database.service';
 
 export class GoogleTasksService {
-  private metadataService: TaskMetadataService;
+  public metadataService: TaskMetadataService;
   private databaseService: DatabaseService;
   private baseUrl = 'https://tasks.googleapis.com/tasks/v1';
 

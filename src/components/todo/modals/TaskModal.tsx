@@ -46,7 +46,15 @@ const TaskModal: React.FC<TaskModalProps> = ({
       setFormData({
         title: task.title || '',
         description: task.description || '',
-        dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
+        // Fix: Handle timezone properly for date input
+        dueDate: task.dueDate ? (() => {
+          const date = new Date(task.dueDate);
+          // Get local date string in YYYY-MM-DD format
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        })() : '',
         listId: task.listId || '',
         provider: task.provider || 'google',
         isStarred: task.isStarred || false,
@@ -91,8 +99,10 @@ const TaskModal: React.FC<TaskModalProps> = ({
     }
 
     try {
+      let success = false;
+      
       if (mode === 'create') {
-        await createTask(taskData)
+        success = await createTask(taskData);
       } else if (mode === 'edit' && task) {
         // Get provider-specific list IDs
         const originalProviderListId = lists.find(l => l.id === task.listId)?.providerId || task.listId
@@ -109,9 +119,12 @@ const TaskModal: React.FC<TaskModalProps> = ({
           ...(formData.listId !== task.listId ? { newListId: newProviderListId } : {}), // Add newListId if list changed
           ...(task.provider === 'google' ? { isStarred: formData.isStarred } : { isImportant: formData.isImportant })
         }
-        await updateTask(updateRequest)
+        success = await updateTask(updateRequest);
       }
-      onClose()
+      
+      if (success) {
+        onClose();
+      }
     } catch (error) {
       console.error('Error saving task:', error)
     }

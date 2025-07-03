@@ -11,29 +11,59 @@ const TodoSidebar: React.FC = () => {
   const {
     authenticatedAccounts,
     lists,
+    tasks,
+    filters,
+    showCompleted,
     selectedList,
     sidebarCollapsed,
     loading,
-    getListsByProvider,
-    getTaskCounts,
     selectList,
     toggleSidebar,
     createList
   } = useTodoStore();
+
+  // Fix: Calculate values directly instead of using non-reactive methods
+  const googleLists = lists.filter(list => list.provider === 'google');
+  const microsoftLists = lists.filter(list => list.provider === 'microsoft');
+  
+  // Calculate task counts reactively
+  const filteredTasks = tasks.filter(task => {
+    if (filters.status === 'pending' && task.status !== 'pending') return false;
+    if (filters.status === 'completed' && task.status !== 'completed') return false;
+    if (!showCompleted && task.status === 'completed') return false;
+    if (filters.provider !== 'all' && task.provider !== filters.provider) return false;
+    if (filters.isStarred !== undefined && task.isStarred !== filters.isStarred) return false;
+    if (filters.searchQuery) {
+      const query = filters.searchQuery.toLowerCase();
+      const titleMatch = task.title.toLowerCase().includes(query);
+      const descriptionMatch = task.description?.toLowerCase().includes(query);
+      if (!titleMatch && !descriptionMatch) return false;
+    }
+    return true;
+  });
+  
+  const taskCounts = {
+    total: filteredTasks.length,
+    completed: filteredTasks.filter(t => t.status === 'completed').length,
+    pending: filteredTasks.filter(t => t.status !== 'completed').length,
+    overdue: filteredTasks.filter(t => {
+      if (!t.dueDate || t.status === 'completed') return false;
+      const dueDate = new Date(t.dueDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return dueDate < today;
+    }).length
+  };
 
   // Debug logging
   console.log('TodoSidebar render:', {
     authenticatedAccounts: authenticatedAccounts.length,
     hasGoogle: authenticatedAccounts.some(acc => acc.type === 'google'),
     hasMicrosoft: authenticatedAccounts.some(acc => acc.type === 'microsoft'),
-    googleLists: getListsByProvider('google').length,
-    microsoftLists: getListsByProvider('microsoft').length,
+    googleLists: googleLists.length,
+    microsoftLists: microsoftLists.length,
     sidebarCollapsed
   });
-
-  const taskCounts = getTaskCounts();
-  const googleLists = getListsByProvider('google');
-  const microsoftLists = getListsByProvider('microsoft');
   const microsoftSystemLists = microsoftLists.filter(list => list.isSystem);
   const microsoftCustomLists = microsoftLists.filter(list => !list.isSystem);
 

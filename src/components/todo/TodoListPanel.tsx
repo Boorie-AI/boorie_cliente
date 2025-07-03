@@ -24,9 +24,7 @@ const TodoListPanel: React.FC = () => {
     updateTask,
     deleteTask,
     toggleTaskCompletion,
-    toggleTaskStar,
-    getFilteredTasks,
-    getTasksByList
+    toggleTaskStar
   } = useTodoStore()
 
   // Filter lists based on selected provider
@@ -94,7 +92,7 @@ const TodoListPanel: React.FC = () => {
               }
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {filteredLists.length} {t('todo.lists', 'lists')}, {getFilteredTasks().length} {t('todo.tasks', 'tasks')}
+              {filteredLists.length} {t('todo.lists', 'lists')}, {tasks.length} {t('todo.tasks', 'tasks')}
             </p>
           </div>
           
@@ -125,7 +123,7 @@ const TodoListPanel: React.FC = () => {
                   <ListCard
                     key={list.id}
                     list={list}
-                    tasks={getTasksByList(list.id)}
+                    tasks={tasks.filter(task => task.listId === list.id)}
                     isExpanded={expandedLists.has(list.id)}
                     isSelected={selectedList === list.id}
                     onToggleExpanded={() => toggleListExpanded(list.id)}
@@ -165,7 +163,7 @@ const TodoListPanel: React.FC = () => {
                       <ListCard
                         key={list.id}
                         list={list}
-                        tasks={getTasksByList(list.id)}
+                        tasks={tasks.filter(task => task.listId === list.id)}
                         isExpanded={expandedLists.has(list.id)}
                         isSelected={selectedList === list.id}
                         onToggleExpanded={() => toggleListExpanded(list.id)}
@@ -196,7 +194,7 @@ const TodoListPanel: React.FC = () => {
                       <ListCard
                         key={list.id}
                         list={list}
-                        tasks={getTasksByList(list.id)}
+                        tasks={tasks.filter(task => task.listId === list.id)}
                         isExpanded={expandedLists.has(list.id)}
                         isSelected={selectedList === list.id}
                         onToggleExpanded={() => toggleListExpanded(list.id)}

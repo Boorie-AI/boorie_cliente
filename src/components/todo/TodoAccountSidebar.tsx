@@ -40,7 +40,8 @@ const TodoSidebar: React.FC<TodoSidebarProps> = ({ className = '' }) => {
     selectList,
     createList,
     deleteList,
-    getTaskCounts
+    filters,
+    showCompleted
   } = useTodoStore()
 
   // Convert todo providers to account format
@@ -56,7 +57,34 @@ const TodoSidebar: React.FC<TodoSidebarProps> = ({ className = '' }) => {
     lastSync: undefined
   }))
 
-  const taskCounts = getTaskCounts()
+  // Fix: Calculate task counts directly instead of using non-reactive method
+  const filteredTasks = tasks.filter(task => {
+    if (filters.status === 'pending' && task.status !== 'pending') return false;
+    if (filters.status === 'completed' && task.status !== 'completed') return false;
+    if (!showCompleted && task.status === 'completed') return false;
+    if (filters.provider !== 'all' && task.provider !== filters.provider) return false;
+    if (filters.isStarred !== undefined && task.isStarred !== filters.isStarred) return false;
+    if (filters.searchQuery) {
+      const query = filters.searchQuery.toLowerCase();
+      const titleMatch = task.title.toLowerCase().includes(query);
+      const descriptionMatch = task.description?.toLowerCase().includes(query);
+      if (!titleMatch && !descriptionMatch) return false;
+    }
+    return true;
+  });
+  
+  const taskCounts = {
+    total: filteredTasks.length,
+    completed: filteredTasks.filter(t => t.status === 'completed').length,
+    pending: filteredTasks.filter(t => t.status !== 'completed').length,
+    overdue: filteredTasks.filter(t => {
+      if (!t.dueDate || t.status === 'completed') return false;
+      const dueDate = new Date(t.dueDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return dueDate < today;
+    }).length
+  };
 
   // Auto-initialize with first account if none selected
   useEffect(() => {

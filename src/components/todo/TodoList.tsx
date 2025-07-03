@@ -13,12 +13,11 @@ const TodoList: React.FC = () => {
   
   const {
     lists,
+    tasks: allTasks,
     selectedList,
     filters,
     loading,
     showCompleted,
-    getFilteredTasks,
-    getTasksByList,
     selectTask,
     createTask,
     toggleTaskCompletion,
@@ -28,7 +27,33 @@ const TodoList: React.FC = () => {
   } = useTodoStore();
 
   const selectedListObj = lists.find(l => l.id === selectedList);
-  const tasks = selectedList ? getTasksByList(selectedList) : getFilteredTasks();
+  
+  // Fix: Use direct filtering instead of non-reactive computed methods
+  const getFilteredTasks = () => {
+    return allTasks.filter(task => {
+      // Status filter
+      if (filters.status === 'pending' && task.status !== 'pending') return false;
+      if (filters.status === 'completed' && task.status !== 'completed') return false;
+      
+      // Provider filter
+      if (filters.provider !== 'all' && task.provider !== filters.provider) return false;
+      
+      // Star filter
+      if (filters.isStarred !== undefined && task.isStarred !== filters.isStarred) return false;
+      
+      // Search filter
+      if (filters.searchQuery) {
+        const query = filters.searchQuery.toLowerCase();
+        const titleMatch = task.title.toLowerCase().includes(query);
+        const descriptionMatch = task.description?.toLowerCase().includes(query);
+        if (!titleMatch && !descriptionMatch) return false;
+      }
+      
+      return true;
+    });
+  };
+  
+  const tasks = selectedList ? allTasks.filter(task => task.listId === selectedList) : getFilteredTasks();
   const displayTasks = showCompleted ? tasks : tasks.filter(t => t.status !== 'completed');
 
   const handleCreateTask = async () => {

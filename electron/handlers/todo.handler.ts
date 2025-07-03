@@ -254,7 +254,9 @@ export class TodoHandler {
       
       if (request.dueDate) {
         // Convert to RFC 3339 format for Google Tasks
+        // Add 12 hours to ensure we get the correct date (noon of the selected day)
         const date = new Date(request.dueDate);
+        date.setHours(12, 0, 0, 0);
         taskData.due = date.toISOString();
       }
       
@@ -276,7 +278,41 @@ export class TodoHandler {
         throw new Error('Missing required fields: task ID or list ID');
       }
       
-      // First, get the existing task to merge with updates
+      // Check if we need to move the task to a different list FIRST
+      if (request.newListId && request.newListId !== request.listId) {
+        // Google Tasks requires moving the task first, then updating
+        // Create task in new list
+        const existingTask = await this.googleTasksService.getTask(request.listId, request.id);
+        
+        // Create in new list with updated data
+        const createData: any = {
+          title: request.title !== undefined ? request.title : existingTask.title,
+          notes: request.description !== undefined ? request.description : existingTask.notes || ''
+        };
+        
+        if (request.dueDate) {
+          const date = new Date(request.dueDate);
+          date.setHours(12, 0, 0, 0);
+          createData.due = date.toISOString();
+        } else if (existingTask.due && request.dueDate === undefined) {
+          createData.due = existingTask.due;
+        }
+        
+        // Create new task
+        const newTask = await this.googleTasksService.createTask(request.newListId, createData);
+        
+        // Delete old task
+        await this.googleTasksService.deleteTask(request.listId, request.id);
+        
+        // Handle starred status separately (through metadata service)
+        if (request.isStarred !== undefined) {
+          await this.googleTasksService.metadataService.setTaskStarred('google', newTask.id, request.isStarred);
+        }
+        
+        return { success: true, data: newTask };
+      }
+      
+      // Regular update without list change
       const existingTask = await this.googleTasksService.getTask(request.listId, request.id);
       
       // Build update payload with full task data (Google Tasks API requires PUT with full object)
@@ -292,6 +328,7 @@ export class TodoHandler {
         if (request.dueDate) {
           // Convert date string to RFC 3339 format
           const date = new Date(request.dueDate);
+          date.setHours(12, 0, 0, 0);
           updateData.due = date.toISOString();
         } else {
           // Don't include due field to clear it
@@ -314,6 +351,12 @@ export class TodoHandler {
       if (existingTask.hidden) updateData.hidden = existingTask.hidden;
       
       const task = await this.googleTasksService.updateTask(request.listId, request.id, updateData);
+      
+      // Handle starred status separately (Google doesn't have native support)
+      if (request.isStarred !== undefined) {
+        await this.googleTasksService.metadataService.setTaskStarred('google', request.id, request.isStarred);
+      }
+      
       return { success: true, data: task };
     } catch (error) {
       console.error('Error updating Google task:', error);
@@ -407,7 +450,9 @@ export class TodoHandler {
       
       if (request.dueDate) {
         // Ensure proper date format
+        // Add 12 hours to get noon of the selected day to avoid timezone issues
         const date = new Date(request.dueDate);
+        date.setHours(12, 0, 0, 0);
         taskData.dueDateTime = {
           dateTime: date.toISOString(),
           timeZone: 'UTC'
@@ -456,6 +501,7 @@ export class TodoHandler {
           if (request.dueDate) {
             // Convert date string to ISO format for Microsoft
             const date = new Date(request.dueDate);
+            date.setHours(12, 0, 0, 0);
             updateData.dueDateTime = {
               dateTime: date.toISOString(),
               timeZone: 'UTC'
@@ -491,6 +537,7 @@ export class TodoHandler {
           if (request.dueDate) {
             // Convert date string to ISO format for Microsoft
             const date = new Date(request.dueDate);
+            date.setHours(12, 0, 0, 0);
             updateData.dueDateTime = {
               dateTime: date.toISOString(),
               timeZone: 'UTC'

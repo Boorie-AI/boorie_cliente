@@ -14,8 +14,9 @@ const TodoDetails: React.FC = () => {
 
   const {
     lists,
+    tasks,
+    selectedTaskId,
     loading,
-    getSelectedTask,
     selectTask,
     updateTask,
     deleteTask,
@@ -23,7 +24,8 @@ const TodoDetails: React.FC = () => {
     toggleTaskStar
   } = useTodoStore();
 
-  const task = getSelectedTask();
+  // Fix: Access task directly from store instead of using non-reactive getSelectedTask
+  const task = selectedTaskId ? tasks.find(task => task.id === selectedTaskId) : null;
 
   useEffect(() => {
     if (task) {

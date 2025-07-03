@@ -7,29 +7,9 @@ interface InitialLoadingScreenProps {
   syncProgress?: SyncProgress | null;
 }
 
-const InitialLoadingScreen: React.FC<InitialLoadingScreenProps> = ({ 
-  progress, 
-  syncProgress 
+const InitialLoadingScreen: React.FC<InitialLoadingScreenProps> = ({
 }) => {
   const { t } = useTranslation();
-
-  const getProgressMessage = () => {
-    if (syncProgress) {
-      switch (syncProgress.phase) {
-        case 'accounts':
-          return t('todo.loading.accounts', 'Loading accounts...');
-        case 'lists':
-          return t('todo.loading.lists', 'Loading lists...');
-        case 'tasks':
-          return t('todo.loading.tasks', 'Loading tasks...');
-        case 'complete':
-          return t('todo.loading.complete', 'Complete!');
-        default:
-          return syncProgress.message || t('todo.loading.title', 'Loading Todo...');
-      }
-    }
-    return t('todo.loading.title', 'Loading Todo...');
-  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
@@ -40,8 +20,8 @@ const InitialLoadingScreen: React.FC<InitialLoadingScreenProps> = ({
         </div>
 
         {/* Loading Message */}
-        <p className="text-foreground font-medium">
-          {getProgressMessage()}
+        <p className="text-sm text-muted-foreground">
+          {t('todo.loading.title')}
         </p>
       </div>
     </div>

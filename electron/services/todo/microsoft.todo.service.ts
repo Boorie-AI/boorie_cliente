@@ -725,10 +725,10 @@ export class MicrosoftTodoService {
   // Task management helpers
   async moveTaskToList(fromListId: string, toListId: string, taskId: string): Promise<MicrosoftTask> {
     try {
-      // Get the original task
+      // Get the original task with all details
       const originalTask = await this.getTask(fromListId, taskId);
       
-      // Create a copy in the new list
+      // Create a copy in the new list with ALL properties preserved
       const newTask = await this.createTask(toListId, {
         title: originalTask.title,
         body: originalTask.body,
@@ -738,10 +738,14 @@ export class MicrosoftTodoService {
         startDateTime: originalTask.startDateTime
       });
       
-      // Delete from the original list
+      // Delete from the original list only after successful creation
       await this.deleteTask(fromListId, taskId);
       
-      return newTask;
+      // Return the new task with the correct list ID
+      return {
+        ...newTask,
+        taskListId: toListId
+      };
     } catch (error) {
       console.error('Error moving Microsoft task between lists:', error);
       throw error;

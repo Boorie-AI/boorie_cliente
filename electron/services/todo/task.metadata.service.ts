@@ -16,6 +16,8 @@ interface TaskMetadata {
 
 export class TaskMetadataService {
   private databaseService: DatabaseService;
+  // Temporary in-memory storage for starred status
+  private starredTasks: Map<string, boolean> = new Map();
 
   constructor(databaseService?: DatabaseService) {
     this.databaseService = databaseService || new DatabaseService(null as any);
@@ -75,13 +77,25 @@ export class TaskMetadataService {
 
   async toggleTaskStar(provider: 'google' | 'microsoft', providerId: string, listId: string): Promise<boolean> {
     try {
-      // TODO: Implement proper database integration
-      // For now, return a random star state
-      return Math.random() > 0.5;
+      const key = `${provider}-${providerId}`;
+      const currentState = this.starredTasks.get(key) || false;
+      const newState = !currentState;
+      this.starredTasks.set(key, newState);
+      return newState;
     } catch (error) {
       console.error('Error toggling task star:', error);
       throw error;
     }
+  }
+  
+  async isTaskStarred(provider: 'google' | 'microsoft', providerId: string): Promise<boolean> {
+    const key = `${provider}-${providerId}`;
+    return this.starredTasks.get(key) || false;
+  }
+  
+  async setTaskStarred(provider: 'google' | 'microsoft', providerId: string, starred: boolean): Promise<void> {
+    const key = `${provider}-${providerId}`;
+    this.starredTasks.set(key, starred);
   }
 
   async getStarredTasks(provider?: 'google' | 'microsoft'): Promise<TaskMetadata[]> {

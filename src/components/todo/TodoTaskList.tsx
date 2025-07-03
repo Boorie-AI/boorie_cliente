@@ -21,12 +21,12 @@ const TodoTaskList: React.FC = () => {
     updateTask,
     deleteTask,
     toggleTaskCompletion,
-    toggleTaskStar,
-    getTasksByList
+    toggleTaskStar
   } = useTodoStore()
 
   const currentList = lists.find(list => list.id === selectedList)
-  const listTasks = selectedList ? getTasksByList(selectedList) : []
+  // Fix: Access tasks directly from store instead of using non-reactive getTasksByList
+  const listTasks = selectedList ? tasks.filter(task => task.listId === selectedList) : []
   const pendingTasks = listTasks.filter(task => task.status !== 'completed')
   const completedTasks = listTasks.filter(task => task.status === 'completed')
 
