@@ -36,8 +36,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
     dueDate: '',
     listId: '',
     provider: 'google' as 'google' | 'microsoft',
-    isStarred: false, // For Google
-    isImportant: false // For Microsoft
+    isImportant: false // For Microsoft only
   })
 
   // Initialize form data
@@ -57,7 +56,6 @@ const TaskModal: React.FC<TaskModalProps> = ({
         })() : '',
         listId: task.listId || '',
         provider: task.provider || 'google',
-        isStarred: task.isStarred || false,
         isImportant: task.isImportant || false
       })
     } else if (mode === 'create') {
@@ -67,7 +65,6 @@ const TaskModal: React.FC<TaskModalProps> = ({
         dueDate: '',
         listId: initialListId || '',
         provider: initialProvider || 'google',
-        isStarred: false,
         isImportant: false
       })
     }
@@ -95,7 +92,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
       dueDate: formData.dueDate || undefined,
       listId: getProviderListId(formData.listId), // Use provider-specific list ID
       provider: formData.provider,
-      ...(formData.provider === 'google' ? { isStarred: formData.isStarred } : { isImportant: formData.isImportant })
+      ...(formData.provider === 'microsoft' ? { isImportant: formData.isImportant } : {})
     }
 
     try {
@@ -117,7 +114,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
           dueDate: formData.dueDate || undefined,
           listId: originalProviderListId, // Original provider list ID
           ...(formData.listId !== task.listId ? { newListId: newProviderListId } : {}), // Add newListId if list changed
-          ...(task.provider === 'google' ? { isStarred: formData.isStarred } : { isImportant: formData.isImportant })
+          ...(task.provider === 'microsoft' ? { isImportant: formData.isImportant } : {})
         }
         success = await updateTask(updateRequest);
       }
@@ -241,22 +238,9 @@ const TaskModal: React.FC<TaskModalProps> = ({
             </div>
           )}
 
-          {/* Starred/Important Toggle */}
-          <div className="flex items-center gap-3">
-            {formData.provider === 'google' ? (
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.isStarred}
-                  onChange={(e) => setFormData(prev => ({ ...prev, isStarred: e.target.checked }))}
-                  className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary"
-                />
-                <span className="text-sm text-foreground flex items-center gap-1">
-                  <StarIcon className="w-4 h-4 text-yellow-500" filled={formData.isStarred} />
-                  {t('todo.task.starred', 'Starred')}
-                </span>
-              </label>
-            ) : (
+          {/* Important Toggle - Only for Microsoft */}
+          {formData.provider === 'microsoft' && (
+            <div className="flex items-center gap-3">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -269,8 +253,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
                   {t('todo.task.important', 'Important')}
                 </span>
               </label>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end space-x-3 pt-4">

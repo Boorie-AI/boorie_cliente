@@ -226,7 +226,7 @@ export class TodoAggregatorService {
       providerId: task.id,
       listId: list.id,
       listName: list.name,
-      isStarred: task.isStarred || false,
+      isStarred: false, // Google Tasks doesn't have native star support - use Starred list instead
       originalTask: task
     }));
   }

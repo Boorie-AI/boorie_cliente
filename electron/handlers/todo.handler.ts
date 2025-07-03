@@ -304,10 +304,7 @@ export class TodoHandler {
         // Delete old task
         await this.googleTasksService.deleteTask(request.listId, request.id);
         
-        // Handle starred status separately (through metadata service)
-        if (request.isStarred !== undefined) {
-          await this.googleTasksService.metadataService.setTaskStarred('google', newTask.id, request.isStarred);
-        }
+        // Google Tasks doesn't support starred status - use Starred list instead
         
         return { success: true, data: newTask };
       }
@@ -352,10 +349,7 @@ export class TodoHandler {
       
       const task = await this.googleTasksService.updateTask(request.listId, request.id, updateData);
       
-      // Handle starred status separately (Google doesn't have native support)
-      if (request.isStarred !== undefined) {
-        await this.googleTasksService.metadataService.setTaskStarred('google', request.id, request.isStarred);
-      }
+      // Google Tasks doesn't support starred status - use Starred list instead
       
       return { success: true, data: task };
     } catch (error) {

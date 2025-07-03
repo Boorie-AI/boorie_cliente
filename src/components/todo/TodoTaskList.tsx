@@ -20,8 +20,7 @@ const TodoTaskList: React.FC = () => {
     createTask,
     updateTask,
     deleteTask,
-    toggleTaskCompletion,
-    toggleTaskStar
+    toggleTaskCompletion
   } = useTodoStore()
 
   const currentList = lists.find(list => list.id === selectedList)
@@ -120,7 +119,6 @@ const TodoTaskList: React.FC = () => {
                 key={task.id}
                 task={task}
                 onToggleCompletion={() => toggleTaskCompletion(task.id)}
-                onToggleStar={() => toggleTaskStar(task.id)}
                 onDelete={() => deleteTask(task.id, currentList.id, currentList.provider)}
                 onEdit={() => handleEditTask(task)}
               />
@@ -149,8 +147,7 @@ const TodoTaskList: React.FC = () => {
                         key={task.id}
                         task={task}
                         onToggleCompletion={() => toggleTaskCompletion(task.id)}
-                        onToggleStar={() => toggleTaskStar(task.id)}
-                        onDelete={() => deleteTask(task.id, currentList.id, currentList.provider)}
+                                onDelete={() => deleteTask(task.id, currentList.id, currentList.provider)}
                         onEdit={() => handleEditTask(task)}
                       />
                     ))}
@@ -179,7 +176,6 @@ const TodoTaskList: React.FC = () => {
 interface TaskItemProps {
   task: any
   onToggleCompletion: () => void
-  onToggleStar: () => void
   onDelete: () => void
   onEdit: () => void
 }
@@ -187,7 +183,6 @@ interface TaskItemProps {
 const TaskItem: React.FC<TaskItemProps> = ({
   task,
   onToggleCompletion,
-  onToggleStar,
   onDelete,
   onEdit
 }) => {
@@ -217,10 +212,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
           <p className={`text-sm ${isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
             {task.title}
           </p>
-          {task.isStarred && (
-            <StarIcon className="w-4 h-4 text-yellow-500" filled />
-          )}
-          {task.isImportant && (
+          {task.provider === 'microsoft' && task.isImportant && (
             <ImportantIcon className="w-4 h-4 text-red-500" filled />
           )}
         </div>
@@ -251,17 +243,6 @@ const TaskItem: React.FC<TaskItemProps> = ({
           title={t('todo.task.edit', 'Edit task')}
         >
           <EditIcon className="w-4 h-4" />
-        </button>
-        <button
-          onClick={onToggleStar}
-          className={`p-2 rounded-full transition-all duration-200 ${
-            task.isStarred 
-              ? 'text-yellow-500 hover:text-yellow-600 bg-yellow-50 hover:bg-yellow-100' 
-              : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-          }`}
-          title={task.isStarred ? t('todo.task.unstar', 'Remove star') : t('todo.task.star', 'Add star')}
-        >
-          <StarIcon className="w-4 h-4" filled={task.isStarred} />
         </button>
         <button
           onClick={onDelete}
