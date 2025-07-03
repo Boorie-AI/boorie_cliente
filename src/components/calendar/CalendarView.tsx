@@ -6,6 +6,7 @@ import WeekView from './views/WeekView'
 import DayView from './views/DayView'
 import CalendarNavigation from './CalendarNavigation'
 import EventDetailsModal from './modals/EventDetailsModal'
+import EventModal from './modals/EventModal'
 
 // Calendar View Component - Main calendar display component
 
@@ -59,6 +60,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const [showEventModal, setShowEventModal] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<UnifiedCalendarEvent | null>(null)
   const [eventModalMode, setEventModalMode] = useState<'create' | 'edit' | 'view'>('view')
+  const [initialDate, setInitialDate] = useState<Date>(new Date())
+  const [initialHour, setInitialHour] = useState<number>(9)
+  const [initialMinute, setInitialMinute] = useState<number>(0)
 
   const handleEventClick = (event: UnifiedCalendarEvent) => {
     setSelectedEvent(event)
@@ -67,9 +71,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     onEventClick(event)
   }
 
-  const handleCreateEvent = (dateTime?: Date) => {
+  const handleCreateEvent = (date?: Date, hour?: number, minute?: number) => {
     setSelectedEvent(null)
     setEventModalMode('create')
+    setInitialDate(date || currentDate)
+    setInitialHour(hour || 9)
+    setInitialMinute(minute || 0)
     setShowEventModal(true)
   }
 
@@ -144,8 +151,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 events={events}
                 onEventClick={handleEventClick}
                 onDateClick={(date) => handleCreateEvent(date)}
-                onEventCreate={(date, hour) => handleCreateEvent(date)}
-                onTimeSlotClick={(date, hour) => handleCreateEvent(date)}
+                onEventCreate={(date, hour) => handleCreateEvent(date, hour)}
+                onTimeSlotClick={(date, hour) => handleCreateEvent(date, hour)}
                 isLoading={isLoading}
               />
             )}
@@ -154,8 +161,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 currentDate={currentDate}
                 events={events}
                 onEventClick={handleEventClick}
-                onEventCreate={(date, hour, minute) => handleCreateEvent(date)}
-                onTimeSlotClick={(date, hour, minute) => handleCreateEvent(date)}
+                onEventCreate={(date, hour, minute) => handleCreateEvent(date, hour, minute)}
+                onTimeSlotClick={(date, hour, minute) => handleCreateEvent(date, hour, minute)}
                 isLoading={isLoading}
               />
             )}
@@ -172,26 +179,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         />
       )}
       
-      {/* Event Create/Edit Modal - Placeholder for now */}
-      {(eventModalMode === 'create' || eventModalMode === 'edit') && showEventModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-card border border-border rounded-lg shadow-lg max-w-2xl w-full mx-4">
-            <div className="flex items-center justify-between p-6 border-b border-border">
-              <h3 className="text-lg font-semibold text-foreground">
-                {eventModalMode === 'create' ? 'Create Event' : 'Edit Event'}
-              </h3>
-              <button 
-                className="p-2 hover:bg-accent rounded-lg transition-colors"
-                onClick={() => setShowEventModal(false)}
-              >
-                <XIcon className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="p-6">
-              <p className="text-muted-foreground">Event creation/editing will be implemented in Phase 4</p>
-            </div>
-          </div>
-        </div>
+      {/* Event Create/Edit Modal */}
+      {(eventModalMode === 'create' || eventModalMode === 'edit') && (
+        <EventModal
+          isOpen={showEventModal}
+          onClose={() => setShowEventModal(false)}
+          event={eventModalMode === 'edit' ? selectedEvent : null}
+          initialDate={initialDate}
+          initialHour={initialHour}
+          initialMinute={initialMinute}
+          mode={eventModalMode}
+        />
       )}
     </div>
   )
@@ -248,69 +246,12 @@ const CalendarLoadingState: React.FC<{ view: 'month' | 'week' | 'day' }> = ({ vi
       <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
       <p className="text-sm text-muted-foreground">Loading {view} view...</p>
     </div>
-    <div className="absolute inset-0 bg-background/50 backdrop-blur-sm">
-      {/* Basic skeleton structure based on view */}
-      {view === 'month' && <MonthSkeleton />}
-      {view === 'week' && <WeekSkeleton />}
-      {view === 'day' && <DaySkeleton />}
-    </div>
   </div>
-)
-
-
-// Skeleton loading components
-const MonthSkeleton: React.FC = () => (
-  <div className="p-4">
-    <div className="grid grid-cols-7 gap-1">
-      {Array(35).fill(0).map((_, i) => (
-        <div key={i} className="h-24 bg-muted/50 rounded-lg animate-pulse"></div>
-      ))}
-    </div>
-  </div>
-)
-
-const WeekSkeleton: React.FC = () => (
-  <div className="p-4">
-    <div className="grid grid-cols-7 gap-1">
-      {Array(7).fill(0).map((_, i) => (
-        <div key={i} className="h-64 bg-muted/50 rounded-lg animate-pulse"></div>
-      ))}
-    </div>
-  </div>
-)
-
-const DaySkeleton: React.FC = () => (
-  <div className="p-4">
-    <div className="space-y-1">
-      {Array(24).fill(0).map((_, i) => (
-        <div key={i} className="h-16 bg-muted/50 rounded-lg animate-pulse"></div>
-      ))}
-    </div>
-  </div>
-)
-
-// Icon components
-const ChevronLeftIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-  </svg>
-)
-
-const ChevronRightIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-  </svg>
 )
 
 const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-  </svg>
-)
-
-const XIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
   </svg>
 )
 

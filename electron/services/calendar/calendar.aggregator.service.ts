@@ -459,8 +459,22 @@ export class CalendarAggregatorService {
    * Normalize Microsoft event to unified format
    */
   private normalizeMicrosoftEvent(event: MicrosoftCalendarEvent, accountId: string): UnifiedCalendarEvent {
-    const startTime = new Date(event.start.dateTime)
-    const endTime = new Date(event.end.dateTime)
+    const isAllDay = !event.start.dateTime.includes('T')
+    
+    // Debug logging for timezone investigation
+    console.log('=== MICROSOFT EVENT NORMALIZATION DEBUG ===')
+    console.log('Event title:', event.subject)
+    console.log('Raw start:', event.start)
+    console.log('Raw end:', event.end)
+    console.log('Is all day:', isAllDay)
+    
+    // Microsoft Graph API specific timezone handling
+    const startTime = this.parseMicrosoftEventDate(event.start, isAllDay)
+    const endTime = this.parseMicrosoftEventDate(event.end, isAllDay)
+    
+    console.log('Parsed start time:', startTime.toISOString(), '(local:', startTime.toString(), ')')
+    console.log('Parsed end time:', endTime.toISOString(), '(local:', endTime.toString(), ')')
+    console.log('============================================')
 
     return {
       id: event.id,
@@ -493,11 +507,102 @@ export class CalendarAggregatorService {
   }
 
   /**
+   * Convert timezone-aware date string to local Date object (for Google Calendar)
+   */
+  private parseEventDate(dateTimeString: string, isAllDay: boolean = false): Date {
+    console.log('  parseEventDate input:', dateTimeString, 'isAllDay:', isAllDay)
+    
+    if (isAllDay) {
+      // For all-day events, create date at start of day in local timezone
+      const result = new Date(dateTimeString + 'T00:00:00')
+      console.log('  parseEventDate all-day result:', result.toString())
+      return result
+    }
+    
+    // For timed events, since we're now requesting events in the user's timezone,
+    // the JavaScript Date constructor should handle the conversion correctly
+    const result = new Date(dateTimeString)
+    console.log('  parseEventDate timed result:', result.toString(), 'UTC:', result.toISOString())
+    return result
+  }
+
+  /**
+   * Parse Microsoft Graph API date with timezone information
+   */
+  private parseMicrosoftEventDate(dateTimeObj: { dateTime: string, timeZone: string }, isAllDay: boolean = false): Date {
+    console.log('  parseMicrosoftEventDate input:', dateTimeObj, 'isAllDay:', isAllDay)
+    
+    if (isAllDay) {
+      // For all-day events, create date at start of day in local timezone
+      const result = new Date(dateTimeObj.dateTime + 'T00:00:00')
+      console.log('  parseMicrosoftEventDate all-day result:', result.toString())
+      return result
+    }
+    
+    const { dateTime, timeZone } = dateTimeObj
+    
+    // Clean up Microsoft's millisecond format (.0000000) to standard format
+    const cleanDateTime = dateTime.replace(/\.0+/, '')
+    
+    // Microsoft Graph API timezone handling strategy:
+    // Despite setting Prefer header, Microsoft often returns UTC times without proper timezone markers
+    
+    // Case 1: DateTime has explicit timezone info (Z, +, -)
+    if (cleanDateTime.endsWith('Z') || cleanDateTime.includes('+') || cleanDateTime.includes('-')) {
+      const result = new Date(cleanDateTime)
+      console.log('  parseMicrosoftEventDate with explicit timezone:', result.toString())
+      return result
+    }
+    
+    // Case 2: Microsoft custom timezone or UTC
+    if (timeZone.includes('tzone://Microsoft/Custom') || timeZone === 'UTC') {
+      // Microsoft is returning UTC time but not marking it properly
+      const result = new Date(cleanDateTime + 'Z')
+      console.log('  parseMicrosoftEventDate Microsoft/Custom or UTC:', result.toString())
+      return result
+    }
+    
+    // Case 3: Standard timezone names
+    // Microsoft Graph API is supposed to convert to our preferred timezone, but often doesn't
+    // We need to check if the time seems to be in the wrong timezone
+    
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const userOffsetMinutes = new Date().getTimezoneOffset()
+    
+    // Try parsing as local time first
+    let result = new Date(cleanDateTime)
+    
+    // Heuristic: If the event was created recently and the times seem off by exact hour offsets,
+    // it's likely Microsoft returned UTC despite our preference
+    const now = new Date()
+    const timeDiffHours = Math.abs(result.getTime() - now.getTime()) / (1000 * 60 * 60)
+    
+    // If the time difference suggests UTC offset issue (within reasonable event time range)
+    if (timeDiffHours < 24 * 7) { // Within a week
+      // Check if adjusting for UTC makes more sense
+      const utcResult = new Date(cleanDateTime + 'Z')
+      const utcLocalDiff = Math.abs(utcResult.getTime() - result.getTime()) / (1000 * 60 * 60)
+      
+      // If there's exactly a timezone offset difference, use UTC interpretation
+      if (utcLocalDiff === Math.abs(userOffsetMinutes / 60)) {
+        result = utcResult
+        console.log('  parseMicrosoftEventDate TIMEZONE CORRECTION - treating as UTC:', result.toString())
+      }
+    }
+    
+    console.log('  parseMicrosoftEventDate final result:', result.toString())
+    console.log('  User timezone:', userTimeZone, 'offset minutes:', userOffsetMinutes)
+    
+    return result
+  }
+
+  /**
    * Normalize Google event to unified format
    */
   private normalizeGoogleEvent(event: GoogleCalendarEvent, accountId: string): UnifiedCalendarEvent {
-    const startTime = new Date(event.start.dateTime || event.start.date!)
-    const endTime = new Date(event.end.dateTime || event.end.date!)
+    const isAllDay = !!event.start.date
+    const startTime = this.parseEventDate(event.start.dateTime || event.start.date!, isAllDay)
+    const endTime = this.parseEventDate(event.end.dateTime || event.end.date!, isAllDay)
     const hasConference = !!event.conferenceData?.entryPoints?.length
 
     return {
@@ -534,6 +639,16 @@ export class CalendarAggregatorService {
    * Clear all cache
    */
   clearCache(): void {
+    this.cacheService.clear()
+  }
+
+  /**
+   * Clear Microsoft calendar cache specifically (for timezone debugging)
+   */
+  clearMicrosoftCache(): void {
+    // Force clearing cache for Microsoft calendar events
+    const cacheStats = this.cacheService.getStats()
+    this.logger.info('Clearing Microsoft calendar cache for timezone debugging', cacheStats)
     this.cacheService.clear()
   }
 

@@ -44,28 +44,33 @@ const WeekView: React.FC<WeekViewProps> = ({
   const [currentTime, setCurrentTime] = useState(new Date())
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  // Update current time every minute
+  // Update current time every second for smooth timeline
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date())
-    }, 60000)
+    }, 1000) // Update every second for smooth timeline movement
     return () => clearInterval(interval)
   }, [])
 
-  // Scroll to current time on mount
+  // Scroll to current time on mount and when date changes
   useEffect(() => {
     if (scrollContainerRef.current) {
       const now = new Date()
       const currentHour = now.getHours()
-      const scrollPosition = (currentHour - 6) * 60 // 60px per hour, start 6 hours before
-      scrollContainerRef.current.scrollTop = Math.max(0, scrollPosition)
+      const currentMinute = now.getMinutes()
+      // Each hour is 64px (h-16), scroll to show current time with some context above
+      const scrollPosition = Math.max(0, (currentHour - 2) * 64 + (currentMinute / 60) * 64)
+      scrollContainerRef.current.scrollTop = scrollPosition
     }
-  }, [])
+  }, [currentDate]) // Re-scroll when date changes
 
-  // Get the week days starting from Sunday
+  // Get the week days starting from Monday
   const getWeekDays = () => {
     const startOfWeek = new Date(currentDate)
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
+    // Get Monday: if day is Sunday (0), go back 6 days, otherwise go back (day - 1) days
+    const dayOfWeek = startOfWeek.getDay()
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    startOfWeek.setDate(startOfWeek.getDate() - daysToSubtract)
     
     const days: Date[] = []
     for (let i = 0; i < 7; i++) {
@@ -119,8 +124,8 @@ const WeekView: React.FC<WeekViewProps> = ({
     const startMinutes = startTime.getHours() * 60 + startTime.getMinutes()
     const endMinutes = endTime.getHours() * 60 + endTime.getMinutes()
     
-    // Height of one hour in pixels
-    const hourHeight = 60
+    // Height of one hour in pixels (64px for h-16)
+    const hourHeight = 64
     
     // Calculate position (top) and height
     const top = (startMinutes / 60) * hourHeight
@@ -129,10 +134,65 @@ const WeekView: React.FC<WeekViewProps> = ({
     return { top, height }
   }
 
+  // Handle overlapping events for a specific date
+  const layoutEventsForDate = (date: Date) => {
+    const timedEvents = getTimedEventsForDate(date)
+    const layoutEvents: Array<UnifiedCalendarEvent & { column: number; width: number; left: number }> = []
+    
+    // Sort events by start time
+    timedEvents.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+    
+    timedEvents.forEach(event => {
+      // Find overlapping events that are already laid out
+      const overlapping = layoutEvents.filter(layoutEvent => {
+        const eventStart = new Date(event.startTime).getTime()
+        const eventEnd = new Date(event.endTime).getTime()
+        const layoutStart = new Date(layoutEvent.startTime).getTime()
+        const layoutEnd = new Date(layoutEvent.endTime).getTime()
+        
+        return (eventStart < layoutEnd && eventEnd > layoutStart)
+      })
+      
+      // Find the first available column
+      let column = 0
+      const usedColumns = overlapping.map(e => e.column).sort((a, b) => a - b)
+      
+      for (let i = 0; i < usedColumns.length; i++) {
+        if (usedColumns[i] !== i) {
+          column = i
+          break
+        }
+      }
+      if (column === 0 && usedColumns.length > 0) {
+        column = usedColumns.length
+      }
+      
+      // Calculate width and left position based on overlapping events
+      const maxColumns = Math.max(1, overlapping.length + 1)
+      const width = 100 / maxColumns
+      const left = column * width
+      
+      // Update width for all overlapping events
+      overlapping.forEach(overlappingEvent => {
+        overlappingEvent.width = 100 / maxColumns
+        overlappingEvent.left = overlappingEvent.column * (100 / maxColumns)
+      })
+      
+      layoutEvents.push({
+        ...event,
+        column,
+        width,
+        left
+      })
+    })
+    
+    return layoutEvents
+  }
+
   // Generate hours array (0-23)
   const hours = Array.from({ length: 24 }, (_, i) => i)
   const weekDays = getWeekDays()
-  const weekDayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const weekDayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
   // Format hour display
   const formatHour = (hour: number) => {
@@ -150,37 +210,41 @@ const WeekView: React.FC<WeekViewProps> = ({
   // Calculate current time line position
   const getCurrentTimeLinePosition = () => {
     const now = new Date()
-    const minutes = now.getHours() * 60 + now.getMinutes()
-    return (minutes / 60) * 60 // 60px per hour
+    const totalMinutes = now.getHours() * 60 + now.getMinutes()
+    // Each hour is 64px (h-16), so each minute is 64/60 px
+    return (totalMinutes / 60) * 64
   }
 
   if (isLoading) {
     return (
-      <div className="week-view loading">
-        <div className="week-loading">
-          <div className="loading-spinner"></div>
-          <p>Loading week view...</p>
+      <div className="flex flex-col h-full items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Loading week view...</p>
         </div>
-        <WeekSkeleton />
       </div>
     )
   }
 
   return (
-    <div className="week-view">
+    <div className="flex flex-col h-full bg-background">
       {/* Week header with dates */}
-      <div className="week-header">
-        <div className="time-column-header">
-          <span className="gmt-label">GMT-{currentDate.getTimezoneOffset() / 60}</span>
+      <div className="flex border-b border-border bg-muted/30">
+        <div className="w-16 lg:w-20 flex items-center justify-center py-3 border-r border-border">
+          <span className="text-xs text-muted-foreground">GMT{currentDate.getTimezoneOffset() > 0 ? '-' : '+'}{Math.abs(currentDate.getTimezoneOffset() / 60)}</span>
         </div>
         {weekDays.map((date, index) => (
           <div
             key={index}
-            className={`week-day-header ${isToday(date) ? 'today' : ''}`}
+            className={`flex-1 flex flex-col items-center py-3 cursor-pointer hover:bg-accent/50 transition-colors border-r border-border last:border-r-0 ${
+              isToday(date) ? 'bg-primary/10 border-primary/20' : ''
+            }`}
             onClick={() => onDateClick(date)}
           >
-            <div className="day-name">{weekDayNames[index]}</div>
-            <div className={`day-number ${isToday(date) ? 'today-number' : ''}`}>
+            <div className="text-xs text-muted-foreground font-medium mb-1">{weekDayNames[index]}</div>
+            <div className={`text-sm font-semibold ${
+              isToday(date) ? 'text-primary bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center' : 'text-foreground'
+            }`}>
               {date.getDate()}
             </div>
           </div>
@@ -188,103 +252,131 @@ const WeekView: React.FC<WeekViewProps> = ({
       </div>
 
       {/* All-day events section */}
-      <div className="all-day-section">
-        <div className="all-day-label">
-          <span>All day</span>
+      <div className="flex border-b border-border bg-muted/10">
+        <div className="w-16 lg:w-20 flex items-center justify-center py-2 border-r border-border">
+          <span className="text-xs text-muted-foreground font-medium">All day</span>
         </div>
         {weekDays.map((date, index) => {
           const allDayEvents = getAllDayEventsForDate(date)
           return (
-            <div key={index} className="all-day-column">
-              {allDayEvents.map(event => (
-                <div
-                  key={event.id}
-                  className="all-day-event"
-                  style={getAllDayEventStyles(event.provider)}
-                  onClick={() => onEventClick(event)}
-                  title={`${event.title}${event.location ? ` - ${event.location}` : ''}`}
-                >
-                  <span className="event-title">{event.title}</span>
-                  {event.hasOnlineMeeting && (
-                    <span className="meeting-indicator">
-                      {event.meetingProvider === 'teams' ? '📹' : '🎥'}
-                    </span>
-                  )}
-                </div>
-              ))}
-              {allDayEvents.length === 0 && (
-                <div 
-                  className="all-day-empty"
-                  onClick={() => onEventCreate(date)}
-                />
-              )}
+            <div key={index} className="flex-1 border-r border-border last:border-r-0 p-1 min-h-12">
+              <div className="space-y-1">
+                {allDayEvents.map(event => (
+                  <div
+                    key={event.id}
+                    className={`px-2 py-1 rounded text-xs cursor-pointer transition-opacity hover:opacity-80 border-l-2 truncate ${
+                      event.provider === 'microsoft' 
+                        ? 'bg-blue-100 border-blue-500 text-blue-900' 
+                        : 'bg-green-100 border-green-500 text-green-900'
+                    }`}
+                    onClick={() => onEventClick(event)}
+                    title={`${event.title}${event.location ? ` - ${event.location}` : ''}`}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium truncate">{event.title}</span>
+                      {event.hasOnlineMeeting && (
+                        <span className="text-xs">
+                          {event.meetingProvider === 'teams' ? '📹' : '🎥'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {allDayEvents.length === 0 && (
+                  <div 
+                    className="h-full cursor-pointer hover:bg-accent/30 rounded transition-colors"
+                    onClick={() => onEventCreate(date)}
+                  />
+                )}
+              </div>
             </div>
           )
         })}
       </div>
 
       {/* Time grid */}
-      <div className="week-time-grid" ref={scrollContainerRef}>
-        <div className="time-grid-container">
+      <div className="flex-1 overflow-auto" ref={scrollContainerRef}>
+        <div className="flex min-h-[1536px]"> {/* 24 hours * 64px = 1536px */}
           {/* Time column */}
-          <div className="time-column">
+          <div className="w-16 lg:w-20 border-r border-border bg-muted/10">
             {hours.map(hour => (
-              <div key={hour} className="time-slot">
-                <span className="time-label">{formatHour(hour)}</span>
+              <div key={hour} className="h-16 border-b border-border/30 flex items-start justify-end pr-2 pt-1">
+                <span className="text-xs text-muted-foreground font-medium">{formatHour(hour)}</span>
               </div>
             ))}
           </div>
 
           {/* Day columns */}
-          <div className="day-columns">
+          <div className="flex flex-1">
             {weekDays.map((date, dayIndex) => {
-              const timedEvents = getTimedEventsForDate(date)
+              const layoutedEvents = layoutEventsForDate(date)
               const showTimeLine = shouldShowCurrentTimeLine(date)
               
               return (
-                <div key={dayIndex} className={`day-column ${isToday(date) ? 'today-column' : ''}`}>
+                <div key={dayIndex} className={`flex-1 relative border-r border-border last:border-r-0 ${
+                  isToday(date) ? 'bg-primary/5' : ''
+                }`}>
                   {/* Hour slots */}
                   {hours.map(hour => (
                     <div
                       key={hour}
-                      className="hour-slot"
+                      className="h-16 border-b border-border/30 cursor-pointer hover:bg-accent/30 transition-colors group"
                       onClick={() => onTimeSlotClick(date, hour)}
                       onDoubleClick={() => onEventCreate(date, hour)}
                     >
-                      <div className="hour-slot-content" />
+                      <div className="h-full w-full relative">
+                        {/* Quarter hour lines */}
+                        <div className="absolute inset-x-0 top-1/4 h-px bg-border/20"></div>
+                        <div className="absolute inset-x-0 top-1/2 h-px bg-border/20"></div>
+                        <div className="absolute inset-x-0 top-3/4 h-px bg-border/20"></div>
+                        
+                        {/* Add event indicator on hover */}
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-6 h-6 bg-primary/20 text-primary rounded-full flex items-center justify-center text-xs font-bold">
+                            +
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   ))}
 
                   {/* Timed events */}
-                  <div className="events-container">
-                    {timedEvents.map(event => {
+                  <div className="absolute inset-0 pointer-events-none">
+                    {layoutedEvents.map(event => {
                       const { top, height } = calculateEventPosition(event)
                       return (
                         <div
                           key={event.id}
-                          className="timed-event"
+                          className={`absolute rounded shadow-sm cursor-pointer pointer-events-auto transition-opacity hover:opacity-90 border-l-2 ${
+                            event.provider === 'microsoft' 
+                              ? 'bg-blue-100 border-blue-500 text-blue-900' 
+                              : 'bg-green-100 border-green-500 text-green-900'
+                          }`}
                           style={{
                             top: `${top}px`,
                             height: `${height}px`,
-                            ...getEventStyles(event.provider)
+                            width: `calc(${event.width}% - 8px)`,
+                            left: `calc(${event.left}% + 4px)`
                           }}
                           onClick={() => onEventClick(event)}
                           title={`${event.title}${event.location ? ` - ${event.location}` : ''}`}
                         >
-                          <div className="event-content">
-                            <div className="event-title">{event.title}</div>
-                            <div className="event-time">
-                              {new Date(event.startTime).toLocaleTimeString('en-US', {
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true
-                              })}
-                              {event.location && (
-                                <div className="event-location">📍 {event.location}</div>
-                              )}
-                            </div>
-                            {event.hasOnlineMeeting && (
-                              <div className="meeting-badge">
+                          <div className="p-1 overflow-hidden">
+                            <div className="font-medium text-xs leading-tight truncate">{event.title}</div>
+                            {height > 30 && (
+                              <div className="text-xs opacity-80 mt-1">
+                                {new Date(event.startTime).toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                  hour12: true
+                                })}
+                              </div>
+                            )}
+                            {height > 50 && event.location && (
+                              <div className="text-xs opacity-70 truncate">📍 {event.location}</div>
+                            )}
+                            {height > 40 && event.hasOnlineMeeting && (
+                              <div className="text-xs mt-1">
                                 {event.meetingProvider === 'teams' ? '📹 Teams' : '🎥 Meet'}
                               </div>
                             )}
@@ -297,11 +389,20 @@ const WeekView: React.FC<WeekViewProps> = ({
                   {/* Current time line */}
                   {showTimeLine && (
                     <div
-                      className="current-time-line"
+                      className="absolute left-0 right-0 z-10 pointer-events-none"
                       style={{ top: `${getCurrentTimeLinePosition()}px` }}
                     >
-                      <div className="time-line-dot" />
-                      <div className="time-line" />
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 bg-red-500 rounded-full -ml-1"></div>
+                        <div className="flex-1 h-0.5 bg-red-500"></div>
+                      </div>
+                      <div className="absolute -top-2 -left-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded text-center font-medium">
+                        {currentTime.toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -316,50 +417,61 @@ const WeekView: React.FC<WeekViewProps> = ({
 
 // Skeleton loading component for week view
 const WeekSkeleton: React.FC = () => (
-  <div className="week-skeleton">
+  <div className="flex flex-col h-full bg-background">
     {/* Header skeleton */}
-    <div className="skeleton-week-header">
-      <div className="skeleton-time-header"></div>
+    <div className="flex border-b border-border bg-muted/30">
+      <div className="w-16 lg:w-20 flex items-center justify-center py-3 border-r border-border">
+        <div className="w-8 h-3 bg-muted animate-pulse rounded"></div>
+      </div>
       {Array(7).fill(0).map((_, i) => (
-        <div key={i} className="skeleton-day-header">
-          <div className="skeleton-day-name"></div>
-          <div className="skeleton-day-number"></div>
+        <div key={i} className="flex-1 flex flex-col items-center py-3 border-r border-border last:border-r-0">
+          <div className="w-6 h-3 bg-muted animate-pulse rounded mb-1"></div>
+          <div className="w-4 h-4 bg-muted animate-pulse rounded"></div>
         </div>
       ))}
     </div>
     
     {/* All day skeleton */}
-    <div className="skeleton-all-day">
-      <div className="skeleton-all-day-label"></div>
+    <div className="flex border-b border-border bg-muted/10">
+      <div className="w-16 lg:w-20 flex items-center justify-center py-2 border-r border-border">
+        <div className="w-10 h-3 bg-muted animate-pulse rounded"></div>
+      </div>
       {Array(7).fill(0).map((_, i) => (
-        <div key={i} className="skeleton-all-day-column">
-          {Math.random() > 0.7 && <div className="skeleton-all-day-event"></div>}
+        <div key={i} className="flex-1 border-r border-border last:border-r-0 p-1 min-h-12">
+          {Math.random() > 0.7 && <div className="w-full h-6 bg-muted/50 animate-pulse rounded"></div>}
         </div>
       ))}
     </div>
     
     {/* Time grid skeleton */}
-    <div className="skeleton-time-grid">
-      <div className="skeleton-time-column">
-        {Array(24).fill(0).map((_, i) => (
-          <div key={i} className="skeleton-time-slot"></div>
-        ))}
-      </div>
-      <div className="skeleton-day-columns">
-        {Array(7).fill(0).map((_, dayIndex) => (
-          <div key={dayIndex} className="skeleton-day-column">
-            {Array(Math.floor(Math.random() * 3) + 1).fill(0).map((_, eventIndex) => (
-              <div
-                key={eventIndex}
-                className="skeleton-timed-event"
-                style={{
-                  top: `${Math.random() * 1000}px`,
-                  height: `${60 + Math.random() * 120}px`
-                }}
-              />
-            ))}
-          </div>
-        ))}
+    <div className="flex-1 flex overflow-hidden">
+      <div className="flex w-full">
+        <div className="w-16 lg:w-20 border-r border-border bg-muted/10">
+          {Array(24).fill(0).map((_, i) => (
+            <div key={i} className="h-16 border-b border-border/30 flex items-start justify-end pr-2 pt-1">
+              <div className="w-8 h-3 bg-muted animate-pulse rounded"></div>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-1">
+          {Array(7).fill(0).map((_, dayIndex) => (
+            <div key={dayIndex} className="flex-1 relative border-r border-border last:border-r-0">
+              {Array(24).fill(0).map((_, hour) => (
+                <div key={hour} className="h-15 border-b border-border/30"></div>
+              ))}
+              {Array(Math.floor(Math.random() * 3) + 1).fill(0).map((_, eventIndex) => (
+                <div
+                  key={eventIndex}
+                  className="absolute left-1 right-1 bg-muted/50 animate-pulse rounded"
+                  style={{
+                    top: `${Math.random() * 1000}px`,
+                    height: `${60 + Math.random() * 120}px`
+                  }}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   </div>

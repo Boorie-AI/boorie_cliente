@@ -50,12 +50,17 @@ const MonthView: React.FC<MonthViewProps> = ({
     const lastDayOfMonth = new Date(year, month + 1, 0)
     
     // First day of the calendar grid (might be from previous month)
+    // Start week on Monday: if first day is Sunday (0), go back 6 days, otherwise go back (day - 1) days
     const firstCalendarDay = new Date(firstDayOfMonth)
-    firstCalendarDay.setDate(firstCalendarDay.getDate() - firstDayOfMonth.getDay())
+    const dayOfWeek = firstDayOfMonth.getDay()
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    firstCalendarDay.setDate(firstCalendarDay.getDate() - daysToSubtract)
     
     // Last day of the calendar grid (might be from next month)
     const lastCalendarDay = new Date(lastDayOfMonth)
-    const remainingDays = 6 - lastDayOfMonth.getDay()
+    // For Monday-based weeks: if last day is Sunday (0), add 0 days, otherwise add (7 - day) days
+    const lastDayOfWeek = lastDayOfMonth.getDay()
+    const remainingDays = lastDayOfWeek === 0 ? 0 : 7 - lastDayOfWeek
     lastCalendarDay.setDate(lastCalendarDay.getDate() + remainingDays)
     
     // Generate all days for the calendar grid
@@ -70,16 +75,66 @@ const MonthView: React.FC<MonthViewProps> = ({
     return days
   }
 
-  // Get events for a specific date
+  // Get events for a specific date (including multi-day events)
   const getEventsForDate = (date: Date) => {
     return events.filter(event => {
-      const eventDate = new Date(event.startTime)
-      return (
-        eventDate.getFullYear() === date.getFullYear() &&
-        eventDate.getMonth() === date.getMonth() &&
-        eventDate.getDate() === date.getDate()
-      )
+      const eventStart = new Date(event.startTime)
+      const eventEnd = new Date(event.endTime)
+      const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+      const dateEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59)
+      
+      // Handle events that end at midnight - they shouldn't appear on that end day
+      let effectiveEventEnd = eventEnd
+      if (eventEnd.getHours() === 0 && eventEnd.getMinutes() === 0 && eventEnd.getSeconds() === 0) {
+        // If event ends at exactly midnight, subtract 1 second so it doesn't include that day
+        effectiveEventEnd = new Date(eventEnd.getTime() - 1000)
+      }
+      
+      // Event overlaps with this date if:
+      // 1. Event starts on this date
+      // 2. Event ends on this date (but not at midnight)
+      // 3. Event spans across this date
+      return eventStart <= dateEnd && effectiveEventEnd >= dateStart
     })
+  }
+  
+  // Check if event is the first day, continuation, or last day
+  const getEventDayType = (event: UnifiedCalendarEvent, date: Date) => {
+    const eventStart = new Date(event.startTime)
+    const eventEnd = new Date(event.endTime)
+    
+    // Normalize to start of day for accurate day counting
+    const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate())
+    const eventEndDate = new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate())
+    const currentDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    
+    // For events ending at midnight (00:00), they actually end at the end of the previous day
+    let effectiveEndDate = eventEndDate
+    if (eventEnd.getHours() === 0 && eventEnd.getMinutes() === 0 && eventEnd.getSeconds() === 0) {
+      effectiveEndDate = new Date(eventEndDate)
+      effectiveEndDate.setDate(effectiveEndDate.getDate() - 1)
+    }
+    
+    const isFirstDay = eventStartDate.getTime() === currentDate.getTime()
+    const isLastDay = effectiveEndDate.getTime() === currentDate.getTime()
+    
+    // Calculate total days: Friday to Monday = 4 days (Fri, Sat, Sun, Mon)
+    const totalDays = Math.floor((effectiveEndDate.getTime() - eventStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    
+    // Calculate which day number this is (1-based)
+    const dayNumber = Math.floor((currentDate.getTime() - eventStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    
+    const isMultiDay = totalDays > 1
+    
+    
+    return {
+      isFirstDay,
+      isLastDay,
+      isContinuation: !isFirstDay && !isLastDay,
+      isMultiDay,
+      dayNumber,
+      totalDays
+    }
   }
 
   // Check if a date is in the current month
@@ -124,18 +179,15 @@ const MonthView: React.FC<MonthViewProps> = ({
   }
 
   const calendarDays = getCalendarDays()
-  const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
   if (isLoading) {
     return (
-      <div className="relative h-full">
-        <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10">
-          <div className="text-center space-y-3">
-            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-sm text-muted-foreground">Loading month view...</p>
-          </div>
+      <div className="flex flex-col h-full items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Loading month view...</p>
         </div>
-        <MonthSkeleton />
       </div>
     )
   }
@@ -147,8 +199,6 @@ const MonthView: React.FC<MonthViewProps> = ({
         {weekDays.map(day => (
           <div key={day} className="p-3 text-center font-medium text-muted-foreground border-r border-border last:border-r-0">
             <span className="hidden sm:inline">{day}</span>
-            <span className="hidden xs:inline sm:hidden">{day.substring(0, 3)}</span>
-            <span className="inline xs:hidden">{day.substring(0, 1)}</span>
           </div>
         ))}
       </div>
@@ -180,45 +230,41 @@ const MonthView: React.FC<MonthViewProps> = ({
               </div>
 
               {/* Events for this day */}
-              <div className="flex-1 space-y-1 overflow-hidden">
-                {dayEvents.slice(0, 3).map((event, eventIndex) => (
-                  <div
-                    key={event.id}
-                    className={`px-2 py-1 rounded text-xs cursor-pointer transition-opacity hover:opacity-80 border-l-2 ${
-                      event.provider === 'microsoft' ? 'bg-blue-100 border-blue-500 text-blue-900' : 'bg-green-100 border-green-500 text-green-900'
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onEventClick(event)
-                    }}
-                    title={`${event.title}${event.location ? ` - ${event.location}` : ''}`}
-                  >
-                    <div className="space-y-1">
-                      <div className="font-medium truncate">{event.title}</div>
-                      {!event.isAllDay && (
-                        <div className="text-xs opacity-80 truncate">{formatEventTime(event)}</div>
-                      )}
-                      {event.hasOnlineMeeting && (
-                        <div className="text-xs">
-                          {event.meetingProvider === 'teams' ? '📹' : '🎥'}
-                        </div>
-                      )}
+              <div className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden max-h-20 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                {dayEvents.map((event, eventIndex) => {
+                  const dayType = getEventDayType(event, date)
+                  
+                  return (
+                    <div
+                      key={event.id}
+                      className={`px-2 py-1 rounded text-xs cursor-pointer transition-opacity hover:opacity-80 border-l-2 ${
+                        event.provider === 'microsoft' ? 'bg-blue-100 border-blue-500 text-blue-900' : 'bg-green-100 border-green-500 text-green-900'
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onEventClick(event)
+                      }}
+                      title={`${event.title}${event.location ? ` - ${event.location}` : ''}${dayType.isMultiDay ? ` (Day ${dayType.dayNumber} of ${dayType.totalDays})` : ''}`}
+                    >
+                      <div className="space-y-1">
+                        <div className="font-medium truncate">{event.title}</div>
+                        {!event.isAllDay && (
+                          <div className="text-xs opacity-80 truncate">{formatEventTime(event)}</div>
+                        )}
+                        {event.hasOnlineMeeting && (
+                          <div className="text-xs">
+                            {event.meetingProvider === 'teams' ? '📹' : '🎥'}
+                          </div>
+                        )}
+                        {dayType.isMultiDay && (
+                          <div className="text-xs opacity-70">
+                            Day {dayType.dayNumber} of {dayType.totalDays}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                
-                {/* Show "more events" indicator if there are more than 3 */}
-                {dayEvents.length > 3 && (
-                  <div 
-                    className="text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors text-center py-1 bg-muted/50 rounded"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onDateClick(date)
-                    }}
-                  >
-                    +{dayEvents.length - 3} more
-                  </div>
-                )}
+                  )
+                })}
               </div>
 
               {/* Add event button on hover */}

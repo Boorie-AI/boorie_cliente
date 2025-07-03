@@ -23,6 +23,7 @@ interface SidebarProps {
   accounts: CalendarAccount[]
   selectedAccount: string | null
   onAccountSelect: (accountId: string) => void
+  onRefresh?: () => void
   isLoading: boolean
   className?: string
 }
@@ -31,6 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   accounts,
   selectedAccount,
   onAccountSelect,
+  onRefresh,
   isLoading,
   className = ''
 }) => {
@@ -43,15 +45,27 @@ const Sidebar: React.FC<SidebarProps> = ({
   )
 
   return (
-    <div className={`w-72 min-w-72 bg-muted/50 border-r border-border/50 overflow-y-auto ${className}`}>
+    <div className={`w-72 min-w-72 bg-background border-r border-border/50 overflow-y-auto ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border/50">
         <h3 className="text-lg font-semibold text-foreground">Calendar Accounts</h3>
-        {isLoading && (
-          <div className="flex items-center">
-            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              disabled={isLoading}
+              className="p-1.5 rounded-md hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh calendar accounts"
+            >
+              <RefreshIcon className={`w-4 h-4 text-muted-foreground hover:text-foreground transition-colors ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
+          )}
+          {isLoading && (
+            <div className="flex items-center">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
+        </div>
       </div>
       
       {/* Content */}
@@ -138,6 +152,12 @@ const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
 const CalendarIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+)
+
+const RefreshIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
   </svg>
 )
 

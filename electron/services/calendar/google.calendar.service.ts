@@ -38,9 +38,12 @@ export class GoogleCalendarService {
       const timeMin = startDate.toISOString()
       const timeMax = endDate.toISOString()
 
+      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      
       const params = new URLSearchParams({
         timeMin,
         timeMax,
+        timeZone: userTimeZone,
         singleEvents: 'true',
         orderBy: 'startTime',
         maxResults: '1000'
@@ -479,13 +482,16 @@ export class GoogleCalendarService {
         date: endDate.toISOString().split('T')[0]
       }
     } else {
+      // Get the user's timezone
+      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      
       googleEvent.start = {
         dateTime: eventData.startTime.toISOString(),
-        timeZone: 'UTC'
+        timeZone: userTimeZone
       }
       googleEvent.end = {
         dateTime: eventData.endTime.toISOString(),
-        timeZone: 'UTC'
+        timeZone: userTimeZone
       }
     }
 

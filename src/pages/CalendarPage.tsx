@@ -178,6 +178,7 @@ const CalendarPage: React.FC = () => {
         accounts={connectedAccounts}
         selectedAccount={selectedAccount}
         onAccountSelect={handleAccountSelect}
+        onRefresh={loadConnectedAccounts}
         isLoading={isLoading.accounts || isLoading.accountSelection}
       />
       

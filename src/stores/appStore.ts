@@ -86,9 +86,10 @@ export const useAppStore = create<AppState>()(
                   }
                   break
                 case 'currentView':
-                  if (['chat', 'email', 'calendar', 'settings', 'rag'].includes(setting.value)) {
-                    set({ currentView: setting.value as any })
-                  }
+                  // Always start with chat view, don't restore previous view
+                  // if (['chat', 'email', 'calendar', 'settings', 'rag'].includes(setting.value)) {
+                  //   set({ currentView: setting.value as any })
+                  // }
                   break
                 case 'sidebarCollapsed':
                   set({ sidebarCollapsed: setting.value === 'true' })

@@ -38,13 +38,24 @@ export class MicrosoftCalendarService {
 
       const startDateTime = startDate.toISOString()
       const endDateTime = endDate.toISOString()
+      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+      // Try different approaches for timezone handling
+      const queryParams = new URLSearchParams({
+        '$filter': `start/dateTime ge '${startDateTime}' and end/dateTime le '${endDateTime}'`,
+        '$orderby': 'start/dateTime',
+        '$top': '1000'
+      })
 
       const response = await fetch(
-        `${this.baseUrl}/me/calendar/events?$filter=start/dateTime ge '${startDateTime}' and end/dateTime le '${endDateTime}'&$orderby=start/dateTime&$top=1000`,
+        `${this.baseUrl}/me/calendar/events?${queryParams.toString()}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Prefer': `outlook.timezone="${userTimeZone}"`,
+            // Alternative header approach
+            'Outlook.timezone': userTimeZone
           }
         }
       )
@@ -65,6 +76,28 @@ export class MicrosoftCalendarService {
 
       const data = await response.json() as any
       const events = data.value || []
+
+      // Debug logging for timezone investigation
+      if (events.length > 0) {
+        const sampleEvent = events[0]
+        const debugInfo = {
+          userTimeZone,
+          sampleEventTitle: sampleEvent.subject,
+          sampleEventStart: sampleEvent.start,
+          sampleEventEnd: sampleEvent.end,
+          rawEventData: JSON.stringify(sampleEvent, null, 2)
+        }
+        
+        console.log('=== MICROSOFT CALENDAR DEBUG ===')
+        console.log('User timezone:', userTimeZone)
+        console.log('Sample event raw data:', JSON.stringify(sampleEvent, null, 2))
+        console.log('Sample event start:', sampleEvent.start)
+        console.log('Sample event end:', sampleEvent.end)
+        console.log('================================')
+        
+        // Also log to backend logger so it appears in your logs
+        this.logger.info('Microsoft Calendar Timezone Debug', debugInfo)
+      }
 
       this.logger.success('Microsoft calendar events fetched successfully', { count: events.length })
       return events
@@ -87,10 +120,13 @@ export class MicrosoftCalendarService {
         throw new Error('No valid Microsoft token available')
       }
 
+      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      
       const response = await fetch(`${this.baseUrl}/me/calendar/events/${eventId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Prefer': `outlook.timezone="${userTimeZone}"`
         }
       })
 
@@ -126,11 +162,14 @@ export class MicrosoftCalendarService {
         throw new Error('No valid Microsoft token available')
       }
 
+      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      
       const response = await fetch(`${this.baseUrl}/me/calendar/events`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Prefer': `outlook.timezone="${userTimeZone}"`
         },
         body: JSON.stringify(eventData)
       })
@@ -171,11 +210,14 @@ export class MicrosoftCalendarService {
         throw new Error('No valid Microsoft token available')
       }
 
+      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      
       const response = await fetch(`${this.baseUrl}/me/calendar/events/${eventId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Prefer': `outlook.timezone="${userTimeZone}"`
         },
         body: JSON.stringify(eventData)
       })
@@ -387,11 +429,11 @@ export class MicrosoftCalendarService {
       },
       start: {
         dateTime: eventData.startTime.toISOString(),
-        timeZone: 'UTC'
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
       },
       end: {
         dateTime: eventData.endTime.toISOString(),
-        timeZone: 'UTC'
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
       },
       location: eventData.location ? {
         displayName: eventData.location

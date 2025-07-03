@@ -42,22 +42,23 @@ const DayView: React.FC<DayViewProps> = ({
   const [currentTime, setCurrentTime] = useState(new Date())
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  // Update current time every minute
+  // Update current time every second for smooth timeline
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date())
-    }, 60000)
+    }, 1000) // Update every second for smooth timeline movement
     return () => clearInterval(interval)
   }, [])
 
   // Scroll to current time on mount (if viewing today)
   useEffect(() => {
-    if (scrollContainerRef.current && isToday(currentDate)) {
+    if (scrollContainerRef.current) {
       const now = new Date()
       const currentHour = now.getHours()
       const currentMinute = now.getMinutes()
-      const scrollPosition = (currentHour * 60 + currentMinute - 60) * 1 // 1px per minute, start 1 hour before
-      scrollContainerRef.current.scrollTop = Math.max(0, scrollPosition)
+      // Each hour is 64px (h-16), scroll to show current time with some context above
+      const scrollPosition = Math.max(0, (currentHour - 2) * 64 + (currentMinute / 60) * 64)
+      scrollContainerRef.current.scrollTop = scrollPosition
     }
   }, [currentDate])
 
@@ -103,12 +104,12 @@ const DayView: React.FC<DayViewProps> = ({
     const startMinutes = startTime.getHours() * 60 + startTime.getMinutes()
     const endMinutes = endTime.getHours() * 60 + endTime.getMinutes()
     
-    // Height of one minute in pixels (1px per minute = 60px per hour)
-    const minuteHeight = 1
+    // Height of one hour in pixels (64px for h-16)
+    const hourHeight = 64
     
     // Calculate position (top) and height
-    const top = startMinutes * minuteHeight
-    const height = Math.max((endMinutes - startMinutes) * minuteHeight, 15) // Minimum 15px height
+    const top = (startMinutes / 60) * hourHeight
+    const height = Math.max(((endMinutes - startMinutes) / 60) * hourHeight, 15) // Minimum 15px height
     
     return { top, height }
   }
@@ -168,12 +169,11 @@ const DayView: React.FC<DayViewProps> = ({
     return layoutEvents
   }
 
-  // Generate hours and quarter-hours
+  // Generate half-hour time slots
   const timeSlots = []
   for (let hour = 0; hour < 24; hour++) {
-    for (let minute = 0; minute < 60; minute += 15) {
-      timeSlots.push({ hour, minute })
-    }
+    timeSlots.push({ hour, minute: 0 })
+    timeSlots.push({ hour, minute: 30 })
   }
 
   // Format time display
@@ -188,8 +188,9 @@ const DayView: React.FC<DayViewProps> = ({
   // Calculate current time line position
   const getCurrentTimeLinePosition = () => {
     const now = new Date()
-    const minutes = now.getHours() * 60 + now.getMinutes()
-    return minutes // 1px per minute
+    const totalMinutes = now.getHours() * 60 + now.getMinutes()
+    // Each hour is 64px (h-16), so each minute is 64/60 px
+    return (totalMinutes / 60) * 64
   }
 
   // Format date for header
@@ -209,123 +210,145 @@ const DayView: React.FC<DayViewProps> = ({
 
   if (isLoading) {
     return (
-      <div className="day-view loading">
-        <div className="day-loading">
-          <div className="loading-spinner"></div>
-          <p>Loading day view...</p>
+      <div className="flex flex-col h-full items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Loading day view...</p>
         </div>
-        <DaySkeleton />
       </div>
     )
   }
 
   return (
-    <div className="day-view">
+    <div className="flex flex-col h-full bg-background">
       {/* Day header */}
-      <div className="day-header">
-        <div className="day-date">
-          <h2 className={`date-title ${isTodayView ? 'today-title' : ''}`}>
+      <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
+        <div className="flex items-center gap-3">
+          <h2 className={`text-xl font-semibold ${isTodayView ? 'text-primary' : 'text-foreground'}`}>
             {formatDate(currentDate)}
           </h2>
-          {isTodayView && <span className="today-badge">Today</span>}
+          {isTodayView && (
+            <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full font-medium">
+              Today
+            </span>
+          )}
         </div>
-        <div className="day-stats">
-          <span className="event-count">{dayEvents.length} events</span>
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <span className="font-medium">{dayEvents.length} events</span>
           {allDayEvents.length > 0 && (
-            <span className="all-day-count">{allDayEvents.length} all-day</span>
+            <span className="font-medium">{allDayEvents.length} all-day</span>
           )}
         </div>
       </div>
 
       {/* All-day events section */}
       {allDayEvents.length > 0 && (
-        <div className="day-all-day-section">
-          <div className="all-day-header">
-            <span>All day</span>
-          </div>
-          <div className="all-day-events">
-            {allDayEvents.map(event => (
-              <div
-                key={event.id}
-                className="all-day-event"
-                style={getAllDayEventStyles(event.provider)}
-                onClick={() => onEventClick(event)}
-                title={`${event.title}${event.location ? ` - ${event.location}` : ''}`}
-              >
-                <div className="event-content">
-                  <span className="event-title">{event.title}</span>
-                  {event.location && (
-                    <span className="event-location">📍 {event.location}</span>
-                  )}
-                  {event.hasOnlineMeeting && (
-                    <span className="meeting-indicator">
-                      {event.meetingProvider === 'teams' ? '📹 Teams' : '🎥 Meet'}
-                    </span>
-                  )}
-                </div>
+        <div className="border-b border-border bg-muted/10">
+          <div className="flex">
+            <div className="w-20 flex items-center justify-center py-2 border-r border-border">
+              <span className="text-xs text-muted-foreground font-medium">All day</span>
+            </div>
+            <div className="flex-1 p-2">
+              <div className="space-y-1">
+                {allDayEvents.map(event => (
+                  <div
+                    key={event.id}
+                    className={`px-3 py-2 rounded cursor-pointer transition-opacity hover:opacity-90 border-l-2 ${
+                      event.provider === 'microsoft' 
+                        ? 'bg-blue-100 border-blue-500 text-blue-900' 
+                        : 'bg-green-100 border-green-500 text-green-900'
+                    }`}
+                    onClick={() => onEventClick(event)}
+                    title={`${event.title}${event.location ? ` - ${event.location}` : ''}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{event.title}</span>
+                        {event.hasOnlineMeeting && (
+                          <span className="text-xs">
+                            {event.meetingProvider === 'teams' ? '📹 Teams' : '🎥 Meet'}
+                          </span>
+                        )}
+                      </div>
+                      {event.location && (
+                        <span className="text-xs opacity-70">📍 {event.location}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       )}
 
       {/* Time grid */}
-      <div className="day-time-grid" ref={scrollContainerRef}>
-        <div className="time-grid-container">
+      <div className="flex-1 overflow-auto" ref={scrollContainerRef}>
+        <div className="flex min-h-[1536px]"> {/* 24 hours * 64px = 1536px */}
           {/* Time column */}
-          <div className="time-column">
+          <div className="w-20 border-r border-border bg-muted/10">
             {Array.from({ length: 24 }, (_, hour) => (
-              <div key={hour} className="hour-block">
-                <div className="hour-label">
-                  <span className="hour-text">{formatTime(hour)}</span>
+              <div key={hour} className="h-16 border-b border-border/30">
+                <div className="h-8 flex items-center justify-end pr-2">
+                  <span className="text-xs text-muted-foreground font-medium">{formatTime(hour)}</span>
                 </div>
-                <div className="quarter-hours">
-                  {[15, 30, 45].map(minute => (
-                    <div key={minute} className="quarter-hour">
-                      <span className="quarter-label">{formatTime(hour, minute)}</span>
-                    </div>
-                  ))}
+                <div className="h-8 flex items-center justify-end pr-2 border-t border-border/10">
+                  <span className="text-xs text-muted-foreground/60">{formatTime(hour, 30)}</span>
                 </div>
               </div>
             ))}
           </div>
 
           {/* Day column */}
-          <div className={`day-column ${isTodayView ? 'today-column' : ''}`}>
+          <div className={`flex-1 relative ${isTodayView ? 'bg-primary/5' : ''}`}>
             {/* Time slots */}
-            <div className="time-slots">
+            <div className="absolute inset-0">
               {timeSlots.map(({ hour, minute }, index) => (
                 <div
                   key={index}
-                  className={`time-slot ${minute === 0 ? 'hour-slot' : 'quarter-slot'}`}
+                  className={`h-8 border-b cursor-pointer hover:bg-accent/30 transition-colors group ${
+                    minute === 0 ? 'border-border/30' : 'border-border/10'
+                  }`}
                   onClick={() => onTimeSlotClick(currentDate, hour, minute)}
                   onDoubleClick={() => onEventCreate(currentDate, hour, minute)}
-                />
+                >
+                  {/* Add event indicator on hover */}
+                  <div className="h-full w-full relative">
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="w-5 h-5 bg-primary/20 text-primary rounded-full flex items-center justify-center text-xs font-bold">
+                        +
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
 
             {/* Events container */}
-            <div className="events-container">
+            <div className="absolute inset-0 pointer-events-none">
               {layoutedTimedEvents.map(event => {
                 const { top, height } = calculateEventPosition(event)
                 return (
                   <div
                     key={event.id}
-                    className="timed-event"
+                    className={`absolute rounded shadow-sm cursor-pointer pointer-events-auto transition-opacity hover:opacity-90 border-l-2 ${
+                      event.provider === 'microsoft' 
+                        ? 'bg-blue-100 border-blue-500 text-blue-900' 
+                        : 'bg-green-100 border-green-500 text-green-900'
+                    }`}
                     style={{
                       top: `${top}px`,
                       height: `${height}px`,
-                      width: `${event.width}%`,
-                      left: `${event.left}%`,
-                      ...getEventStyles(event.provider)
+                      width: `calc(${event.width}% - 8px)`,
+                      left: `calc(${event.left}% + 4px)`
                     }}
                     onClick={() => onEventClick(event)}
                     title={`${event.title}${event.location ? ` - ${event.location}` : ''}`}
                   >
-                    <div className="event-content">
-                      <div className="event-title">{event.title}</div>
-                      <div className="event-details">
-                        <div className="event-time">
+                    <div className="p-2 overflow-hidden h-full">
+                      <div className="font-medium text-sm leading-tight truncate">{event.title}</div>
+                      {height > 20 && (
+                        <div className="text-xs opacity-80 mt-1">
                           {new Date(event.startTime).toLocaleTimeString('en-US', {
                             hour: 'numeric',
                             minute: '2-digit',
@@ -336,18 +359,19 @@ const DayView: React.FC<DayViewProps> = ({
                             hour12: true
                           })}
                         </div>
-                        {event.location && (
-                          <div className="event-location">📍 {event.location}</div>
-                        )}
-                        {event.description && (
-                          <div className="event-description">{event.description}</div>
-                        )}
-                        {event.hasOnlineMeeting && (
-                          <div className="meeting-badge">
-                            {event.meetingProvider === 'teams' ? '📹 Teams Meeting' : '🎥 Google Meet'}
-                          </div>
-                        )}
-                      </div>
+                      )}
+                      {height > 40 && event.location && (
+                        <div className="text-xs opacity-70 truncate mt-1">📍 {event.location}</div>
+                      )}
+                      {height > 60 && event.description && (
+                        <div className="text-xs opacity-70 truncate mt-1">{event.description}</div>
+                      )}
+                      {height > 50 && event.hasOnlineMeeting && (
+                        <div className="text-xs mt-1 flex items-center gap-1">
+                          <span>{event.meetingProvider === 'teams' ? '📹' : '🎥'}</span>
+                          <span>{event.meetingProvider === 'teams' ? 'Teams' : 'Meet'}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
@@ -357,12 +381,14 @@ const DayView: React.FC<DayViewProps> = ({
             {/* Current time line */}
             {isTodayView && (
               <div
-                className="current-time-line"
+                className="absolute left-0 right-0 z-10 pointer-events-none"
                 style={{ top: `${getCurrentTimeLinePosition()}px` }}
               >
-                <div className="time-line-dot" />
-                <div className="time-line" />
-                <div className="time-label">
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-red-500 rounded-full -ml-1"></div>
+                  <div className="flex-1 h-0.5 bg-red-500"></div>
+                </div>
+                <div className="absolute -top-3 -left-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded font-medium">
                   {currentTime.toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
@@ -375,69 +401,82 @@ const DayView: React.FC<DayViewProps> = ({
         </div>
       </div>
 
-      {/* Quick actions */}
-      <div className="day-quick-actions">
-        <button
-          className="quick-action-btn"
-          onClick={() => onEventCreate(currentDate)}
-          title="Add event"
-        >
-          <PlusIcon className="w-4 h-4" />
-          Add Event
-        </button>
-        {dayEvents.length === 0 && (
-          <div className="empty-day-message">
+      {/* Empty day message */}
+      {dayEvents.length === 0 && (
+        <div className="p-4 border-t border-border bg-muted/10">
+          <div className="text-center text-sm text-muted-foreground">
             <span>No events scheduled for this day</span>
-            <button
-              className="btn btn-link"
-              onClick={() => onEventCreate(currentDate)}
-            >
-              Create your first event
-            </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
 
 // Skeleton loading component for day view
 const DaySkeleton: React.FC = () => (
-  <div className="day-skeleton">
+  <div className="flex flex-col h-full bg-background">
     {/* Header skeleton */}
-    <div className="skeleton-day-header">
-      <div className="skeleton-date-title"></div>
-      <div className="skeleton-stats"></div>
+    <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
+      <div className="flex items-center gap-3">
+        <div className="w-48 h-6 bg-muted animate-pulse rounded"></div>
+        <div className="w-12 h-5 bg-muted animate-pulse rounded-full"></div>
+      </div>
+      <div className="flex items-center gap-4">
+        <div className="w-16 h-4 bg-muted animate-pulse rounded"></div>
+        <div className="w-12 h-4 bg-muted animate-pulse rounded"></div>
+      </div>
     </div>
     
     {/* All day skeleton */}
-    <div className="skeleton-all-day">
-      <div className="skeleton-all-day-header"></div>
-      <div className="skeleton-all-day-events">
-        <div className="skeleton-all-day-event"></div>
+    <div className="border-b border-border bg-muted/10">
+      <div className="flex">
+        <div className="w-20 flex items-center justify-center py-2 border-r border-border">
+          <div className="w-10 h-3 bg-muted animate-pulse rounded"></div>
+        </div>
+        <div className="flex-1 p-2">
+          <div className="w-full h-8 bg-muted/50 animate-pulse rounded"></div>
+        </div>
       </div>
     </div>
     
     {/* Time grid skeleton */}
-    <div className="skeleton-time-grid">
-      <div className="skeleton-time-column">
-        {Array(24).fill(0).map((_, i) => (
-          <div key={i} className="skeleton-hour-block">
-            <div className="skeleton-hour-label"></div>
-          </div>
-        ))}
+    <div className="flex-1 overflow-auto">
+      <div className="flex min-h-[1536px]">
+        <div className="w-20 border-r border-border bg-muted/10">
+          {Array(24).fill(0).map((_, i) => (
+            <div key={i} className="h-16 border-b border-border/30">
+              <div className="h-8 flex items-center justify-end pr-2">
+                <div className="w-8 h-3 bg-muted animate-pulse rounded"></div>
+              </div>
+              <div className="h-8 flex items-center justify-end pr-2 border-t border-border/10">
+                <div className="w-6 h-2 bg-muted/60 animate-pulse rounded"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex-1 relative">
+          {Array(48).fill(0).map((_, index) => (
+            <div key={index} className="h-8 border-b border-border/30"></div>
+          ))}
+          {Array(Math.floor(Math.random() * 5) + 2).fill(0).map((_, i) => (
+            <div
+              key={i}
+              className="absolute left-1 right-1 bg-muted/50 animate-pulse rounded"
+              style={{
+                top: `${Math.random() * 1200}px`,
+                height: `${30 + Math.random() * 90}px`
+              }}
+            />
+          ))}
+        </div>
       </div>
-      <div className="skeleton-day-column">
-        {Array(Math.floor(Math.random() * 5) + 2).fill(0).map((_, i) => (
-          <div
-            key={i}
-            className="skeleton-timed-event"
-            style={{
-              top: `${Math.random() * 1200}px`,
-              height: `${30 + Math.random() * 90}px`
-            }}
-          />
-        ))}
+    </div>
+    
+    {/* Empty message skeleton */}
+    <div className="p-4 border-t border-border bg-muted/10">
+      <div className="text-center">
+        <div className="w-48 h-4 bg-muted animate-pulse rounded mx-auto"></div>
       </div>
     </div>
   </div>

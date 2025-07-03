@@ -163,7 +163,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
 
   return (
     <>
-      <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-overlay" style={{ zIndex: 50 }} onClick={onClose}>
         <div className="modal-content event-details-modal" onClick={e => e.stopPropagation()}>
           <div className="modal-header">
             <div className="event-title-section">
@@ -178,7 +178,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
             </button>
           </div>
 
-          <div className="event-details-content overflow-x-hidden pt-4">
+          <div className="event-details-content overflow-x-hidden pt-4 pb-4">
             {/* Date and Time */}
             <div className="detail-section">
               <div className="detail-item">
