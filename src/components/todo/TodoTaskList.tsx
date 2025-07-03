@@ -8,6 +8,7 @@ const TodoTaskList: React.FC = () => {
   const { t } = useTranslation()
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [isCreatingTask, setIsCreatingTask] = useState(false)
+  const [showCompletedTasks, setShowCompletedTasks] = useState(true)
   
   const {
     lists,
@@ -59,9 +60,9 @@ const TodoTaskList: React.FC = () => {
   }
 
   return (
-    <div className="flex-1 bg-background flex flex-col">
+    <div className="flex-1 bg-background flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-border/50">
+      <div className="px-6 py-4 border-b border-border/50 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-2xl">{getListIcon(currentList)}</span>
@@ -88,7 +89,7 @@ const TodoTaskList: React.FC = () => {
 
       {/* Task Input */}
       {isCreatingTask && (
-        <div className="px-6 py-4 border-b border-border/50 bg-muted/20">
+        <div className="px-6 py-4 border-b border-border/50 bg-muted/20 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-5 h-5 rounded border-2 border-border"></div>
             <input
@@ -127,7 +128,7 @@ const TodoTaskList: React.FC = () => {
       )}
 
       {/* Task List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-6">
         {listTasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
             <TaskIcon className="w-16 h-16 text-muted-foreground/30 mb-4" />
@@ -145,7 +146,7 @@ const TodoTaskList: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-1 pt-2">
             {/* Pending Tasks */}
             {pendingTasks.map(task => (
               <TaskItem
@@ -160,22 +161,32 @@ const TodoTaskList: React.FC = () => {
             {/* Completed Tasks */}
             {completedTasks.length > 0 && (
               <>
-                <div className="px-6 py-3 bg-muted/30 mt-4">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {t('todo.completed', 'Completed')} ({completedTasks.length})
-                  </span>
+                <div 
+                  className="px-6 py-3 bg-muted/30 mt-4 cursor-pointer hover:bg-muted/40 transition-colors"
+                  onClick={() => setShowCompletedTasks(!showCompletedTasks)}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {t('todo.completed', 'Completed')} ({completedTasks.length})
+                    </span>
+                    <ChevronDownIcon className={`w-4 h-4 text-muted-foreground transition-transform ${
+                      showCompletedTasks ? 'rotate-180' : ''
+                    }`} />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  {completedTasks.map(task => (
-                    <TaskItem
-                      key={task.id}
-                      task={task}
-                      onToggleCompletion={() => toggleTaskCompletion(task.id)}
-                      onToggleStar={() => toggleTaskStar(task.id)}
-                      onDelete={() => deleteTask(task.id, currentList.id, currentList.provider)}
-                    />
-                  ))}
-                </div>
+                {showCompletedTasks && (
+                  <div className="space-y-1 pb-4">
+                    {completedTasks.map(task => (
+                      <TaskItem
+                        key={task.id}
+                        task={task}
+                        onToggleCompletion={() => toggleTaskCompletion(task.id)}
+                        onToggleStar={() => toggleTaskStar(task.id)}
+                        onDelete={() => deleteTask(task.id, currentList.id, currentList.provider)}
+                      />
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -344,6 +355,12 @@ const TaskIcon: React.FC<{ className?: string }> = ({ className }) => (
 const CalendarIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+)
+
+const ChevronDownIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
   </svg>
 )
 
