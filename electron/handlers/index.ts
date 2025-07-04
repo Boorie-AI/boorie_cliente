@@ -4,9 +4,6 @@ export { ConversationHandler } from './conversation.handler'
 export { AIProviderHandler } from './aiProvider.handler'
 export { DatabaseHandler } from './database.handler'
 export { ChatHandler } from './chat.handler'
-export { AuthHandler } from './auth.handler'
-export { CalendarHandler } from './calendar.handler'
-export { TodoHandler } from './todo.handler'
 export { RAGHandler } from './rag.handler'
 
 import { ServiceContainer } from '../../backend/services'
@@ -14,9 +11,6 @@ import { ConversationHandler } from './conversation.handler'
 import { AIProviderHandler } from './aiProvider.handler'
 import { DatabaseHandler } from './database.handler'
 import { ChatHandler } from './chat.handler'
-import { AuthHandler } from './auth.handler'
-import { CalendarHandler } from './calendar.handler'
-import { TodoHandler } from './todo.handler'
 import { RAGHandler } from './rag.handler'
 import { createLogger } from '../../backend/utils/logger'
 
@@ -27,9 +21,6 @@ export class HandlersManager {
   private aiProviderHandler: AIProviderHandler
   private databaseHandler: DatabaseHandler
   private chatHandler: ChatHandler
-  private authHandler: AuthHandler
-  private calendarHandler: CalendarHandler
-  private todoHandler: TodoHandler
   private ragHandler: RAGHandler
   private isInitialized = false
 
@@ -40,9 +31,6 @@ export class HandlersManager {
     this.aiProviderHandler = new AIProviderHandler(services.aiProvider)
     this.databaseHandler = new DatabaseHandler(services.database)
     this.chatHandler = new ChatHandler()
-    this.authHandler = new AuthHandler(services.database)
-    this.calendarHandler = new CalendarHandler(services.database)
-    this.todoHandler = new TodoHandler(services.database)
     this.ragHandler = new RAGHandler(services.rag, services.documentParser, services.embedding)
     
     this.isInitialized = true
@@ -66,17 +54,6 @@ export class HandlersManager {
     return this.chatHandler
   }
 
-  get auth(): AuthHandler {
-    return this.authHandler
-  }
-
-  get calendar(): CalendarHandler {
-    return this.calendarHandler
-  }
-
-  get todo(): TodoHandler {
-    return this.todoHandler
-  }
 
   get rag(): RAGHandler {
     return this.ragHandler
@@ -101,8 +78,6 @@ export class HandlersManager {
       this.aiProviderHandler.unregisterHandlers()
       this.databaseHandler.unregisterHandlers()
       this.chatHandler.unregisterHandlers()
-      // Note: AuthHandler doesn't have unregisterHandlers method yet
-      await this.calendarHandler.cleanup()
       this.ragHandler.unregisterHandlers()
       
       this.isInitialized = false
@@ -121,8 +96,6 @@ export class HandlersManager {
       results.aiProviderHandler = this.aiProviderHandler ? true : false
       results.databaseHandler = this.databaseHandler ? true : false
       results.chatHandler = this.chatHandler ? true : false
-      results.authHandler = this.authHandler ? true : false
-      results.calendarHandler = this.calendarHandler ? true : false
       results.ragHandler = this.ragHandler ? true : false
       results.initialized = this.isInitialized
       
@@ -135,8 +108,6 @@ export class HandlersManager {
         aiProviderHandler: false,
         databaseHandler: false,
         chatHandler: false,
-        authHandler: false,
-        calendarHandler: false,
         ragHandler: false,
         initialized: false,
         error: true

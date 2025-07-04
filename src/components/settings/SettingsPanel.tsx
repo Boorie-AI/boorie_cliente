@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { AIConfigurationPanel } from './AIConfigurationPanel'
-import { GeneralTab, AccountsTab } from './tabs'
+import { GeneralTab } from './tabs'
 import { cn } from '@/utils/cn'
 import * as Tabs from '@radix-ui/react-tabs'
 
@@ -41,16 +41,6 @@ export function SettingsPanel() {
               >
                 {t('settings.aiConfiguration')}
               </Tabs.Trigger>
-              <Tabs.Trigger
-                value="accounts"
-                className={cn(
-                  "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
-                  "data-[state=inactive]:text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {t('settings.accounts')}
-              </Tabs.Trigger>
             </Tabs.List>
 
             {/* Tab Content */}
@@ -62,9 +52,6 @@ export function SettingsPanel() {
               <AIConfigurationPanel />
             </Tabs.Content>
 
-            <Tabs.Content value="accounts" className="flex-1 overflow-hidden">
-              <AccountsTab />
-            </Tabs.Content>
           </Tabs.Root>
         </div>
       </div>

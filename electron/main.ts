@@ -123,7 +123,7 @@ async function initDatabase(): Promise<void> {
     await prisma.$connect()
     
     // Use Prisma db push to create/update database schema automatically
-    execSync('npx prisma db push', { stdio: 'inherit' })
+    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' })
     
     appLogger.success('Database initialized and connected successfully', { dbPath })
   } catch (error) {

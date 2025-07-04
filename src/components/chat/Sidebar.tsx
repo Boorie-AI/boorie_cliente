@@ -6,9 +6,6 @@ import {
   MessageSquare,
   Settings,
   FileText,
-  Mail,
-  Calendar,
-  ListTodo,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react'
@@ -32,9 +29,6 @@ export function Sidebar() {
   const menuItems = [
     { id: 'chat', icon: MessageSquare, label: t('sidebar.chat'), view: 'chat' as const },
     { id: 'rag', icon: FileText, label: t('sidebar.documents'), view: 'rag' as const },
-    { id: 'email', icon: Mail, label: t('sidebar.email'), view: 'email' as const },
-    { id: 'calendar', icon: Calendar, label: t('sidebar.calendar'), view: 'calendar' as const },
-    { id: 'todo', icon: ListTodo, label: t('sidebar.todo'), view: 'todo' as const },
     { id: 'settings', icon: Settings, label: t('sidebar.settings'), view: 'settings' as const },
   ]
 

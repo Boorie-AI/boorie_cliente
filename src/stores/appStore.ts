@@ -6,7 +6,7 @@ import { useAIConfigStore } from './aiConfigStore'
 
 export interface AppState {
   isInitialized: boolean
-  currentView: 'chat' | 'email' | 'calendar' | 'settings' | 'rag' | 'todo' 
+  currentView: 'chat' | 'settings' | 'rag' 
   theme: 'dark' | 'light'
   sidebarCollapsed: boolean
   
@@ -14,11 +14,6 @@ export interface AppState {
   activeAIProvider: 'ollama' | 'openai' | 'anthropic' | 'google'
   activeModel: string
   
-  // Authentication
-  isAuthenticated: {
-    microsoft: boolean
-    google: boolean
-  }
   
   // Actions
   initializeApp: () => Promise<void>
@@ -27,7 +22,6 @@ export interface AppState {
   setTheme: (theme: AppState['theme']) => void
   setActiveAIProvider: (provider: AppState['activeAIProvider']) => void
   setActiveModel: (model: string) => void
-  setAuthenticationStatus: (provider: 'microsoft' | 'google', status: boolean) => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -40,10 +34,6 @@ export const useAppStore = create<AppState>()(
         sidebarCollapsed: false,
         activeAIProvider: 'ollama',
         activeModel: 'llama2',
-        isAuthenticated: {
-          microsoft: false,
-          google: false,
-        },
 
         initializeApp: async () => {
           try {
@@ -92,7 +82,7 @@ export const useAppStore = create<AppState>()(
                   break
                 case 'currentView':
                   // Always start with chat view, don't restore previous view
-                  // if (['chat', 'email', 'calendar', 'settings', 'rag'].includes(setting.value)) {
+                  // if (['chat', 'settings', 'rag'].includes(setting.value)) {
                   //   set({ currentView: setting.value as any })
                   // }
                   break
@@ -148,19 +138,6 @@ export const useAppStore = create<AppState>()(
           await databaseService.setSetting('activeModel', model, 'ai')
         },
 
-        setAuthenticationStatus: async (provider, status) => {
-          set((state) => ({
-            isAuthenticated: {
-              ...state.isAuthenticated,
-              [provider]: status
-            }
-          }))
-          await databaseService.setSetting(
-            `auth_${provider}`, 
-            status.toString(), 
-            'authentication'
-          )
-        },
       }),
       {
         name: 'app-store',
