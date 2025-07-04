@@ -205,6 +205,8 @@
     "uploadDocuments": "Subir Documentos",
     "noDocuments": "Sin Documentos",
     "uploadFirstDocument": "Sube tu primer documento para comenzar a construir tu base de conocimiento",
+    "noCollection": "Sin Colección",
+    "clearSelection": "Quitar Selección",
     "deleteDocument": "Eliminar Documento",
     "deleteDocumentConfirm": "¿Estás seguro de que quieres eliminar \"{{name}}\"? Esto también eliminará todos sus fragmentos de texto.",
     "changingModelWarning": "Cambiar el modelo de embeddings requerirá reprocesar todos los documentos",

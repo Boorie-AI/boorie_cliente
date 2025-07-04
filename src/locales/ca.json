@@ -166,7 +166,11 @@
     "title": "Gestió de Documents",
     "comingSoon": "Sistema RAG Properament",
     "comingSoonDesc": "Puja i gestiona els teus documents per a cerca i recuperació amb IA.",
-    "uploadDocuments": "Pujar Documents"
+    "uploadDocuments": "Pujar Documents",
+    "noCollection": "Sense Col·lecció",
+    "clearSelection": "Esborrar Selecció",
+    "noCollections": "Sense Col·leccions",
+    "documents": "Documents"
   },
   "calendar": {
     "navigation": {

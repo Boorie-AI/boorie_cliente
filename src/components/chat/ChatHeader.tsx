@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useOnClickOutside } from '@/hooks/useOnClickOutside'
 import { cn } from '@/utils/cn'
 import { ModelSelector } from './ModelSelector'
+import { CollectionSelector } from './CollectionSelector'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 
 interface ChatHeaderProps {
@@ -147,6 +148,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
       </div>
 
       <div className="flex items-center space-x-3">
+        <CollectionSelector />
         <ModelSelector />
         <div className="relative" ref={menuRef}>
           <button

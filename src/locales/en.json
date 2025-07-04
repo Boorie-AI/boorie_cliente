@@ -205,6 +205,8 @@
     "uploadDocuments": "Upload Documents",
     "noDocuments": "No Documents",
     "uploadFirstDocument": "Upload your first document to start building your knowledge base",
+    "noCollection": "No Collection",
+    "clearSelection": "Clear Selection",
     "deleteDocument": "Delete Document",
     "deleteDocumentConfirm": "Are you sure you want to delete \"{{name}}\"? This will also delete all its text chunks.",
     "changingModelWarning": "Changing the embedding model will require re-processing all documents",

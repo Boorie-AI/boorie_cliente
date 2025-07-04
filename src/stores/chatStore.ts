@@ -33,6 +33,7 @@ interface ChatState {
   isLoading: boolean
   streamingMessage: string
   streamingBuffer: string
+  selectedCollectionId: string | null
   
   // Actions
   createNewConversation: () => void
@@ -46,6 +47,7 @@ interface ChatState {
   clearStreamingMessage: () => void
   saveConversation: (conversation: Conversation) => Promise<void>
   loadConversations: () => Promise<void>
+  setSelectedCollectionId: (collectionId: string | null) => void
   callOllamaAPI: (model: string, prompt: string, context: Message[]) => Promise<{ response: string; metadata: any }>
   callAPIProvider: (provider: string, model: string, prompt: string, context: Message[]) => Promise<{ response: string; metadata: any }>
 }
@@ -58,6 +60,7 @@ export const useChatStore = create<ChatState>()(
       isLoading: false,
       streamingMessage: '',
       streamingBuffer: '',
+      selectedCollectionId: null,
 
       createNewConversation: () => {
         // Get selected model from localStorage or use first available
@@ -184,6 +187,7 @@ export const useChatStore = create<ChatState>()(
         }
 
         const conversationId = state.activeConversationId!
+        const selectedCollectionId = state.selectedCollectionId
 
         // Add user message
         await get().addMessageToConversation(conversationId, {
@@ -200,33 +204,71 @@ export const useChatStore = create<ChatState>()(
           console.log('Sending message with conversation:', {
             model: conversation.model,
             provider: conversation.provider,
-            message: content
+            message: content,
+            collectionId: selectedCollectionId
           })
           
           let response: string
           let metadata: any
+          let ragContext = ''
           
           // Clear any previous streaming message
           get().clearStreamingMessage()
           
+          // If a collection is selected, perform RAG search
+          if (selectedCollectionId) {
+            try {
+              const searchResults = await window.electronAPI.rag.searchDocuments(
+                content, 
+                [selectedCollectionId], 
+                5 // Top 5 results
+              )
+              
+              if (searchResults.success && searchResults.data && searchResults.data.length > 0) {
+                // Format RAG context
+                ragContext = '\n\nContext from knowledge base:\n'
+                searchResults.data.forEach((chunk: any, index: number) => {
+                  ragContext += `\n[${index + 1}] ${chunk.content}\n`
+                  if (chunk.metadata?.filename) {
+                    ragContext += `   Source: ${chunk.metadata.filename}\n`
+                  }
+                })
+                ragContext += '\nBased on the above context and your knowledge, please answer the following question:\n'
+                
+                // Add sources to metadata
+                metadata = {
+                  ...metadata,
+                  sources: searchResults.data.map((chunk: any) => chunk.metadata?.filename || 'Unknown source')
+                }
+              }
+            } catch (error) {
+              console.error('RAG search failed:', error)
+              // Continue without RAG context if search fails
+            }
+          }
+          
+          // Prepare the enhanced prompt with RAG context
+          const enhancedPrompt = ragContext ? ragContext + content : content
+          
           // Check if it's an Ollama model (local)
           if (conversation.provider === 'Ollama') {
-            const ollamaResponse = await get().callOllamaAPI(conversation.model, content, conversation.messages)
+            const ollamaResponse = await get().callOllamaAPI(conversation.model, enhancedPrompt, conversation.messages)
             response = ollamaResponse.response
-            metadata = ollamaResponse.metadata
+            metadata = { ...ollamaResponse.metadata, ...metadata }
           } else {
             // Handle API providers
             try {
-              const apiResponse = await get().callAPIProvider(conversation.provider, conversation.model, content, conversation.messages)
+              const apiResponse = await get().callAPIProvider(conversation.provider, conversation.model, enhancedPrompt, conversation.messages)
               response = apiResponse.response
-              metadata = apiResponse.metadata
+              metadata = { ...apiResponse.metadata, ...metadata }
             } catch (error) {
               console.error(`Failed to call ${conversation.provider} API:`, error)
               response = `Error connecting to ${conversation.provider}: ${error instanceof Error ? error.message : 'Unknown error'}`
               metadata = {
                 model: conversation.model,
                 provider: conversation.provider,
-                tokens: 0
+                tokens: 0,
+                ...metadata
               }
             }
           }
@@ -264,6 +306,10 @@ export const useChatStore = create<ChatState>()(
 
       clearStreamingMessage: () => {
         set({ streamingMessage: '', streamingBuffer: '' })
+      },
+
+      setSelectedCollectionId: (collectionId: string | null) => {
+        set({ selectedCollectionId: collectionId })
       },
 
       saveConversation: async (conversation: Conversation) => {
