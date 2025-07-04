@@ -127,10 +127,10 @@ const TodoList: React.FC = () => {
               {selectedListObj?.name || t('todo.allTasks', 'All Tasks')}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {displayTasks.length} {t('todo.tasks', 'tasks')}
+              {displayTasks.length} {t('todo.tasksLabel', 'tasks')}
               {selectedListObj && (
                 <span className="ml-2 text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                  {selectedListObj.provider === 'google' ? 'Google' : 'Microsoft'}
+                  {selectedListObj.provider === 'google' ? t('todo.provider.google', 'Google') : t('todo.provider.microsoft', 'Microsoft')}
                 </span>
               )}
             </p>
@@ -156,7 +156,7 @@ const TodoList: React.FC = () => {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                <span>{t('todo.task.create', 'Add Task')}</span>
+                <span>{t('todo.tasks.newTask', 'Add Task')}</span>
               </button>
             )}
           </div>
@@ -314,7 +314,7 @@ const TodoList: React.FC = () => {
                         
                         {/* Provider */}
                         <span className="text-gray-400 dark:text-gray-500">
-                          {task.provider === 'google' ? 'Google' : 'Microsoft'}
+                          {task.provider === 'google' ? t('todo.provider.google', 'Google') : t('todo.provider.microsoft', 'Microsoft')}
                         </span>
                       </div>
                       

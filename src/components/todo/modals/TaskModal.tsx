@@ -138,7 +138,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
       <div className="bg-background rounded-lg p-6 w-full max-w-md mx-4 shadow-xl border border-border">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-foreground">
-            {mode === 'create' ? t('todo.task.create', 'Create Task') : t('todo.task.edit', 'Edit Task')}
+            {mode === 'create' ? t('todo.modals.createTask') : t('todo.modals.editTask')}
           </h2>
           <button
             onClick={handleClose}
@@ -152,14 +152,14 @@ const TaskModal: React.FC<TaskModalProps> = ({
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              {t('todo.task.title', 'Title')} *
+              {t('todo.modals.taskTitle')} *
             </label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder={t('todo.task.titlePlaceholder', 'Enter task title...')}
+              placeholder={t('todo.modals.taskTitle')}
               required
               autoFocus
             />
@@ -168,13 +168,13 @@ const TaskModal: React.FC<TaskModalProps> = ({
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              {t('todo.task.description', 'Description')}
+              {t('todo.modals.taskDescription')}
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-              placeholder={t('todo.task.descriptionPlaceholder', 'Enter task description...')}
+              placeholder={t('todo.modals.taskDescription')}
               rows={3}
             />
           </div>
@@ -182,7 +182,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
           {/* Due Date */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              {t('todo.task.dueDate', 'Due Date')}
+              {t('todo.tasks.dueDate')}
             </label>
             <input
               type="date"
@@ -195,7 +195,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
           {/* List Selection */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              {t('todo.task.list', 'List')} *
+              {t('todo.modals.selectList')} *
             </label>
             <select
               value={formData.listId}
@@ -203,7 +203,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
               className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               required
             >
-              <option value="">{t('todo.task.selectList', 'Select a list...')}</option>
+              <option value="">{t('todo.modals.selectList')}</option>
               {availableLists.map(list => (
                 <option key={list.id} value={list.id}>
                   {list.name}
@@ -216,7 +216,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
           {mode === 'create' && (
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">
-                {t('todo.task.provider', 'Provider')}
+                {t('todo.modals.selectAccount')}
               </label>
               <select
                 value={formData.provider}
@@ -232,8 +232,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
                 }}
                 className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
-                <option value="google">Google Tasks</option>
-                <option value="microsoft">Microsoft To Do</option>
+                <option value="google">{t('todo.providers.googleTasks', 'Google Tasks')}</option>
+                <option value="microsoft">{t('todo.providers.microsoftTodo', 'Microsoft To Do')}</option>
               </select>
             </div>
           )}

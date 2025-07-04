@@ -5,6 +5,22 @@ import { useTranslation } from 'react-i18next'
 import { useTodoStore } from '../../stores/todoStore'
 import TaskModal from './modals/TaskModal'
 
+// Helper function for formatting dates with translations
+const formatDate = (dateString: string, t: (key: string, fallback: string) => string) => {
+  const date = new Date(dateString)
+  const today = new Date()
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  
+  const isToday = date.toDateString() === today.toDateString()
+  const isTomorrow = date.toDateString() === tomorrow.toDateString()
+  
+  if (isToday) return t('todo.dates.today', 'Today')
+  if (isTomorrow) return t('todo.dates.tomorrow', 'Tomorrow')
+  
+  return date.toLocaleDateString()
+}
+
 const TodoTaskList: React.FC = () => {
   const { t } = useTranslation()
   const [showCompletedTasks, setShowCompletedTasks] = useState(true)
@@ -200,7 +216,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
         className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-sm flex-shrink-0 ${
           isCompleted 
             ? 'bg-primary border-primary shadow-md' 
-            : 'border-muted-foreground/60 hover:border-primary bg-background hover:shadow-md'
+            : 'border-muted-foreground hover:border-primary bg-background hover:shadow-md'
         }`}
       >
         {isCompleted && <CheckIcon className="w-3.5 h-3.5 text-primary-foreground" />}
@@ -229,7 +245,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
             <span className={`text-xs ${
               isOverdue ? 'text-destructive' : 'text-muted-foreground'
             }`}>
-              {formatDate(task.dueDate)}
+              {formatDate(task.dueDate, t)}
             </span>
           </div>
         )}
@@ -272,20 +288,6 @@ const getListIcon = (list: any) => {
   }
 }
 
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString)
-  const today = new Date()
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  
-  const isToday = date.toDateString() === today.toDateString()
-  const isTomorrow = date.toDateString() === tomorrow.toDateString()
-  
-  if (isToday) return 'Today'
-  if (isTomorrow) return 'Tomorrow'
-  
-  return date.toLocaleDateString()
-}
 
 // Icon Components
 const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (

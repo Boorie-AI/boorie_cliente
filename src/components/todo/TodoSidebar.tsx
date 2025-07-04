@@ -103,7 +103,7 @@ const TodoSidebar: React.FC = () => {
         <button
           onClick={toggleSidebar}
           className="w-full p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-          title={t('todo.sidebar.expand', 'Expand Sidebar')}
+          title={t('sidebar.expandSidebar')}
         >
           <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -136,19 +136,19 @@ const TodoSidebar: React.FC = () => {
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg">
             <div className="text-blue-600 dark:text-blue-400 font-medium">{taskCounts.total}</div>
-            <div className="text-blue-500 dark:text-blue-300 text-xs">{t('todo.total', 'Total')}</div>
+            <div className="text-blue-500 dark:text-blue-300 text-xs">{t('todo.sidebar.total', 'Total')}</div>
           </div>
           <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded-lg">
             <div className="text-green-600 dark:text-green-400 font-medium">{taskCounts.completed}</div>
-            <div className="text-green-500 dark:text-green-300 text-xs">{t('todo.completed', 'Done')}</div>
+            <div className="text-green-500 dark:text-green-300 text-xs">{t('todo.sidebar.completed', 'Done')}</div>
           </div>
           <div className="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-lg">
             <div className="text-yellow-600 dark:text-yellow-400 font-medium">{taskCounts.pending}</div>
-            <div className="text-yellow-500 dark:text-yellow-300 text-xs">{t('todo.pending', 'Pending')}</div>
+            <div className="text-yellow-500 dark:text-yellow-300 text-xs">{t('todo.sidebar.pending', 'Pending')}</div>
           </div>
           <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
             <div className="text-red-600 dark:text-red-400 font-medium">{taskCounts.overdue}</div>
-            <div className="text-red-500 dark:text-red-300 text-xs">{t('todo.overdue', 'Overdue')}</div>
+            <div className="text-red-500 dark:text-red-300 text-xs">{t('todo.sidebar.filters.overdue')}</div>
           </div>
         </div>
       </div>

@@ -9,7 +9,9 @@
     "close": "Tancar",
     "loading": "Carregant...",
     "error": "Error",
-    "success": "Èxit"
+    "success": "Èxit",
+    "create": "Crear",
+    "creating": "Creant..."
   },
   "sidebar": {
     "chat": "Xat",
@@ -532,6 +534,189 @@
       "noCalendarAccountsTitle": "No Hi Ha Comptes de Calendari",
       "noCalendarAccountsDesc": "Connecta el teu compte de Microsoft o Google per començar amb la gestió de calendari.",
       "connectAccount": "Connectar Compte"
+    }
+  },
+  "todo": {
+    "title": "Tasques",
+    "total": "Total",
+    "completed": "Completades",
+    "pending": "Pendents",
+    "overdue": "Endarrerides",
+    "tasksLabel": "tasques",
+    "lists": "llistes",
+    "done": "completades",
+    "allTasks": "Totes les Tasques",
+    "googleTasks": "Google Tasks",
+    "microsoftTodo": "Microsoft To Do",
+    "sidebar": {
+      "taskLists": "Llistes de Tasques",
+      "allTasks": "Totes les Tasques",
+      "starred": "Destacades",
+      "search": "Cercar tasques...",
+      "noAccountsConnected": "No hi ha comptes connectats",
+      "connectAccount": "Connectar Compte",
+      "refreshAccounts": "Actualitzar comptes",
+      "connectedAccounts": "Comptes Connectats",
+      "needsAttention": "Necessita Atenció",
+      "connected": "Connectat",
+      "disconnected": "Desconnectat",
+      "googleTasks": "Google Tasks",
+      "microsoftTodo": "Microsoft To Do",
+      "collapse": "Contraure Barra Lateral",
+      "systemLists": "Llistes del Sistema",
+      "customLists": "Llistes Personalitzades",
+      "total": "Total",
+      "completed": "Completades",
+      "pending": "Pendents",
+      "syncTasks": "Sincronitzar Tasques",
+      "filters": {
+        "overdue": "Endarrerides"
+      }
+    },
+    "task": {
+      "add": "Afegir Tasca",
+      "edit": "Editar tasca",
+      "delete": "Eliminar tasca"
+    },
+    "tasks": {
+      "newTask": "Nova Tasca",
+      "addTask": "Afegir Tasca",
+      "editTask": "Editar Tasca",
+      "deleteTask": "Eliminar Tasca",
+      "markComplete": "Marcar com a completada",
+      "markIncomplete": "Marcar com a incompleta",
+      "star": "Destacar",
+      "unstar": "Treure destacat",
+      "dueDate": "Data de venciment",
+      "noDueDate": "Sense data de venciment",
+      "overdue": "Endarrerida",
+      "today": "Avui",
+      "tomorrow": "Demà",
+      "thisWeek": "Aquesta setmana",
+      "nextWeek": "Pròxima setmana",
+      "notes": "Notes",
+      "priority": "Prioritat",
+      "low": "Baixa",
+      "medium": "Mitjana",
+      "high": "Alta",
+      "urgent": "Urgent",
+      "noTasks": "No hi ha tasques",
+      "completedTasks": "Tasques completades",
+      "pendingTasks": "Tasques pendents",
+      "taskCount": "{{count}} tasca",
+      "taskCount_plural": "{{count}} tasques"
+    },
+    "list": {
+      "create": "Crear Llista",
+      "add": "Afegir Llista",
+      "name": "Nom de la Llista",
+      "namePlaceholder": "Introdueix el nom de la llista..."
+    },
+    "lists": {
+      "createList": "Crear Llista",
+      "editList": "Editar Llista",
+      "deleteList": "Eliminar Llista",
+      "listName": "Nom de la llista",
+      "defaultList": "Llista predeterminada",
+      "personalTasks": "Tasques Personals",
+      "workTasks": "Tasques de Treball",
+      "shoppingList": "Llista de Compres",
+      "emptyList": "Aquesta llista està buida",
+      "listCount": "{{count}} llista",
+      "listCount_plural": "{{count}} llistes"
+    },
+    "provider": {
+      "google": "Google Tasks",
+      "microsoft": "Microsoft To Do"
+    },
+    "noAccounts": {
+      "title": "No Hi Ha Comptes Connectats",
+      "description": "Connecta el teu compte de Google o Microsoft per començar",
+      "connect": "Connectar Compte"
+    },
+    "errorBoundary": {
+      "title": "Alguna cosa ha anat malament",
+      "description": "S'ha produït un error inesperat a l'aplicació de Tasques. Si us plau, intenta actualitzar la pàgina.",
+      "errorDetails": "Detalls de l'Error (Mode de Desenvolupament)",
+      "tryAgain": "Intentar de Nou",
+      "refreshPage": "Actualitzar Pàgina"
+    },
+    "loading": {
+      "title": "Carregant dades de Tasques..."
+    },
+    "providers": {
+      "googleTasks": "Google Tasks",
+      "microsoftTodo": "Microsoft To Do"
+    },
+    "dates": {
+      "today": "Avui",
+      "tomorrow": "Demà"
+    },
+    "error": {
+      "title": "Error en Carregar Tasques",
+      "retry": "Tornar a Intentar"
+    },
+    "modals": {
+      "createTask": "Crear Tasca",
+      "editTask": "Editar Tasca",
+      "taskTitle": "Títol de la tasca",
+      "taskDescription": "Descripció",
+      "selectList": "Seleccionar llista",
+      "selectAccount": "Seleccionar compte",
+      "save": "Desar",
+      "cancel": "Cancel·lar",
+      "delete": "Eliminar",
+      "confirmDelete": "Estàs segur que vols eliminar aquesta tasca?",
+      "confirmDeleteList": "Estàs segur que vols eliminar aquesta llista?",
+      "deleteWarning": "Aquesta acció no es pot desfer.",
+      "creating": "Creant...",
+      "updating": "Actualitzant...",
+      "deleting": "Eliminant...",
+      "titleRequired": "El títol és obligatori",
+      "listRequired": "Has de seleccionar una llista"
+    },
+    "errors": {
+      "loadingTasks": "Error en carregar les tasques",
+      "loadingLists": "Error en carregar les llistes",
+      "createTask": "Error en crear la tasca",
+      "updateTask": "Error en actualitzar la tasca",
+      "deleteTask": "Error en eliminar la tasca",
+      "createList": "Error en crear la llista",
+      "updateList": "Error en actualitzar la llista",
+      "deleteList": "Error en eliminar la llista",
+      "connectionError": "Error de connexió",
+      "authError": "Error d'autenticació",
+      "tryAgain": "Intentar de nou",
+      "refresh": "Actualitzar"
+    },
+    "filters": {
+      "allTasks": "Totes",
+      "completed": "Completades",
+      "pending": "Pendents",
+      "starred": "Destacades",
+      "overdue": "Endarrerides",
+      "today": "Avui",
+      "thisWeek": "Aquesta setmana",
+      "filterBy": "Filtrar per",
+      "sortBy": "Ordenar per",
+      "dueDate": "Data de venciment",
+      "priority": "Prioritat",
+      "alphabetical": "Alfabètic",
+      "dateCreated": "Data de creació",
+      "ascending": "Ascendent",
+      "descending": "Descendent"
+    },
+    "common": {
+      "loading": "Carregant...",
+      "noResults": "No hi ha resultats",
+      "searchResults": "Resultats de cerca",
+      "clearSearch": "Netejar cerca",
+      "syncAll": "Sincronitzar tot",
+      "lastSync": "Última sincronització",
+      "offline": "Sense connexió",
+      "online": "En línia",
+      "reconnect": "Reconnectar",
+      "retry": "Tornar a intentar"
     }
   }
 }

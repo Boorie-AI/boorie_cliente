@@ -92,7 +92,7 @@ const TodoListPanel: React.FC = () => {
               }
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {filteredLists.length} {t('todo.lists', 'lists')}, {tasks.length} {t('todo.tasks', 'tasks')}
+              {filteredLists.length} {t('todo.lists', 'lists')}, {tasks.length} {t('todo.tasksLabel', 'tasks')}
             </p>
           </div>
           

@@ -9,7 +9,9 @@
     "close": "Cerrar",
     "loading": "Cargando...",
     "error": "Error",
-    "success": "Éxito"
+    "success": "Éxito",
+    "create": "Crear",
+    "creating": "Creando..."
   },
   "sidebar": {
     "chat": "Chat",
@@ -499,8 +501,7 @@
         "invalidEmail": "Por favor, ingresa una dirección de email válida",
         "attendeeExists": "Este asistente ya fue agregado",
         "attendeeAlreadyAdded": "Este asistente ya fue agregado",
-        "guest": "invitado",
-        "guests": "invitados",
+        "guest": "Invitado",
         "removeGuest": "Eliminar invitado",
         "addTeamsMeeting": "Agregar reunión de Teams",
         "addGoogleMeeting": "Agregar reunión de Google Meet",
@@ -532,6 +533,187 @@
       "noCalendarAccountsTitle": "No Hay Cuentas de Calendario",
       "noCalendarAccountsDesc": "Conecta tu cuenta de Microsoft o Google para comenzar con la gestión de calendario.",
       "connectAccount": "Conectar Cuenta"
+    }
+  },
+  "todo": {
+    "title": "Tareas",
+    "total": "Total",
+    "completed": "Completadas",
+    "pending": "Pendientes",
+    "overdue": "Vencidas",
+    "tasksLabel": "Tareas",
+    "allTasks": "Todas las Tareas",
+    "googleTasks": "Google Tasks",
+    "microsoftTodo": "Microsoft To Do",
+    "sidebar": {
+      "taskLists": "Listas de Tareas",
+      "allTasks": "Todas las Tareas",
+      "starred": "Destacadas",
+      "search": "Buscar tareas...",
+      "noAccountsConnected": "No hay cuentas conectadas",
+      "connectAccount": "Conectar Cuenta",
+      "refreshAccounts": "Actualizar cuentas",
+      "connectedAccounts": "Cuentas Conectadas",
+      "needsAttention": "Necesita Atención",
+      "connected": "Conectado",
+      "disconnected": "Desconectado",
+      "googleTasks": "Google Tasks",
+      "microsoftTodo": "Microsoft To Do",
+      "collapse": "Contraer Barra Lateral",
+      "systemLists": "Listas del Sistema",
+      "customLists": "Listas Personalizadas",
+      "total": "Total",
+      "completed": "Completadas", 
+      "pending": "Pendientes",
+      "syncTasks": "Sincronizar Tareas",
+      "filters": {
+        "overdue": "Vencidas"
+      }
+    },
+    "task": {
+      "add": "Agregar Tarea",
+      "edit": "Editar tarea",
+      "delete": "Eliminar tarea"
+    },
+    "tasks": {
+      "newTask": "Nueva Tarea",
+      "addTask": "Agregar Tarea",
+      "editTask": "Editar Tarea",
+      "deleteTask": "Eliminar Tarea",
+      "markComplete": "Marcar como completada",
+      "markIncomplete": "Marcar como incompleta",
+      "star": "Destacar",
+      "unstar": "Quitar destacado",
+      "dueDate": "Fecha de vencimiento",
+      "noDueDate": "Sin fecha de vencimiento",
+      "overdue": "Vencida",
+      "today": "Hoy",
+      "tomorrow": "Mañana",
+      "thisWeek": "Esta semana",
+      "nextWeek": "Próxima semana",
+      "notes": "Notas",
+      "priority": "Prioridad",
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta",
+      "urgent": "Urgente",
+      "noTasks": "No hay tareas",
+      "completedTasks": "Tareas completadas",
+      "pendingTasks": "Tareas pendientes",
+      "taskCount": "{{count}} tarea",
+      "taskCount_plural": "{{count}} tareas"
+    },
+    "list": {
+      "create": "Crear Lista",
+      "add": "Agregar Lista",
+      "name": "Nombre de la Lista",
+      "namePlaceholder": "Ingresa el nombre de la lista..."
+    },
+    "lists": {
+      "createList": "Crear Lista",
+      "editList": "Editar Lista",
+      "deleteList": "Eliminar Lista",
+      "listName": "Nombre de la lista",
+      "defaultList": "Lista predeterminada",
+      "personalTasks": "Tareas Personales",
+      "workTasks": "Tareas de Trabajo",
+      "shoppingList": "Lista de Compras",
+      "emptyList": "Esta lista está vacía",
+      "listCount": "{{count}} lista",
+      "listCount_plural": "{{count}} listas"
+    },
+    "provider": {
+      "google": "Google Tasks",
+      "microsoft": "Microsoft To Do"
+    },
+    "noAccounts": {
+      "title": "No Hay Cuentas Conectadas",
+      "description": "Conecta tu cuenta de Google o Microsoft para comenzar",
+      "connect": "Conectar Cuenta"
+    },
+    "errorBoundary": {
+      "title": "Algo salió mal",
+      "description": "Ocurrió un error inesperado en la aplicación de Tareas. Por favor, intenta actualizar la página.",
+      "errorDetails": "Detalles del Error (Modo de Desarrollo)",
+      "tryAgain": "Intentar de Nuevo",
+      "refreshPage": "Actualizar Página"
+    },
+    "loading": {
+      "title": "Cargando datos de Tareas..."
+    },
+    "providers": {
+      "googleTasks": "Google Tasks",
+      "microsoftTodo": "Microsoft To Do"
+    },
+    "dates": {
+      "today": "Hoy",
+      "tomorrow": "Mañana"
+    },
+    "error": {
+      "title": "Error al Cargar Tareas",
+      "retry": "Reintentar"
+    },
+    "modals": {
+      "createTask": "Crear Tarea",
+      "editTask": "Editar Tarea",
+      "taskTitle": "Título de la tarea",
+      "taskDescription": "Descripción",
+      "selectList": "Seleccionar lista",
+      "selectAccount": "Seleccionar cuenta",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "delete": "Eliminar",
+      "confirmDelete": "¿Estás seguro de que quieres eliminar esta tarea?",
+      "confirmDeleteList": "¿Estás seguro de que quieres eliminar esta lista?",
+      "deleteWarning": "Esta acción no se puede deshacer.",
+      "creating": "Creando...",
+      "updating": "Actualizando...",
+      "deleting": "Eliminando...",
+      "titleRequired": "El título es obligatorio",
+      "listRequired": "Debes seleccionar una lista"
+    },
+    "errors": {
+      "loadingTasks": "Error al cargar las tareas",
+      "loadingLists": "Error al cargar las listas",
+      "createTask": "Error al crear la tarea",
+      "updateTask": "Error al actualizar la tarea",
+      "deleteTask": "Error al eliminar la tarea",
+      "createList": "Error al crear la lista",
+      "updateList": "Error al actualizar la lista",
+      "deleteList": "Error al eliminar la lista",
+      "connectionError": "Error de conexión",
+      "authError": "Error de autenticación",
+      "tryAgain": "Intentar de nuevo",
+      "refresh": "Actualizar"
+    },
+    "filters": {
+      "allTasks": "Todas",
+      "completed": "Completadas",
+      "pending": "Pendientes",
+      "starred": "Destacadas",
+      "overdue": "Vencidas",
+      "today": "Hoy",
+      "thisWeek": "Esta semana",
+      "filterBy": "Filtrar por",
+      "sortBy": "Ordenar por",
+      "dueDate": "Fecha de vencimiento",
+      "priority": "Prioridad",
+      "alphabetical": "Alfabético",
+      "dateCreated": "Fecha de creación",
+      "ascending": "Ascendente",
+      "descending": "Descendente"
+    },
+    "common": {
+      "loading": "Cargando...",
+      "noResults": "No hay resultados",
+      "searchResults": "Resultados de búsqueda",
+      "clearSearch": "Limpiar búsqueda",
+      "syncAll": "Sincronizar todo",
+      "lastSync": "Última sincronización",
+      "offline": "Sin conexión",
+      "online": "En línea",
+      "reconnect": "Reconectar",
+      "retry": "Reintentar"
     }
   }
 }

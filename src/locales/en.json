@@ -9,7 +9,9 @@
     "close": "Close",
     "loading": "Loading...",
     "error": "Error",
-    "success": "Success"
+    "success": "Success",
+    "create": "Create",
+    "creating": "Creating..."
   },
   "sidebar": {
     "chat": "Chat",
@@ -532,6 +534,189 @@
       "noCalendarAccountsTitle": "No Calendar Accounts",
       "noCalendarAccountsDesc": "Connect your Microsoft or Google account to get started with calendar management.",
       "connectAccount": "Connect Account"
+    }
+  },
+  "todo": {
+    "title": "Todo",
+    "total": "Total",
+    "completed": "Done",
+    "pending": "Pending",
+    "overdue": "Overdue",
+    "tasksLabel": "tasks",
+    "lists": "lists",
+    "done": "done",
+    "allTasks": "All Tasks",
+    "googleTasks": "Google Tasks",
+    "microsoftTodo": "Microsoft To Do",
+    "sidebar": {
+      "taskLists": "Task Lists",
+      "allTasks": "All Tasks",
+      "starred": "Starred",
+      "search": "Search tasks...",
+      "noAccountsConnected": "No accounts connected",
+      "connectAccount": "Connect Account",
+      "refreshAccounts": "Refresh accounts",
+      "connectedAccounts": "Connected Accounts",
+      "needsAttention": "Needs Attention",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "googleTasks": "Google Tasks",
+      "microsoftTodo": "Microsoft To Do",
+      "collapse": "Collapse Sidebar",
+      "systemLists": "System Lists",
+      "customLists": "Custom Lists",
+      "total": "Total",
+      "completed": "Done",
+      "pending": "Pending",
+      "syncTasks": "Sync Tasks",
+      "filters": {
+        "overdue": "Overdue"
+      }
+    },
+    "task": {
+      "add": "Add Task",
+      "edit": "Edit task",
+      "delete": "Delete task"
+    },
+    "tasks": {
+      "newTask": "New Task",
+      "addTask": "Add Task",
+      "editTask": "Edit Task",
+      "deleteTask": "Delete Task",
+      "markComplete": "Mark as complete",
+      "markIncomplete": "Mark as incomplete",
+      "star": "Star",
+      "unstar": "Unstar",
+      "dueDate": "Due date",
+      "noDueDate": "No due date",
+      "overdue": "Overdue",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "thisWeek": "This week",
+      "nextWeek": "Next week",
+      "notes": "Notes",
+      "priority": "Priority",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent",
+      "noTasks": "No tasks",
+      "completedTasks": "Completed tasks",
+      "pendingTasks": "Pending tasks",
+      "taskCount": "{{count}} task",
+      "taskCount_plural": "{{count}} tasks"
+    },
+    "list": {
+      "create": "Create List",
+      "add": "Add List",
+      "name": "List Name",
+      "namePlaceholder": "Enter list name..."
+    },
+    "lists": {
+      "createList": "Create List",
+      "editList": "Edit List",
+      "deleteList": "Delete List",
+      "listName": "List name",
+      "defaultList": "Default list",
+      "personalTasks": "Personal Tasks",
+      "workTasks": "Work Tasks",
+      "shoppingList": "Shopping List",
+      "emptyList": "This list is empty",
+      "listCount": "{{count}} list",
+      "listCount_plural": "{{count}} lists"
+    },
+    "provider": {
+      "google": "Google Tasks",
+      "microsoft": "Microsoft To Do"
+    },
+    "noAccounts": {
+      "title": "No Accounts Connected",
+      "description": "Connect your Google or Microsoft account to get started",
+      "connect": "Connect Account"
+    },
+    "errorBoundary": {
+      "title": "Something went wrong",
+      "description": "An unexpected error occurred in the Todo application. Please try refreshing the page.",
+      "errorDetails": "Error Details (Development Mode)",
+      "tryAgain": "Try Again",
+      "refreshPage": "Refresh Page"
+    },
+    "loading": {
+      "title": "Loading Todo data..."
+    },
+    "providers": {
+      "googleTasks": "Google Tasks",
+      "microsoftTodo": "Microsoft To Do"
+    },
+    "dates": {
+      "today": "Today",
+      "tomorrow": "Tomorrow"
+    },
+    "error": {
+      "title": "Failed to Load Todo",
+      "retry": "Retry"
+    },
+    "modals": {
+      "createTask": "Create Task",
+      "editTask": "Edit Task",
+      "taskTitle": "Task title",
+      "taskDescription": "Description",
+      "selectList": "Select list",
+      "selectAccount": "Select account",
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "confirmDelete": "Are you sure you want to delete this task?",
+      "confirmDeleteList": "Are you sure you want to delete this list?",
+      "deleteWarning": "This action cannot be undone.",
+      "creating": "Creating...",
+      "updating": "Updating...",
+      "deleting": "Deleting...",
+      "titleRequired": "Title is required",
+      "listRequired": "You must select a list"
+    },
+    "errors": {
+      "loadingTasks": "Error loading tasks",
+      "loadingLists": "Error loading lists",
+      "createTask": "Error creating task",
+      "updateTask": "Error updating task",
+      "deleteTask": "Error deleting task",
+      "createList": "Error creating list",
+      "updateList": "Error updating list",
+      "deleteList": "Error deleting list",
+      "connectionError": "Connection error",
+      "authError": "Authentication error",
+      "tryAgain": "Try again",
+      "refresh": "Refresh"
+    },
+    "filters": {
+      "allTasks": "All",
+      "completed": "Completed",
+      "pending": "Pending",
+      "starred": "Starred",
+      "overdue": "Overdue",
+      "today": "Today",
+      "thisWeek": "This week",
+      "filterBy": "Filter by",
+      "sortBy": "Sort by",
+      "dueDate": "Due date",
+      "priority": "Priority",
+      "alphabetical": "Alphabetical",
+      "dateCreated": "Date created",
+      "ascending": "Ascending",
+      "descending": "Descending"
+    },
+    "common": {
+      "loading": "Loading...",
+      "noResults": "No results",
+      "searchResults": "Search results",
+      "clearSearch": "Clear search",
+      "syncAll": "Sync all",
+      "lastSync": "Last sync",
+      "offline": "Offline",
+      "online": "Online",
+      "reconnect": "Reconnect",
+      "retry": "Retry"
     }
   }
 }

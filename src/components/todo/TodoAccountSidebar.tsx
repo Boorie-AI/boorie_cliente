@@ -230,7 +230,7 @@ const TodoSidebar: React.FC<TodoSidebarProps> = ({ className = '' }) => {
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-              <span className="text-muted-foreground">{taskCounts.total} {t('todo.tasks', 'tasks')}</span>
+              <span className="text-muted-foreground">{taskCounts.total} {t('todo.tasksLabel', 'tasks')}</span>
             </div>
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full bg-green-500"></div>
