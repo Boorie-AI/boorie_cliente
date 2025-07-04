@@ -87,49 +87,81 @@ export class EmbeddingService {
     try {
       logger.debug('Fetching available embedding models')
 
-      const providersResult = await this.databaseService.getAIProviders()
-      if (!providersResult.success || !providersResult.data) {
-        return {
-          success: false,
-          error: 'Failed to get AI providers'
-        }
-      }
-
       const localModels: EmbeddingModel[] = []
       const apiModels: EmbeddingModel[] = []
 
-      for (const provider of providersResult.data) {
-        if (!provider.isConnected) continue
+      // Auto-detect Ollama models directly from Ollama API
+      const ollamaModels = await this.getOllamaEmbeddingModels()
+      localModels.push(...ollamaModels)
 
-        const modelsResult = await this.databaseService.getAIModels(provider.id)
-        if (!modelsResult.success || !modelsResult.data) continue
+      // Get API providers from database (for OpenAI, etc.)
+      const providersResult = await this.databaseService.getAIProviders()
+      if (providersResult.success && providersResult.data) {
+        logger.debug('Found AI providers', { 
+          count: providersResult.data.length,
+          providers: providersResult.data.map(p => ({ name: p.name, type: p.type, isConnected: p.isConnected }))
+        })
 
-        for (const model of modelsResult.data) {
-          if (!model.isAvailable) continue
+        for (const provider of providersResult.data) {
+          logger.debug('Processing provider', { 
+            name: provider.name, 
+            type: provider.type, 
+            isConnected: provider.isConnected 
+          })
 
-          // Filter for embedding models
-          const isEmbeddingModel = this.isEmbeddingModel(model.modelId, provider.name)
-          if (!isEmbeddingModel) continue
-
-          const embeddingModel: EmbeddingModel = {
-            id: model.id,
-            name: model.modelName,
-            provider: provider.name,
-            type: 'embedding',
-            isAvailable: model.isAvailable
+          if (!provider.isConnected || provider.type === 'local') {
+            logger.debug('Skipping disconnected or local provider', { name: provider.name })
+            continue
           }
 
-          if (provider.type === 'local') {
-            localModels.push(embeddingModel)
-          } else {
+          const modelsResult = await this.databaseService.getAIModels(provider.id)
+          if (!modelsResult.success || !modelsResult.data) {
+            logger.warn('Failed to get models for provider', { 
+              providerId: provider.id, 
+              providerName: provider.name,
+              error: modelsResult.error 
+            })
+            continue
+          }
+
+          for (const model of modelsResult.data) {
+            if (!model.isAvailable) {
+              continue
+            }
+
+            // Filter for embedding models
+            const isEmbeddingModel = this.isEmbeddingModel(model.modelId, provider.name)
+            
+            if (!isEmbeddingModel) {
+              if (model.modelId.toLowerCase().includes('embed') || model.modelName.toLowerCase().includes('embed')) {
+                logger.debug('Potential embedding model not detected', { 
+                  modelId: model.modelId, 
+                  modelName: model.modelName,
+                  provider: provider.name 
+                })
+              }
+              continue
+            }
+
+            const embeddingModel: EmbeddingModel = {
+              id: model.id,
+              name: model.modelName,
+              provider: provider.name,
+              type: 'embedding',
+              isAvailable: model.isAvailable
+            }
+
             apiModels.push(embeddingModel)
+            logger.debug('Added API embedding model', embeddingModel)
           }
         }
       }
 
       logger.success('Retrieved embedding models', { 
         localCount: localModels.length, 
-        apiCount: apiModels.length 
+        apiCount: apiModels.length,
+        localModels: localModels.map(m => m.name),
+        apiModels: apiModels.map(m => m.name)
       })
 
       return {
@@ -177,10 +209,113 @@ export class EmbeddingService {
   }
 
   // Private Methods
+  private async getOllamaEmbeddingModels(): Promise<EmbeddingModel[]> {
+    try {
+      logger.debug('Fetching Ollama models directly from API')
+      
+      const response = await fetch('http://127.0.0.1:11434/api/tags', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      logger.debug('Ollama API response status', { status: response.status, ok: response.ok })
+
+      if (!response.ok) {
+        logger.error('Failed to fetch Ollama models', new Error(`HTTP ${response.status}: ${response.statusText}`))
+        return []
+      }
+
+      const data = await response.json() as { models?: Array<{ name: string, size: number, modified_at: string }> }
+      
+      logger.debug('Ollama API response data', { 
+        hasModels: !!data.models,
+        modelCount: data.models?.length || 0,
+        models: data.models?.map(m => m.name) || []
+      })
+      
+      if (!data.models || data.models.length === 0) {
+        logger.warn('No models found in Ollama response')
+        return []
+      }
+
+      const embeddingModels: EmbeddingModel[] = []
+      
+      for (const model of data.models) {
+        const modelName = model.name
+        
+        // Log all models for debugging
+        logger.info('Checking Ollama model', { 
+          modelName, 
+          size: model.size,
+          modified: model.modified_at
+        })
+        
+        // Check if it's an embedding model
+        const isEmbedding = this.isOllamaEmbeddingModel(modelName)
+        
+        logger.info('Ollama embedding check result', { 
+          modelName, 
+          isEmbedding
+        })
+        
+        if (isEmbedding) {
+          embeddingModels.push({
+            id: modelName,
+            name: modelName,
+            provider: 'Ollama',
+            type: 'embedding',
+            isAvailable: true
+          })
+          logger.success('Added Ollama embedding model', { modelName })
+        }
+      }
+
+      logger.success('Retrieved Ollama embedding models', { 
+        count: embeddingModels.length,
+        models: embeddingModels.map(m => m.name)
+      })
+
+      return embeddingModels
+    } catch (error) {
+      logger.error('Failed to fetch Ollama models', error as Error)
+      return []
+    }
+  }
+
+  private isOllamaEmbeddingModel(modelName: string): boolean {
+    const modelNameLower = modelName.toLowerCase()
+    
+    // List of known embedding model patterns for Ollama
+    const embeddingPatterns = [
+      'embed',
+      'embedding',
+      'e5-',
+      'bge-',
+      'all-minilm',
+      'sentence-transformer'
+    ]
+    
+    // Check if model name contains any embedding pattern
+    const isEmbedding = embeddingPatterns.some(pattern => 
+      modelNameLower.includes(pattern)
+    )
+    
+    logger.debug('Ollama embedding model check', { 
+      modelName, 
+      modelNameLower,
+      isEmbedding,
+      matchedPattern: embeddingPatterns.find(p => modelNameLower.includes(p))
+    })
+    
+    return isEmbedding
+  }
+
   private async generateOllamaEmbedding(text: string, model: string): Promise<number[]> {
     try {
       // Make request to Ollama API for embeddings
-      const response = await fetch('http://localhost:11434/api/embeddings', {
+      const response = await fetch('http://127.0.0.1:11434/api/embeddings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -252,14 +387,32 @@ export class EmbeddingService {
   }
 
   private isEmbeddingModel(modelId: string, providerName: string): boolean {
-    const embeddingModelPatterns = {
-      ollama: [
+    const modelIdLower = modelId.toLowerCase()
+    const providerKey = providerName.toLowerCase()
+    
+    // Special handling for Ollama models
+    if (providerKey.includes('ollama')) {
+      const ollamaEmbeddingPatterns = [
         'nomic-embed',
         'mxbai-embed',
         'snowflake-arctic-embed',
         'all-minilm',
-        'embed'
-      ],
+        'sentence-transformer',
+        'e5-',
+        'bge-'
+      ]
+      
+      const isOllamaEmbedding = ollamaEmbeddingPatterns.some(pattern => 
+        modelIdLower.includes(pattern)
+      )
+      
+      if (isOllamaEmbedding) {
+        logger.debug('Ollama embedding model detected', { modelId, pattern: ollamaEmbeddingPatterns.find(p => modelIdLower.includes(p)) })
+        return true
+      }
+    }
+    
+    const embeddingModelPatterns = {
       openai: [
         'text-embedding-ada-002',
         'text-embedding-3-small',
@@ -268,14 +421,27 @@ export class EmbeddingService {
       google: [
         'embedding-001',
         'text-embedding'
+      ],
+      openrouter: [
+        'text-embedding',
+        'embedding'
       ]
     }
 
-    const providerKey = providerName.toLowerCase()
     const patterns = embeddingModelPatterns[providerKey as keyof typeof embeddingModelPatterns] || []
     
-    return patterns.some(pattern => 
-      modelId.toLowerCase().includes(pattern.toLowerCase())
+    const isMatch = patterns.some(pattern => 
+      modelIdLower.includes(pattern.toLowerCase())
     )
+    
+    if (modelIdLower.includes('embed') && !isMatch && !providerKey.includes('openrouter')) {
+      logger.debug('Potential embedding model not matched by patterns', { 
+        modelId, 
+        providerName: providerKey, 
+        patterns 
+      })
+    }
+    
+    return isMatch
   }
 }
