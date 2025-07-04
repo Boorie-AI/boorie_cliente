@@ -514,6 +514,7 @@
         "createEvent": "Crear Esdeveniment"
       }
     },
+    "title": "Calendari",
     "common": {
       "never": "Mai",
       "justNow": "Ara mateix",

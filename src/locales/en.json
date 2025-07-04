@@ -514,6 +514,7 @@
         "createEvent": "Create Event"
       }
     },
+    "title": "Calendar",
     "common": {
       "never": "Never",
       "justNow": "Just now",

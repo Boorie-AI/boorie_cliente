@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCalendarStore } from '../stores/calendarStore'
-import Sidebar from '../components/common/Sidebar'
+import CalendarSidebar from '../components/calendar/CalendarSidebar'
 import CalendarView from '../components/calendar/CalendarView'
 
 const CalendarPage: React.FC = () => {
@@ -176,13 +176,7 @@ const CalendarPage: React.FC = () => {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar for account selection */}
-      <Sidebar 
-        accounts={connectedAccounts}
-        selectedAccount={selectedAccount}
-        onAccountSelect={handleAccountSelect}
-        onRefresh={loadConnectedAccounts}
-        isLoading={isLoading.accounts || isLoading.accountSelection}
-      />
+      <CalendarSidebar />
       
       {/* Main calendar view */}
       <div className="flex-1 flex flex-col overflow-hidden">
