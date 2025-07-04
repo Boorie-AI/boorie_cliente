@@ -3,18 +3,27 @@
 export { DatabaseService } from './database.service'
 export { ConversationService } from './conversation.service'
 export { AIProviderService } from './aiProvider.service'
+export { RAGService } from './rag.service'
+export { DocumentParserService } from './document-parser.service'
+export { EmbeddingService } from './embedding.service'
 
 // Service factory for dependency injection
 import { PrismaClient } from '@prisma/client'
 import { DatabaseService } from './database.service'
 import { ConversationService } from './conversation.service'
 import { AIProviderService } from './aiProvider.service'
+import { RAGService } from './rag.service'
+import { DocumentParserService } from './document-parser.service'
+import { EmbeddingService } from './embedding.service'
 import { appLogger } from '../utils/logger'
 
 export class ServiceContainer {
   private databaseService: DatabaseService
   private conversationService: ConversationService
   private aiProviderService: AIProviderService
+  private ragService: RAGService
+  private documentParserService: DocumentParserService
+  private embeddingService: EmbeddingService
   private logger = appLogger
 
   constructor(prismaClient: PrismaClient) {
@@ -24,6 +33,11 @@ export class ServiceContainer {
     this.databaseService = new DatabaseService(prismaClient)
     this.conversationService = new ConversationService(this.databaseService)
     this.aiProviderService = new AIProviderService(this.databaseService)
+    
+    // Initialize RAG services
+    this.documentParserService = new DocumentParserService()
+    this.embeddingService = new EmbeddingService(this.databaseService)
+    this.ragService = new RAGService(prismaClient, this.documentParserService, this.embeddingService)
     
     this.logger.success('Service container initialized successfully')
   }
@@ -41,6 +55,18 @@ export class ServiceContainer {
     return this.aiProviderService
   }
 
+  get rag(): RAGService {
+    return this.ragService
+  }
+
+  get documentParser(): DocumentParserService {
+    return this.documentParserService
+  }
+
+  get embedding(): EmbeddingService {
+    return this.embeddingService
+  }
+
   // Health check for all services
   async healthCheck(): Promise<{ [key: string]: boolean }> {
     const results: { [key: string]: boolean } = {}
@@ -56,6 +82,9 @@ export class ServiceContainer {
     // Add other service health checks as needed
     results.conversation = true // No external dependencies
     results.aiProvider = true // No external dependencies
+    results.rag = true // No external dependencies
+    results.documentParser = true // No external dependencies
+    results.embedding = true // No external dependencies
     
     this.logger.info('Health check completed', results)
     return results

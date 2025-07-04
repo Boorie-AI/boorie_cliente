@@ -7,6 +7,7 @@ export { ChatHandler } from './chat.handler'
 export { AuthHandler } from './auth.handler'
 export { CalendarHandler } from './calendar.handler'
 export { TodoHandler } from './todo.handler'
+export { RAGHandler } from './rag.handler'
 
 import { ServiceContainer } from '../../backend/services'
 import { ConversationHandler } from './conversation.handler'
@@ -16,6 +17,7 @@ import { ChatHandler } from './chat.handler'
 import { AuthHandler } from './auth.handler'
 import { CalendarHandler } from './calendar.handler'
 import { TodoHandler } from './todo.handler'
+import { RAGHandler } from './rag.handler'
 import { createLogger } from '../../backend/utils/logger'
 
 const logger = createLogger('HandlersManager')
@@ -28,6 +30,7 @@ export class HandlersManager {
   private authHandler: AuthHandler
   private calendarHandler: CalendarHandler
   private todoHandler: TodoHandler
+  private ragHandler: RAGHandler
   private isInitialized = false
 
   constructor(services: ServiceContainer) {
@@ -40,6 +43,7 @@ export class HandlersManager {
     this.authHandler = new AuthHandler(services.database)
     this.calendarHandler = new CalendarHandler(services.database)
     this.todoHandler = new TodoHandler(services.database)
+    this.ragHandler = new RAGHandler(services.rag, services.documentParser, services.embedding)
     
     this.isInitialized = true
     logger.success('IPC handlers manager initialized successfully')
@@ -74,6 +78,10 @@ export class HandlersManager {
     return this.todoHandler
   }
 
+  get rag(): RAGHandler {
+    return this.ragHandler
+  }
+
   // Check if handlers are initialized
   get initialized(): boolean {
     return this.isInitialized
@@ -95,6 +103,7 @@ export class HandlersManager {
       this.chatHandler.unregisterHandlers()
       // Note: AuthHandler doesn't have unregisterHandlers method yet
       await this.calendarHandler.cleanup()
+      this.ragHandler.unregisterHandlers()
       
       this.isInitialized = false
       logger.success('IPC handlers cleaned up successfully')
@@ -114,6 +123,7 @@ export class HandlersManager {
       results.chatHandler = this.chatHandler ? true : false
       results.authHandler = this.authHandler ? true : false
       results.calendarHandler = this.calendarHandler ? true : false
+      results.ragHandler = this.ragHandler ? true : false
       results.initialized = this.isInitialized
       
       logger.info('Handlers health check completed', results)
@@ -127,6 +137,7 @@ export class HandlersManager {
         chatHandler: false,
         authHandler: false,
         calendarHandler: false,
+        ragHandler: false,
         initialized: false,
         error: true
       }

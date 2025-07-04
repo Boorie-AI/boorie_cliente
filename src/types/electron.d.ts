@@ -156,6 +156,28 @@ export interface ElectronAPI {
     getUnifiedData: () => Promise<TodoOperationResult<any>>
   }
 
+  rag: {
+    // Collection management
+    createCollection: (params: CreateCollectionParams) => Promise<IpcResult<RAGCollection>>
+    getCollections: () => Promise<IpcResult<RAGCollection[]>>
+    getCollection: (id: string) => Promise<IpcResult<RAGCollection>>
+    updateCollection: (id: string, params: UpdateCollectionParams) => Promise<IpcResult<RAGCollection>>
+    deleteCollection: (id: string) => Promise<IpcResult<void>>
+    
+    // Document management
+    selectDocuments: () => Promise<IpcResult<string[]>>
+    uploadDocument: (collectionId: string, filePath: string) => Promise<IpcResult<RAGDocument>>
+    getDocuments: (collectionId: string) => Promise<IpcResult<RAGDocument[]>>
+    deleteDocument: (documentId: string) => Promise<IpcResult<void>>
+    
+    // Search and retrieval
+    searchDocuments: (query: string, collectionIds: string[], limit?: number) => Promise<IpcResult<RAGDocumentChunk[]>>
+    
+    // Embedding models
+    getEmbeddingModels: () => Promise<IpcResult<{ local: EmbeddingModel[]; api: EmbeddingModel[] }>>
+    testEmbedding: (text: string, model: string, provider: string) => Promise<IpcResult<{ dimensions: number; sample: number[] }>>
+  }
+
   // Event listeners
   on: (channel: string, listener: (...args: any[]) => void) => void
   removeListener: (channel: string, listener: (...args: any[]) => void) => void
@@ -340,6 +362,72 @@ interface ErrorState {
   tasks?: string
   operation?: string
   general?: string
+}
+
+// RAG Type Definitions for Frontend
+interface RAGCollection {
+  id: string
+  name: string
+  description?: string
+  chunkSize: number
+  overlap: number
+  embeddingModel: string
+  modelProvider: string
+  createdAt: Date
+  updatedAt: Date
+  documents?: RAGDocument[]
+}
+
+interface RAGDocument {
+  id: string
+  filename: string
+  filepath?: string
+  fileType: 'pdf' | 'docx' | 'pptx' | 'xlsx'
+  fileSize: number
+  content: string
+  metadata?: any
+  collectionId: string
+  createdAt: Date
+  updatedAt: Date
+  chunks?: RAGDocumentChunk[]
+}
+
+interface RAGDocumentChunk {
+  id: string
+  content: string
+  embedding?: number[]
+  metadata?: any
+  startPos?: number
+  endPos?: number
+  documentId: string
+  createdAt: Date
+  similarity?: number
+}
+
+interface EmbeddingModel {
+  id: string
+  name: string
+  provider: string
+  type: 'embedding' | 'chat'
+  isAvailable: boolean
+}
+
+interface CreateCollectionParams {
+  name: string
+  description?: string
+  chunkSize?: number
+  overlap?: number
+  embeddingModel: string
+  modelProvider: string
+}
+
+interface UpdateCollectionParams {
+  name?: string
+  description?: string
+  chunkSize?: number
+  overlap?: number
+  embeddingModel?: string
+  modelProvider?: string
 }
 
 declare global {

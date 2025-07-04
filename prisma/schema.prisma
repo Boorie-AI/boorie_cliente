@@ -9,12 +9,13 @@ datasource db {
 }
 
 model Conversation {
-  id          String   @id @default(cuid())
-  title       String
-  model       String
-  provider    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  title                  String
+  model                  String
+  provider               String
+  selectedCollectionIds  String?  // JSON array of collection IDs for RAG context
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   messages    Message[]
 
@@ -83,17 +84,36 @@ model AppSetting {
   @@map("app_settings")
 }
 
-model Document {
-  id          String   @id @default(cuid())
-  filename    String
-  filepath    String
-  content     String
-  metadata    String?  // JSON as string
-  embeddings  String?  // JSON as string
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Collection {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  description    String?
+  chunkSize      Int      @default(1024)
+  overlap        Int      @default(256)
+  embeddingModel String
+  modelProvider  String   // 'ollama' | 'openai' | 'anthropic' | etc.
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  chunks DocumentChunk[]
+  documents Document[]
+
+  @@map("collections")
+}
+
+model Document {
+  id           String   @id @default(cuid())
+  filename     String
+  filepath     String?
+  fileType     String   // 'pdf' | 'docx' | 'pptx' | 'xlsx'
+  fileSize     Int
+  content      String
+  metadata     String?  // JSON as string - File-specific metadata
+  collectionId String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  chunks     DocumentChunk[]
 
   @@map("documents")
 }

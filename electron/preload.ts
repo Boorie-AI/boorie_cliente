@@ -188,6 +188,31 @@ const electronAPI = {
     getUnifiedData: () => ipcRenderer.invoke('todo:get-unified-data'),
   },
 
+  // RAG (Retrieval-Augmented Generation)
+  rag: {
+    // Collection management
+    createCollection: (params: any) => ipcRenderer.invoke('rag:create-collection', params),
+    getCollections: () => ipcRenderer.invoke('rag:get-collections'),
+    getCollection: (id: string) => ipcRenderer.invoke('rag:get-collection', id),
+    updateCollection: (id: string, params: any) => ipcRenderer.invoke('rag:update-collection', id, params),
+    deleteCollection: (id: string) => ipcRenderer.invoke('rag:delete-collection', id),
+    
+    // Document management
+    selectDocuments: () => ipcRenderer.invoke('rag:select-documents'),
+    uploadDocument: (collectionId: string, filePath: string) => ipcRenderer.invoke('rag:upload-document', collectionId, filePath),
+    getDocuments: (collectionId: string) => ipcRenderer.invoke('rag:get-documents', collectionId),
+    deleteDocument: (documentId: string) => ipcRenderer.invoke('rag:delete-document', documentId),
+    
+    // Search and retrieval
+    searchDocuments: (query: string, collectionIds: string[], limit?: number) => 
+      ipcRenderer.invoke('rag:search-documents', query, collectionIds, limit),
+    
+    // Embedding models
+    getEmbeddingModels: () => ipcRenderer.invoke('rag:get-embedding-models'),
+    testEmbedding: (text: string, model: string, provider: string) => 
+      ipcRenderer.invoke('rag:test-embedding', text, model, provider),
+  },
+
   // Event listeners
   on: (channel: string, listener: (...args: any[]) => void) => {
     ipcRenderer.on(channel, listener);
