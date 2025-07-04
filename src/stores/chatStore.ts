@@ -229,16 +229,23 @@ export const useChatStore = create<ChatState>()(
                 ragContext = '\n\nContext from knowledge base:\n'
                 searchResults.data.forEach((chunk: any, index: number) => {
                   ragContext += `\n[${index + 1}] ${chunk.content}\n`
-                  if (chunk.metadata?.filename) {
-                    ragContext += `   Source: ${chunk.metadata.filename}\n`
+                  if (chunk.document?.filename) {
+                    ragContext += `   Source: ${chunk.document.filename}\n`
                   }
                 })
                 ragContext += '\nBased on the above context and your knowledge, please answer the following question:\n'
                 
-                // Add sources to metadata
-                metadata = {
-                  ...metadata,
-                  sources: searchResults.data.map((chunk: any) => chunk.metadata?.filename || 'Unknown source')
+                // Add sources to metadata - remove duplicates
+                const uniqueSources = [...new Set(searchResults.data
+                  .map((chunk: any) => chunk.document?.filename)
+                  .filter((filename: string | undefined) => filename !== undefined)
+                )]
+                
+                if (uniqueSources.length > 0) {
+                  metadata = {
+                    ...metadata,
+                    sources: uniqueSources
+                  }
                 }
               }
             } catch (error) {
