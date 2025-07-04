@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import { databaseService } from '@/services/database'
 import { useChatStore } from './chatStore'
+import { useAIConfigStore } from './aiConfigStore'
 
 export interface AppState {
   isInitialized: boolean
@@ -63,6 +64,10 @@ export const useAppStore = create<AppState>()(
             } else {
               root.classList.remove('dark')
             }
+
+            // Load AI providers and models from database
+            console.log('Loading AI providers and models...')
+            await useAIConfigStore.getState().loadProviders()
 
             // Load conversations
             await useChatStore.getState().loadConversations()
