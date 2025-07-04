@@ -1,0 +1,48 @@
+{
+  "name": "xavi9",
+  "version": "0.0.1",
+  "description": "Xavi9 - Advanced AI Desktop Client with comprehensive productivity features",
+  "main": "main.js",
+  "keywords": [
+    "electron",
+    "ai",
+    "desktop",
+    "productivity"
+  ],
+  "author": "AI Desktop Client Team",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "@radix-ui/react-dialog": "^1.0.5",
+    "@radix-ui/react-dropdown-menu": "^2.0.6",
+    "@radix-ui/react-select": "^2.0.0",
+    "@radix-ui/react-separator": "^1.0.3",
+    "@radix-ui/react-switch": "^1.0.3",
+    "@radix-ui/react-tabs": "^1.0.4",
+    "@radix-ui/react-tooltip": "^1.0.7",
+    "@sideway/address": "^5.0.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "cosine-similarity": "^1.0.1",
+    "dompurify": "^3.2.6",
+    "electron-log": "^5.0.1",
+    "electron-updater": "^6.1.8",
+    "file-type": "^21.0.0",
+    "framer-motion": "^11.0.3",
+    "i18next": "^25.2.1",
+    "i18next-browser-languagedetector": "^8.2.0",
+    "lucide-react": "^0.525.0",
+    "mammoth": "^1.9.1",
+    "pdf-parse": "^1.1.1",
+    "pptx2json": "^0.0.10",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-i18next": "^15.5.3",
+    "tailwind-merge": "^2.2.1",
+    "xlsx": "^0.18.5",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "electron": "^28.2.0"
+  }
+}

@@ -19,7 +19,8 @@
       "Bash(npm run:*)",
       "WebFetch(domain:developers.google.com)",
       "WebFetch(domain:learn.microsoft.com)",
-      "Bash(jq:*)"
+      "Bash(jq:*)",
+      "WebFetch(domain:www.electron.build)"
     ],
     "deny": []
   }

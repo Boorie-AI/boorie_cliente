@@ -1,0 +1,22 @@
+{
+  "appId": "com.xavi9.app",
+  "productName": "Xavi9",
+  "directories": {
+    "output": "../dist-electron"
+  },
+  "files": [
+    "**/*"
+  ],
+  "asarUnpack": [
+    "node_modules/.prisma/**/*",
+    "node_modules/@prisma/**/*"
+  ],
+  "win": {
+    "target": "nsis",
+    "icon": "../resources/icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}

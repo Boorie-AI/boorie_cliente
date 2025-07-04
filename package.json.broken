@@ -4,6 +4,55 @@
   "description": "Xavi9 - Advanced AI Desktop Client with comprehensive productivity features",
   "main": "dist/electron/main.js",
   "scripts": {
+    "appId": "com.xavi9.app",
+    "productName": "Xavi9",
+    "icon": "resources/icon",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "resources/**/*"
+    ],
+    "extraFiles": [
+      {
+        "from": "prisma",
+        "to": "prisma",
+        "filter": ["schema.prisma"]
+      }
+    ],
+    "asarUnpack": [
+      "**/.prisma/**/*",
+      "**/@prisma/**/*"
+    ],
+    "compression": "maximum",
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "beforeBuild": "scripts/beforeBuild.js"
+  },
+  "scripts": {
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
     "dev:electron": "wait-on http://localhost:5173 && electron .",
@@ -89,41 +138,5 @@
     "tailwind-merge": "^2.2.1",
     "xlsx": "^0.18.5",
     "zustand": "^4.5.0"
-  },
-  "build": {
-    "appId": "com.xavi9.app",
-    "productName": "Xavi9",
-    "icon": "resources/icon",
-    "directories": {
-      "output": "dist-electron"
-    },
-    "files": [
-      "dist/**/*",
-      "node_modules/**/*",
-      "package.json",
-      ".env",
-      "!node_modules/*/{README.md,CHANGELOG.md,LICENSE,*.map}",
-      "!node_modules/.cache",
-      "!**/node_modules/*/{test,tests,example,examples,doc,docs}/**"
-    ],
-    "asar": true,
-    "asarUnpack": [
-      "**/node_modules/.prisma/**/*",
-      "**/node_modules/@prisma/client/**/*",
-      "**/node_modules/prisma/**/*",
-      "**/query-engine-*",
-      "**/*.node"
-    ],
-    "compression": "maximum",
-    "mac": {
-      "category": "public.app-category.productivity"
-    },
-    "win": {
-      "target": "nsis"
-    },
-    "linux": {
-      "target": "AppImage"
-    },
-    "beforeBuild": "scripts/beforeBuild.js"
   }
 }
