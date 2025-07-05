@@ -129,6 +129,7 @@ export class SystemPromptService {
           title: data.title,
           content: data.content,
           description: data.description,
+          saludo: data.saludo,
           isActive: data.isActive ?? true,
           isDefault: data.isDefault ?? false
         }
@@ -199,6 +200,7 @@ export class SystemPromptService {
           ...(data.title && { title: data.title }),
           ...(data.content && { content: data.content }),
           ...(data.description !== undefined && { description: data.description }),
+          ...(data.saludo !== undefined && { saludo: data.saludo }),
           ...(data.isActive !== undefined && { isActive: data.isActive }),
           ...(data.isDefault !== undefined && { isDefault: data.isDefault })
         }

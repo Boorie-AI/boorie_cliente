@@ -9,6 +9,7 @@ interface SystemPrompt {
   title: string
   content: string
   description?: string
+  saludo?: string
   isActive: boolean
   isDefault: boolean
   createdAt: Date
@@ -20,6 +21,7 @@ interface SystemPromptFormData {
   title: string
   content: string
   description: string
+  saludo: string
   isActive: boolean
   isDefault: boolean
 }
@@ -35,6 +37,7 @@ export function ToolsTab() {
     title: '',
     content: '',
     description: '',
+    saludo: '',
     isActive: true,
     isDefault: false
   })
@@ -68,6 +71,7 @@ export function ToolsTab() {
       title: '',
       content: '',
       description: '',
+      saludo: '',
       isActive: true,
       isDefault: false
     })
@@ -81,6 +85,7 @@ export function ToolsTab() {
       title: prompt.title,
       content: prompt.content,
       description: prompt.description || '',
+      saludo: prompt.saludo || '',
       isActive: prompt.isActive,
       isDefault: prompt.isDefault
     })
@@ -218,6 +223,12 @@ export function ToolsTab() {
                 {prompt.description && (
                   <p className="text-sm text-muted-foreground mb-2">{prompt.description}</p>
                 )}
+                {prompt.saludo && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
+                    <p className="text-xs font-medium text-blue-700 mb-1">Saludo del Agente:</p>
+                    <p className="text-sm text-blue-800">"{prompt.saludo}"</p>
+                  </div>
+                )}
                 <div className="bg-accent/50 rounded-lg p-3 mt-2">
                   <p className="text-xs font-mono text-card-foreground whitespace-pre-wrap">
                     {prompt.content.substring(0, 200)}
@@ -320,6 +331,23 @@ export function ToolsTab() {
                   className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-card-foreground"
                   placeholder={t('settings.systemPrompts.descriptionPlaceholder')}
                 />
+              </div>
+
+              {/* Saludo */}
+              <div>
+                <label className="block text-sm font-medium text-card-foreground mb-2">
+                  Saludo del Agente
+                </label>
+                <textarea
+                  value={formData.saludo}
+                  onChange={(e) => handleFormChange('saludo', e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-background text-card-foreground"
+                  placeholder="Mensaje de saludo que aparecerá cuando se cree una nueva conversación con este prompt..."
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Este mensaje aparecerá automáticamente como primer mensaje del asistente en nuevas conversaciones.
+                </p>
               </div>
 
               {/* Content */}

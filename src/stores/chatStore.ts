@@ -37,7 +37,7 @@ interface ChatState {
   selectedCollectionId: string | null
   
   // Actions
-  createNewConversation: () => void
+  createNewConversation: () => Promise<void>
   setActiveConversation: (id: string) => void
   addMessageToConversation: (conversationId: string, message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>
   updateConversationTitle: (id: string, title: string) => void
@@ -64,7 +64,7 @@ export const useChatStore = create<ChatState>()(
       streamingBuffer: '',
       selectedCollectionId: null,
 
-      createNewConversation: () => {
+      createNewConversation: async () => {
         // Get selected model from localStorage or use first available
         let selectedModel = { name: 'Default Model', provider: 'Ollama' }
         try {
@@ -84,6 +84,31 @@ export const useChatStore = create<ChatState>()(
           updatedAt: new Date(),
           model: selectedModel.modelId || selectedModel.name, // Use modelId for API models, name for local models
           provider: selectedModel.provider
+        }
+
+        // Get default system prompt and add greeting if available
+        try {
+          const defaultPromptResponse = await window.electronAPI.systemPrompts.getDefault()
+          if (defaultPromptResponse.success && defaultPromptResponse.data) {
+            const systemPrompt = defaultPromptResponse.data
+            newConversation.systemPromptId = systemPrompt.id
+            
+            // Add greeting message if available
+            if (systemPrompt.saludo) {
+              const greetingMessage: Message = {
+                id: crypto.randomUUID(),
+                role: 'assistant',
+                content: systemPrompt.saludo,
+                timestamp: new Date(),
+                metadata: {
+                  isGreeting: true
+                }
+              }
+              newConversation.messages.push(greetingMessage)
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to load default system prompt:', error)
         }
 
         set((state) => ({

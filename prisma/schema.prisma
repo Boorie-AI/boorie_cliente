@@ -139,6 +139,7 @@ model SystemPrompt {
   title       String
   content     String
   description String?
+  saludo      String?
   isActive    Boolean  @default(true)
   isDefault   Boolean  @default(false)
   createdAt   DateTime @default(now())

@@ -68,6 +68,7 @@ export interface ISystemPrompt {
   title: string
   content: string
   description?: string | null
+  saludo?: string | null
   isActive: boolean
   isDefault: boolean
   createdAt: Date
@@ -192,6 +193,7 @@ export interface ICreateSystemPromptData {
   title: string
   content: string
   description?: string
+  saludo?: string
   isActive?: boolean
   isDefault?: boolean
 }
@@ -201,6 +203,7 @@ export interface IUpdateSystemPromptData {
   title?: string
   content?: string
   description?: string
+  saludo?: string
   isActive?: boolean
   isDefault?: boolean
 }
