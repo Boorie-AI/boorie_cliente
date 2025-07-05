@@ -178,6 +178,9 @@ export interface ElectronAPI {
     testEmbedding: (text: string, model: string, provider: string) => Promise<IpcResult<{ dimensions: number; sample: number[] }>>
   }
 
+  // Event listeners for real-time updates
+  onDocumentProgress?: (callback: (progress: DocumentProgress) => void) => () => void
+
   // Event listeners
   on: (channel: string, listener: (...args: any[]) => void) => void
   removeListener: (channel: string, listener: (...args: any[]) => void) => void
@@ -428,6 +431,14 @@ interface UpdateCollectionParams {
   overlap?: number
   embeddingModel?: string
   modelProvider?: string
+}
+
+interface DocumentProgress {
+  documentId: string
+  phase: 'chunking' | 'embedding' | 'completed'
+  current: number
+  total: number
+  message?: string
 }
 
 declare global {

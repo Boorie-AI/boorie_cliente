@@ -300,28 +300,6 @@ function setupBasicIPCHandlers(): void {
   appLogger.success('Basic IPC handlers registered')
 }
 
-app.whenReady().then(async () => {
-  try {
-    app.setAppUserModelId('com.xavi9.app')
-
-    // Initialize all application services
-    await initializeApplication()
-
-    // Create the main window
-    createWindow()
-
-    app.on('activate', function () {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow()
-    })
-
-    // new AppUpdater() // Temporalmente desactivado
-    
-    appLogger.success('Application ready and running')
-  } catch (error) {
-    appLogger.error('Failed to start application', error as Error)
-    app.quit()
-  }
-})
 
 app.on('window-all-closed', () => {
   appLogger.info('All windows closed')
@@ -444,3 +422,39 @@ if (process.platform === 'darwin') {
 
 const menu = Menu.buildFromTemplate(template)
 Menu.setApplicationMenu(menu)
+
+// App event handlers
+app.whenReady().then(async () => {
+  try {
+    app.setAppUserModelId('com.xavi9.app')
+    
+    // Initialize the application first
+    await initializeApplication()
+    
+    // Create the main window
+    createWindow()
+    
+    // Set the main window in services that need it
+    if (services) {
+      services.setMainWindow(mainWindow)
+    }
+    
+    appLogger.success('Application started successfully')
+  } catch (error) {
+    appLogger.error('Failed to start application', error as Error)
+    app.quit()
+  }
+})
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit()
+})
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow()
+    if (services) {
+      services.setMainWindow(mainWindow)
+    }
+  }
+})

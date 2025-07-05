@@ -213,6 +213,12 @@ const electronAPI = {
       ipcRenderer.invoke('rag:test-embedding', text, model, provider),
   },
 
+  // Event listeners for real-time updates
+  onDocumentProgress: (callback: (progress: any) => void) => {
+    ipcRenderer.on('rag:document-progress', (event, progress) => callback(progress))
+    return () => ipcRenderer.removeAllListeners('rag:document-progress')
+  },
+
   // Event listeners
   on: (channel: string, listener: (...args: any[]) => void) => {
     ipcRenderer.on(channel, listener);

@@ -5,6 +5,7 @@ import { IServiceResponse } from '../models'
 import { createLogger } from '../utils/logger'
 import { DocumentParserService } from './document-parser.service'
 import { EmbeddingService } from './embedding.service'
+import { BrowserWindow } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -71,6 +72,7 @@ export class RAGService {
   private prismaClient: PrismaClient
   private documentParser: DocumentParserService
   private embeddingService: EmbeddingService
+  private mainWindow: BrowserWindow | null = null
 
   constructor(
     prismaClient: PrismaClient,
@@ -81,6 +83,24 @@ export class RAGService {
     this.documentParser = documentParser
     this.embeddingService = embeddingService
     logger.info('RAG service initialized')
+  }
+
+  setMainWindow(window: BrowserWindow) {
+    this.mainWindow = window
+  }
+
+  private emitProgress(documentId: string, progress: {
+    phase: 'chunking' | 'embedding' | 'completed'
+    current: number
+    total: number
+    message?: string
+  }) {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send('rag:document-progress', {
+        documentId,
+        ...progress
+      })
+    }
   }
 
   // Collection Management
@@ -508,6 +528,13 @@ export class RAGService {
       }
 
       // Chunk the content
+      this.emitProgress(documentId, {
+        phase: 'chunking',
+        current: 0,
+        total: 100,
+        message: 'Splitting document into chunks...'
+      })
+
       const chunks = this.documentParser.chunkContent(
         document.content,
         collection.chunkSize,
@@ -517,10 +544,28 @@ export class RAGService {
 
       // Process chunks in batches
       const batchSize = 10
+      let processedChunks = 0
+      
       for (let i = 0; i < chunks.length; i += batchSize) {
         const batch = chunks.slice(i, i + batchSize)
         await this.processBatch(batch, documentId, collection)
+        
+        processedChunks += batch.length
+        this.emitProgress(documentId, {
+          phase: 'embedding',
+          current: processedChunks,
+          total: chunks.length,
+          message: `Processing chunk ${processedChunks} of ${chunks.length}...`
+        })
       }
+
+      // Emit completion
+      this.emitProgress(documentId, {
+        phase: 'completed',
+        current: chunks.length,
+        total: chunks.length,
+        message: 'Document processing completed!'
+      })
 
       logger.success('Completed document processing', { documentId, totalChunks: chunks.length })
     } catch (error) {

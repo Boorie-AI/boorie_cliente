@@ -59,11 +59,11 @@ export function CreateCollectionModal({ onClose }: CreateCollectionModalProps) {
       newErrors.embeddingModel = t('rag.validation.modelRequired')
     }
 
-    if (formData.chunkSize < 100 || formData.chunkSize > 8000) {
+    if (!formData.chunkSize || formData.chunkSize < 100 || formData.chunkSize > 8000) {
       newErrors.chunkSize = t('rag.validation.chunkSizeRange')
     }
 
-    if (formData.overlap < 0 || formData.overlap >= formData.chunkSize) {
+    if (formData.overlap === null || formData.overlap === undefined || formData.overlap < 0 || formData.overlap >= (formData.chunkSize || 1024)) {
       newErrors.overlap = t('rag.validation.overlapRange')
     }
 
@@ -104,7 +104,7 @@ export function CreateCollectionModal({ onClose }: CreateCollectionModalProps) {
   const allModels = [...embeddingModels.local, ...embeddingModels.api]
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
       <div className="bg-background border border-border/50 rounded-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
@@ -194,9 +194,13 @@ export function CreateCollectionModal({ onClose }: CreateCollectionModalProps) {
                 type="number"
                 min="100"
                 max="8000"
-                step="100"
+                step="1"
                 value={formData.chunkSize}
-                onChange={(e) => setFormData(prev => ({ ...prev, chunkSize: Number(e.target.value) }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const numValue = value === '' ? null : Number(value);
+                  setFormData(prev => ({ ...prev, chunkSize: numValue || 1024 }));
+                }}
                 className="w-full px-3 py-2 border border-border/50 rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
               <p className="text-xs text-muted-foreground mt-1">{t('rag.chunkSizeHint')}</p>
@@ -212,9 +216,13 @@ export function CreateCollectionModal({ onClose }: CreateCollectionModalProps) {
                 type="number"
                 min="0"
                 max={formData.chunkSize - 1}
-                step="50"
+                step="1"
                 value={formData.overlap}
-                onChange={(e) => setFormData(prev => ({ ...prev, overlap: Number(e.target.value) }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const numValue = value === '' ? null : Number(value);
+                  setFormData(prev => ({ ...prev, overlap: numValue ?? 256 }));
+                }}
                 className="w-full px-3 py-2 border border-border/50 rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
               <p className="text-xs text-muted-foreground mt-1">{t('rag.overlapHint')}</p>

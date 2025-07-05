@@ -69,6 +69,14 @@ export interface UpdateCollectionParams {
   modelProvider?: string
 }
 
+export interface DocumentProgress {
+  documentId: string
+  phase: 'chunking' | 'embedding' | 'completed'
+  current: number
+  total: number
+  message?: string
+}
+
 interface RAGState {
   // State
   collections: Collection[]
@@ -79,6 +87,7 @@ interface RAGState {
     local: EmbeddingModel[]
     api: EmbeddingModel[]
   }
+  documentProgress: Map<string, DocumentProgress>
   loading: {
     collections: boolean
     documents: boolean
@@ -110,6 +119,11 @@ interface RAGState {
   searchDocuments: (query: string, collectionIds?: string[], limit?: number) => Promise<DocumentChunk[]>
   clearSearchResults: () => void
   
+  // Progress actions
+  setDocumentProgress: (documentId: string, progress: DocumentProgress) => void
+  clearDocumentProgress: (documentId: string) => void
+  getDocumentProgress: (documentId: string) => DocumentProgress | undefined
+  
   // Model actions
   getEmbeddingModels: () => Promise<void>
   testEmbedding: (text: string, model: string, provider: string) => Promise<{ dimensions: number; sample: number[] } | null>
@@ -127,6 +141,7 @@ export const useRAGStore = create<RAGState>()(
         local: [],
         api: []
       },
+      documentProgress: new Map(),
       loading: {
         collections: false,
         documents: false,
@@ -413,6 +428,27 @@ export const useRAGStore = create<RAGState>()(
         set({ searchResults: [] })
       },
 
+      // Progress actions
+      setDocumentProgress: (documentId: string, progress: DocumentProgress) => {
+        set(state => {
+          const newProgress = new Map(state.documentProgress)
+          newProgress.set(documentId, progress)
+          return { documentProgress: newProgress }
+        })
+      },
+
+      clearDocumentProgress: (documentId: string) => {
+        set(state => {
+          const newProgress = new Map(state.documentProgress)
+          newProgress.delete(documentId)
+          return { documentProgress: newProgress }
+        })
+      },
+
+      getDocumentProgress: (documentId: string) => {
+        return get().documentProgress.get(documentId)
+      },
+
       // Model actions
       getEmbeddingModels: async (): Promise<void> => {
         try {
@@ -460,3 +496,48 @@ export const useRAGStore = create<RAGState>()(
     }
   )
 )
+
+// Set up event listeners for document progress
+if (typeof window !== 'undefined' && window.electronAPI) {
+  window.electronAPI.onDocumentProgress?.((progress: DocumentProgress) => {
+    const store = useRAGStore.getState()
+    store.setDocumentProgress(progress.documentId, progress)
+    
+    // Find the collection for this document
+    const allCollections = store.collections
+    let targetCollectionId: string | null = null
+    
+    for (const collection of allCollections) {
+      if (collection.documents?.some(doc => doc.id === progress.documentId)) {
+        targetCollectionId = collection.id
+        break
+      }
+    }
+    
+    if (targetCollectionId) {
+      // Refresh periodically during embedding phase to update chunk count
+      if (progress.phase === 'embedding') {
+        // Update every 10 chunks or at completion
+        if (progress.current % 10 === 0 || progress.current === progress.total) {
+          store.getDocuments(targetCollectionId)
+        }
+      }
+      
+      // When processing is completed
+      if (progress.phase === 'completed') {
+        // Immediate refresh to get the complete document with all chunks
+        store.getDocuments(targetCollectionId)
+        
+        // Another refresh after a short delay to ensure UI is updated
+        setTimeout(() => {
+          store.getDocuments(targetCollectionId)
+        }, 500)
+        
+        // Clear progress after a longer delay
+        setTimeout(() => {
+          store.clearDocumentProgress(progress.documentId)
+        }, 3000)
+      }
+    }
+  })
+}

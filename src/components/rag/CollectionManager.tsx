@@ -171,7 +171,7 @@ function CollectionCard({ collection, isSelected, onSelect, onEdit, onDelete }: 
           {collection.description && (
             <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{collection.description}</p>
           )}
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <DocumentIcon className="w-3 h-3" />
               {documentCount} {t('rag.documents')}

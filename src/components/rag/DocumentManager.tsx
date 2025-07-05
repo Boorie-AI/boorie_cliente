@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useRAGStore } from '@/stores/ragStore'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
+import { DocumentProgressBar } from './DocumentProgressBar'
 import type { Document } from '@/stores/ragStore'
 
 export function DocumentManager() {
@@ -12,6 +13,7 @@ export function DocumentManager() {
     selectedCollectionIds,
     collections,
     documents,
+    documentProgress,
     loading,
     getDocuments,
     selectDocuments,
@@ -141,6 +143,7 @@ export function DocumentManager() {
               <DocumentCard
                 key={document.id}
                 document={document}
+                progress={documentProgress.get(document.id)}
                 onDelete={() => setDeletingDocument(document)}
               />
             ))}
@@ -167,12 +170,25 @@ export function DocumentManager() {
 
 interface DocumentCardProps {
   document: Document
+  progress?: import('@/stores/ragStore').DocumentProgress
   onDelete: () => void
 }
 
-function DocumentCard({ document, onDelete }: DocumentCardProps) {
+function DocumentCard({ document, progress, onDelete }: DocumentCardProps) {
   const { t } = useTranslation()
-  const chunkCount = document.chunks?.length || 0
+  // Show real-time progress during processing, otherwise show document chunks
+  const isProcessing = !!progress && progress.phase !== 'completed'
+  
+  // Priority: 1) Progress current if processing, 2) Document chunks if available, 3) Progress total if just completed
+  let displayChunkCount = document.chunks?.length || 0
+  if (isProcessing && progress) {
+    displayChunkCount = progress.current
+  } else if (displayChunkCount === 0 && progress?.phase === 'completed') {
+    // If document hasn't been refreshed yet but processing is complete, show the final count
+    displayChunkCount = progress.total
+  }
+  
+  const totalExpectedChunks = progress?.total || 0
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes'
@@ -198,20 +214,37 @@ function DocumentCard({ document, onDelete }: DocumentCardProps) {
   }
 
   return (
-    <div className="p-4 border border-border/50 rounded-lg hover:border-border transition-colors">
+    <div className={`p-4 border border-border/50 rounded-lg hover:border-border transition-colors ${isProcessing ? 'bg-accent/10' : ''}`}>
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           {getFileTypeIcon(document.fileType)}
           <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-medium text-foreground truncate">{document.filename}</h4>
+            <div className="flex items-center gap-2 mb-1">
+              <h4 className="text-sm font-medium text-foreground truncate">{document.filename}</h4>
+              {isProcessing && (
+                <div className="flex items-center gap-1">
+                  <LoadingIcon className="w-3 h-3 animate-spin text-primary" />
+                  <span className="text-xs text-primary font-medium">{t('rag.processing')}</span>
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
               <span>{formatFileSize(document.fileSize)}</span>
               <span>{document.fileType.toUpperCase()}</span>
-              <span>{chunkCount} {t('rag.chunks')}</span>
+              <span className={isProcessing ? 'text-primary font-medium' : ''}>
+                {displayChunkCount} {t('rag.chunks')}
+                {isProcessing && totalExpectedChunks > 0 && (
+                  <span className="text-muted-foreground ml-1">/ {totalExpectedChunks}</span>
+                )}
+              </span>
             </div>
-            <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-              {document.content.substring(0, 100)}...
-            </p>
+            
+            {/* Show progress bar when processing */}
+            {progress && progress.phase !== 'completed' && (
+              <div className="mt-3">
+                <DocumentProgressBar progress={progress} className="text-xs" />
+              </div>
+            )}
           </div>
         </div>
         
@@ -219,8 +252,9 @@ function DocumentCard({ document, onDelete }: DocumentCardProps) {
           onClick={onDelete}
           className="p-2 rounded hover:bg-destructive/10 transition-colors"
           title={t('common.delete')}
+          disabled={isProcessing}
         >
-          <TrashIcon className="w-4 h-4 text-muted-foreground hover:text-destructive transition-colors" />
+          <TrashIcon className={`w-4 h-4 transition-colors ${isProcessing ? 'text-muted-foreground/50' : 'text-muted-foreground hover:text-destructive'}`} />
         </button>
       </div>
     </div>

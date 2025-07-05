@@ -9,6 +9,7 @@ export { EmbeddingService } from './embedding.service'
 
 // Service factory for dependency injection
 import { PrismaClient } from '@prisma/client'
+import { BrowserWindow } from 'electron'
 import { DatabaseService } from './database.service'
 import { ConversationService } from './conversation.service'
 import { AIProviderService } from './aiProvider.service'
@@ -40,6 +41,11 @@ export class ServiceContainer {
     this.ragService = new RAGService(prismaClient, this.documentParserService, this.embeddingService)
     
     this.logger.success('Service container initialized successfully')
+  }
+
+  // Method to set main window for services that need it
+  setMainWindow(mainWindow: BrowserWindow) {
+    this.ragService.setMainWindow(mainWindow)
   }
 
   // Getters for services
