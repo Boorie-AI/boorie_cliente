@@ -6,6 +6,7 @@ import { useOnClickOutside } from '@/hooks/useOnClickOutside'
 import { cn } from '@/utils/cn'
 import { ModelSelector } from './ModelSelector'
 import { CollectionSelector } from './CollectionSelector'
+import { SystemPromptSelector } from './SystemPromptSelector'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 
 interface ChatHeaderProps {
@@ -18,7 +19,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
   const [title, setTitle] = useState(conversation.title)
   const [showMenu, setShowMenu] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const { updateConversationTitle, deleteConversation, createNewConversation } = useChatStore()
+  const { updateConversationTitle, deleteConversation, createNewConversation, updateConversationSystemPrompt } = useChatStore()
   
   const menuRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -73,6 +74,10 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
 
   const confirmDeleteConversation = () => {
     deleteConversation(conversation.id)
+  }
+
+  const handleSystemPromptChange = (systemPromptId: string | null, _systemPrompt: any) => {
+    updateConversationSystemPrompt(conversation.id, systemPromptId)
   }
 
   const handleCopyConversation = async () => {
@@ -148,6 +153,10 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
       </div>
 
       <div className="flex items-center space-x-3">
+        <SystemPromptSelector 
+          value={conversation.systemPromptId || undefined}
+          onChange={(systemPromptId, systemPrompt) => handleSystemPromptChange(systemPromptId, systemPrompt)}
+        />
         <CollectionSelector />
         <ModelSelector />
         <div className="relative" ref={menuRef}>

@@ -214,6 +214,18 @@ const electronAPI = {
       ipcRenderer.invoke('rag:test-embedding', text, model, provider),
   },
 
+  // System Prompts
+  systemPrompts: {
+    getAll: () => ipcRenderer.invoke('system-prompt-get-all'),
+    getActive: () => ipcRenderer.invoke('system-prompt-get-active'),
+    getById: (id: string) => ipcRenderer.invoke('system-prompt-get-by-id', id),
+    getDefault: () => ipcRenderer.invoke('system-prompt-get-default'),
+    create: (data: any) => ipcRenderer.invoke('system-prompt-create', data),
+    update: (id: string, data: any) => ipcRenderer.invoke('system-prompt-update', id, data),
+    delete: (id: string) => ipcRenderer.invoke('system-prompt-delete', id),
+    setDefault: (id: string) => ipcRenderer.invoke('system-prompt-set-default', id)
+  },
+
   // Event listeners for real-time updates
   onDocumentProgress: (callback: (progress: any) => void) => {
     ipcRenderer.on('rag:document-progress', (event, progress) => callback(progress))

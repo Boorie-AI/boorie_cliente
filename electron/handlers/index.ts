@@ -5,6 +5,7 @@ export { AIProviderHandler } from './aiProvider.handler'
 export { DatabaseHandler } from './database.handler'
 export { ChatHandler } from './chat.handler'
 export { RAGHandler } from './rag.handler'
+export { SystemPromptHandler } from './systemPrompt.handler'
 
 import { ServiceContainer } from '../../backend/services'
 import { ConversationHandler } from './conversation.handler'
@@ -12,6 +13,7 @@ import { AIProviderHandler } from './aiProvider.handler'
 import { DatabaseHandler } from './database.handler'
 import { ChatHandler } from './chat.handler'
 import { RAGHandler } from './rag.handler'
+import { SystemPromptHandler } from './systemPrompt.handler'
 import { createLogger } from '../../backend/utils/logger'
 
 const logger = createLogger('HandlersManager')
@@ -22,6 +24,7 @@ export class HandlersManager {
   private databaseHandler: DatabaseHandler
   private chatHandler: ChatHandler
   private ragHandler: RAGHandler
+  private systemPromptHandler: SystemPromptHandler
   private isInitialized = false
 
   constructor(services: ServiceContainer) {
@@ -32,6 +35,7 @@ export class HandlersManager {
     this.databaseHandler = new DatabaseHandler(services.database)
     this.chatHandler = new ChatHandler()
     this.ragHandler = new RAGHandler(services.rag, services.documentParser, services.embedding)
+    this.systemPromptHandler = new SystemPromptHandler(services.systemPrompt)
     
     this.isInitialized = true
     logger.success('IPC handlers manager initialized successfully')
@@ -59,6 +63,10 @@ export class HandlersManager {
     return this.ragHandler
   }
 
+  get systemPrompt(): SystemPromptHandler {
+    return this.systemPromptHandler
+  }
+
   // Check if handlers are initialized
   get initialized(): boolean {
     return this.isInitialized
@@ -79,6 +87,7 @@ export class HandlersManager {
       this.databaseHandler.unregisterHandlers()
       this.chatHandler.unregisterHandlers()
       this.ragHandler.unregisterHandlers()
+      this.systemPromptHandler.unregisterHandlers()
       
       this.isInitialized = false
       logger.success('IPC handlers cleaned up successfully')
@@ -97,6 +106,7 @@ export class HandlersManager {
       results.databaseHandler = this.databaseHandler ? true : false
       results.chatHandler = this.chatHandler ? true : false
       results.ragHandler = this.ragHandler ? true : false
+      results.systemPromptHandler = this.systemPromptHandler ? true : false
       results.initialized = this.isInitialized
       
       logger.info('Handlers health check completed', results)
@@ -109,6 +119,7 @@ export class HandlersManager {
         databaseHandler: false,
         chatHandler: false,
         ragHandler: false,
+        systemPromptHandler: false,
         initialized: false,
         error: true
       }

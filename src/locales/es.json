@@ -14,7 +14,8 @@
     "create": "Crear",
     "creating": "Creando...",
     "selectAll": "Seleccionar Todo",
-    "deselectAll": "Deseleccionar Todo"
+    "deselectAll": "Deseleccionar Todo",
+    "disabled": "Deshabilitado"
   },
   "sidebar": {
     "chat": "Chat",
@@ -76,7 +77,14 @@
     "sources": "Fuentes:",
     "sendMessage": "Enviar mensaje",
     "user": "Usuario",
-    "assistant": "Asistente"
+    "assistant": "Asistente",
+    "systemPrompts": {
+      "loading": "Cargando prompts...",
+      "none": "Sin prompt del sistema",
+      "noneDescription": "No usar ningún prompt del sistema personalizado",
+      "default": "Predeterminado",
+      "managePrompts": "Gestionar prompts"
+    }
   },
   "settings": {
     "title": "Configuración",
@@ -99,7 +107,51 @@
     "settingsStorage": "Almacenamiento de configuración:",
     "backupFrequency": "Frecuencia de respaldo:",
     "aiConfiguration": "Configuración de IA",
-    "accounts": "Cuentas"
+    "accounts": "Cuentas",
+    "tools": "Herramientas",
+    "systemPrompts": {
+      "title": "Prompts del Sistema",
+      "description": "Crea y gestiona prompts personalizados del sistema para personalizar el comportamiento de la IA",
+      "create": "Crear prompt",
+      "edit": "Editar prompt",
+      "delete": "Eliminar prompt",
+      "setDefault": "Establecer como predeterminado",
+      "name": "Nombre",
+      "title": "Título",
+      "content": "Contenido",
+      "description": "Descripción",
+      "isDefault": "Predeterminado",
+      "isActive": "Activo",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "confirmDelete": "¿Estás seguro de que quieres eliminar este prompt del sistema?",
+      "namePlaceholder": "Nombre interno del prompt",
+      "titlePlaceholder": "Título visible para el usuario",
+      "contentPlaceholder": "Contenido del prompt del sistema...",
+      "descriptionPlaceholder": "Descripción opcional",
+      "noPrompts": "No hay prompts del sistema",
+      "createFirst": "Crea tu primer prompt del sistema para personalizar el comportamiento de la IA",
+      "errors": {
+        "load": "Error al cargar los prompts del sistema",
+        "create": "Error al crear el prompt del sistema",
+        "update": "Error al actualizar el prompt del sistema",
+        "delete": "Error al eliminar el prompt del sistema",
+        "setDefault": "Error al establecer el prompt predeterminado"
+      },
+      "validation": {
+        "nameRequired": "El nombre es obligatorio",
+        "titleRequired": "El título es obligatorio",
+        "contentRequired": "El contenido es obligatorio"
+      },
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "defaultPrompt": "Prompt predeterminado",
+      "customPrompts": "Prompts personalizados",
+      "systemPromptHelp": "Los prompts del sistema definen el comportamiento base de la IA. Puedes crear prompts personalizados para diferentes situaciones.",
+      "formTitle": "Formulario de Prompt del Sistema",
+      "previewContent": "Vista previa del contenido",
+      "characterCount": "{{count}} caracteres"
+    }
   },
   "ai": {
     "localModels": "Modelos Locales (Ollama)",

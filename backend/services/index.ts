@@ -6,6 +6,7 @@ export { AIProviderService } from './aiProvider.service'
 export { RAGService } from './rag.service'
 export { DocumentParserService } from './document-parser.service'
 export { EmbeddingService } from './embedding.service'
+export { SystemPromptService } from './systemPrompt.service'
 
 // Service factory for dependency injection
 import { PrismaClient } from '@prisma/client'
@@ -16,6 +17,7 @@ import { AIProviderService } from './aiProvider.service'
 import { RAGService } from './rag.service'
 import { DocumentParserService } from './document-parser.service'
 import { EmbeddingService } from './embedding.service'
+import { SystemPromptService } from './systemPrompt.service'
 import { appLogger } from '../utils/logger'
 
 export class ServiceContainer {
@@ -25,6 +27,7 @@ export class ServiceContainer {
   private ragService: RAGService
   private documentParserService: DocumentParserService
   private embeddingService: EmbeddingService
+  private systemPromptService: SystemPromptService
   private logger = appLogger
 
   constructor(prismaClient: PrismaClient) {
@@ -39,6 +42,9 @@ export class ServiceContainer {
     this.documentParserService = new DocumentParserService()
     this.embeddingService = new EmbeddingService(this.databaseService)
     this.ragService = new RAGService(prismaClient, this.documentParserService, this.embeddingService)
+    
+    // Initialize system prompt service
+    this.systemPromptService = new SystemPromptService(this.databaseService)
     
     this.logger.success('Service container initialized successfully')
   }
@@ -71,6 +77,10 @@ export class ServiceContainer {
 
   get embedding(): EmbeddingService {
     return this.embeddingService
+  }
+
+  get systemPrompt(): SystemPromptService {
+    return this.systemPromptService
   }
 
   // Health check for all services

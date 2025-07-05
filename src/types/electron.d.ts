@@ -179,6 +179,23 @@ export interface ElectronAPI {
     testEmbedding: (text: string, model: string, provider: string) => Promise<IpcResult<{ dimensions: number; sample: number[] }>>
   }
 
+  // Chat services
+  chat: {
+    sendMessage: (params: any) => Promise<IpcResult<any>>
+  }
+
+  // System Prompts
+  systemPrompts: {
+    getAll: () => Promise<IpcResult<any[]>>
+    getActive: () => Promise<IpcResult<any[]>>
+    getById: (id: string) => Promise<IpcResult<any>>
+    getDefault: () => Promise<IpcResult<any>>
+    create: (data: any) => Promise<IpcResult<any>>
+    update: (id: string, data: any) => Promise<IpcResult<any>>
+    delete: (id: string) => Promise<IpcResult<void>>
+    setDefault: (id: string) => Promise<IpcResult<void>>
+  }
+
   // Event listeners for real-time updates
   onDocumentProgress?: (callback: (progress: DocumentProgress) => void) => () => void
 

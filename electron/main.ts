@@ -229,6 +229,21 @@ async function createDatabaseTables(): Promise<void> {
       )
     `
 
+    // Create system_prompts table for custom prompts
+    await prisma.$executeRaw`
+      CREATE TABLE IF NOT EXISTS system_prompts (
+        id TEXT PRIMARY KEY DEFAULT (hex(randomblob(16))),
+        name TEXT NOT NULL UNIQUE,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        description TEXT,
+        isActive BOOLEAN DEFAULT true,
+        isDefault BOOLEAN DEFAULT false,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `
+
     appLogger.info('Database tables created successfully')
   } catch (error) {
     appLogger.error('Failed to create database tables', error as Error)

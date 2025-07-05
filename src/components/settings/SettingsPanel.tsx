@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { AIConfigurationPanel } from './AIConfigurationPanel'
-import { GeneralTab } from './tabs'
+import { GeneralTab, ToolsTab } from './tabs'
 import { cn } from '@/utils/cn'
 import * as Tabs from '@radix-ui/react-tabs'
 
@@ -41,6 +41,16 @@ export function SettingsPanel() {
               >
                 {t('settings.aiConfiguration')}
               </Tabs.Trigger>
+              <Tabs.Trigger
+                value="tools"
+                className={cn(
+                  "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+                  "data-[state=inactive]:text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {t('settings.tools')}
+              </Tabs.Trigger>
             </Tabs.List>
 
             {/* Tab Content */}
@@ -50,6 +60,10 @@ export function SettingsPanel() {
 
             <Tabs.Content value="ai-config" className="flex-1 overflow-hidden">
               <AIConfigurationPanel />
+            </Tabs.Content>
+
+            <Tabs.Content value="tools" className="flex-1 overflow-hidden">
+              <ToolsTab />
             </Tabs.Content>
 
           </Tabs.Root>

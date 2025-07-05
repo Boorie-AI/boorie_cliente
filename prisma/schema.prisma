@@ -133,3 +133,17 @@ model DocumentChunk {
   @@map("document_chunks")
 }
 
+model SystemPrompt {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  title       String
+  content     String
+  description String?
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_prompts")
+}
+
