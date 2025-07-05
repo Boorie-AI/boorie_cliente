@@ -27,10 +27,6 @@ build
 # Database
 prisma/app.db
 prisma/app.db-journal
-prisma/*.db
-prisma/*.db-journal
-*.db
-*.db-journal
 
 # Environment variables
 .env

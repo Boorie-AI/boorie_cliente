@@ -1,12 +1,9 @@
 import { Conversation, useChatStore } from '@/stores/chatStore'
 import { Edit2, MoreVertical, Trash2, Copy, Download, Plus } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useOnClickOutside } from '@/hooks/useOnClickOutside'
 import { cn } from '@/utils/cn'
 import { ModelSelector } from './ModelSelector'
-import { CollectionSelector } from './CollectionSelector'
-import { SystemPromptSelector } from './SystemPromptSelector'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 
 interface ChatHeaderProps {
@@ -14,12 +11,11 @@ interface ChatHeaderProps {
 }
 
 export function ChatHeader({ conversation }: ChatHeaderProps) {
-  const { t } = useTranslation()
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState(conversation.title)
   const [showMenu, setShowMenu] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const { updateConversationTitle, deleteConversation, createNewConversation, updateConversationSystemPrompt } = useChatStore()
+  const { updateConversationTitle, deleteConversation, createNewConversation } = useChatStore()
   
   const menuRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -76,10 +72,6 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
     deleteConversation(conversation.id)
   }
 
-  const handleSystemPromptChange = (systemPromptId: string | null, _systemPrompt: any) => {
-    updateConversationSystemPrompt(conversation.id, systemPromptId)
-  }
-
   const handleCopyConversation = async () => {
     try {
       const text = conversation.messages
@@ -110,17 +102,17 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
     <div className="flex items-center justify-between p-4">
       <div className="flex items-center space-x-3 flex-1 min-w-0">
         <button
-          onClick={() => createNewConversation()}
+          onClick={createNewConversation}
           className={cn(
             "flex items-center space-x-2 px-3 py-2 rounded-lg border border-border/50",
             "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
             "transition-all duration-200 hover:border-border",
             "bg-card/50 hover:bg-accent/50 flex-shrink-0"
           )}
-          title={t('chat.newConversation')}
+          title="Start a new conversation"
         >
           <Plus size={16} />
-          <span className="text-sm font-medium">{t('chat.newConversation')}</span>
+          <span className="text-sm font-medium">New Chat</span>
         </button>
         
         {isEditing ? (
@@ -136,7 +128,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
               "text-foreground placeholder-muted-foreground",
               "focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             )}
-            placeholder={t('chat.typeMessage')}
+            placeholder="Enter conversation title..."
           />
         ) : (
           <h2 
@@ -145,7 +137,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
               "flex-1 truncate transition-colors"
             )}
             onClick={() => setIsEditing(true)}
-            title={t('chat.rename')}
+            title="Click to edit title"
           >
             {conversation.title}
           </h2>
@@ -153,11 +145,6 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
       </div>
 
       <div className="flex items-center space-x-3">
-        <SystemPromptSelector 
-          value={conversation.systemPromptId || undefined}
-          onChange={(systemPromptId, systemPrompt) => handleSystemPromptChange(systemPromptId, systemPrompt)}
-        />
-        <CollectionSelector />
         <ModelSelector />
         <div className="relative" ref={menuRef}>
           <button
@@ -184,7 +171,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
                 className="w-full flex items-center px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               >
                 <Edit2 size={16} className="mr-3" />
-                {t('chat.rename')}
+                Rename
               </button>
               
               <button
@@ -192,7 +179,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
                 className="w-full flex items-center px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               >
                 <Copy size={16} className="mr-3" />
-                {t('chat.copyToClipboard')}
+                Copy to Clipboard
               </button>
               
               <button
@@ -200,7 +187,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
                 className="w-full flex items-center px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               >
                 <Download size={16} className="mr-3" />
-                {t('chat.exportAsJSON')}
+                Export as JSON
               </button>
               
               <div className="h-px bg-border my-1" />
@@ -210,7 +197,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
                 className="w-full flex items-center px-4 py-2 text-sm text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
               >
                 <Trash2 size={16} className="mr-3" />
-                {t('common.delete')}
+                Delete
               </button>
             </div>
           )}
@@ -221,10 +208,10 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={confirmDeleteConversation}
-        title={t('chat.deleteConversation')}
-        message={t('chat.confirmDelete')}
-        confirmText={t('common.delete')}
-        cancelText={t('common.cancel')}
+        title="Delete Conversation"
+        message="Are you sure you want to delete this conversation? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
         variant="destructive"
       />
     </div>

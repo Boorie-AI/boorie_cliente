@@ -2,11 +2,10 @@ import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import { databaseService } from '@/services/database'
 import { useChatStore } from './chatStore'
-import { useAIConfigStore } from './aiConfigStore'
 
 export interface AppState {
   isInitialized: boolean
-  currentView: 'chat' | 'settings' | 'rag' 
+  currentView: 'chat' | 'email' | 'calendar' | 'settings' | 'rag' | 'todo' 
   theme: 'dark' | 'light'
   sidebarCollapsed: boolean
   
@@ -14,6 +13,11 @@ export interface AppState {
   activeAIProvider: 'ollama' | 'openai' | 'anthropic' | 'google'
   activeModel: string
   
+  // Authentication
+  isAuthenticated: {
+    microsoft: boolean
+    google: boolean
+  }
   
   // Actions
   initializeApp: () => Promise<void>
@@ -22,6 +26,7 @@ export interface AppState {
   setTheme: (theme: AppState['theme']) => void
   setActiveAIProvider: (provider: AppState['activeAIProvider']) => void
   setActiveModel: (model: string) => void
+  setAuthenticationStatus: (provider: 'microsoft' | 'google', status: boolean) => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -34,6 +39,10 @@ export const useAppStore = create<AppState>()(
         sidebarCollapsed: false,
         activeAIProvider: 'ollama',
         activeModel: 'llama2',
+        isAuthenticated: {
+          microsoft: false,
+          google: false,
+        },
 
         initializeApp: async () => {
           try {
@@ -54,10 +63,6 @@ export const useAppStore = create<AppState>()(
             } else {
               root.classList.remove('dark')
             }
-
-            // Load AI providers and models from database
-            console.log('Loading AI providers and models...')
-            await useAIConfigStore.getState().loadProviders()
 
             // Load conversations
             await useChatStore.getState().loadConversations()
@@ -81,10 +86,9 @@ export const useAppStore = create<AppState>()(
                   }
                   break
                 case 'currentView':
-                  // Always start with chat view, don't restore previous view
-                  // if (['chat', 'settings', 'rag'].includes(setting.value)) {
-                  //   set({ currentView: setting.value as any })
-                  // }
+                  if (['chat', 'email', 'calendar', 'settings', 'rag'].includes(setting.value)) {
+                    set({ currentView: setting.value as any })
+                  }
                   break
                 case 'sidebarCollapsed':
                   set({ sidebarCollapsed: setting.value === 'true' })
@@ -138,6 +142,19 @@ export const useAppStore = create<AppState>()(
           await databaseService.setSetting('activeModel', model, 'ai')
         },
 
+        setAuthenticationStatus: async (provider, status) => {
+          set((state) => ({
+            isAuthenticated: {
+              ...state.isAuthenticated,
+              [provider]: status
+            }
+          }))
+          await databaseService.setSetting(
+            `auth_${provider}`, 
+            status.toString(), 
+            'authentication'
+          )
+        },
       }),
       {
         name: 'app-store',

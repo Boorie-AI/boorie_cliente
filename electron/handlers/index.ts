@@ -4,16 +4,14 @@ export { ConversationHandler } from './conversation.handler'
 export { AIProviderHandler } from './aiProvider.handler'
 export { DatabaseHandler } from './database.handler'
 export { ChatHandler } from './chat.handler'
-export { RAGHandler } from './rag.handler'
-export { SystemPromptHandler } from './systemPrompt.handler'
+export { AuthHandler } from './auth.handler'
 
 import { ServiceContainer } from '../../backend/services'
 import { ConversationHandler } from './conversation.handler'
 import { AIProviderHandler } from './aiProvider.handler'
 import { DatabaseHandler } from './database.handler'
 import { ChatHandler } from './chat.handler'
-import { RAGHandler } from './rag.handler'
-import { SystemPromptHandler } from './systemPrompt.handler'
+import { AuthHandler } from './auth.handler'
 import { createLogger } from '../../backend/utils/logger'
 
 const logger = createLogger('HandlersManager')
@@ -23,8 +21,7 @@ export class HandlersManager {
   private aiProviderHandler: AIProviderHandler
   private databaseHandler: DatabaseHandler
   private chatHandler: ChatHandler
-  private ragHandler: RAGHandler
-  private systemPromptHandler: SystemPromptHandler
+  private authHandler: AuthHandler
   private isInitialized = false
 
   constructor(services: ServiceContainer) {
@@ -34,8 +31,7 @@ export class HandlersManager {
     this.aiProviderHandler = new AIProviderHandler(services.aiProvider)
     this.databaseHandler = new DatabaseHandler(services.database)
     this.chatHandler = new ChatHandler()
-    this.ragHandler = new RAGHandler(services.rag, services.documentParser, services.embedding)
-    this.systemPromptHandler = new SystemPromptHandler(services.systemPrompt)
+    this.authHandler = new AuthHandler(services.database)
     
     this.isInitialized = true
     logger.success('IPC handlers manager initialized successfully')
@@ -58,13 +54,8 @@ export class HandlersManager {
     return this.chatHandler
   }
 
-
-  get rag(): RAGHandler {
-    return this.ragHandler
-  }
-
-  get systemPrompt(): SystemPromptHandler {
-    return this.systemPromptHandler
+  get auth(): AuthHandler {
+    return this.authHandler
   }
 
   // Check if handlers are initialized
@@ -73,7 +64,7 @@ export class HandlersManager {
   }
 
   // Cleanup method to unregister all handlers
-  async cleanup(): Promise<void> {
+  cleanup(): void {
     if (!this.isInitialized) {
       logger.warn('Handlers manager not initialized, skipping cleanup')
       return
@@ -86,8 +77,7 @@ export class HandlersManager {
       this.aiProviderHandler.unregisterHandlers()
       this.databaseHandler.unregisterHandlers()
       this.chatHandler.unregisterHandlers()
-      this.ragHandler.unregisterHandlers()
-      this.systemPromptHandler.unregisterHandlers()
+      // Note: AuthHandler doesn't have unregisterHandlers method yet
       
       this.isInitialized = false
       logger.success('IPC handlers cleaned up successfully')
@@ -105,8 +95,7 @@ export class HandlersManager {
       results.aiProviderHandler = this.aiProviderHandler ? true : false
       results.databaseHandler = this.databaseHandler ? true : false
       results.chatHandler = this.chatHandler ? true : false
-      results.ragHandler = this.ragHandler ? true : false
-      results.systemPromptHandler = this.systemPromptHandler ? true : false
+      results.authHandler = this.authHandler ? true : false
       results.initialized = this.isInitialized
       
       logger.info('Handlers health check completed', results)
@@ -118,8 +107,7 @@ export class HandlersManager {
         aiProviderHandler: false,
         databaseHandler: false,
         chatHandler: false,
-        ragHandler: false,
-        systemPromptHandler: false,
+        authHandler: false,
         initialized: false,
         error: true
       }

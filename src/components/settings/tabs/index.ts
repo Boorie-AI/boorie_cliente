@@ -1,2 +1,2 @@
 export { GeneralTab } from './GeneralTab'
-export { ToolsTab } from './ToolsTab'
+export { AccountsTab } from './AccountsTab'
