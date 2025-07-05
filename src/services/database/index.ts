@@ -44,7 +44,6 @@ export interface Conversation {
   messages: any[]
   model: string
   provider: string
-  systemPromptId?: string | null
   createdAt: Date
   updatedAt: Date
 }

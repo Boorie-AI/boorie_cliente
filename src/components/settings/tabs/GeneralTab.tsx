@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/stores/appStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
-import { Moon, Sun, RotateCcw, Languages, Database } from 'lucide-react'
+import { Moon, Sun, RotateCcw, Languages } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import * as Switch from '@radix-ui/react-switch'
 import * as Select from '@radix-ui/react-select'
@@ -19,26 +19,8 @@ export function GeneralTab() {
     resetPreferences
   } = usePreferencesStore()
 
-  const [databasePath, setDatabasePath] = useState<string>('Loading...')
-  const [platform, setPlatform] = useState<string>('')
-
   useEffect(() => {
     loadPreferences()
-    
-    // Get database path and platform
-    const fetchSystemInfo = async () => {
-      try {
-        const dbPath = await window.electronAPI.getDatabasePath()
-        const platformName = await window.electronAPI.getPlatform()
-        setDatabasePath(dbPath)
-        setPlatform(platformName)
-      } catch (error) {
-        console.error('Failed to get system info:', error)
-        setDatabasePath('Unknown')
-      }
-    }
-    
-    fetchSystemInfo()
   }, [loadPreferences])
 
   const languageOptions = [
@@ -223,31 +205,17 @@ export function GeneralTab() {
         <div className="bg-card rounded-xl border border-border p-6 mb-6">
           <h2 className="text-xl font-semibold text-card-foreground mb-4">{t('settings.storage')}</h2>
           <div className="space-y-3">
-            <div className="flex flex-col space-y-2">
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <Database size={16} />
-                <span>{t('settings.databaseLocation')}</span>
-              </div>
-              <div className="bg-accent/50 border border-border rounded-lg p-3">
-                <p className="font-mono text-xs text-card-foreground break-all">{databasePath}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {platform === 'win32' && 'Windows: %APPDATA%\\Xavi9\\xavi9.db'}
-                  {platform === 'darwin' && 'macOS: ~/Library/Application Support/Xavi9/xavi9.db'}
-                  {platform === 'linux' && 'Linux: ~/.config/Xavi9/xavi9.db'}
-                </p>
-              </div>
-            </div>
-            <div className="flex justify-between items-center text-sm pt-2 border-t border-border">
-              <span className="text-muted-foreground">{t('settings.databaseType')}</span>
-              <span className="text-green-600 font-medium">SQLite</span>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">{t('settings.databaseLocation')}</span>
+              <span className="font-mono text-xs bg-accent px-2 py-1 rounded">./prisma/xavi9.db</span>
             </div>
             <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">{t('settings.dataStorage')}</span>
-              <span className="text-muted-foreground">
-                {platform === 'win32' && 'User AppData'}
-                {platform === 'darwin' && 'Application Support'}
-                {platform === 'linux' && 'Config Directory'}
-              </span>
+              <span className="text-muted-foreground">{t('settings.settingsStorage')}</span>
+              <span className="text-green-600">SQLite Database</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">{t('settings.backupFrequency')}</span>
+              <span className="text-muted-foreground">Manual (Export conversations)</span>
             </div>
           </div>
         </div>

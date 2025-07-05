@@ -1,5 +1,4 @@
 import { AlertTriangle, X } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
 import { cn } from '@/utils/cn'
 
 interface ConfirmationModalProps {
@@ -19,11 +18,10 @@ export function ConfirmationModal({
   onConfirm,
   title,
   message,
-  confirmText,
-  cancelText,
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
   variant = 'default'
 }: ConfirmationModalProps) {
-  const { t } = useTranslation()
   if (!isOpen) return null
 
   const handleConfirm = () => {
@@ -79,7 +77,7 @@ export function ConfirmationModal({
                 "transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               )}
             >
-              {cancelText || t('common.cancel')}
+              {cancelText}
             </button>
             <button
               onClick={handleConfirm}
@@ -91,7 +89,7 @@ export function ConfirmationModal({
                   : "bg-primary text-primary-foreground hover:bg-primary/90"
               )}
             >
-              {confirmText || t('common.save')}
+              {confirmText}
             </button>
           </div>
         </div>

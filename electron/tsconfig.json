@@ -7,17 +7,12 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "baseUrl": "..",
-    "paths": {
-      "@/*": ["src/*"]
-    }
+    "resolveJsonModule": true
   },
   "include": [
     "./main.ts",
     "./preload.ts",
     "./handlers/**/*",
-    "./services/**/*",
     "../backend/**/*"
   ],
   "exclude": ["node_modules", "dist"]
