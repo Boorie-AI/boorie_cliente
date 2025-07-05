@@ -42,7 +42,41 @@
     "copyToClipboard": "Copy to Clipboard",
     "exportAsJSON": "Export as JSON",
     "deleteConversation": "Delete conversation",
-    "confirmDelete": "Are you sure you want to delete this conversation? This action cannot be undone."
+    "confirmDelete": "Are you sure you want to delete this conversation? This action cannot be undone.",
+    "welcome": {
+      "title": "Welcome to Xavi9",
+      "subtitle": "Your intelligent AI assistant is ready to help. Start a conversation to begin exploring the possibilities.",
+      "startNewChat": "Start New Chat",
+      "selectModelHint": "Select a model from the header to customize your AI experience"
+    },
+    "errors": {
+      "sendMessage": "Failed to send message",
+      "copyConversation": "Failed to copy conversation",
+      "loadModel": "Failed to load selected model from localStorage",
+      "conversationNotFound": "Conversation not found",
+      "aiResponse": "Failed to get AI response",
+      "noApiKey": "No API key configured for {{provider}}",
+      "providerNotActive": "{{provider}} is not active or connected. Please configure it in settings.",
+      "unknownError": "Unknown error from backend",
+      "apiCallFailed": "{{provider}} API call failed",
+      "connectionFailed": "Failed to connect to {{provider}}: {{error}}",
+      "noResponse": "No response from {{provider}}",
+      "ollamaConnection": "Cannot connect to Ollama. Please ensure Ollama is running at http://localhost:11434"
+    },
+    "models": {
+      "noModelsLoaded": "No models loaded yet",
+      "localModels": "Local Models",
+      "localModelsOllama": "Local Models (Ollama)",
+      "apiModels": "API Models",
+      "ollamaNotDetected": "Ollama not detected",
+      "configureOllama": "Configure Ollama in Settings",
+      "configureApiProviders": "Configure API Providers"
+    },
+    "tokens": "tokens",
+    "sources": "Sources:",
+    "sendMessage": "Send message",
+    "user": "User",
+    "assistant": "Assistant"
   },
   "settings": {
     "title": "Settings",
@@ -59,6 +93,8 @@
     "language": "Language",
     "languageDesc": "Select your preferred language",
     "storage": "Storage",
+    "databaseType": "Database type",
+    "dataStorage": "Data storage",
     "databaseLocation": "Database location:",
     "settingsStorage": "Settings storage:",
     "backupFrequency": "Backup frequency:",
@@ -211,6 +247,42 @@
     "deleteDocumentConfirm": "Are you sure you want to delete \"{{name}}\"? This will also delete all its text chunks.",
     "changingModelWarning": "Changing the embedding model will require re-processing all documents",
     "changingChunkSizeWarning": "Changing chunk size will require re-processing all documents",
+    "processing": "Processing",
+    "chunking": "Chunking",
+    "embedding": "Embedding",
+    "completed": "Completed",
+    "progress": {
+      "splittingDocument": "Splitting document into chunks...",
+      "processingChunk": "Processing chunk {{current}} of {{total}}...",
+      "completed": "Document processing completed!"
+    },
+    "fileSize": {
+      "bytes": "Bytes",
+      "kb": "KB",
+      "mb": "MB",
+      "gb": "GB",
+      "zero": "0 Bytes"
+    },
+    "errors": {
+      "createCollection": "Failed to create collection",
+      "loadCollections": "Failed to load collections",
+      "loadCollection": "Failed to load collection",
+      "updateCollection": "Failed to update collection",
+      "deleteCollection": "Failed to delete collection",
+      "selectDocuments": "Failed to select documents",
+      "uploadDocument": "Failed to upload document",
+      "loadDocuments": "Failed to load documents",
+      "deleteDocument": "Failed to delete document",
+      "searchDocuments": "Failed to search documents",
+      "loadEmbeddingModels": "Failed to load embedding models",
+      "testEmbedding": "Failed to test embedding",
+      "collectionNotFound": "Collection not found",
+      "documentNotFound": "Document not found",
+      "parseDocument": "Failed to parse document",
+      "noValidCollections": "No valid collections found",
+      "generateQueryEmbedding": "Failed to generate query embedding",
+      "unsupportedFileType": "Unsupported file type: {{type}}. Supported types: PDF, DOCX, PPTX, XLSX"
+    },
     "validation": {
       "nameRequired": "Collection name is required",
       "modelRequired": "Embedding model is required",

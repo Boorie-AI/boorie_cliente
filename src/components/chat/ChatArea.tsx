@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useChatStore } from '@/stores/chatStore'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
@@ -6,6 +7,7 @@ import { ChatHeader } from './ChatHeader'
 import { cn } from '@/utils/cn'
 
 export function ChatArea() {
+  const { t } = useTranslation()
   const { activeConversationId, conversations, isLoading, streamingMessage } = useChatStore()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -35,9 +37,9 @@ export function ChatArea() {
             </div>
             
             <div className="space-y-3">
-              <h2 className="text-2xl font-bold text-foreground">Welcome to Xavi9</h2>
+              <h2 className="text-2xl font-bold text-foreground">{t('chat.welcome.title')}</h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Your intelligent AI assistant is ready to help. Start a conversation to begin exploring the possibilities.
+                {t('chat.welcome.subtitle')}
               </p>
             </div>
             
@@ -49,11 +51,11 @@ export function ChatArea() {
                 "transform hover:scale-105"
               )}
             >
-              Start New Chat
+              {t('chat.welcome.startNewChat')}
             </button>
             
             <div className="text-sm text-muted-foreground/70">
-              Select a model from the header to customize your AI experience
+              {t('chat.welcome.selectModelHint')}
             </div>
           </div>
         </div>

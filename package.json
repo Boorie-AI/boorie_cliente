@@ -33,7 +33,7 @@
     "desktop",
     "productivity"
   ],
-  "author": "AI Desktop Client Team",
+  "author": "Tribucorp",
   "license": "MIT",
   "devDependencies": {
     "@prisma/engines": "^6.10.1",

@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 const electronAPI = {
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   getPlatform: () => ipcRenderer.invoke('get-platform'),
+  getDatabasePath: () => ipcRenderer.invoke('get-database-path'),
   
   // Menu events
   onNewChat: (callback: () => void) => {

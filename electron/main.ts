@@ -2,6 +2,12 @@ import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
 import path from 'path'
 import log from 'electron-log'
 import { autoUpdater } from 'electron-updater'
+
+// Set database URL before importing Prisma to ensure it uses the correct path
+const userDataPath = app.getPath('userData')
+const dbPath = path.join(userDataPath, 'xavi9.db')
+process.env.DATABASE_URL = `file:${dbPath}`
+
 import { PrismaClient } from '@prisma/client'
 
 // Import the new modular architecture
@@ -53,8 +59,10 @@ function createWindow(): void {
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
 
-    // Abrir DevTools temporalmente para debugging
-    mainWindow.webContents.openDevTools()
+    // Solo abrir DevTools en modo desarrollo
+    if (isDev) {
+      mainWindow.webContents.openDevTools()
+    }
   })
 
   // Listen for window state changes
@@ -107,30 +115,32 @@ async function createDatabaseTables(): Promise<void> {
   try {
     // Create tables manually using raw SQL
     await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS Conversation (
+      CREATE TABLE IF NOT EXISTS conversations (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         model TEXT NOT NULL,
         provider TEXT NOT NULL,
+        selectedCollectionIds TEXT,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `
 
     await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS Message (
+      CREATE TABLE IF NOT EXISTS messages (
         id TEXT PRIMARY KEY DEFAULT (hex(randomblob(16))),
         conversationId TEXT NOT NULL,
         role TEXT NOT NULL,
         content TEXT NOT NULL,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         metadata TEXT,
-        FOREIGN KEY (conversationId) REFERENCES Conversation(id) ON DELETE CASCADE
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (conversationId) REFERENCES conversations(id) ON DELETE CASCADE
       )
     `
 
     await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS AIProvider (
+      CREATE TABLE IF NOT EXISTS ai_providers (
         id TEXT PRIMARY KEY DEFAULT (hex(randomblob(16))),
         name TEXT NOT NULL UNIQUE,
         type TEXT NOT NULL,
@@ -138,7 +148,7 @@ async function createDatabaseTables(): Promise<void> {
         isActive BOOLEAN DEFAULT false,
         isConnected BOOLEAN DEFAULT false,
         lastTestResult TEXT,
-        lastTestAt DATETIME,
+        lastTestMessage TEXT,
         config TEXT,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -146,7 +156,7 @@ async function createDatabaseTables(): Promise<void> {
     `
 
     await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS AIModel (
+      CREATE TABLE IF NOT EXISTS ai_models (
         id TEXT PRIMARY KEY DEFAULT (hex(randomblob(16))),
         providerId TEXT NOT NULL,
         modelId TEXT NOT NULL,
@@ -158,14 +168,15 @@ async function createDatabaseTables(): Promise<void> {
         metadata TEXT,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (providerId) REFERENCES AIProvider(id) ON DELETE CASCADE,
+        FOREIGN KEY (providerId) REFERENCES ai_providers(id) ON DELETE CASCADE,
         UNIQUE (providerId, modelId)
       )
     `
 
     await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS AppSetting (
-        key TEXT PRIMARY KEY,
+      CREATE TABLE IF NOT EXISTS app_settings (
+        id TEXT PRIMARY KEY DEFAULT (hex(randomblob(16))),
+        key TEXT UNIQUE NOT NULL,
         value TEXT NOT NULL,
         category TEXT,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -173,43 +184,48 @@ async function createDatabaseTables(): Promise<void> {
       )
     `
 
+    // Create RAG tables
     await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS KnowledgeBase (
+      CREATE TABLE IF NOT EXISTS collections (
         id TEXT PRIMARY KEY DEFAULT (hex(randomblob(16))),
-        name TEXT NOT NULL,
+        name TEXT NOT NULL UNIQUE,
         description TEXT,
-        embedModel TEXT,
-        chunkSize INTEGER DEFAULT 500,
-        chunkOverlap INTEGER DEFAULT 100,
+        chunkSize INTEGER NOT NULL DEFAULT 1024,
+        overlap INTEGER NOT NULL DEFAULT 256,
+        embeddingModel TEXT NOT NULL,
+        modelProvider TEXT NOT NULL,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `
 
     await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS Document (
+      CREATE TABLE IF NOT EXISTS documents (
         id TEXT PRIMARY KEY DEFAULT (hex(randomblob(16))),
-        knowledgeBaseId TEXT NOT NULL,
-        name TEXT NOT NULL,
+        filename TEXT NOT NULL,
+        filepath TEXT,
+        fileType TEXT NOT NULL,
+        fileSize INTEGER NOT NULL,
         content TEXT NOT NULL,
-        type TEXT NOT NULL,
-        size INTEGER NOT NULL,
         metadata TEXT,
+        collectionId TEXT NOT NULL,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (knowledgeBaseId) REFERENCES KnowledgeBase(id) ON DELETE CASCADE
+        FOREIGN KEY (collectionId) REFERENCES collections(id) ON DELETE CASCADE
       )
     `
 
     await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS DocumentChunk (
+      CREATE TABLE IF NOT EXISTS document_chunks (
         id TEXT PRIMARY KEY DEFAULT (hex(randomblob(16))),
-        documentId TEXT NOT NULL,
         content TEXT NOT NULL,
         embedding TEXT,
         metadata TEXT,
+        startPos INTEGER,
+        endPos INTEGER,
+        documentId TEXT NOT NULL,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (documentId) REFERENCES Document(id) ON DELETE CASCADE
+        FOREIGN KEY (documentId) REFERENCES documents(id) ON DELETE CASCADE
       )
     `
 
@@ -222,34 +238,66 @@ async function createDatabaseTables(): Promise<void> {
 
 async function initDatabase(): Promise<void> {
   try {
-    // Set the database URL to use the app's user data directory
-    const dbPath = path.join(app.getPath('userData'), 'xavi9.db')
+    // Import fs module
+    const fs = require('fs')
+    
+    // Database path is already set in process.env.DATABASE_URL
+    const dbPath = process.env.DATABASE_URL!.replace('file:', '')
+    const userDataPath = path.dirname(dbPath)
+    
+    // Ensure the user data directory exists
+    if (!fs.existsSync(userDataPath)) {
+      fs.mkdirSync(userDataPath, { recursive: true })
+      appLogger.info('Created user data directory', { userDataPath })
+    }
+    
     appLogger.info('Initializing database', { dbPath })
-
-    // Set environment variable for Prisma
-    process.env.DATABASE_URL = `file:${dbPath}`
 
     // Initialize Prisma Client
     prisma = new PrismaClient({
-      datasources: {
-        db: {
-          url: `file:${dbPath}`
-        }
-      }
+      log: isDev ? ['query', 'info', 'warn', 'error'] : ['error']
     })
     
     // Test the connection first
     await prisma.$connect()
     
-    // Create database tables if they don't exist
-    // This is a workaround for packaged apps where prisma CLI is not available
-    try {
-      // Test if tables exist by running a simple query
-      await prisma.conversation.findFirst()
-    } catch (error) {
-      // If tables don't exist, create them manually
-      appLogger.info('Creating database tables')
+    // Check if tables exist with correct names
+    const tables = await prisma.$queryRaw<Array<{name: string}>>`
+      SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name != '_prisma_migrations'
+    `
+    
+    const tableNames = tables.map(t => t.name)
+    appLogger.info('Existing tables', { tableNames })
+    
+    // Check if we have old PascalCase tables
+    const hasOldTables = tableNames.some(name => 
+      ['Conversation', 'Message', 'AIProvider', 'AIModel', 'Collection', 'Document', 'DocumentChunk'].includes(name)
+    )
+    
+    // Check if we have new snake_case tables
+    const hasNewTables = tableNames.some(name => 
+      ['conversations', 'messages', 'ai_providers', 'ai_models', 'collections', 'documents', 'document_chunks'].includes(name)
+    )
+    
+    if (hasOldTables && !hasNewTables) {
+      appLogger.warn('Found old PascalCase tables, need to recreate database with correct table names')
+      // Drop all old tables
+      await prisma.$executeRaw`DROP TABLE IF EXISTS Conversation`
+      await prisma.$executeRaw`DROP TABLE IF EXISTS Message`
+      await prisma.$executeRaw`DROP TABLE IF EXISTS AIProvider`
+      await prisma.$executeRaw`DROP TABLE IF EXISTS AIModel`
+      await prisma.$executeRaw`DROP TABLE IF EXISTS AppSetting`
+      await prisma.$executeRaw`DROP TABLE IF EXISTS Collection`
+      await prisma.$executeRaw`DROP TABLE IF EXISTS Document`
+      await prisma.$executeRaw`DROP TABLE IF EXISTS DocumentChunk`
+      appLogger.info('Dropped old tables, creating new tables with correct names')
       await createDatabaseTables()
+    } else if (!hasNewTables) {
+      // No tables exist, create them
+      appLogger.info('No tables found, creating database tables')
+      await createDatabaseTables()
+    } else {
+      appLogger.info('Database tables already exist with correct names')
     }
     
     appLogger.success('Database initialized and connected successfully', { dbPath })
@@ -269,6 +317,10 @@ function setupBasicIPCHandlers(): void {
 
   ipcMain.handle('get-platform', () => {
     return process.platform
+  })
+  
+  ipcMain.handle('get-database-path', () => {
+    return process.env.DATABASE_URL?.replace('file:', '') || 'Unknown'
   })
 
   // Window control handlers
@@ -382,11 +434,17 @@ const template: Electron.MenuItemConstructorOptions[] = [
   },
   {
     label: 'View',
-    submenu: [
+    submenu: isDev ? [
       { role: 'reload' },
       { role: 'forceReload' },
       { role: 'toggleDevTools' },
       { type: 'separator' },
+      { role: 'resetZoom' },
+      { role: 'zoomIn' },
+      { role: 'zoomOut' },
+      { type: 'separator' },
+      { role: 'togglefullscreen' }
+    ] : [
       { role: 'resetZoom' },
       { role: 'zoomIn' },
       { role: 'zoomOut' },

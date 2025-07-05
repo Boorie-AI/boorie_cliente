@@ -42,7 +42,41 @@
     "copyToClipboard": "Copiar al portapapeles",
     "exportAsJSON": "Exportar como JSON",
     "deleteConversation": "Eliminar conversación",
-    "confirmDelete": "¿Estás seguro de que quieres eliminar esta conversación? Esta acción no se puede deshacer."
+    "confirmDelete": "¿Estás seguro de que quieres eliminar esta conversación? Esta acción no se puede deshacer.",
+    "welcome": {
+      "title": "Bienvenido a Xavi9",
+      "subtitle": "Tu asistente de IA inteligente está listo para ayudarte. Inicia una conversación para comenzar a explorar las posibilidades.",
+      "startNewChat": "Iniciar Nuevo Chat",
+      "selectModelHint": "Selecciona un modelo desde el encabezado para personalizar tu experiencia con la IA"
+    },
+    "errors": {
+      "sendMessage": "Error al enviar el mensaje",
+      "copyConversation": "Error al copiar la conversación",
+      "loadModel": "Error al cargar el modelo seleccionado desde localStorage",
+      "conversationNotFound": "Conversación no encontrada",
+      "aiResponse": "Error al obtener respuesta de la IA",
+      "noApiKey": "No hay clave API configurada para {{provider}}",
+      "providerNotActive": "{{provider}} no está activo o conectado. Por favor, configúralo en ajustes.",
+      "unknownError": "Error desconocido del backend",
+      "apiCallFailed": "La llamada a la API de {{provider}} falló",
+      "connectionFailed": "Error al conectar con {{provider}}: {{error}}",
+      "noResponse": "Sin respuesta de {{provider}}",
+      "ollamaConnection": "No se puede conectar con Ollama. Por favor, asegúrate de que Ollama esté ejecutándose en http://localhost:11434"
+    },
+    "models": {
+      "noModelsLoaded": "No hay modelos cargados todavía",
+      "localModels": "Modelos Locales",
+      "localModelsOllama": "Modelos Locales (Ollama)",
+      "apiModels": "Modelos API",
+      "ollamaNotDetected": "Ollama no detectado",
+      "configureOllama": "Configurar Ollama en Ajustes",
+      "configureApiProviders": "Configurar Proveedores API"
+    },
+    "tokens": "tokens",
+    "sources": "Fuentes:",
+    "sendMessage": "Enviar mensaje",
+    "user": "Usuario",
+    "assistant": "Asistente"
   },
   "settings": {
     "title": "Configuración",
@@ -59,6 +93,8 @@
     "language": "Idioma",
     "languageDesc": "Selecciona tu idioma preferido",
     "storage": "Almacenamiento",
+    "databaseType": "Tipo de base de datos",
+    "dataStorage": "Almacenamiento de datos",
     "databaseLocation": "Ubicación de la base de datos:",
     "settingsStorage": "Almacenamiento de configuración:",
     "backupFrequency": "Frecuencia de respaldo:",
@@ -211,6 +247,42 @@
     "deleteDocumentConfirm": "¿Estás seguro de que quieres eliminar \"{{name}}\"? Esto también eliminará todos sus fragmentos de texto.",
     "changingModelWarning": "Cambiar el modelo de embeddings requerirá reprocesar todos los documentos",
     "changingChunkSizeWarning": "Cambiar el tamaño del fragmento requerirá reprocesar todos los documentos",
+    "processing": "Procesando",
+    "chunking": "Dividiendo en fragmentos",
+    "embedding": "Generando embeddings",
+    "completed": "Completado",
+    "progress": {
+      "splittingDocument": "Dividiendo documento en fragmentos...",
+      "processingChunk": "Procesando fragmento {{current}} de {{total}}...",
+      "completed": "¡Procesamiento del documento completado!"
+    },
+    "fileSize": {
+      "bytes": "Bytes",
+      "kb": "KB",
+      "mb": "MB",
+      "gb": "GB",
+      "zero": "0 Bytes"
+    },
+    "errors": {
+      "createCollection": "Error al crear la colección",
+      "loadCollections": "Error al cargar las colecciones",
+      "loadCollection": "Error al cargar la colección",
+      "updateCollection": "Error al actualizar la colección",
+      "deleteCollection": "Error al eliminar la colección",
+      "selectDocuments": "Error al seleccionar documentos",
+      "uploadDocument": "Error al subir el documento",
+      "loadDocuments": "Error al cargar los documentos",
+      "deleteDocument": "Error al eliminar el documento",
+      "searchDocuments": "Error al buscar documentos",
+      "loadEmbeddingModels": "Error al cargar los modelos de embeddings",
+      "testEmbedding": "Error al probar el embedding",
+      "collectionNotFound": "Colección no encontrada",
+      "documentNotFound": "Documento no encontrado",
+      "parseDocument": "Error al analizar el documento",
+      "noValidCollections": "No se encontraron colecciones válidas",
+      "generateQueryEmbedding": "Error al generar el embedding de la consulta",
+      "unsupportedFileType": "Tipo de archivo no soportado: {{type}}. Tipos soportados: PDF, DOCX, PPTX, XLSX"
+    },
     "validation": {
       "nameRequired": "El nombre de la colección es requerido",
       "modelRequired": "El modelo de embeddings es requerido",

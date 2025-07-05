@@ -1,6 +1,7 @@
 export interface ElectronAPI {
   getAppVersion: () => Promise<string>
   getPlatform: () => Promise<string>
+  getDatabasePath: () => Promise<string>
   
   onNewChat: (callback: () => void) => () => void
   onOpenSettings: (callback: () => void) => () => void
