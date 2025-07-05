@@ -12,6 +12,7 @@
     "build:electron": "tsc -p electron && node scripts/move-electron-files.js",
     "build:app": "electron-builder",
     "build:mac": "npm run build && electron-builder --mac",
+    "build:mac:signed": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac",
     "build:mac:x64": "npm run build && electron-builder --mac --x64",
     "build:mac:arm64": "npm run build && electron-builder --mac --arm64",
     "build:win": "npm run build && electron-builder --win",
@@ -116,7 +117,14 @@
     ],
     "compression": "maximum",
     "mac": {
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "resources/entitlements.mac.plist",
+      "entitlementsInherit": "resources/entitlements.mac.plist",
+      "notarize": {
+        "teamId": "3H53Q8U99C"
+      }
     },
     "win": {
       "target": "nsis"
