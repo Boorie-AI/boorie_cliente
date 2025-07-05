@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { useChatStore } from '@/stores/chatStore'
-import { Send, Paperclip, Mic } from 'lucide-react'
+import { Send } from 'lucide-react'
 
 export function MessageInput() {
   const [message, setMessage] = useState('')
-  const [isRecording, setIsRecording] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const { sendMessage, isLoading } = useChatStore()
 
@@ -41,17 +40,6 @@ export function MessageInput() {
     }
   }
 
-  const handleFileAttach = () => {
-    // TODO: Implement file attachment
-    console.log('File attachment clicked')
-  }
-
-  const handleVoiceRecord = () => {
-    // TODO: Implement voice recording
-    setIsRecording(!isRecording)
-    console.log('Voice recording toggled:', !isRecording)
-  }
-
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
@@ -76,16 +64,6 @@ export function MessageInput() {
                 textareaRef.current?.focus()
               }
             }}>
-        {/* File attachment button */}
-        <button
-          type="button"
-          onClick={handleFileAttach}
-          className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors flex items-center justify-center"
-          title="Attach file"
-        >
-          <Paperclip size={20} />
-        </button>
-
         {/* Message input */}
         <div className="flex-1 relative">
           <textarea
@@ -112,20 +90,6 @@ export function MessageInput() {
             tabIndex={0}
           />
         </div>
-
-        {/* Voice recording button */}
-        <button
-          type="button"
-          onClick={handleVoiceRecord}
-          className={`p-2 rounded-lg transition-colors flex items-center justify-center ${isRecording
-              ? 'text-destructive bg-destructive/20 hover:bg-destructive/30'
-              : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-            }`}
-          title={isRecording ? 'Stop recording' : 'Start voice recording'}
-        >
-          <Mic size={20} />
-        </button>
-
         {/* Send button */}
         <button
           type="submit"

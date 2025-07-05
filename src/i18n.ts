@@ -19,6 +19,7 @@ i18n
     resources,
     fallbackLng: 'es', // Default to Spanish as requested
     debug: false,
+    returnEmptyString: false,
     
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],
@@ -28,6 +29,12 @@ i18n
     interpolation: {
       escapeValue: false, // not needed for react as it escapes by default
     },
+    
+    // Prevent returning objects as strings
+    returnObjects: false,
+    
+    // Add missing key handler to prevent errors from showing in UI
+    missingKeyHandler: false,
   })
 
 export default i18n

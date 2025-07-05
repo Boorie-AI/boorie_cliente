@@ -62,6 +62,19 @@ export interface IAppSetting {
   updatedAt: Date
 }
 
+export interface ISystemPrompt {
+  id: string
+  name: string
+  title: string
+  content: string
+  description?: string | null
+  saludo?: string | null
+  isActive: boolean
+  isDefault: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface IDocument {
   id: string
   filename: string
@@ -173,6 +186,26 @@ export interface IUpdateAIProviderData {
   lastTestResult?: 'success' | 'error' | null
   lastTestMessage?: string
   config?: any
+}
+
+export interface ICreateSystemPromptData {
+  name: string
+  title: string
+  content: string
+  description?: string
+  saludo?: string
+  isActive?: boolean
+  isDefault?: boolean
+}
+
+export interface IUpdateSystemPromptData {
+  name?: string
+  title?: string
+  content?: string
+  description?: string
+  saludo?: string
+  isActive?: boolean
+  isDefault?: boolean
 }
 
 // AI Provider Configuration Types

@@ -1,0 +1,610 @@
+// RAG Service - Handles collection and document management for RAG functionality
+
+import { PrismaClient } from '@prisma/client'
+import { IServiceResponse } from '../models'
+import { createLogger } from '../utils/logger'
+import { DocumentParserService } from './document-parser.service'
+import { EmbeddingService } from './embedding.service'
+import { BrowserWindow } from 'electron'
+import * as fs from 'fs'
+import * as path from 'path'
+
+const logger = createLogger('RAGService')
+
+export interface ICollection {
+  id: string
+  name: string
+  description?: string | null
+  chunkSize: number
+  overlap: number
+  embeddingModel: string
+  modelProvider: string
+  createdAt: Date
+  updatedAt: Date
+  documents?: IDocument[]
+}
+
+export interface IDocument {
+  id: string
+  filename: string
+  filepath?: string | null
+  fileType: 'pdf' | 'docx' | 'pptx' | 'xlsx'
+  fileSize: number
+  content: string
+  metadata?: any
+  collectionId: string
+  createdAt: Date
+  updatedAt: Date
+  chunks?: IDocumentChunk[]
+}
+
+export interface IDocumentChunk {
+  id: string
+  content: string
+  embedding?: number[]
+  metadata?: any
+  startPos?: number | null
+  endPos?: number | null
+  documentId: string
+  createdAt: Date
+  similarity?: number
+}
+
+export interface CreateCollectionParams {
+  name: string
+  description?: string
+  chunkSize?: number
+  overlap?: number
+  embeddingModel: string
+  modelProvider: string
+}
+
+export interface UpdateCollectionParams {
+  name?: string
+  description?: string
+  chunkSize?: number
+  overlap?: number
+  embeddingModel?: string
+  modelProvider?: string
+}
+
+export class RAGService {
+  private prismaClient: PrismaClient
+  private documentParser: DocumentParserService
+  private embeddingService: EmbeddingService
+  private mainWindow: BrowserWindow | null = null
+
+  constructor(
+    prismaClient: PrismaClient,
+    documentParser: DocumentParserService,
+    embeddingService: EmbeddingService
+  ) {
+    this.prismaClient = prismaClient
+    this.documentParser = documentParser
+    this.embeddingService = embeddingService
+    logger.info('RAG service initialized')
+  }
+
+  setMainWindow(window: BrowserWindow) {
+    this.mainWindow = window
+  }
+
+  private emitProgress(documentId: string, progress: {
+    phase: 'chunking' | 'embedding' | 'completed'
+    current: number
+    total: number
+    message?: string
+  }) {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send('rag:document-progress', {
+        documentId,
+        ...progress
+      })
+    }
+  }
+
+  // Collection Management
+  async createCollection(params: CreateCollectionParams): Promise<IServiceResponse<ICollection>> {
+    try {
+      logger.debug('Creating new collection', { name: params.name })
+
+      const collection = await this.prismaClient.collection.create({
+        data: {
+          name: params.name,
+          description: params.description,
+          chunkSize: params.chunkSize || 1024,
+          overlap: params.overlap || 256,
+          embeddingModel: params.embeddingModel,
+          modelProvider: params.modelProvider
+        }
+      })
+
+      logger.success('Created collection', { id: collection.id, name: collection.name })
+      return {
+        success: true,
+        data: collection
+      }
+    } catch (error) {
+      logger.error('Failed to create collection', error as Error, params)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to create collection'
+      }
+    }
+  }
+
+  async getCollections(): Promise<IServiceResponse<ICollection[]>> {
+    try {
+      logger.debug('Fetching all collections')
+
+      const collections = await this.prismaClient.collection.findMany({
+        include: {
+          documents: {
+            include: {
+              chunks: true
+            }
+          }
+        },
+        orderBy: {
+          updatedAt: 'desc'
+        }
+      })
+
+      const result = collections.map(collection => ({
+        ...collection,
+        documents: collection.documents.map(doc => ({
+          ...doc,
+          fileType: doc.fileType as 'pdf' | 'docx' | 'pptx' | 'xlsx',
+          metadata: doc.metadata ? JSON.parse(doc.metadata) : null,
+          chunks: doc.chunks.map(chunk => ({
+            ...chunk,
+            embedding: chunk.embedding ? JSON.parse(chunk.embedding) : null,
+            metadata: chunk.metadata ? JSON.parse(chunk.metadata) : null
+          }))
+        }))
+      }))
+
+      logger.success(`Retrieved ${result.length} collections`)
+      return {
+        success: true,
+        data: result
+      }
+    } catch (error) {
+      logger.error('Failed to get collections', error as Error)
+      return {
+        success: false,
+        error: 'Failed to retrieve collections'
+      }
+    }
+  }
+
+  async getCollectionById(id: string): Promise<IServiceResponse<ICollection>> {
+    try {
+      logger.debug('Fetching collection by ID', { id })
+
+      const collection = await this.prismaClient.collection.findUnique({
+        where: { id },
+        include: {
+          documents: {
+            include: {
+              chunks: true
+            }
+          }
+        }
+      })
+
+      if (!collection) {
+        logger.warn('Collection not found', { id })
+        return {
+          success: false,
+          error: 'Collection not found'
+        }
+      }
+
+      const result = {
+        ...collection,
+        documents: collection.documents.map(doc => ({
+          ...doc,
+          fileType: doc.fileType as 'pdf' | 'docx' | 'pptx' | 'xlsx',
+          metadata: doc.metadata ? JSON.parse(doc.metadata) : null,
+          chunks: doc.chunks.map(chunk => ({
+            ...chunk,
+            embedding: chunk.embedding ? JSON.parse(chunk.embedding) : null,
+            metadata: chunk.metadata ? JSON.parse(chunk.metadata) : null
+          }))
+        }))
+      }
+
+      logger.success('Retrieved collection', { id, name: result.name })
+      return {
+        success: true,
+        data: result
+      }
+    } catch (error) {
+      logger.error('Failed to get collection by ID', error as Error, { id })
+      return {
+        success: false,
+        error: 'Failed to retrieve collection'
+      }
+    }
+  }
+
+  async updateCollection(id: string, params: UpdateCollectionParams): Promise<IServiceResponse<ICollection>> {
+    try {
+      logger.debug('Updating collection', { id, params })
+
+      const collection = await this.prismaClient.collection.update({
+        where: { id },
+        data: params
+      })
+
+      logger.success('Updated collection', { id, name: collection.name })
+      return {
+        success: true,
+        data: collection
+      }
+    } catch (error) {
+      logger.error('Failed to update collection', error as Error, { id, params })
+      return {
+        success: false,
+        error: 'Failed to update collection'
+      }
+    }
+  }
+
+  async deleteCollection(id: string): Promise<IServiceResponse<boolean>> {
+    try {
+      logger.debug('Deleting collection', { id })
+
+      await this.prismaClient.collection.delete({
+        where: { id }
+      })
+
+      logger.success('Deleted collection', { id })
+      return {
+        success: true,
+        data: true
+      }
+    } catch (error) {
+      logger.error('Failed to delete collection', error as Error, { id })
+      return {
+        success: false,
+        error: 'Failed to delete collection'
+      }
+    }
+  }
+
+  // Document Management
+  async uploadDocument(collectionId: string, filePath: string, filename?: string): Promise<IServiceResponse<IDocument>> {
+    try {
+      logger.debug('Uploading document', { collectionId, filePath })
+
+      // Get collection to validate it exists
+      const collection = await this.prismaClient.collection.findUnique({
+        where: { id: collectionId }
+      })
+
+      if (!collection) {
+        return {
+          success: false,
+          error: 'Collection not found'
+        }
+      }
+
+      // Get file info
+      const stats = fs.statSync(filePath)
+      const fileSize = stats.size
+      const actualFilename = filename || path.basename(filePath)
+      const fileExtension = path.extname(actualFilename).toLowerCase()
+
+      // Determine file type
+      let fileType: 'pdf' | 'docx' | 'pptx' | 'xlsx'
+      switch (fileExtension) {
+        case '.pdf':
+          fileType = 'pdf'
+          break
+        case '.docx':
+          fileType = 'docx'
+          break
+        case '.pptx':
+          fileType = 'pptx'
+          break
+        case '.xlsx':
+          fileType = 'xlsx'
+          break
+        default:
+          return {
+            success: false,
+            error: `Unsupported file type: ${fileExtension}. Supported types: PDF, DOCX, PPTX, XLSX`
+          }
+      }
+
+      // Parse document content
+      const parseResult = await this.documentParser.parseDocument(filePath, fileType)
+      if (!parseResult.success) {
+        return {
+          success: false,
+          error: parseResult.error || 'Failed to parse document'
+        }
+      }
+
+      // Create document record
+      const document = await this.prismaClient.document.create({
+        data: {
+          filename: actualFilename,
+          filepath: filePath,
+          fileType,
+          fileSize,
+          content: parseResult.data!.content,
+          metadata: JSON.stringify(parseResult.data!.metadata),
+          collectionId
+        }
+      })
+
+      logger.success('Created document record', { id: document.id, filename: actualFilename })
+
+      // Process document asynchronously
+      this.processDocumentAsync(document.id, collection)
+
+      return {
+        success: true,
+        data: {
+          ...document,
+          fileType: document.fileType as 'pdf' | 'docx' | 'pptx' | 'xlsx',
+          metadata: parseResult.data!.metadata
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to upload document', error as Error, { collectionId, filePath })
+      return {
+        success: false,
+        error: 'Failed to upload document'
+      }
+    }
+  }
+
+  async getDocumentsByCollection(collectionId: string): Promise<IServiceResponse<IDocument[]>> {
+    try {
+      logger.debug('Fetching documents by collection', { collectionId })
+
+      const documents = await this.prismaClient.document.findMany({
+        where: { collectionId },
+        include: {
+          chunks: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      })
+
+      const result = documents.map(doc => ({
+        ...doc,
+        fileType: doc.fileType as 'pdf' | 'docx' | 'pptx' | 'xlsx',
+        metadata: doc.metadata ? JSON.parse(doc.metadata) : null,
+        chunks: doc.chunks.map(chunk => ({
+          ...chunk,
+          embedding: chunk.embedding ? JSON.parse(chunk.embedding) : null,
+          metadata: chunk.metadata ? JSON.parse(chunk.metadata) : null
+        }))
+      }))
+
+      logger.success(`Retrieved ${result.length} documents for collection`, { collectionId })
+      return {
+        success: true,
+        data: result
+      }
+    } catch (error) {
+      logger.error('Failed to get documents by collection', error as Error, { collectionId })
+      return {
+        success: false,
+        error: 'Failed to retrieve documents'
+      }
+    }
+  }
+
+  async deleteDocument(documentId: string): Promise<IServiceResponse<boolean>> {
+    try {
+      logger.debug('Deleting document', { documentId })
+
+      await this.prismaClient.document.delete({
+        where: { id: documentId }
+      })
+
+      logger.success('Deleted document', { documentId })
+      return {
+        success: true,
+        data: true
+      }
+    } catch (error) {
+      logger.error('Failed to delete document', error as Error, { documentId })
+      return {
+        success: false,
+        error: 'Failed to delete document'
+      }
+    }
+  }
+
+  // Search and Retrieval
+  async searchSimilarChunks(
+    query: string,
+    collectionIds: string[],
+    limit: number = 5
+  ): Promise<IServiceResponse<IDocumentChunk[]>> {
+    try {
+      logger.debug('Searching similar chunks', { query: query.substring(0, 50), collectionIds, limit })
+
+      if (collectionIds.length === 0) {
+        return {
+          success: true,
+          data: []
+        }
+      }
+
+      // Get the first collection to determine embedding model
+      const collection = await this.prismaClient.collection.findFirst({
+        where: { id: { in: collectionIds } }
+      })
+
+      if (!collection) {
+        return {
+          success: false,
+          error: 'No valid collections found'
+        }
+      }
+
+      // Generate query embedding
+      const queryEmbedding = await this.embeddingService.generateEmbedding(
+        query,
+        collection.embeddingModel,
+        collection.modelProvider
+      )
+
+      if (!queryEmbedding.success || !queryEmbedding.data) {
+        return {
+          success: false,
+          error: 'Failed to generate query embedding'
+        }
+      }
+
+      // Get all chunks from specified collections
+      const chunks = await this.prismaClient.documentChunk.findMany({
+        where: {
+          document: {
+            collectionId: { in: collectionIds }
+          },
+          embedding: { not: null }
+        },
+        include: {
+          document: true
+        }
+      })
+
+      // Calculate similarities
+      const similarities = chunks.map(chunk => {
+        const chunkEmbedding = JSON.parse(chunk.embedding!)
+        const similarity = this.embeddingService.calculateSimilarity(
+          queryEmbedding.data!,
+          chunkEmbedding
+        )
+        return {
+          ...chunk,
+          similarity,
+          metadata: chunk.metadata ? JSON.parse(chunk.metadata) : null,
+          embedding: chunkEmbedding
+        }
+      })
+
+      // Sort by similarity and take top results
+      const results = similarities
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, limit)
+
+      logger.success(`Found ${results.length} similar chunks`)
+      return {
+        success: true,
+        data: results
+      }
+    } catch (error) {
+      logger.error('Failed to search similar chunks', error as Error, { query, collectionIds })
+      return {
+        success: false,
+        error: 'Failed to search documents'
+      }
+    }
+  }
+
+  // Private Methods
+  private async processDocumentAsync(documentId: string, collection: ICollection): Promise<void> {
+    try {
+      logger.debug('Processing document asynchronously', { documentId })
+
+      const document = await this.prismaClient.document.findUnique({
+        where: { id: documentId }
+      })
+
+      if (!document) {
+        logger.error('Document not found for processing', new Error('Document not found'), { documentId })
+        return
+      }
+
+      // Chunk the content
+      this.emitProgress(documentId, {
+        phase: 'chunking',
+        current: 0,
+        total: 100,
+        message: 'Splitting document into chunks...'
+      })
+
+      const chunks = this.documentParser.chunkContent(
+        document.content,
+        collection.chunkSize,
+        collection.overlap,
+        document.fileType as 'pdf' | 'docx' | 'pptx' | 'xlsx'
+      )
+
+      // Process chunks in batches
+      const batchSize = 10
+      let processedChunks = 0
+      
+      for (let i = 0; i < chunks.length; i += batchSize) {
+        const batch = chunks.slice(i, i + batchSize)
+        await this.processBatch(batch, documentId, collection)
+        
+        processedChunks += batch.length
+        this.emitProgress(documentId, {
+          phase: 'embedding',
+          current: processedChunks,
+          total: chunks.length,
+          message: `Processing chunk ${processedChunks} of ${chunks.length}...`
+        })
+      }
+
+      // Emit completion
+      this.emitProgress(documentId, {
+        phase: 'completed',
+        current: chunks.length,
+        total: chunks.length,
+        message: 'Document processing completed!'
+      })
+
+      logger.success('Completed document processing', { documentId, totalChunks: chunks.length })
+    } catch (error) {
+      logger.error('Failed to process document', error as Error, { documentId })
+    }
+  }
+
+  private async processBatch(
+    chunks: Array<{ content: string; metadata?: any; startPos?: number; endPos?: number }>,
+    documentId: string,
+    collection: ICollection
+  ): Promise<void> {
+    const chunkPromises = chunks.map(async (chunkData, index) => {
+      try {
+        // Generate embedding
+        const embeddingResult = await this.embeddingService.generateEmbedding(
+          chunkData.content,
+          collection.embeddingModel,
+          collection.modelProvider
+        )
+
+        const embedding = embeddingResult.success ? embeddingResult.data : null
+
+        // Create chunk record
+        await this.prismaClient.documentChunk.create({
+          data: {
+            content: chunkData.content,
+            embedding: embedding ? JSON.stringify(embedding) : null,
+            metadata: chunkData.metadata ? JSON.stringify(chunkData.metadata) : null,
+            startPos: chunkData.startPos,
+            endPos: chunkData.endPos,
+            documentId
+          }
+        })
+      } catch (error) {
+        logger.error('Failed to process chunk', error as Error, { documentId, chunkIndex: index })
+      }
+    })
+
+    await Promise.all(chunkPromises)
+  }
+}

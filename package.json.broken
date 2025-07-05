@@ -1,0 +1,142 @@
+{
+  "name": "xavi9",
+  "version": "0.0.1",
+  "description": "Xavi9 - Advanced AI Desktop Client with comprehensive productivity features",
+  "main": "dist/electron/main.js",
+  "scripts": {
+    "appId": "com.xavi9.app",
+    "productName": "Xavi9",
+    "icon": "resources/icon",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "resources/**/*"
+    ],
+    "extraFiles": [
+      {
+        "from": "prisma",
+        "to": "prisma",
+        "filter": ["schema.prisma"]
+      }
+    ],
+    "asarUnpack": [
+      "**/.prisma/**/*",
+      "**/@prisma/**/*"
+    ],
+    "compression": "maximum",
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "beforeBuild": "scripts/beforeBuild.js"
+  },
+  "scripts": {
+    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
+    "dev:vite": "vite",
+    "dev:electron": "wait-on http://localhost:5173 && electron .",
+    "build": "npm run build:vite && npm run build:electron",
+    "build:vite": "vite build",
+    "build:electron": "tsc -p electron && node scripts/move-electron-files.js",
+    "build:app": "electron-builder",
+    "build:mac": "npm run build && electron-builder --mac",
+    "build:mac:x64": "npm run build && electron-builder --mac --x64",
+    "build:mac:arm64": "npm run build && electron-builder --mac --arm64",
+    "build:win": "npm run build && electron-builder --win",
+    "build:win:x64": "npm run build && electron-builder --win --x64",
+    "build:linux": "npm run build && electron-builder --linux",
+    "build:all": "npm run build && electron-builder --mac --win --linux",
+    "dist": "npm run build && npm run build:app",
+    "postinstall": "electron-builder install-app-deps && prisma generate",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev"
+  },
+  "keywords": [
+    "electron",
+    "ai",
+    "desktop",
+    "productivity"
+  ],
+  "author": "AI Desktop Client Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@prisma/engines": "^6.10.1",
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/node": "^20.11.17",
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.17",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^28.2.0",
+    "electron-builder": "^24.9.1",
+    "eslint": "^8.56.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "postcss": "^8.4.35",
+    "prisma": "^5.22.0",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.1.0",
+    "wait-on": "^7.2.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "@radix-ui/react-dialog": "^1.0.5",
+    "@radix-ui/react-dropdown-menu": "^2.0.6",
+    "@radix-ui/react-select": "^2.0.0",
+    "@radix-ui/react-separator": "^1.0.3",
+    "@radix-ui/react-switch": "^1.0.3",
+    "@radix-ui/react-tabs": "^1.0.4",
+    "@radix-ui/react-tooltip": "^1.0.7",
+    "@sideway/address": "^5.0.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "cosine-similarity": "^1.0.1",
+    "dompurify": "^3.2.6",
+    "electron-log": "^5.0.1",
+    "electron-updater": "^6.1.8",
+    "file-type": "^21.0.0",
+    "framer-motion": "^11.0.3",
+    "i18next": "^25.2.1",
+    "i18next-browser-languagedetector": "^8.2.0",
+    "lucide-react": "^0.525.0",
+    "mammoth": "^1.9.1",
+    "pdf-parse": "^1.1.1",
+    "pptx2json": "^0.0.10",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-i18next": "^15.5.3",
+    "tailwind-merge": "^2.2.1",
+    "xlsx": "^0.18.5",
+    "zustand": "^4.5.0"
+  }
+}

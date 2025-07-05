@@ -16,7 +16,11 @@
       "Bash(rg:*)",
       "Bash(npx prisma:*)",
       "Bash(rm:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "WebFetch(domain:developers.google.com)",
+      "WebFetch(domain:learn.microsoft.com)",
+      "Bash(jq:*)",
+      "WebFetch(domain:www.electron.build)"
     ],
     "deny": []
   }
