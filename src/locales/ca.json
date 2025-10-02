@@ -41,7 +41,7 @@
   },
   "settings": {
     "title": "Configuració",
-    "subtitle": "Personalitza la teva experiència amb Xavi9",
+    "subtitle": "Personalitza la teva experiència amb Boorie",
     "appearance": "Aparença",
     "theme": "Tema",
     "chooseTheme": "Tria el teu tema preferit",
@@ -114,7 +114,7 @@
   },
   "accounts": {
     "connectedAccounts": "Comptes Connectats",
-    "connectedAccountsDesc": "Connecta els teus comptes favorits per a una experiència integrada amb Xavi9",
+    "connectedAccountsDesc": "Connecta els teus comptes favorits per a una experiència integrada amb Boorie",
     "microsoft365": "Microsoft 365",
     "microsoft365Desc": "Connectar per accedir a Outlook, Calendari i OneDrive",
     "googleWorkspace": "Google Workspace",
@@ -142,7 +142,7 @@
     "gists": "Gists",
     "benefits": "Beneficis de Connectar Comptes",
     "seamlessSync": "Sincronització Perfecta",
-    "seamlessSyncDesc": "Sincronitza automàticament les teves dades entre aplicacions i Xavi9",
+    "seamlessSyncDesc": "Sincronitza automàticament les teves dades entre aplicacions i Boorie",
     "secureAccess": "Accés Segur",
     "secureAccessDesc": "Connexions segures amb OAuth2 i encriptació d'extrem a extrem",
     "aiIntegration": "Integració amb IA",
@@ -157,7 +157,7 @@
     "disabled": "Deshabilitat"
   },
   "app": {
-    "initializing": "Inicialitzant Xavi9",
+    "initializing": "Inicialitzant Boorie",
     "initializingDesc": "Si us plau espera mentre configurem tot..."
   },
   "rag": {

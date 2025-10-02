@@ -398,8 +398,8 @@ export class ChatHandler {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://xavi9.app', // Required by OpenRouter
-        'X-Title': 'Xavi9', // Required by OpenRouter
+        'HTTP-Referer': 'https://boorie.app', // Required by OpenRouter
+        'X-Title': 'Boorie', // Required by OpenRouter
       },
       body: JSON.stringify(requestBody),
       signal: AbortSignal.timeout(30000) // 30 second timeout

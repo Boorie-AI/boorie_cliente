@@ -1,7 +1,7 @@
 {
-  "name": "xavi9",
+  "name": "boorie",
   "version": "1.0.0",
-  "description": "Xavi9 - Advanced AI Desktop Client with comprehensive productivity features",
+  "description": "Boorie - Advanced AI Desktop Client with comprehensive productivity features",
   "main": "dist/electron/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
@@ -74,8 +74,8 @@
     "zustand": "^4.5.0"
   },
   "build": {
-    "appId": "com.xavi9.app",
-    "productName": "Xavi9",
+    "appId": "com.boorie.app",
+    "productName": "Boorie",
     "icon": "resources/icon",
     "directories": {
       "output": "dist-electron"

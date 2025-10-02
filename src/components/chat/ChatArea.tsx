@@ -35,7 +35,7 @@ export function ChatArea() {
             </div>
             
             <div className="space-y-3">
-              <h2 className="text-2xl font-bold text-foreground">Welcome to Xavi9</h2>
+              <h2 className="text-2xl font-bold text-foreground">Welcome to Boorie</h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
                 Your intelligent AI assistant is ready to help. Start a conversation to begin exploring the possibilities.
               </p>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Minus, X, Maximize2, Minimize2 } from 'lucide-react'
-import xavi9Icon from '@/assets/xavi9_icon_light.png'
+import boorieIcon from '@/assets/boorie_icon_light.png'
 
 export function CustomTopBar() {
   const [isMaximized, setIsMaximized] = useState(false)
@@ -88,8 +88,8 @@ export function CustomTopBar() {
       {/* Left side - App icon and title */}
       <div className="flex items-center px-3 space-x-2">
         <img 
-          src={xavi9Icon} 
-          alt="Xavi9" 
+          src={boorieIcon} 
+          alt="Boorie" 
           className="w-4 h-4 object-contain"
         />
 

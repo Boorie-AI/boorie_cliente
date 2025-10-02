@@ -1,4 +1,4 @@
-# 🏗️ Contexto y Arquitectura Completa - Xavi9 Prototype
+# 🏗️ Contexto y Arquitectura Completa - Boorie Prototype
 
 ## 📋 Índice
 
@@ -17,7 +17,7 @@
 
 ## 🎯 Resumen General
 
-**Xavi9 Prototype** es una aplicación de escritorio multiplataforma construida con **Electron + React + TypeScript + Prisma**. Es un cliente de chat con inteligencia artificial que soporta múltiples proveedores (OpenAI, Anthropic, Google, OpenRouter, Ollama local) con gestión avanzada de conversaciones, configuraciones persistentes y arquitectura modular.
+**Boorie Prototype** es una aplicación de escritorio multiplataforma construida con **Electron + React + TypeScript + Prisma**. Es un cliente de chat con inteligencia artificial que soporta múltiples proveedores (OpenAI, Anthropic, Google, OpenRouter, Ollama local) con gestión avanzada de conversaciones, configuraciones persistentes y arquitectura modular.
 
 ### 🔧 Stack Tecnológico Principal
 
@@ -127,7 +127,7 @@ window.electronAPI = {
 ## 📂 Estructura de Directorios
 
 ```
-Xavi9-Prototype/
+Boorie-Prototype/
 ├── 📁 electron/                    # Proceso principal Electron
 │   ├── main.ts                     # Entry point principal
 │   ├── preload.ts                  # Script de contexto
@@ -972,7 +972,7 @@ export default defineConfig({
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    APLICACIÓN XAVI9                     │
+│                    APLICACIÓN BOORIE                     │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  ┌─ FRONTEND (React + TypeScript) ─────────────────┐   │
@@ -1114,7 +1114,7 @@ app_settings
 
 ## 🎯 Conclusión
 
-Esta documentación proporciona una visión completa de la arquitectura de **Xavi9 Prototype**. La aplicación está construida con una arquitectura sólida, modular y escalable que separa claramente las responsabilidades:
+Esta documentación proporciona una visión completa de la arquitectura de **Boorie Prototype**. La aplicación está construida con una arquitectura sólida, modular y escalable que separa claramente las responsabilidades:
 
 ### ✅ Puntos Fuertes de la Arquitectura
 

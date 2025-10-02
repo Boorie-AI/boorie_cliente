@@ -1,5 +1,5 @@
 # 🔐 OAuth Authentication Implementation Plan
-## Microsoft & Google Integration for Xavi9 Prototype
+## Microsoft & Google Integration for Boorie Prototype
 
 ---
 
@@ -20,7 +20,7 @@
 
 ## 🎯 Overview
 
-This document outlines the implementation plan for OAuth authentication with Microsoft and Google in the Xavi9 Prototype Electron application. The implementation will enable secure authentication using separate Electron windows for OAuth flows and automatic token refresh capabilities.
+This document outlines the implementation plan for OAuth authentication with Microsoft and Google in the Boorie Prototype Electron application. The implementation will enable secure authentication using separate Electron windows for OAuth flows and automatic token refresh capabilities.
 
 ### 🔧 Key Requirements
 
@@ -319,7 +319,7 @@ class TokenSecurityService {
 ## 📁 File Structure
 
 ```
-Xavi9-Prototype/
+Boorie-Prototype/
 ├── 📁 electron/
 │   ├── handlers/
 │   │   ├── auth.handler.ts              # 🔐 OAuth IPC handlers
@@ -738,7 +738,7 @@ OAUTH_CALLBACK_URL_GOOGLE=https://your-app.com/auth/google/callback
 
 ## 🏁 Conclusion
 
-This implementation plan provides a comprehensive approach to adding Microsoft and Google OAuth authentication to the Xavi9 Prototype application. The architecture prioritizes security, user experience, and maintainability while leveraging the existing infrastructure.
+This implementation plan provides a comprehensive approach to adding Microsoft and Google OAuth authentication to the Boorie Prototype application. The architecture prioritizes security, user experience, and maintainability while leveraging the existing infrastructure.
 
 The phased implementation approach ensures steady progress and allows for testing and refinement at each stage. The modular design makes it easy to extend support for additional providers in the future.
 

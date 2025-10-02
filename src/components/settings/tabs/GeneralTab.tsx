@@ -207,7 +207,7 @@ export function GeneralTab() {
           <div className="space-y-3">
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">{t('settings.databaseLocation')}</span>
-              <span className="font-mono text-xs bg-accent px-2 py-1 rounded">./prisma/xavi9.db</span>
+              <span className="font-mono text-xs bg-accent px-2 py-1 rounded">./prisma/boorie.db</span>
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">{t('settings.settingsStorage')}</span>

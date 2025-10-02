@@ -1,4 +1,4 @@
-# Historial de Cambios - Xavi9 v2: Chat y Settings
+# Historial de Cambios - Boorie v2: Chat y Settings
 
 > **Creado**: 2025-06-27 16:45:00 UTC  
 > **Última actualización**: 2025-06-27 17:20:00 UTC  

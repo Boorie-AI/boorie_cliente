@@ -37,7 +37,7 @@ function createWindow(): void {
     minWidth: 800,
     minHeight: 600,
     show: false,
-    title: 'Xavi9',
+    title: 'Boorie',
     frame: false,
     titleBarStyle: process.platform === 'darwin' ? 'hidden' : undefined,
     autoHideMenuBar: true,
@@ -107,7 +107,7 @@ async function initializeApplication(): Promise<void> {
 async function initDatabase(): Promise<void> {
   try {
     // Set the database URL to use the app's user data directory
-    const dbPath = path.join(app.getPath('userData'), 'xavi9.db')
+    const dbPath = path.join(app.getPath('userData'), 'boorie.db')
     appLogger.info('Initializing database', { dbPath })
 
     // Set environment variable for Prisma
@@ -175,7 +175,7 @@ function setupBasicIPCHandlers(): void {
 
 app.whenReady().then(async () => {
   try {
-    app.setAppUserModelId('com.xavi9.app')
+    app.setAppUserModelId('com.boorie.app')
 
     // Initialize all application services
     await initializeApplication()
@@ -300,7 +300,7 @@ const template: Electron.MenuItemConstructorOptions[] = [
 
 if (process.platform === 'darwin') {
   template.unshift({
-    label: 'Xavi9',
+    label: 'Boorie',
     submenu: [
       { role: 'about' },
       { type: 'separator' },

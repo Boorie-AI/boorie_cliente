@@ -1,4 +1,4 @@
-# Historial de Cambios - Xavi9
+# Historial de Cambios - Boorie
 
 > **Creado**: 2025-06-27 11:58:00 UTC  
 > **Última actualización**: 2025-06-27 12:15:00 UTC

@@ -13,7 +13,7 @@ Esta versión introduce una **barra superior personalizada** con controles de ve
 ### 1. **Cambio de Icono de Aplicación** 
 - **Problema**: La aplicación usaba el icono por defecto de Electron
 - **Solución**: 
-  - Copiado `xavi9_icon_light.png` desde `src/assets/` a `resources/icon.png`
+  - Copiado `boorie_icon_light.png` desde `src/assets/` a `resources/icon.png`
   - Creados formatos adicionales para cross-platform compatibility:
     - `resources/icon.ico` (Windows)
     - `resources/icon.icns` (macOS)
@@ -74,7 +74,7 @@ ipcMain.handle('is-maximized', () => mainWindow?.isMaximized())
 
 // AHORA:
 <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
-  <CustomTopBar title="Xavi9" />
+  <CustomTopBar title="Boorie" />
   <div className="flex-1">
     <ChatLayout />
   </div>
@@ -196,8 +196,8 @@ role: msg.role as 'user' | 'assistant' | 'system',
 - **Colores**: 
   - Light mode: `bg-gray-50` con borde `border-gray-200`
   - Dark mode: `bg-gray-900` con borde `border-gray-700`
-- **Icono**: Xavi9 icon (16x16px)
-- **Título**: "Xavi9" con fuente semibold
+- **Icono**: Boorie icon (16x16px)
+- **Título**: "Boorie" con fuente semibold
 
 ### **Controles de Ventana**
 - **Minimize**: `-` icon, hover gray background
@@ -321,7 +321,7 @@ SQLite Database
 - `backend/services/database.service.ts` - Type casting fix
 
 #### **Resources**
-- `resources/icon.png` - Icono personalizado Xavi9
+- `resources/icon.png` - Icono personalizado Boorie
 - `resources/icon.ico` - Formato Windows
 - `resources/icon.icns` - Formato macOS
 
@@ -401,7 +401,7 @@ console.log(window.electronAPI.minimizeWindow) // Debe ser 'function'
 
 ## 🏁 Resumen Ejecutivo
 
-**Xavi9 v10** marca un hito importante en la evolución de la aplicación con:
+**Boorie v10** marca un hito importante en la evolución de la aplicación con:
 
 ### **🎯 Logros Principales**
 1. **🎨 Custom TopBar Completa**: Control total sobre window management

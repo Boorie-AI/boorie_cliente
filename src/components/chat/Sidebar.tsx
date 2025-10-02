@@ -14,8 +14,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import * as Tooltip from '@radix-ui/react-tooltip'
-import xavi9IconDark from '@/assets/xavi9_icon_dark.png'
-import xavi9IconLight from '@/assets/xavi9_icon_light.png'
+import boorieIconDark from '@/assets/boorie_icon_dark.png'
+import boorieIconLight from '@/assets/boorie_icon_light.png'
 
 export function Sidebar() {
   const { t } = useTranslation()
@@ -53,19 +53,19 @@ export function Sidebar() {
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center">
                 <img
-                  src={theme === 'dark' ? xavi9IconLight : xavi9IconDark}
-                  alt="Xavi9"
+                  src={theme === 'dark' ? boorieIconLight : boorieIconDark}
+                  alt="Boorie"
                   className="w-6 h-6 rounded-lg object-contain"
                 />
               </div>
-              <h1 className="text-lg font-semibold text-foreground">Xavi9</h1>
+              <h1 className="text-lg font-semibold text-foreground">Boorie</h1>
             </div>
           )}
           {sidebarCollapsed && (
             <div className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto">
               <img
-                src={theme === 'dark' ? xavi9IconDark : xavi9IconLight}
-                alt="Xavi9"
+                src={theme === 'dark' ? boorieIconDark : boorieIconLight}
+                alt="Boorie"
                 className="w-8 h-8 rounded-lg object-contain"
               />
             </div>

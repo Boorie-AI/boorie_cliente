@@ -316,7 +316,7 @@ const handleDeleteModelClick = (modelName: string) => {
 
 ## 🏁 Resumen Ejecutivo
 
-**Xavi9 v8** introduce mejoras significativas en la experiencia de usuario del panel de configuración de IA, resolviendo dos problemas críticos que afectaban la usabilidad diaria:
+**Boorie v8** introduce mejoras significativas en la experiencia de usuario del panel de configuración de IA, resolviendo dos problemas críticos que afectaban la usabilidad diaria:
 
 ### **Logros Principales**
 1. **🎯 Scroll Optimizado**: Solo la lista de modelos hace scroll, manteniendo contexto visual

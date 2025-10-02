@@ -41,7 +41,7 @@
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "Customize your Xavi9 experience",
+    "subtitle": "Customize your Boorie experience",
     "appearance": "Appearance",
     "theme": "Theme",
     "chooseTheme": "Choose your preferred theme",
@@ -114,7 +114,7 @@
   },
   "accounts": {
     "connectedAccounts": "Connected Accounts",
-    "connectedAccountsDesc": "Connect your favorite accounts for an integrated experience with Xavi9",
+    "connectedAccountsDesc": "Connect your favorite accounts for an integrated experience with Boorie",
     "microsoft365": "Microsoft 365",
     "microsoft365Desc": "Connect to access Outlook, Calendar, and OneDrive",
     "googleWorkspace": "Google Workspace",
@@ -142,7 +142,7 @@
     "gists": "Gists",
     "benefits": "Benefits of Connecting Accounts",
     "seamlessSync": "Seamless Sync",
-    "seamlessSyncDesc": "Automatically sync your data between applications and Xavi9",
+    "seamlessSyncDesc": "Automatically sync your data between applications and Boorie",
     "secureAccess": "Secure Access",
     "secureAccessDesc": "Secure connections with OAuth2 and end-to-end encryption",
     "aiIntegration": "AI Integration",
@@ -157,7 +157,7 @@
     "disabled": "Disabled"
   },
   "app": {
-    "initializing": "Initializing Xavi9",
+    "initializing": "Initializing Boorie",
     "initializingDesc": "Please wait while we set everything up..."
   },
   "rag": {
