@@ -183,3 +183,127 @@ model UserProfile {
   @@unique([provider, providerId])
   @@map("user_profiles")
 }
+
+// Hydraulic Engineering Models
+model HydraulicProject {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  type          String   // 'design' | 'analysis' | 'optimization' | 'troubleshooting'
+  networkType   String   // 'distribution' | 'transmission' | 'collection'
+  location      String   // JSON with country, region, city, coordinates
+  status        String   // 'planning' | 'design' | 'review' | 'approved' | 'construction' | 'completed'
+  regulations   String   // JSON array of regulation IDs
+  wntrModel     String?  // JSON serialized WNTR model
+  metadata      String?  // Additional project metadata
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  calculations  HydraulicCalculation[]
+  documents     ProjectDocument[]
+  teamMembers   ProjectTeamMember[]
+
+  @@map("hydraulic_projects")
+}
+
+model HydraulicCalculation {
+  id          String   @id @default(cuid())
+  projectId   String
+  type        String   // 'pipe_sizing' | 'pump_selection' | 'head_loss' | 'water_hammer' | etc
+  name        String
+  inputs      String   // JSON with calculation inputs
+  results     String   // JSON with calculation results
+  formulas    String   // JSON array of formulas used
+  verified    Boolean  @default(false)
+  verifiedBy  String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     HydraulicProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("hydraulic_calculations")
+}
+
+model ProjectDocument {
+  id          String   @id @default(cuid())
+  projectId   String
+  type        String   // 'calculation_memory' | 'technical_spec' | 'report' | 'plan' | 'compliance'
+  title       String
+  content     String   // Document content (could be markdown, HTML, etc)
+  metadata    String   // JSON with author, version, status, etc
+  attachments String?  // JSON array of attachment info
+  version     String   @default("1.0")
+  status      String   @default("draft") // 'draft' | 'review' | 'approved'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     HydraulicProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_documents")
+}
+
+model ProjectTeamMember {
+  id          String   @id @default(cuid())
+  projectId   String
+  userId      String   // Reference to user (could be email or ID)
+  role        String   // 'project_manager' | 'design_engineer' | 'reviewer' | 'client'
+  permissions String   // JSON with specific permissions
+  joinedAt    DateTime @default(now())
+
+  project     HydraulicProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_team_members")
+}
+
+// RAG Knowledge Base Models
+model HydraulicKnowledge {
+  id          String   @id @default(cuid())
+  category    String   // 'hydraulics' | 'regulations' | 'best-practices'
+  subcategory String
+  region      String   // JSON array of applicable regions
+  title       String
+  content     String   // Main content of the document
+  metadata    String   // JSON with formulas, tables, examples, references
+  keywords    String   // JSON array for search optimization
+  language    String   @default("es")
+  version     String   @default("1.0")
+  status      String   @default("active") // 'draft' | 'active' | 'deprecated'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  chunks      KnowledgeChunk[]
+
+  @@map("hydraulic_knowledge")
+}
+
+model KnowledgeChunk {
+  id            String   @id @default(cuid())
+  knowledgeId   String
+  content       String
+  embedding     String   // Vector embedding as JSON array
+  metadata      String?  // Additional chunk metadata
+  chunkIndex    Int      // Order of chunk in document
+  createdAt     DateTime @default(now())
+
+  knowledge     HydraulicKnowledge @relation(fields: [knowledgeId], references: [id], onDelete: Cascade)
+
+  @@map("knowledge_chunks")
+}
+
+// Hydraulic Components Catalog
+model HydraulicComponent {
+  id              String   @id @default(cuid())
+  type            String   // 'pipe' | 'pump' | 'valve' | 'tank' | 'fitting'
+  manufacturer    String?
+  model           String?
+  specifications  String   // JSON with technical specs
+  priceInfo       String?  // JSON with pricing data
+  availability    String?  // JSON with availability info
+  documentation   String?  // Links to technical docs
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("hydraulic_components")
+}

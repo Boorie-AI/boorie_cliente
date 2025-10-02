@@ -88,6 +88,32 @@ export interface ElectronAPI {
     storeSecurely: (key: string, value: string) => Promise<void>
     retrieveSecurely: (key: string) => Promise<string | null>
   }
+
+  hydraulic: {
+    // Context processing
+    classifyQuery: (query: string, context?: any) => Promise<{ success: boolean; data?: any; error?: string }>
+    extractParameters: (query: string) => Promise<{ success: boolean; data?: any; error?: string }>
+    identifyRegulations: (context: any) => Promise<{ success: boolean; data?: string[]; error?: string }>
+    
+    // Calculations
+    calculate: (formulaId: string, inputs: any) => Promise<{ success: boolean; data?: any; error?: string }>
+    getFormulas: () => Promise<{ success: boolean; data?: any[]; error?: string }>
+    getFormulasByCategory: (category: string) => Promise<{ success: boolean; data?: any[]; error?: string }>
+    
+    // Knowledge search
+    searchKnowledge: (query: string, options?: any) => Promise<{ success: boolean; data?: any[]; error?: string }>
+    getRegulations: (region: string) => Promise<{ success: boolean; data?: any[]; error?: string }>
+    
+    // Project management
+    createProject: (projectData: any) => Promise<{ success: boolean; data?: any; error?: string }>
+    getProject: (projectId: string) => Promise<{ success: boolean; data?: any; error?: string }>
+    listProjects: () => Promise<{ success: boolean; data?: any[]; error?: string }>
+    updateProject: (projectId: string, updates: any) => Promise<{ success: boolean; data?: any; error?: string }>
+    saveCalculation: (projectId: string, calculation: any) => Promise<{ success: boolean; data?: any; error?: string }>
+    
+    // Enhanced chat
+    enhancedChat: (message: string, context: any) => Promise<{ success: boolean; data?: any; error?: string }>
+  }
 }
 
 declare global {

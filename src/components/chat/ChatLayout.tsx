@@ -6,6 +6,8 @@ import { RAGPanel } from '@/components/rag/RAGPanel'
 import { EmailPanel } from '@/components/email/EmailPanel'
 import { CalendarPanel } from '@/components/calendar/CalendarPanel'
 import { TodoPanel } from '../todo/TodoPanel'
+import { HydraulicProjectsPanel } from '@/components/hydraulic/HydraulicProjectsPanel'
+import { HydraulicCalculator } from '@/components/hydraulic/HydraulicCalculator'
 import { cn } from '@/utils/cn'
 
 export function ChatLayout() {
@@ -25,6 +27,10 @@ export function ChatLayout() {
         return <CalendarPanel />
       case 'todo':
         return <TodoPanel />
+      case 'projects':
+        return <HydraulicProjectsPanel />
+      case 'calculator':
+        return <HydraulicCalculator />
       default:
         return <ChatArea />
     }

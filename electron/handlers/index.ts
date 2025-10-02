@@ -5,6 +5,7 @@ export { AIProviderHandler } from './aiProvider.handler'
 export { DatabaseHandler } from './database.handler'
 export { ChatHandler } from './chat.handler'
 export { AuthHandler } from './auth.handler'
+export { HydraulicHandler } from './hydraulic.handler'
 
 import { ServiceContainer } from '../../backend/services'
 import { ConversationHandler } from './conversation.handler'
@@ -12,6 +13,7 @@ import { AIProviderHandler } from './aiProvider.handler'
 import { DatabaseHandler } from './database.handler'
 import { ChatHandler } from './chat.handler'
 import { AuthHandler } from './auth.handler'
+import { HydraulicHandler } from './hydraulic.handler'
 import { createLogger } from '../../backend/utils/logger'
 
 const logger = createLogger('HandlersManager')
@@ -22,6 +24,7 @@ export class HandlersManager {
   private databaseHandler: DatabaseHandler
   private chatHandler: ChatHandler
   private authHandler: AuthHandler
+  private hydraulicHandler: HydraulicHandler
   private isInitialized = false
 
   constructor(services: ServiceContainer) {
@@ -32,6 +35,7 @@ export class HandlersManager {
     this.databaseHandler = new DatabaseHandler(services.database)
     this.chatHandler = new ChatHandler()
     this.authHandler = new AuthHandler(services.database)
+    this.hydraulicHandler = new HydraulicHandler(services)
     
     this.isInitialized = true
     logger.success('IPC handlers manager initialized successfully')
@@ -58,6 +62,10 @@ export class HandlersManager {
     return this.authHandler
   }
 
+  get hydraulic(): HydraulicHandler {
+    return this.hydraulicHandler
+  }
+
   // Check if handlers are initialized
   get initialized(): boolean {
     return this.isInitialized
@@ -77,6 +85,7 @@ export class HandlersManager {
       this.aiProviderHandler.unregisterHandlers()
       this.databaseHandler.unregisterHandlers()
       this.chatHandler.unregisterHandlers()
+      this.hydraulicHandler.cleanup()
       // Note: AuthHandler doesn't have unregisterHandlers method yet
       
       this.isInitialized = false
@@ -96,6 +105,7 @@ export class HandlersManager {
       results.databaseHandler = this.databaseHandler ? true : false
       results.chatHandler = this.chatHandler ? true : false
       results.authHandler = this.authHandler ? true : false
+      results.hydraulicHandler = this.hydraulicHandler ? true : false
       results.initialized = this.isInitialized
       
       logger.info('Handlers health check completed', results)
@@ -108,6 +118,7 @@ export class HandlersManager {
         databaseHandler: false,
         chatHandler: false,
         authHandler: false,
+        hydraulicHandler: false,
         initialized: false,
         error: true
       }

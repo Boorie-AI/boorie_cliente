@@ -10,7 +10,9 @@ import {
   Calendar,
   ListTodo,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FolderOpen,
+  Calculator
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import * as Tooltip from '@radix-ui/react-tooltip'
@@ -31,6 +33,8 @@ export function Sidebar() {
 
   const menuItems = [
     { id: 'chat', icon: MessageSquare, label: t('sidebar.chat'), view: 'chat' as const },
+    { id: 'projects', icon: FolderOpen, label: 'Projects', view: 'projects' as const },
+    { id: 'calculator', icon: Calculator, label: 'Calculator', view: 'calculator' as const },
     { id: 'rag', icon: FileText, label: t('sidebar.documents'), view: 'rag' as const },
     { id: 'email', icon: Mail, label: t('sidebar.email'), view: 'email' as const },
     { id: 'calendar', icon: Calendar, label: t('sidebar.calendar'), view: 'calendar' as const },

@@ -5,7 +5,7 @@ import { useChatStore } from './chatStore'
 
 export interface AppState {
   isInitialized: boolean
-  currentView: 'chat' | 'email' | 'calendar' | 'settings' | 'rag' | 'todo' 
+  currentView: 'chat' | 'email' | 'calendar' | 'settings' | 'rag' | 'todo' | 'projects' | 'calculator'
   theme: 'dark' | 'light'
   sidebarCollapsed: boolean
   
@@ -86,7 +86,7 @@ export const useAppStore = create<AppState>()(
                   }
                   break
                 case 'currentView':
-                  if (['chat', 'email', 'calendar', 'settings', 'rag'].includes(setting.value)) {
+                  if (['chat', 'email', 'calendar', 'settings', 'rag', 'todo', 'projects', 'calculator'].includes(setting.value)) {
                     set({ currentView: setting.value as any })
                   }
                   break

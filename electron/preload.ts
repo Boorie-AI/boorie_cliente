@@ -108,6 +108,33 @@ const electronAPI = {
     decryptData: (encryptedData: string) => ipcRenderer.invoke('decrypt-data', encryptedData),
     storeSecurely: (key: string, value: string) => ipcRenderer.invoke('store-securely', key, value),
     retrieveSecurely: (key: string) => ipcRenderer.invoke('retrieve-securely', key),
+  },
+
+  // Hydraulic engineering features
+  hydraulic: {
+    // Context processing
+    classifyQuery: (query: string, context?: any) => ipcRenderer.invoke('hydraulic:classify-query', query, context),
+    extractParameters: (query: string) => ipcRenderer.invoke('hydraulic:extract-parameters', query),
+    identifyRegulations: (context: any) => ipcRenderer.invoke('hydraulic:identify-regulations', context),
+    
+    // Calculations
+    calculate: (formulaId: string, inputs: any) => ipcRenderer.invoke('hydraulic:calculate', formulaId, inputs),
+    getFormulas: () => ipcRenderer.invoke('hydraulic:get-formulas'),
+    getFormulasByCategory: (category: string) => ipcRenderer.invoke('hydraulic:get-formulas-by-category', category),
+    
+    // Knowledge search
+    searchKnowledge: (query: string, options?: any) => ipcRenderer.invoke('hydraulic:search-knowledge', query, options),
+    getRegulations: (region: string) => ipcRenderer.invoke('hydraulic:get-regulations', region),
+    
+    // Project management
+    createProject: (projectData: any) => ipcRenderer.invoke('hydraulic:create-project', projectData),
+    getProject: (projectId: string) => ipcRenderer.invoke('hydraulic:get-project', projectId),
+    listProjects: () => ipcRenderer.invoke('hydraulic:list-projects'),
+    updateProject: (projectId: string, updates: any) => ipcRenderer.invoke('hydraulic:update-project', projectId, updates),
+    saveCalculation: (projectId: string, calculation: any) => ipcRenderer.invoke('hydraulic:save-calculation', projectId, calculation),
+    
+    // Enhanced chat
+    enhancedChat: (message: string, context: any) => ipcRenderer.invoke('hydraulic:enhanced-chat', message, context),
   }
 }
 
