@@ -311,7 +311,7 @@ Per a suport i preguntes:
 ### Wiki Multiidioma
 - 🇺🇸 [English Documentation](docs/wiki/en/Home.md)
 - 🇪🇸 [Documentación en Español](docs/wiki/es/Home.md)
-- 🇨🇦 [Documentació en Català](docs/wiki/ca/Home.md)
+- 🏴󠁥󠁳󠁣󠁴󠁿 [Documentació en Català](docs/wiki/ca/Home.md)
 
 ---
 

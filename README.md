@@ -314,12 +314,12 @@ For support and questions:
 ### Multilingual Wiki
 - 🇺🇸 [English Documentation](docs/wiki/en/Home.md)
 - 🇪🇸 [Documentación en Español](docs/wiki/es/Home.md)
-- 🇨🇦 [Documentació en Català](docs/wiki/ca/Home.md)
+- 🏴󠁥󠁳󠁣󠁴󠁿 [Documentació en Català](docs/wiki/ca/Home.md)
 
 ### Language-Specific READMEs
 - 🇺🇸 [README in English](README.md)
 - 🇪🇸 [README en Español](README.es.md)
-- 🇨🇦 [README en Català](README.ca.md)
+- 🏴󠁥󠁳󠁣󠁴󠁿 [README en Català](README.ca.md)
 
 ---
 

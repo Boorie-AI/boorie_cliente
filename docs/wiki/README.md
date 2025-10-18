@@ -14,7 +14,7 @@ Welcome to the comprehensive documentation for **Boorie**, the advanced AI deskt
 - [🏠 Inicio](es/Home.md)
 - [⚡ Integración de Analíticas](es/Integracion-Analiticas.md)
 
-### 🇨🇦 Documentació en Català
+### 🏴󠁥󠁳󠁣󠁴󠁿 Documentació en Català
 - [🏠 Inici](ca/Home.md)
 - [⚡ Integració d'Analítiques](ca/Integracio-Analitiques.md)
 
@@ -26,7 +26,7 @@ Complete project overview and setup instructions in English.
 ### 🇪🇸 [README en Español](../../README.es.md)
 Descripción completa del proyecto e instrucciones de configuración en español.
 
-### 🇨🇦 [README en Català](../../README.ca.md)
+### 🏴󠁥󠁳󠁣󠁴󠁿 [README en Català](../../README.ca.md)
 Descripció completa del projecte i instruccions de configuració en català.
 
 ## 🚀 Quick Start Guide
@@ -55,7 +55,7 @@ Descripció completa del projecte i instruccions de configuració en català.
 |----------|------|-----------|------|--------------|--------|
 | 🇺🇸 English | ✅ | ✅ | ✅ | ✅ | Complete |
 | 🇪🇸 Español | ✅ | ✅ | 🚧 | 🚧 | In Progress |
-| 🇨🇦 Català | ✅ | ✅ | 🚧 | 🚧 | In Progress |
+| 🏴󠁥󠁳󠁣󠁴󠁿 Català | ✅ | ✅ | 🚧 | 🚧 | In Progress |
 
 Legend:
 - ✅ Complete

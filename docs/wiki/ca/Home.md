@@ -98,12 +98,12 @@ Boorie està llicenciat sota la Llicència MIT. Veure [LICENSE](../LICENSE) per 
 ### Documentació Wiki
 - 🇺🇸 [English Documentation](../en/Home.md)
 - 🇪🇸 [Documentación en Español](../es/Home.md)
-- 🇨🇦 [Documentació en Català](Home.md) ← Estàs aquí
+- 🏴󠁥󠁳󠁣󠁴󠁿 [Documentació en Català](Home.md) ← Estàs aquí
 
 ### READMEs Específics per Idioma
 - 🇺🇸 [README in English](../../../README.md)
 - 🇪🇸 [README en Español](../../../README.es.md)
-- 🇨🇦 [README en Català](../../../README.ca.md)
+- 🏴󠁥󠁳󠁣󠁴󠁿 [README en Català](../../../README.ca.md)
 
 ---
 
