@@ -1,6 +1,7 @@
 // Chat Handler - IPC handlers for chat and AI provider API calls
 import { ipcMain } from 'electron'
 import { createLogger } from '../../backend/utils/logger'
+import { PrismaClient } from '@prisma/client'
 // Import types
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
@@ -43,6 +44,8 @@ export interface IPCChatResponse {
 }
 
 export class ChatHandler {
+  private prisma = new PrismaClient()
+
   constructor() {
     this.registerHandlers()
     logger.info('Chat handler initialized')
@@ -100,6 +103,9 @@ export class ChatHandler {
           break
         case 'openrouter':
           result = await this.sendOpenRouterMessage(model, messages, apiKey)
+          break
+        case 'ollama':
+          result = await this.sendOllamaMessage(model, messages, apiKey || '')
           break
         default:
           throw new Error(`Unsupported chat provider: ${provider}`)
@@ -440,6 +446,82 @@ export class ChatHandler {
         finish_reason: data.choices[0]?.finish_reason,
         created_at: new Date(data.created * 1000).toISOString(),
       }
+    }
+  }
+
+  private async sendOllamaMessage(model: string, messages: ChatMessage[], apiKey: string): Promise<ChatResponse> {
+    // Get Ollama base URL from provider config
+    const providers = await this.prisma.aIProvider.findMany({
+      where: { type: 'ollama', isActive: true }
+    })
+    const ollamaProvider = providers[0]
+    const baseUrl = ollamaProvider?.config ? JSON.parse(ollamaProvider.config).baseUrl : 'http://localhost:11434'
+
+    // Convert messages to Ollama format
+    const ollamaMessages = messages.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }))
+
+    const requestBody = {
+      model: model,
+      messages: ollamaMessages,
+      stream: false,
+    }
+
+    logger.debug('Ollama API Request', { model, messagesCount: ollamaMessages.length, baseUrl })
+
+    try {
+      const response = await fetch(`${baseUrl}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(60000) // 60 second timeout for local models
+      })
+
+      if (!response.ok) {
+        const errorData = await response.text()
+        logger.error('Ollama API error', new Error(errorData), { status: response.status })
+        
+        switch (response.status) {
+          case 404:
+            throw new Error(`Ollama model "${model}" not found. Please pull the model first: ollama pull ${model}`)
+          case 500:
+            throw new Error('Ollama internal error. Please check if Ollama is running.')
+          default:
+            throw new Error(`Ollama API error (${response.status}): ${errorData}`)
+        }
+      }
+
+      const data = await response.json() as any
+      
+      return {
+        response: data.message?.content || 'No response from Ollama',
+        metadata: {
+          model: model,
+          provider: 'Ollama',
+          tokens: data.prompt_eval_count + data.eval_count || 0,
+          usage: {
+            prompt_tokens: data.prompt_eval_count || 0,
+            completion_tokens: data.eval_count || 0,
+            total_tokens: (data.prompt_eval_count || 0) + (data.eval_count || 0),
+          },
+          created_at: new Date().toISOString(),
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Request to Ollama timed out. The model may be too large or slow.')
+      }
+      
+      // Check if Ollama is running
+      if (error instanceof Error && (error.message.includes('fetch failed') || error.message.includes('ECONNREFUSED'))) {
+        throw new Error('Cannot connect to Ollama. Please ensure Ollama is installed and running (ollama serve).')
+      }
+      
+      throw error
     }
   }
 

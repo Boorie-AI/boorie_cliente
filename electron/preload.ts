@@ -14,6 +14,12 @@ const electronAPI = {
     ipcRenderer.on('open-settings', callback)
     return () => ipcRenderer.removeListener('open-settings', callback)
   },
+  
+  onDisableSatelliteMode: (callback: (data: { reason: string, message: string }) => void) => {
+    const wrappedCallback = (_event: any, data: { reason: string, message: string }) => callback(data)
+    ipcRenderer.on('disable-satellite-mode', wrappedCallback)
+    return () => ipcRenderer.removeListener('disable-satellite-mode', wrappedCallback)
+  },
 
   // Window controls
   minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
@@ -60,6 +66,12 @@ const electronAPI = {
     selectFile: (options?: Electron.OpenDialogOptions) => ipcRenderer.invoke('select-file', options),
     readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
     writeFile: (filePath: string, data: string) => ipcRenderer.invoke('write-file', filePath, data),
+  },
+
+  // Dialog operations
+  dialog: {
+    showOpenDialog: (options?: Electron.OpenDialogOptions) => ipcRenderer.invoke('show-open-dialog', options),
+    showSaveDialog: (options?: Electron.SaveDialogOptions) => ipcRenderer.invoke('show-save-dialog', options),
   },
 
   // AI services
@@ -131,10 +143,67 @@ const electronAPI = {
     getProject: (projectId: string) => ipcRenderer.invoke('hydraulic:get-project', projectId),
     listProjects: () => ipcRenderer.invoke('hydraulic:list-projects'),
     updateProject: (projectId: string, updates: any) => ipcRenderer.invoke('hydraulic:update-project', projectId, updates),
+    deleteProject: (projectId: string) => ipcRenderer.invoke('hydraulic:delete-project', projectId),
     saveCalculation: (projectId: string, calculation: any) => ipcRenderer.invoke('hydraulic:save-calculation', projectId, calculation),
     
     // Enhanced chat
     enhancedChat: (message: string, context: any) => ipcRenderer.invoke('hydraulic:enhanced-chat', message, context),
+  },
+
+  // WNTR operations
+  wntr: {
+    // File operations
+    loadINPFile: () => ipcRenderer.invoke('wntr:load-inp-file'),
+    loadINPFromPath: (filePath: string) => ipcRenderer.invoke('wntr:load-inp-from-path', filePath),
+    saveINPFile: (content: string, fileName?: string) => ipcRenderer.invoke('wntr:save-inp-file', content, fileName),
+    
+    // Simulation
+    runSimulation: (options?: { simulationType?: 'single' | 'extended' }) => 
+      ipcRenderer.invoke('wntr:run-simulation', options),
+    runHydraulicSimulation: (config: any) => ipcRenderer.invoke('wntr:run-hydraulic-simulation', config),
+    runWaterQualitySimulation: (config: any) => ipcRenderer.invoke('wntr:run-water-quality-simulation', config),
+    runScenarioSimulation: (config: any) => ipcRenderer.invoke('wntr:run-scenario-simulation', config),
+    
+    // Analysis
+    analyzeNetwork: () => ipcRenderer.invoke('wntr:analyze-network'),
+    analyzeNetworkTopology: (config: any) => ipcRenderer.invoke('wntr:analyze-network-topology', config),
+    analyzeComponentCriticality: (config: any) => ipcRenderer.invoke('wntr:analyze-component-criticality', config),
+    calculateResilienceMetrics: (config: any) => ipcRenderer.invoke('wntr:calculate-resilience-metrics', config),
+    
+    // Report generation
+    generateSimulationReport: (config: any) => ipcRenderer.invoke('wntr:generate-simulation-report', config),
+    generateAnalysisReport: (config: any) => ipcRenderer.invoke('wntr:generate-analysis-report', config),
+    generateComprehensiveReport: (config: any) => ipcRenderer.invoke('wntr:generate-comprehensive-report', config),
+    
+    // Export
+    exportJSON: () => ipcRenderer.invoke('wntr:export-json'),
+  },
+  
+  // Document management for RAG
+  documents: {
+    // Document operations
+    upload: (options: {
+      category: 'hydraulics' | 'regulations' | 'best-practices'
+      subcategory?: string
+      region?: string[]
+      language?: string
+    }) => ipcRenderer.invoke('document:upload', options),
+    
+    search: (query: string, options?: any) => ipcRenderer.invoke('document:search', query, options),
+    
+    list: (filters?: {
+      category?: string
+      region?: string
+      language?: string
+    }) => ipcRenderer.invoke('document:list', filters),
+    
+    delete: (documentId: string) => ipcRenderer.invoke('document:delete', documentId),
+    
+    update: (documentId: string, updates: any) => ipcRenderer.invoke('document:update', documentId, updates),
+    
+    getEmbeddingProviders: () => ipcRenderer.invoke('document:get-embedding-providers'),
+    
+    setEmbeddingProvider: (providerId: string) => ipcRenderer.invoke('document:set-embedding-provider', providerId),
   }
 }
 

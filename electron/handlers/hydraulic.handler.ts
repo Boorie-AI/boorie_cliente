@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { ServiceContainer } from '../../backend/services'
 import { HydraulicContextProcessor } from '../../backend/services/hydraulic/contextProcessor'
 import { HydraulicCalculationEngine } from '../../backend/services/hydraulic/calculationEngine'
+import { calculatorWrapper } from '../../backend/services/hydraulic/calculatorWrapper'
 import { HydraulicRAGService } from '../../backend/services/hydraulic/ragService'
 import { 
   HydraulicContext, 
@@ -59,10 +60,15 @@ export class HydraulicHandler {
       }
     })
     
-    // Calculations
+    // Calculations - Now using Python calculator
     ipcMain.handle('hydraulic:calculate', async (_, formulaId: string, inputs: Record<string, { value: number; unit: string }>) => {
       try {
-        const result = this.calculationEngine.calculate(formulaId, inputs)
+        appLogger.info('Calculate request received:', { formulaId, inputs })
+        
+        // Use Python calculator wrapper for accurate scientific calculations
+        const result = await calculatorWrapper.calculate(formulaId, inputs)
+        
+        appLogger.info('Calculator result:', result)
         
         // Save calculation to database if in a project context
         // This would be enhanced to associate with active project
@@ -70,17 +76,27 @@ export class HydraulicHandler {
         return { success: true, data: result }
       } catch (error) {
         appLogger.error('Calculation failed', error as Error)
-        return { success: false, error: (error as Error).message }
+        // Fallback to JavaScript calculator if Python fails
+        try {
+          const fallbackResult = this.calculationEngine.calculate(formulaId, inputs)
+          appLogger.warn('Using JavaScript calculator as fallback')
+          return { success: true, data: fallbackResult }
+        } catch (fallbackError) {
+          return { success: false, error: (error as Error).message }
+        }
       }
     })
     
     ipcMain.handle('hydraulic:get-formulas', async () => {
       try {
-        const formulas = this.calculationEngine.getAvailableFormulas()
+        // Try Python calculator first for complete formula list
+        const formulas = await calculatorWrapper.getFormulas()
         return { success: true, data: formulas }
       } catch (error) {
-        appLogger.error('Get formulas failed', error as Error)
-        return { success: false, error: (error as Error).message }
+        appLogger.warn('Failed to get formulas from Python, using JavaScript fallback', error as Error)
+        // Fallback to JavaScript formulas
+        const formulas = this.calculationEngine.getAvailableFormulas()
+        return { success: true, data: formulas }
       }
     })
     
@@ -288,6 +304,35 @@ export class HydraulicHandler {
         return { success: true, data: saved }
       } catch (error) {
         appLogger.error('Save calculation failed', error as Error)
+        return { success: false, error: (error as Error).message }
+      }
+    })
+    
+    // Delete project
+    ipcMain.handle('hydraulic:delete-project', async (_, projectId: string) => {
+      try {
+        // Delete related data first to maintain referential integrity
+        await this.services.database.prisma.hydraulicCalculation.deleteMany({
+          where: { projectId }
+        })
+        
+        await this.services.database.prisma.projectDocument.deleteMany({
+          where: { projectId }
+        })
+        
+        await this.services.database.prisma.projectTeamMember.deleteMany({
+          where: { projectId }
+        })
+        
+        // Delete the project itself
+        await this.services.database.prisma.hydraulicProject.delete({
+          where: { id: projectId }
+        })
+        
+        appLogger.info(`Project ${projectId} deleted successfully`)
+        return { success: true }
+      } catch (error) {
+        appLogger.error('Delete project failed', error as Error)
         return { success: false, error: (error as Error).message }
       }
     })

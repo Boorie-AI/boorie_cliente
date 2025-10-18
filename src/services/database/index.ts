@@ -44,6 +44,7 @@ export interface Conversation {
   messages: any[]
   model: string
   provider: string
+  projectId?: string
   createdAt: Date
   updatedAt: Date
 }

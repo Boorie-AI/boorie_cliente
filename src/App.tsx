@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChatLayout } from '@/components/chat/ChatLayout'
 import { CustomTopBar } from '@/components/CustomTopBar'
+import { ClarityDebugPanel } from '@/components/ClarityDebugPanel'
+import { GlobalErrorTracker } from '@/components/GlobalErrorTracker'
 import { useAppStore } from '@/stores/appStore'
 import { cn } from '@/utils/cn'
 import './i18n' // Initialize i18n
@@ -47,10 +49,12 @@ function App() {
 
   return (
     <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
+      <GlobalErrorTracker />
       <CustomTopBar/>
       <div className="flex-1 min-h-0">
         <ChatLayout />
       </div>
+      <ClarityDebugPanel />
     </div>
   )
 }

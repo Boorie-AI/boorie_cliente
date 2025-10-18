@@ -1,0 +1,90 @@
+[TITLE]
+UTM Coordinate System Test Network - Similar to TK_Lomas
+
+[JUNCTIONS]
+;ID              Elev        Demand      Pattern         
+ J1              1650        50                          ;
+ J2              1652        75                          ;
+ J3              1655        100                         ;
+ J4              1658        80                          ;
+ J5              1660        60                          ;
+ J6              1662        90                          ;
+
+[RESERVOIRS]
+;ID              Head        Pattern         
+ R1              1700                        ;
+
+[TANKS]
+;ID              Elevation   InitLevel   MinLevel    MaxLevel    Diameter    MinVol      VolCurve        Overflow
+ T1              1680        5           2           10          30          0                           ;
+
+[PIPES]
+;ID              Node1           Node2           Length      Diameter    Roughness   MinorLoss   Status
+ P1              R1              J1              500         400         120         0           Open  ;
+ P2              J1              J2              600         350         120         0           Open  ;
+ P3              J2              J3              450         300         120         0           Open  ;
+ P4              J3              J4              700         250         120         0           Open  ;
+ P5              J4              J5              550         200         120         0           Open  ;
+ P6              J5              J6              400         150         120         0           Open  ;
+ P7              J2              T1              800         300         120         0           Open  ;
+ P8              J3              J6              900         200         120         0           Open  ;
+
+[PUMPS]
+;ID              Node1           Node2           Parameters
+ PUMP1           J6              T1              HEAD 1  ;
+
+[VALVES]
+;ID              Node1           Node2           Diameter    Type Setting      MinorLoss   
+
+[CURVES]
+;ID              X-Value     Y-Value
+;PUMP: 
+ 1               0           60
+ 1               500         50
+ 1               1000        35
+
+[PATTERNS]
+;ID              Multipliers
+ 1               0.5         0.6         0.7         0.9         1.1         1.3
+ 1               1.5         1.4         1.2         1.0         0.8         0.6
+ 1               0.5         0.6         0.8         1.0         1.2         1.3
+ 1               1.2         1.0         0.8         0.6         0.5         0.5
+
+[TIMES]
+ Duration           24:00 
+ Hydraulic Timestep 1:00 
+ Quality Timestep   0:05 
+ Pattern Timestep   1:00 
+ Pattern Start      0:00 
+ Report Timestep    1:00 
+ Report Start       0:00 
+ Start ClockTime    12 am
+ Statistic          NONE
+
+[OPTIONS]
+ Units              LPS
+ Headloss           H-W
+ Specific Gravity   1.0
+ Viscosity          1.0
+ Trials             40
+ Accuracy           0.001
+ Pattern            1
+ Demand Multiplier  1.0
+ Quality            None mg/L
+
+[COORDINATES]
+;Node            X-Coord           Y-Coord
+;UTM Zone 15N - Similar to TK_Lomas coordinates
+ J1              840500.25         1823456.78
+ J2              841234.56         1823890.12
+ J3              841678.90         1824234.56
+ J4              842123.45         1824567.89
+ J5              842567.89         1824890.12
+ J6              843012.34         1825123.45
+ R1              840012.34         1823234.56
+ T1              841456.78         1823012.34
+
+[VERTICES]
+;Link            X-Coord           Y-Coord
+
+[END]

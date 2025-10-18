@@ -1,0 +1,878 @@
+[TITLE]
+Scenario: Chamisero Medio 
+Date: 03/09/2020 7:31:38 
+
+[JUNCTIONS]
+;ID              	Elev        	Demand      	Pattern         
+ 5323            	630.260437011719	0           	DHmax           	;
+ 5333            	613.738037109375	0           	DHmax           	;
+ 5725            	622.715698242188	0           	DHmax           	;
+ 5726            	631.010314941406	0           	DHmax           	;
+ 5727            	625.099853515625	0           	DHmax           	;
+ 5728            	624.103515625	0           	DHmax           	;
+ 5729            	630.63623046875	0           	DHmax           	;
+ 5730            	630.815612792969	0           	DHmax           	;
+ 5731            	631.568908691406	0           	DHmax           	;
+ 5732            	629.564697265625	0           	DHmax           	;
+ 5733            	631.787109375	0           	DHmax           	;
+ 5734            	618.629089355469	1.334       	DHmax           	;
+ 5735            	617.957763671875	0           	DHmax           	;
+ 5736            	608.159301757813	0           	DHmax           	;
+ 5737            	622.491882324219	0           	DHmax           	;
+ 5751            	613.822082519531	0           	DHmax           	;
+ 5752            	613.6689453125	0           	DHmax           	;
+ 5753            	611.278686523438	0           	DHmax           	;
+ 5754            	617.649047851563	1.333       	DHmax           	;
+ 5755            	619.127685546875	0           	DHmax           	;
+ 5756            	619.906799316406	0           	DHmax           	;
+ 5757            	620.029907226563	0           	DHmax           	;
+ 5758            	611.486328125	0           	DHmax           	;
+ 5759            	613.143432617188	0           	DHmax           	;
+ 5766            	611.680847167969	1.333       	DHmax           	;
+ 5767            	605.285461425781	0           	DHmax           	;
+ 5768            	608.149780273438	0           	DHmax           	;
+ 5769            	614.711853027344	0           	DHmax           	;
+ 5770            	627.196655273438	0           	DHmax           	;
+ 5771            	632.905578613281	0           	DHmax           	;
+ 5772            	630.993713378906	0           	DHmax           	;
+ 5828            	622.335693359375	0           	DHmax           	;
+ 5829            	629.719055175781	0           	DHmax           	;
+ 5833            	633.166442871094	0           	DHmax           	;
+ 5847            	616.051574707031	0           	DHmax           	;
+ 5850            	632.433837890625	0           	DHmax           	;
+ 5851            	631.142395019531	0           	DHmax           	;
+ 5853            	616.740112304688	0           	DHmax           	;
+ 5877            	637.449890136719	0           	DHmax           	;
+ 5878            	635.856201171875	0           	DHmax           	;
+ 5879            	635.115539550781	0           	DHmax           	;
+ 5880            	630.873962402344	0           	DHmax           	;
+ 5881            	635.855773925781	0           	DHmax           	;
+ 5883            	626.514038085937	0           	DHmax           	;
+ 5886            	631.117797851563	0           	DHmax           	;
+ 5888            	625.055053710938	0           	DHmax           	;
+ 5889            	625.050354003906	0           	DHmax           	;
+ 5890            	627.099487304687	0           	DHmax           	;
+ 5891            	620.360046386719	0           	DHmax           	;
+ 5892            	620.965393066406	0           	DHmax           	;
+ 5893            	627.273498535156	0           	DHmax           	;
+ 5894            	623.431640625	0           	DHmax           	;
+ 5896            	624.992065429688	0           	DHmax           	;
+ 5897            	631.375     	0           	DHmax           	;
+ 5898            	624.629699707031	0           	DHmax           	;
+ 5903            	614.216369628906	0           	DHmax           	;
+ 7706            	616.887817382813	0           	DHmax           	;
+ 7788            	614.948364257813	0           	DHmax           	;
+ 7789            	615.289123535156	0.0         	                	;
+ 7857            	622.829528808594	0           	DHmax           	;
+ 7914            	617.7021484375	0           	DHmax           	;
+ 7949            	613.38427734375	3.1         	DHmax           	;
+ 7962            	614.561401367188	0           	DHmax           	;
+ 7964            	616.776489257813	0           	DHmax           	;
+ 7968            	617.297729492188	0           	DHmax           	;
+ 7982            	617.624206542969	0           	DHmax           	;
+ 8067            	614.370056152344	0           	DHmax           	;
+ 5983            	623.672485351563	0           	DHmax           	;
+ 5988            	624.992126464844	0           	DHmax           	;
+ 5990            	622.391357421875	0           	DHmax           	;
+ 5991            	608.040649414063	0           	DHmax           	;
+ 5992            	617.894226074219	0           	DHmax           	;
+ 5993            	618.607177734375	0           	DHmax           	;
+ 5996            	631.976623535156	0           	DHmax           	;
+ 5997            	614.631774902344	0           	DHmax           	;
+ 6005            	634.897521972656	0           	DHmax           	;
+ 6175-A          	621.783813476563	0           	DHmax           	;
+ 6175-B          	621.783813476563	0           	DHmax           	;
+ 6176-A          	623.740905761719	0           	DHmax           	;
+ 6176-B          	623.740905761719	0           	DHmax           	;
+ 6177-A          	624.863464355469	0           	DHmax           	;
+ 6177-B          	624.863464355469	0           	DHmax           	;
+ 6178-A          	630.56640625	0           	DHmax           	;
+ 6178-B          	630.56640625	0           	DHmax           	;
+ 6179-A          	626.589660644531	0           	DHmax           	;
+ 6179-B          	626.589660644531	0           	DHmax           	;
+ 6180-A          	622.653930664063	0           	DHmax           	;
+ 6180-B          	622.653930664063	0           	DHmax           	;
+ 6181-A          	617.75732421875	0           	DHmax           	;
+ 6181-B          	617.75732421875	0           	DHmax           	;
+ 6182-A          	607.97265625	0           	DHmax           	;
+ 6182-B          	607.97265625	0           	DHmax           	;
+ 6193-A          	618.494323730469	0           	DHmax           	;
+ 6193-B          	618.494323730469	0           	DHmax           	;
+ 6194-A          	613.345275878906	0           	DHmax           	;
+ 6194-B          	613.345275878906	0           	DHmax           	;
+ 6199-A          	632.190490722656	0           	DHmax           	;
+ 6199-B          	632.190490722656	0           	DHmax           	;
+ 6200-A          	614.510925292969	0           	DHmax           	;
+ 6200-B          	614.510925292969	0           	DHmax           	;
+ 6201-A          	626.31298828125	0           	DHmax           	;
+ 6201-B          	626.31298828125	0           	DHmax           	;
+ 6225-A          	635.111450195313	0           	DHmax           	;
+ 6225-B          	635.111450195313	0           	DHmax           	;
+ 6226-A          	618.82861328125	0           	DHmax           	;
+ 6226-B          	618.82861328125	0           	DHmax           	;
+ 6227-A          	620.653442382813	0           	DHmax           	;
+ 6227-B          	620.653442382813	0           	DHmax           	;
+ 6228-A          	620.077392578125	0           	DHmax           	;
+ 6228-B          	620.077392578125	0           	DHmax           	;
+ 6229-A          	625.175415039063	0           	DHmax           	;
+ 6229-B          	625.175415039063	0           	DHmax           	;
+ 6230-A          	626.262268066406	0           	DHmax           	;
+ 6230-B          	626.262268066406	0           	DHmax           	;
+ 6231-A          	626.899475097656	0           	DHmax           	;
+ 6231-B          	626.899475097656	0           	DHmax           	;
+ 8289-A          	618.07470703125	0           	DHmax           	;
+ 8289-B          	618.07470703125	0           	DHmax           	;
+ 8291-A          	616.891479492188	0           	DHmax           	;
+ 8291-B          	616.891479492188	0           	DHmax           	;
+ 8292-A          	616.441162109375	0           	DHmax           	;
+ 8292-B          	616.441162109375	0           	DHmax           	;
+ 6237-A          	612.421752929688	0           	DHmax           	;
+ 6237-B          	612.421752929688	0           	DHmax           	;
+ 6012-A          	614.293579101563	0           	DHmax           	;
+ 6012-B          	614.293579101563	0           	DHmax           	;
+ 6013-A          	613.650390625	0           	DHmax           	;
+ 6013-B          	613.650390625	0           	DHmax           	;
+ 6014-A          	613.373657226563	0           	DHmax           	;
+ 6014-B          	613.373657226563	0           	DHmax           	;
+ 1               	0           	-7.1        	1               	;
+
+[RESERVOIRS]
+;ID              	Head        	Pattern         
+
+[TANKS]
+;ID              	Elevation   	InitLevel   	MinLevel    	MaxLevel    	Diameter    	MinVol      	VolCurve
+ 6009            	620.03      	3.93000000000006	0           	5.5         	21.52       	0.00283168463686774	                	;
+
+[PIPES]
+;ID              	Node1           	Node2           	Length      	Diameter    	Roughness   	MinorLoss   	Status
+ 6317            	5728            	6176-A          	2.0015542078294	96.9        	140         	0           	Open  	;
+ 6320            	5727            	6177-A          	2.01171963340286	96.9        	140         	0           	Open  	;
+ 6345            	5890            	5732            	34.6975531688134	220.3       	140         	0           	Open  	;
+ 6370            	6177-B          	5988            	2.16225261370299	100         	110         	0           	Open  	;
+ 6371            	7857            	5725            	2.12442022505369	500         	100         	0           	Open  	;
+ 6419            	6176-B          	5983            	2.29869102346064	100         	110         	0           	Open  	;
+ 6421            	5730            	6178-A          	2.30740288162344	96.9        	140         	0           	Open  	;
+ 6447            	5731            	5733            	2.41457214797792	312.9       	140         	0           	Open  	;
+ 6450            	5756            	5757            	2.42397758938586	143.7       	150         	0           	Open  	;
+ 6453            	6179-B          	5883            	0.798403559804803	220.3       	140         	0           	Open  	;
+ 6457            	6193-B          	5993            	2.43787309378682	100         	110         	0           	Open  	;
+ 6472            	5737            	6180-A          	2.48987981026991	96.9        	140         	0           	Open  	;
+ 6477            	5736            	6182-A          	2.50289804021467	96.9        	140         	0           	Open  	;
+ 6486            	5735            	6181-A          	2.53006200686469	96.9        	140         	0           	Open  	;
+ 6535            	6180-B          	5990            	2.9277515393862	100         	110         	0           	Open  	;
+ 6564            	5732            	5829            	3.089592026897	220.3       	140         	0           	Open  	;
+ 6571            	6178-B          	5323            	3.11958327895408	96.9        	140         	0           	Open  	;
+ 6604            	6181-B          	5992            	3.44234572381031	100         	110         	0           	Open  	;
+ 6618            	5752            	5751            	8.10789771797485	98.6        	150         	0           	Open  	;
+ 6619            	5751            	5752            	3.70199020170722	98.6        	150         	0           	Open  	;
+ 6620            	5759            	6194-A          	3.79980624480987	96.9        	140         	0           	Open  	;
+ 6623            	6182-B          	5991            	3.87021338710974	100         	110         	0           	Open  	;
+ 6636            	5758            	5753            	4.06810880368702	98.6        	150         	0           	Open  	;
+ 6637            	5753            	5758            	11.2419284589893	98.6        	150         	0           	Open  	;
+ 6655            	5725            	5828            	6.63585616311053	440.6       	140         	0           	Open  	;
+ 6677            	5771            	5833            	5.96791221014766	220.3       	140         	0           	Open  	;
+ 6694            	5769            	6200-A          	7.24619136919528	96.9        	140         	0           	Open  	;
+ 6697            	6194-B          	5333            	7.38075911105742	96.9        	140         	0           	Open  	;
+ 6698            	5771            	6199-A          	7.51142400679315	96.9        	140         	0           	Open  	;
+ 6704            	5729            	5726            	7.76099009521098	220.3       	140         	0           	Open  	;
+ 6706            	5893            	6179-A          	7.24141823816997	220.3       	140         	0           	Open  	;
+ 6707            	6201-B          	5770            	8.0601832847769	220.3       	140         	0           	Open  	;
+ 6721            	5755            	6193-A          	8.60518396729116	98.6        	150         	0           	Open  	;
+ 6738            	6200-B          	5997            	9.15723524795728	100         	110         	0           	Open  	;
+ 6745            	6199-B          	5996            	9.5843457287441	100         	110         	0           	Open  	;
+ 6749            	5828            	6175-A          	10.3613072614728	220.3       	140         	0           	Open  	;
+ 6762            	5735            	5734            	11.8110833894278	277.6       	140         	0           	Open  	;
+ 6784            	5756            	5755            	13.7370120884907	98.6        	150         	0           	Open  	;
+ 6794            	5730            	5851            	14.2219702578279	312.9       	140         	0           	Open  	;
+ 6822            	5851            	5731            	16.3236610878394	312.9       	140         	0           	Open  	;
+ 6834            	7968            	8067            	19.645020878465	500         	100         	0           	Open  	;
+ 6889            	5829            	5730            	26.3460335585931	312.9       	140         	0           	Open  	;
+ 6895            	5755            	5754            	27.9546894271912	98.6        	150         	0           	Open  	;
+ 6903            	6175-B          	5728            	30.8623553166908	220.3       	140         	0           	Open  	;
+ 6921            	5766            	5759            	36.6363832737799	277.6       	140         	0           	Open  	;
+ 6943            	5333            	5853            	46.141211186157	96.9        	140         	0           	Open  	;
+ 6957            	5767            	5768            	45.1219155667998	220.3       	140         	0           	Open  	;
+ 6962            	5766            	5768            	48.6502210296332	220.3       	140         	0           	Open  	;
+ 6966            	5770            	5772            	50.1929792356602	277.6       	140         	0           	Open  	;
+ 6985            	5853            	5756            	90.8296625843739	143.7       	150         	0           	Open  	;
+ 7005            	5754            	5752            	96.7508996940943	98.6        	150         	0           	Open  	;
+ 7021            	5736            	5766            	71.9172367367267	277.6       	140         	0           	Open  	;
+ 7035            	5770            	5771            	79.9419545618506	220.3       	140         	0           	Open  	;
+ 7036            	5754            	5753            	179.889709391015	98.6        	150         	0           	Open  	;
+ 7094            	5759            	5735            	111.521620663037	277.6       	140         	0           	Open  	;
+ 7116            	5850            	5727            	142.978192457959	220.3       	140         	0           	Open  	;
+ 7117            	5768            	5769            	144.410434627274	220.3       	140         	0           	Open  	;
+ 7121            	5728            	5850            	150.229042018312	220.3       	140         	0           	Open  	;
+ 7134            	5731            	5737            	172.800762111165	277.6       	140         	0           	Open  	;
+ 7142            	5769            	6201-A          	191.98408117103	220.3       	140         	0           	Open  	;
+ 7159            	5737            	5736            	257.52245900896	277.6       	140         	0           	Open  	;
+ 7166            	8067            	7857            	349.082108084804	500         	100         	0           	Open  	;
+ 7203            	5879            	6225-A          	1.88750759379879	96.9        	140         	0           	Open  	;
+ 7204            	6225-B          	6005            	1.94940257642576	100         	110         	0           	Open  	;
+ 7209            	5880            	5886            	2.23619278318971	277.6       	140         	0           	Open  	;
+ 7211            	5881            	5878            	2.581774509938	141         	140         	0           	Open  	;
+ 7212            	5888            	6229-A          	3.9385175216631	96.9        	140         	0           	Open  	;
+ 7213            	6229-B          	5889            	3.23991301047282	96.9        	140         	0           	Open  	;
+ 7214            	5772            	5880            	2.72737757006712	277.6       	140         	0           	Open  	;
+ 7215            	6231-B          	5890            	5.05459226440059	141         	140         	0           	Open  	;
+ 7216            	6228-B          	5891            	5.34397799473504	312.9       	140         	0           	Open  	;
+ 7217            	5891            	6227-A          	5.44150419526371	312.9       	140         	0           	Open  	;
+ 7218            	5734            	6226-A          	3.4607875371408	277.6       	140         	0           	Open  	;
+ 7219            	6227-B          	5892            	5.95408677182287	312.9       	140         	0           	Open  	;
+ 7220            	5883            	6230-A          	6.46546938956454	312.9       	140         	0           	Open  	;
+ 7221            	5879            	5881            	6.74610289337972	141         	140         	0           	Open  	;
+ 7222            	5894            	5898            	8.18947747604193	141         	140         	0           	Open  	;
+ 7223            	5883            	5890            	8.57675932962158	312.9       	140         	0           	Open  	;
+ 7224            	5891            	5725            	9.93387875722977	312.9       	140         	0           	Open  	;
+ 7227            	5881            	5877            	14.5875684172397	141         	140         	0           	Open  	;
+ 7233            	5894            	5888            	35.5550432419097	312.9       	140         	0           	Open  	;
+ 7235            	5886            	5879            	36.8042730643043	141         	140         	0           	Open  	;
+ 7240            	5896            	6231-A          	61.7687187655672	141         	140         	0           	Open  	;
+ 7250            	5888            	5897            	137.750098753043	312.9       	140         	0           	Open  	;
+ 7251            	6230-B          	5894            	147.996178996442	312.9       	140         	0           	Open  	;
+ 7252            	5897            	6228-A          	178.277610523614	312.9       	140         	0           	Open  	;
+ 7254            	6226-B          	5880            	185.931447275457	277.6       	140         	0           	Open  	;
+ 7255            	5727            	5898            	14.4309656677616	220.3       	140         	0           	Open  	;
+ 7256            	5898            	5729            	197.610214026013	220.3       	140         	0           	Open  	;
+ 7265            	6012-B          	5903            	4.82635605254947	152.40000000061	130         	0           	Open  	;
+ 7266            	5903            	5847            	7.39415681852096	152.40000000061	130         	0           	Open  	;
+ 7267            	6014-B          	5903            	4.43725696324862	152.40000000061	130         	0           	Open  	;
+ 7268            	6013-B          	5903            	4.86810688261635	152.40000000061	130         	0           	Open  	;
+ 7269            	7949            	6013-A          	4.84942550904442	152.40000000061	130         	0           	CV    	;
+ 7270            	7949            	6012-A          	6.04636689326035	152.40000000061	130         	0           	CV    	;
+ 7271            	7949            	6014-A          	6.53803484846543	152.40000000061	130         	0           	CV    	;
+ 7274            	7949            	6237-A          	8.74119199590076	500         	100         	0           	Open  	;
+ 7275            	6237-B          	5903            	6.43132015258041	500         	100         	0           	Open  	;
+ 7704            	8291-B          	7706            	0.555584000387961	600         	130         	0           	Open  	;
+ 7787            	7788            	7789            	1.26179213798225	300         	130         	0           	Open  	;
+ 7913            	7914            	8289-A          	3.16592777813922	600         	130         	0           	Open  	;
+ 7961            	7789            	7962            	5.27631640385295	300         	130         	0           	Open  	;
+ 7963            	5847            	7964            	5.33715873736477	500         	130         	0           	Open  	;
+ 7967            	7964            	7968            	5.40438220763787	500         	130         	0           	Open  	;
+ 7981            	7982            	7914            	6.27830427026694	600         	130         	0           	Open  	;
+ 7986            	7949            	7788            	6.187487370509	300         	130         	0           	Open  	;
+ 8033            	7962            	8292-A          	14.489655220149	600         	130         	0           	Open  	;
+ 8049            	8292-B          	8291-A          	15.5702829834028	600         	130         	0           	Open  	;
+ 8053            	6009            	8289-B          	16.4568397800603	600         	130         	0           	CV    	;
+ 8062            	7706            	7982            	18.0825885584971	600         	130         	0           	Open  	;
+ 1               	1               	6009            	1           	1000        	100         	0           	Open  	;
+
+[PUMPS]
+;ID              	Node1           	Node2           	Parameters
+ 6012            	6012-A          	6012-B          	HEAD AA-Cham-Med	SPEED 1	;
+ 6013            	6013-A          	6013-B          	HEAD AA-Cham-Med	SPEED 1	;
+ 6014            	6014-A          	6014-B          	HEAD AA-Cham-Med	SPEED 1	;
+
+[VALVES]
+;ID              	Node1           	Node2           	Diameter    	Type	Setting     	MinorLoss   
+ 6175            	6175-A          	6175-B          	250         	TCV 	0           	0           	;
+ 6176            	6176-A          	6176-B          	100         	TCV 	0           	0           	;
+ 6177            	6177-A          	6177-B          	100         	TCV 	0           	0           	;
+ 6178            	6178-A          	6178-B          	100         	TCV 	0           	0           	;
+ 6179            	6179-A          	6179-B          	250         	TCV 	0           	0           	;
+ 6180            	6180-A          	6180-B          	100         	TCV 	0           	0           	;
+ 6181            	6181-A          	6181-B          	100         	TCV 	0           	0           	;
+ 6182            	6182-A          	6182-B          	100         	TCV 	0           	0           	;
+ 6193            	6193-A          	6193-B          	100         	TCV 	0           	0           	;
+ 6194            	6194-A          	6194-B          	100         	TCV 	0           	0           	;
+ 6199            	6199-A          	6199-B          	100         	TCV 	0           	0           	;
+ 6200            	6200-A          	6200-B          	100         	TCV 	0           	0           	;
+ 6201            	6201-A          	6201-B          	250         	TCV 	0           	0           	;
+ 6225            	6225-A          	6225-B          	152.40000000061	TCV 	0           	0           	;
+ 6226            	6226-A          	6226-B          	152.40000000061	TCV 	0           	0           	;
+ 6227            	6227-A          	6227-B          	152.40000000061	TCV 	0           	0           	;
+ 6228            	6228-A          	6228-B          	152.40000000061	TCV 	0           	0           	;
+ 6229            	6229-A          	6229-B          	152.40000000061	TCV 	0           	0           	;
+ 6230            	6230-A          	6230-B          	152.40000000061	TCV 	0           	0           	;
+ 6231            	6231-A          	6231-B          	152.40000000061	TCV 	0           	0           	;
+ 8289            	8289-A          	8289-B          	152.40000000061	TCV 	0           	0           	;
+ 8291            	8291-A          	8291-B          	152.40000000061	TCV 	0           	0           	;
+ 8292            	8292-A          	8292-B          	152.40000000061	TCV 	0           	0           	;
+ 6237            	6237-A          	6237-B          	152.40000000061	PRV 	0           	0           	;
+
+[TAGS]
+
+[DEMANDS]
+;Junction        	Demand      	Pattern         	Category
+
+[STATUS]
+;ID              	Status/Setting
+ 6237            	Closed
+
+[PATTERNS]
+;ID              	Multipliers
+;
+ Curva_Unitaria_08/06/2020	0.68        	0.64        	0.89        	0.67        	0.57        	0.52        
+ Curva_Unitaria_08/06/2020	0.53        	0.6         	1           	0.69        	0.89        	0.93        
+ Curva_Unitaria_08/06/2020	0.96        	0.55        	0.68        	0.94        	0.78        	0.61        
+ Curva_Unitaria_08/06/2020	0.66        	0.88        	0.66        	0.79        	0.93        	0.73        
+ Curva_Unitaria_08/06/2020	0.68        
+;
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0           	0           	0           	0           	0           	0           
+ Curva_Unitaria_Q_Medio	0.95        	0.97        	0.99        	1           	0.98        	0.96        
+ Curva_Unitaria_Q_Medio	0.9         	0.84        	0.85        	0.86        	0.84        	0.81        
+ Curva_Unitaria_Q_Medio	0.76        	0.72        	0.71        	0.7         	0.69        	0.68        
+ Curva_Unitaria_Q_Medio	0.74        	0.8         	0.83        	0.86        	0.89        	0.92        
+ Curva_Unitaria_Q_Medio	0.95        
+;
+ Factores_de_modulacion	1.116937517 	1.076681487 	1.034854015 	0.966565281 	0.819837885 	0.949846955 
+ Factores_de_modulacion	1.085942816 	1.235170952 	1.177780559 	1.458806268 	0.953446573 	0.889883468 
+ Factores_de_modulacion	0.886880167 	0.98487766  	1.205251914 	1.020593468 	0.887859813 	0.982150814 
+ Factores_de_modulacion	0.787264959 	0.740682465 	0.929029314 	0.825682742 	0.931256465 	1.052716442 
+;Dmanada horaria para el dia de maximo consumo
+ DHmax           	1.258       	1.186       	1.142       	0.778       	0.531       	0.617       
+ DHmax           	0.946       	1.261       	1.022       	0.881       	0.614       	0.761       
+ DHmax           	1.783       	0.501       	1.07        	0.384       	1.063       	1.412       
+ DHmax           	0.754       	0.881       	1.056       	0.857       	1.584       	1.659       
+;
+ 1               	1           	1           	1           	1           	1           	1           
+ 1               	1           	1           	1           	1           	1           	1           
+ 1               	1           	1           	1           	1           	1           	1           
+ 1               	1           	1           	1           	1           	1           	1           
+
+[CURVES]
+;ID              	X-Value     	Y-Value
+;PUMP: PUMP: PUMP:
+ 6012            	0           	79          
+ 6012            	6           	70          
+ 6012            	8.116       	61.73       
+ 6012            	10          	50          
+ 6012            	12          	0           
+;PUMP: PUMP: EFFICIENCY:
+ 6012E           	0           	100         
+;PUMP: PUMP: PUMP:
+ 6013            	0           	79          
+ 6013            	6           	70          
+ 6013            	8.116       	61.73       
+ 6013            	10          	50          
+ 6013            	12          	0           
+;PUMP: PUMP: EFFICIENCY:
+ 6013E           	0           	100         
+;PUMP: PUMP: PUMP:
+ 6014            	0           	79          
+ 6014            	6           	70          
+ 6014            	8.116       	61.73       
+ 6014            	10          	50          
+ 6014            	12          	0           
+;PUMP: PUMP: EFFICIENCY:
+ 6014E           	0           	100         
+;PUMP: PUMP: Curva de las Bombas en el Sector Chamisero-Medio
+ GTD-Cha-Med     	2           	55          
+;PUMP: EFFICIENCY: 
+ GTD-Cha-Med-ef  	0           	0           
+ GTD-Cha-Med-ef  	0.5         	30.625      
+ GTD-Cha-Med-ef  	1           	52.5        
+ GTD-Cha-Med-ef  	1.5         	65.625      
+ GTD-Cha-Med-ef  	2           	70          
+ GTD-Cha-Med-ef  	2.5         	65.625      
+ GTD-Cha-Med-ef  	3           	52.5        
+ GTD-Cha-Med-ef  	3.5         	30.625      
+ GTD-Cha-Med-ef  	4           	0           
+;PUMP: PUMP: Curva de Bomba punto (H=55, Q= 3 l/s)
+ GTD-Cha-Med-02  	3           	55          
+;PUMP: EFFICIENCY: Curva de eficiencia Chamisero Medio (Q=3, Qmax=6 l/s)
+ Cha-Med-Ef-02   	0           	0           
+ Cha-Med-Ef-02   	0.75        	30.625      
+ Cha-Med-Ef-02   	1.5         	52.5        
+ Cha-Med-Ef-02   	2.25        	65.625      
+ Cha-Med-Ef-02   	3           	70          
+ Cha-Med-Ef-02   	3.75        	65.625      
+ Cha-Med-Ef-02   	4.5         	52.5        
+ Cha-Med-Ef-02   	5.25        	30.625      
+ Cha-Med-Ef-02   	6           	0           
+;PUMP: PUMP: Curva de la Bomba Chimisero Medio (H=55 m, Q=10 l/s)
+ GTD-Cha-Med-03  	10          	55          
+;PUMP: EFFICIENCY: Curva de eficiencia Chamisero medio (H=55 Q=10)
+ GTD-Cha-Med-ef-03	0           	0           
+ GTD-Cha-Med-ef-03	2.5         	30.625      
+ GTD-Cha-Med-ef-03	5           	52.5        
+ GTD-Cha-Med-ef-03	7.5         	65.625      
+ GTD-Cha-Med-ef-03	10          	70          
+ GTD-Cha-Med-ef-03	12.5        	65.625      
+ GTD-Cha-Med-ef-03	15          	52.5        
+ GTD-Cha-Med-ef-03	17.5        	30.625      
+ GTD-Cha-Med-ef-03	20          	0           
+;PUMP: Curva de Bomba Chamisero Medio AA
+ AA-Cham-Med     	6           	70          
+;PUMP: 
+;EFFICIENCY: Curva de Efciencia para AA chamisero medio
+ AA-Cham-Med-Ef  	0           	0           
+ AA-Cham-Med-Ef  	1.5         	30.625      
+ AA-Cham-Med-Ef  	3           	52.5        
+ AA-Cham-Med-Ef  	4.5         	65.625      
+ AA-Cham-Med-Ef  	6           	70          
+ AA-Cham-Med-Ef  	7.5         	65.625      
+ AA-Cham-Med-Ef  	9           	52.5        
+ AA-Cham-Med-Ef  	10.5        	30.625      
+ AA-Cham-Med-Ef  	12          	0           
+
+[CONTROLS]
+
+
+[RULES]
+
+
+
+
+
+[ENERGY]
+ Global Efficiency  	75
+ Global Price       	0
+ Demand Charge      	0
+ Pump 	6012            	Efficiency	AA-Cham-Med-Ef
+ Pump 	6013            	Efficiency	AA-Cham-Med-Ef
+ Pump 	6014            	Efficiency	AA-Cham-Med-Ef
+
+[EMITTERS]
+;Junction        	Coefficient
+
+[QUALITY]
+;Node            	InitQual
+
+[SOURCES]
+;Node            	Type        	Quality     	Pattern
+
+[REACTIONS]
+;Type     	Pipe/Tank       	Coefficient
+
+
+[REACTIONS]
+ Order Bulk            	1
+ Order Tank            	1
+ Order Wall            	1
+ Global Bulk           	0
+ Global Wall           	0
+ Limiting Potential    	0
+ Roughness Correlation 	0
+
+[MIXING]
+;Tank            	Model
+
+[TIMES]
+ Duration           	24:00 
+ Hydraulic Timestep 	1:00 
+ Quality Timestep   	0:00 
+ Pattern Timestep   	1:00 
+ Pattern Start      	0:00 
+ Report Timestep    	0:00 
+ Report Start       	0:00 
+ Start ClockTime    	12 am
+ Statistic          	None
+
+[REPORT]
+ Status             	No
+ Summary            	No
+ Page               	0
+
+[OPTIONS]
+ Units              	LPS
+ Headloss           	H-W
+ Specific Gravity   	0.998
+ Viscosity          	0.982157860636364
+ Trials             	100
+ Accuracy           	0.01
+ CHECKFREQ          	2
+ MAXCHECK           	10
+ DAMPLIMIT          	0
+ Unbalanced         	Continue 10
+ Pattern            	DHmax
+ Demand Multiplier  	1.5
+ Emitter Exponent   	0.5
+ Quality            	NONE mg/L
+ Diffusivity        	1
+ Tolerance          	0.01
+
+[COORDINATES]
+;Node            	X-Coord         	Y-Coord
+ 5323            	346428.42       	6311570.88      
+ 5333            	346839.95       	6311774.34      
+ 5725            	345885.63       	6311774.65      
+ 5726            	346404.27       	6311566.47      
+ 5727            	346207.95       	6311665.29      
+ 5728            	345932.32       	6311764.15      
+ 5729            	346397.40       	6311570.07      
+ 5730            	346428.07       	6311565.73      
+ 5731            	346455.73       	6311552.81      
+ 5732            	346401.94       	6311579.28      
+ 5733            	346457.74       	6311551.48      
+ 5734            	346950.35       	6311717.90      
+ 5735            	346940.06       	6311723.70      
+ 5736            	346754.89       	6311841.33      
+ 5737            	346577.09       	6311675.82      
+ 5751            	346707.35       	6311771.20      
+ 5752            	346704.48       	6311773.53      
+ 5753            	346727.57       	6311802.14      
+ 5754            	346744.33       	6311725.17      
+ 5755            	346767.44       	6311709.44      
+ 5756            	346778.99       	6311702.01      
+ 5757            	346777.15       	6311700.43      
+ 5758            	346730.82       	6311799.70      
+ 5759            	346846.11       	6311783.66      
+ 5766            	346816.40       	6311805.10      
+ 5767            	346796.87       	6311876.50      
+ 5768            	346833.67       	6311850.40      
+ 5769            	346953.67       	6311770.21      
+ 5770            	347139.20       	6311696.98      
+ 5771            	347217.18       	6311700.52      
+ 5772            	347127.56       	6311648.15      
+ 5828            	345892.10       	6311773.15      
+ 5829            	346404.68       	6311577.85      
+ 5833            	347223.14       	6311700.20      
+ 5847            	345528.51       	6311884.63      
+ 5850            	346075.75       	6311719.62      
+ 5851            	346440.71       	6311559.22      
+ 5853            	346822.87       	6311737.48      
+ 5877            	347172.18       	6311609.22      
+ 5878            	347158.23       	6311614.82      
+ 5879            	347154.35       	6311620.89      
+ 5880            	347119.25       	6311638.07      
+ 5881            	347159.78       	6311616.89      
+ 5883            	346362.56       	6311597.21      
+ 5886            	347125.07       	6311629.92      
+ 5888            	346192.41       	6311681.78      
+ 5889            	346196.83       	6311677.96      
+ 5890            	346370.23       	6311593.36      
+ 5891            	345888.36       	6311784.20      
+ 5892            	345877.30       	6311786.92      
+ 5893            	346359.36       	6311589.84      
+ 5894            	346224.47       	6311666.41      
+ 5896            	346416.18       	6311641.88      
+ 5897            	346064.53       	6311732.79      
+ 5898            	346220.94       	6311659.01      
+ 5903            	345533.82       	6311889.77      
+ 7706            	345494.65       	6311894.53      
+ 7788            	345526.18       	6311891.44      
+ 7789            	345525.87       	6311890.22      
+ 7857            	345883.57       	6311775.16      
+ 7914            	345470.72       	6311893.87      
+ 7949            	345527.84       	6311897.40      
+ 7962            	345523.30       	6311894.83      
+ 7964            	345531.21       	6311880.02      
+ 7968            	345533.89       	6311875.33      
+ 7982            	345476.56       	6311894.75      
+ 8067            	345553.34       	6311875.66      
+ 5983            	345935.00       	6311765.56      
+ 5988            	346206.97       	6311668.09      
+ 5990            	346580.19       	6311676.53      
+ 5991            	346759.63       	6311843.45      
+ 5992            	346944.50       	6311724.71      
+ 5993            	346774.27       	6311715.30      
+ 5996            	347225.07       	6311713.48      
+ 5997            	346966.25       	6311778.85      
+ 6005            	347151.66       	6311620.61      
+ 6175-A          	345902.16       	6311770.68      
+ 6175-B          	345902.16       	6311770.68      
+ 6176-A          	345932.77       	6311766.10      
+ 6176-B          	345932.77       	6311766.10      
+ 6177-A          	346208.87       	6311667.07      
+ 6177-B          	346208.87       	6311667.07      
+ 6178-A          	346429.03       	6311567.82      
+ 6178-B          	346429.03       	6311567.82      
+ 6179-A          	346362.25       	6311596.48      
+ 6179-B          	346362.25       	6311596.48      
+ 6180-A          	346578.76       	6311673.97      
+ 6180-B          	346578.76       	6311673.97      
+ 6181-A          	346941.28       	6311725.92      
+ 6181-B          	346941.28       	6311725.92      
+ 6182-A          	346755.77       	6311843.67      
+ 6182-B          	346755.77       	6311843.67      
+ 6193-A          	346772.21       	6311716.60      
+ 6193-B          	346772.21       	6311716.60      
+ 6194-A          	346844.01       	6311780.50      
+ 6194-B          	346844.01       	6311780.50      
+ 6199-A          	347217.18       	6311708.04      
+ 6199-B          	347217.18       	6311708.04      
+ 6200-A          	346957.42       	6311776.41      
+ 6200-B          	346957.42       	6311776.41      
+ 6201-A          	347131.39       	6311698.97      
+ 6201-B          	347131.39       	6311698.97      
+ 6225-A          	347153.19       	6311619.40      
+ 6225-B          	347153.19       	6311619.40      
+ 6226-A          	346953.53       	6311716.53      
+ 6226-B          	346953.53       	6311716.53      
+ 6227-A          	345883.08       	6311785.51      
+ 6227-B          	345883.08       	6311785.51      
+ 6228-A          	345893.54       	6311782.89      
+ 6228-B          	345893.54       	6311782.89      
+ 6229-A          	346193.92       	6311679.37      
+ 6229-B          	346193.92       	6311679.37      
+ 6230-A          	346356.78       	6311600.12      
+ 6230-B          	346356.78       	6311600.12      
+ 6231-A          	346373.72       	6311597.02      
+ 6231-B          	346373.72       	6311597.02      
+ 8289-A          	345469.18       	6311891.11      
+ 8289-B          	345469.18       	6311891.11      
+ 8291-A          	345495.20       	6311894.53      
+ 8291-B          	345495.20       	6311894.53      
+ 8292-A          	345510.63       	6311896.66      
+ 8292-B          	345510.63       	6311896.66      
+ 6237-A          	345536.27       	6311895.72      
+ 6237-B          	345536.27       	6311895.72      
+ 6012-A          	345528.29       	6311893.04      
+ 6012-B          	345530.05       	6311891.77      
+ 6013-A          	345529.30       	6311894.76      
+ 6013-B          	345531.09       	6311893.81      
+ 6014-A          	345531.54       	6311895.48      
+ 6014-B          	345533.20       	6311893.66      
+ 1               	345453.86       	6311871.66      
+ 6009            	345461.40       	6311876.60      
+
+[VERTICES]
+;Link            	X-Coord         	Y-Coord
+ 6618            	346705.78       	6311775.21      
+ 6618            	346708.76       	6311772.88      
+ 6637            	346725.40       	6311799.37      
+ 6637            	346728.60       	6311796.82      
+ 6834            	345533.98       	6311875.17      
+ 6834            	345534.24       	6311874.97      
+ 6834            	345534.64       	6311874.94      
+ 6834            	345552.15       	6311875.68      
+ 6834            	345553.06       	6311875.72      
+ 6895            	346761.69       	6311713.23      
+ 6895            	346754.91       	6311717.79      
+ 6921            	346831.88       	6311794.14      
+ 6943            	346820.59       	6311745.13      
+ 6943            	346825.58       	6311741.82      
+ 6962            	346830.48       	6311845.70      
+ 6985            	346820.43       	6311733.20      
+ 6985            	346817.23       	6311735.26      
+ 6985            	346822.17       	6311743.28      
+ 6985            	346810.99       	6311750.55      
+ 6985            	346809.37       	6311749.03      
+ 6985            	346807.58       	6311747.41      
+ 6985            	346805.30       	6311745.35      
+ 6985            	346804.05       	6311743.99      
+ 6985            	346802.86       	6311742.58      
+ 6985            	346801.72       	6311740.79      
+ 6985            	346800.58       	6311739.00      
+ 6985            	346799.66       	6311737.16      
+ 6985            	346798.79       	6311735.15      
+ 6985            	346798.03       	6311733.03      
+ 6985            	346797.27       	6311730.00      
+ 6985            	346796.51       	6311727.39      
+ 6985            	346795.81       	6311725.06      
+ 6985            	346795.26       	6311723.11      
+ 6985            	346794.45       	6311721.21      
+ 6985            	346791.95       	6311716.71      
+ 6985            	346790.44       	6311714.37      
+ 6985            	346788.86       	6311712.10      
+ 6985            	346785.55       	6311708.46      
+ 7005            	346724.91       	6311739.22      
+ 7005            	346698.88       	6311759.56      
+ 7005            	346691.99       	6311751.86      
+ 7005            	346688.35       	6311754.73      
+ 7005            	346702.18       	6311770.57      
+ 7021            	346762.78       	6311839.28      
+ 7021            	346781.79       	6311829.81      
+ 7021            	346796.98       	6311819.23      
+ 7035            	347165.95       	6311690.91      
+ 7035            	347173.33       	6311694.01      
+ 7035            	347181.20       	6311696.15      
+ 7035            	347189.30       	6311698.06      
+ 7035            	347195.73       	6311699.25      
+ 7035            	347202.41       	6311699.73      
+ 7035            	347210.03       	6311700.20      
+ 7036            	346752.49       	6311733.91      
+ 7036            	346755.77       	6311737.21      
+ 7036            	346760.78       	6311742.59      
+ 7036            	346763.57       	6311745.85      
+ 7036            	346767.76       	6311751.04      
+ 7036            	346771.78       	6311756.30      
+ 7036            	346774.38       	6311760.26      
+ 7036            	346777.69       	6311765.52      
+ 7036            	346781.01       	6311771.89      
+ 7036            	346784.47       	6311778.98      
+ 7036            	346799.17       	6311769.75      
+ 7036            	346801.72       	6311773.23      
+ 7036            	346792.88       	6311778.88      
+ 7036            	346790.73       	6311780.19      
+ 7036            	346788.98       	6311780.83      
+ 7036            	346784.58       	6311781.90      
+ 7036            	346781.32       	6311783.49      
+ 7036            	346775.84       	6311787.22      
+ 7036            	346768.90       	6311792.27      
+ 7036            	346759.67       	6311799.37      
+ 7036            	346754.20       	6311803.93      
+ 7036            	346749.59       	6311807.89      
+ 7036            	346747.48       	6311809.79      
+ 7036            	346744.11       	6311811.47      
+ 7036            	346740.15       	6311812.17      
+ 7036            	346737.22       	6311811.85      
+ 7036            	346734.46       	6311810.76      
+ 7036            	346733.64       	6311809.89      
+ 7094            	346865.15       	6311770.20      
+ 7094            	346878.70       	6311760.88      
+ 7094            	346895.05       	6311750.30      
+ 7094            	346913.60       	6311739.06      
+ 7116            	346085.74       	6311716.11      
+ 7116            	346133.37       	6311697.92      
+ 7116            	346171.66       	6311681.52      
+ 7117            	346888.32       	6311811.72      
+ 7117            	346896.77       	6311805.52      
+ 7117            	346914.42       	6311793.88      
+ 7117            	346931.32       	6311783.36      
+ 7117            	346941.46       	6311777.16      
+ 7121            	346007.16       	6311742.70      
+ 7121            	346056.17       	6311726.63      
+ 7142            	346979.21       	6311756.69      
+ 7142            	346994.04       	6311749.56      
+ 7142            	347009.06       	6311742.80      
+ 7142            	347026.90       	6311734.54      
+ 7142            	347046.25       	6311726.84      
+ 7142            	347065.78       	6311719.33      
+ 7142            	347091.31       	6311710.12      
+ 7142            	347117.79       	6311702.42      
+ 7159            	346615.25       	6311717.21      
+ 7159            	346652.58       	6311762.01      
+ 7159            	346718.50       	6311845.28      
+ 7159            	346726.64       	6311843.64      
+ 7159            	346736.89       	6311842.22      
+ 7159            	346747.13       	6311842.22      
+ 7166            	345554.55       	6311875.03      
+ 7166            	345556.26       	6311874.00      
+ 7166            	345578.73       	6311855.74      
+ 7166            	345579.95       	6311854.77      
+ 7166            	345599.17       	6311843.31      
+ 7166            	345627.27       	6311832.41      
+ 7166            	345655.92       	6311824.19      
+ 7166            	345689.09       	6311817.14      
+ 7166            	345749.85       	6311804.21      
+ 7166            	345814.26       	6311790.52      
+ 7166            	345872.38       	6311778.24      
+ 7212            	346191.75       	6311680.37      
+ 7221            	347158.37       	6311617.83      
+ 7227            	347165.19       	6311613.28      
+ 7235            	347130.76       	6311643.00      
+ 7235            	347135.63       	6311638.62      
+ 7235            	347141.32       	6311632.61      
+ 7235            	347147.16       	6311626.92      
+ 7235            	347152.20       	6311622.54      
+ 7250            	346162.07       	6311695.46      
+ 7250            	346138.78       	6311705.32      
+ 7250            	346116.55       	6311714.08      
+ 7250            	346090.04       	6311724.04      
+ 7252            	346036.06       	6311742.75      
+ 7252            	346001.75       	6311753.82      
+ 7252            	345959.49       	6311766.09      
+ 7252            	345931.68       	6311773.59      
+ 7254            	346956.16       	6311714.84      
+ 7254            	346959.01       	6311712.90      
+ 7254            	346969.26       	6311706.96      
+ 7254            	346983.26       	6311699.69      
+ 7254            	347003.24       	6311690.92      
+ 7254            	347020.46       	6311683.94      
+ 7254            	347038.33       	6311677.12      
+ 7254            	347065.94       	6311667.69      
+ 7254            	347082.84       	6311662.17      
+ 7254            	347097.94       	6311657.95      
+ 7254            	347108.83       	6311654.21      
+ 7254            	347120.04       	6311649.50      
+ 7254            	347123.77       	6311647.71      
+ 7256            	346251.83       	6311644.21      
+ 7256            	346318.71       	6311610.34      
+ 7256            	346374.07       	6311582.03      
+ 7265            	345531.37       	6311889.79      
+ 7267            	345534.51       	6311891.96      
+ 7274            	345536.33       	6311895.80      
+ 7961            	345524.16       	6311893.28      
+ 7967            	345533.03       	6311876.83      
+ 7981            	345471.85       	6311894.81      
+ 7981            	345471.34       	6311894.69      
+ 7981            	345470.99       	6311894.36      
+ 8033            	345521.84       	6311897.58      
+ 8033            	345521.67       	6311897.78      
+ 8033            	345521.32       	6311897.82      
+ 8049            	345498.23       	6311894.95      
+ 8049            	345496.44       	6311894.70      
+ 8049            	345495.70       	6311894.60      
+ 8053            	345467.92       	6311888.84      
+
+[LABELS]
+;X-Coord           Y-Coord          Label & Anchor Node
+
+[BACKDROP]
+ DIMENSIONS     	345357.96       	6311534.18      	347313.98       	6311914.70      
+ UNITS          	None
+ FILE           	
+ OFFSET         	0.00            	0.00            
+
+[END]

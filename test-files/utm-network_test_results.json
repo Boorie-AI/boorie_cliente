@@ -1,0 +1,280 @@
+{
+  "network": {
+    "name": "utm-network.inp",
+    "summary": {
+      "junctions": 6,
+      "tanks": 1,
+      "reservoirs": 1,
+      "pipes": 8,
+      "pumps": 1,
+      "valves": 0,
+      "patterns": 1,
+      "curves": 1
+    },
+    "nodes": [
+      {
+        "id": "J1",
+        "label": "J1",
+        "type": "junction",
+        "x": 840500.25,
+        "y": 1823456.78,
+        "elevation": 1650.0,
+        "demand": 0.05,
+        "pattern": "1"
+      },
+      {
+        "id": "J2",
+        "label": "J2",
+        "type": "junction",
+        "x": 841234.56,
+        "y": 1823890.12,
+        "elevation": 1652.0,
+        "demand": 0.075,
+        "pattern": "1"
+      },
+      {
+        "id": "J3",
+        "label": "J3",
+        "type": "junction",
+        "x": 841678.9,
+        "y": 1824234.56,
+        "elevation": 1655.0,
+        "demand": 0.1,
+        "pattern": "1"
+      },
+      {
+        "id": "J4",
+        "label": "J4",
+        "type": "junction",
+        "x": 842123.45,
+        "y": 1824567.89,
+        "elevation": 1658.0,
+        "demand": 0.08,
+        "pattern": "1"
+      },
+      {
+        "id": "J5",
+        "label": "J5",
+        "type": "junction",
+        "x": 842567.89,
+        "y": 1824890.12,
+        "elevation": 1660.0,
+        "demand": 0.06,
+        "pattern": "1"
+      },
+      {
+        "id": "J6",
+        "label": "J6",
+        "type": "junction",
+        "x": 843012.34,
+        "y": 1825123.45,
+        "elevation": 1662.0,
+        "demand": 0.09,
+        "pattern": "1"
+      },
+      {
+        "id": "R1",
+        "label": "R1",
+        "type": "reservoir",
+        "x": 840012.34,
+        "y": 1823234.56,
+        "total_head": 0.0,
+        "pattern": null
+      },
+      {
+        "id": "T1",
+        "label": "T1",
+        "type": "tank",
+        "x": 841456.78,
+        "y": 1823012.34,
+        "elevation": 1680.0,
+        "init_level": 5.0,
+        "min_level": 2.0,
+        "max_level": 10.0,
+        "diameter": 30.0
+      }
+    ],
+    "links": [
+      {
+        "id": "P1",
+        "label": "P1",
+        "type": "pipe",
+        "from": "R1",
+        "to": "J1",
+        "length": 500.0,
+        "diameter": 0.4,
+        "roughness": 120.0,
+        "status": "Open"
+      },
+      {
+        "id": "P2",
+        "label": "P2",
+        "type": "pipe",
+        "from": "J1",
+        "to": "J2",
+        "length": 600.0,
+        "diameter": 0.35000000000000003,
+        "roughness": 120.0,
+        "status": "Open"
+      },
+      {
+        "id": "P3",
+        "label": "P3",
+        "type": "pipe",
+        "from": "J2",
+        "to": "J3",
+        "length": 450.0,
+        "diameter": 0.3,
+        "roughness": 120.0,
+        "status": "Open"
+      },
+      {
+        "id": "P4",
+        "label": "P4",
+        "type": "pipe",
+        "from": "J3",
+        "to": "J4",
+        "length": 700.0,
+        "diameter": 0.25,
+        "roughness": 120.0,
+        "status": "Open"
+      },
+      {
+        "id": "P5",
+        "label": "P5",
+        "type": "pipe",
+        "from": "J4",
+        "to": "J5",
+        "length": 550.0,
+        "diameter": 0.2,
+        "roughness": 120.0,
+        "status": "Open"
+      },
+      {
+        "id": "P6",
+        "label": "P6",
+        "type": "pipe",
+        "from": "J5",
+        "to": "J6",
+        "length": 400.0,
+        "diameter": 0.15,
+        "roughness": 120.0,
+        "status": "Open"
+      },
+      {
+        "id": "P7",
+        "label": "P7",
+        "type": "pipe",
+        "from": "J2",
+        "to": "T1",
+        "length": 800.0,
+        "diameter": 0.3,
+        "roughness": 120.0,
+        "status": "Open"
+      },
+      {
+        "id": "P8",
+        "label": "P8",
+        "type": "pipe",
+        "from": "J3",
+        "to": "J6",
+        "length": 900.0,
+        "diameter": 0.2,
+        "roughness": 120.0,
+        "status": "Open"
+      },
+      {
+        "id": "PUMP1",
+        "label": "PUMP1",
+        "type": "pump",
+        "from": "J6",
+        "to": "T1",
+        "pump_type": "HEAD",
+        "status": "Open",
+        "pump_curve": "1",
+        "speed": 1.0
+      }
+    ],
+    "options": {
+      "time": {
+        "duration": 86400.0,
+        "hydraulic_timestep": 3600.0,
+        "quality_timestep": 300.0,
+        "pattern_timestep": 3600.0,
+        "pattern_start": 0.0,
+        "report_timestep": 3600.0,
+        "report_start": 0.0,
+        "start_clocktime": 0.0
+      },
+      "hydraulic": {
+        "headloss": "H-W",
+        "demand_model": "DDA",
+        "minimum_pressure": 0.0,
+        "required_pressure": 0.07,
+        "pressure_exponent": 0.5
+      },
+      "quality": {
+        "mode": "NONE",
+        "parameter": "NONE"
+      },
+      "solver": {}
+    },
+    "coordinate_system": {
+      "type": "projected",
+      "bounds": {
+        "minX": 840012.34,
+        "maxX": 843012.34,
+        "minY": 1823012.34,
+        "maxY": 1825123.45
+      },
+      "epsg": null,
+      "units": "feet",
+      "possible_system": "UTM"
+    },
+    "patterns": {
+      "1": [
+        0.5,
+        0.6,
+        0.7,
+        0.9,
+        1.1,
+        1.3,
+        1.5,
+        1.4,
+        1.2,
+        1.0,
+        0.8,
+        0.6,
+        0.5,
+        0.6,
+        0.8,
+        1.0,
+        1.2,
+        1.3,
+        1.2,
+        1.0,
+        0.8,
+        0.6,
+        0.5,
+        0.5
+      ]
+    },
+    "curves": {
+      "1": {
+        "curve_type": "HEAD",
+        "points": [
+          [
+            0.0,
+            0.5
+          ],
+          [
+            60.0,
+            50.0
+          ]
+        ]
+      }
+    }
+  },
+  "simulation": false,
+  "connectivity": false
+}

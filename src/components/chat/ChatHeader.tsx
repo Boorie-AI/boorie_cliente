@@ -1,10 +1,13 @@
 import { Conversation, useChatStore } from '@/stores/chatStore'
-import { Edit2, MoreVertical, Trash2, Copy, Download, Plus } from 'lucide-react'
+import { Edit2, MoreVertical, Trash2, Copy, Download, Plus, FolderOpen, FolderPlus } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useOnClickOutside } from '@/hooks/useOnClickOutside'
 import { cn } from '@/utils/cn'
 import { ModelSelector } from './ModelSelector'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
+import { ProjectSelector } from './ProjectSelector'
+import { NewProjectDialog } from '@/components/hydraulic/NewProjectDialog'
+import * as Dialog from '@radix-ui/react-dialog'
 
 interface ChatHeaderProps {
   conversation: Conversation
@@ -15,7 +18,8 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
   const [title, setTitle] = useState(conversation.title)
   const [showMenu, setShowMenu] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const { updateConversationTitle, deleteConversation, createNewConversation } = useChatStore()
+  const [showNewProjectDialog, setShowNewProjectDialog] = useState(false)
+  const { updateConversationTitle, deleteConversation, createNewConversation, updateConversation } = useChatStore()
   
   const menuRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -52,6 +56,19 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
       updateConversationTitle(conversation.id, title.trim())
     }
     setIsEditing(false)
+  }
+
+  const handleProjectChange = (projectId: string | undefined) => {
+    // Update the conversation with the new projectId
+    useChatStore.getState().updateConversation(conversation.id, { projectId })
+  }
+  
+  const handleProjectCreated = (newProject: any) => {
+    // After creating a new project, assign it to this conversation
+    if (newProject?.id) {
+      updateConversation(conversation.id, { projectId: newProject.id })
+    }
+    setShowNewProjectDialog(false)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -102,7 +119,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
     <div className="flex items-center justify-between p-4">
       <div className="flex items-center space-x-3 flex-1 min-w-0">
         <button
-          onClick={createNewConversation}
+          onClick={() => createNewConversation(conversation.projectId)}
           className={cn(
             "flex items-center space-x-2 px-3 py-2 rounded-lg border border-border/50",
             "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
@@ -114,6 +131,11 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
           <Plus size={16} />
           <span className="text-sm font-medium">New Chat</span>
         </button>
+        
+        <ProjectSelector
+          selectedProjectId={conversation.projectId}
+          onProjectSelect={handleProjectChange}
+        />
         
         {isEditing ? (
           <input
@@ -193,6 +215,19 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
               <div className="h-px bg-border my-1" />
               
               <button
+                onClick={() => {
+                  setShowNewProjectDialog(true)
+                  setShowMenu(false)
+                }}
+                className="w-full flex items-center px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
+                <FolderPlus size={16} className="mr-3" />
+                Create New Project
+              </button>
+              
+              <div className="h-px bg-border my-1" />
+              
+              <button
                 onClick={handleDeleteConversation}
                 className="w-full flex items-center px-4 py-2 text-sm text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
               >
@@ -214,6 +249,13 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
         cancelText="Cancel"
         variant="destructive"
       />
+      
+      <Dialog.Root open={showNewProjectDialog} onOpenChange={setShowNewProjectDialog}>
+        <NewProjectDialog
+          onClose={() => setShowNewProjectDialog(false)}
+          onProjectCreated={handleProjectCreated}
+        />
+      </Dialog.Root>
     </div>
   )
 }

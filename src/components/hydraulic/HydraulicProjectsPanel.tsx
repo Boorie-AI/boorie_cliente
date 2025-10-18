@@ -18,6 +18,10 @@ import { HydraulicProject, ProjectType, ProjectStatus } from '@/types/hydraulic'
 import * as Dialog from '@radix-ui/react-dialog'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { NewProjectDialog } from './NewProjectDialog'
+import { EditProjectDialog } from './EditProjectDialog'
+import { ProjectDetailView } from './ProjectDetailView'
+import { WNTRSimulationWizard } from './WNTRSimulationWizard'
+import { WNTRAnalysisPanel } from './WNTRAnalysisPanel'
 
 interface ProjectSummary {
   id: string
@@ -40,6 +44,10 @@ export function HydraulicProjectsPanel() {
   const [selectedType, setSelectedType] = useState<ProjectType | 'all'>('all')
   const [selectedStatus, setSelectedStatus] = useState<ProjectStatus | 'all'>('all')
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false)
+  const [editingProject, setEditingProject] = useState<HydraulicProject | null>(null)
+  const [viewingProjectId, setViewingProjectId] = useState<string | null>(null)
+  const [showWNTRWizard, setShowWNTRWizard] = useState(false)
+  const [showWNTRAnalysis, setShowWNTRAnalysis] = useState(false)
   
   useEffect(() => {
     loadProjects()
@@ -94,15 +102,36 @@ export function HydraulicProjectsPanel() {
     }
   }
   
+  const handleEditProject = async (projectId: string) => {
+    try {
+      const project = await hydraulicService.getProject(projectId)
+      setEditingProject(project)
+    } catch (error) {
+      console.error('Failed to load project for editing:', error)
+      alert('Failed to load project: ' + (error as Error).message)
+    }
+  }
+  
   const handleDeleteProject = async (projectId: string) => {
     if (confirm('Are you sure you want to delete this project?')) {
       try {
-        // TODO: Implement delete API
+        await hydraulicService.deleteProject(projectId)
         await loadProjects()
       } catch (error) {
         console.error('Failed to delete project:', error)
+        alert('Failed to delete project: ' + (error as Error).message)
       }
     }
+  }
+  
+  // Show project details if viewing a project
+  if (viewingProjectId) {
+    return (
+      <ProjectDetailView
+        projectId={viewingProjectId}
+        onBack={() => setViewingProjectId(null)}
+      />
+    )
   }
   
   return (
@@ -111,19 +140,43 @@ export function HydraulicProjectsPanel() {
       <div className="border-b border-border p-6">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-semibold text-foreground">Hydraulic Projects</h1>
-          <Dialog.Root open={showNewProjectDialog} onOpenChange={setShowNewProjectDialog}>
-            <Dialog.Trigger asChild>
-              <button className={cn(
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowWNTRAnalysis(true)}
+              className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-lg",
-                "bg-primary text-primary-foreground hover:bg-primary/90",
+                "bg-blue-600 text-white hover:bg-blue-700",
                 "transition-colors"
-              )}>
-                <Plus className="w-4 h-4" />
-                New Project
-              </button>
-            </Dialog.Trigger>
-            <NewProjectDialog onClose={() => setShowNewProjectDialog(false)} onProjectCreated={loadProjects} />
-          </Dialog.Root>
+              )}
+            >
+              <Calculator className="w-4 h-4" />
+              WNTR Analysis
+            </button>
+            <button
+              onClick={() => setShowWNTRWizard(true)}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-lg",
+                "bg-green-600 text-white hover:bg-green-700",
+                "transition-colors"
+              )}
+            >
+              <FileText className="w-4 h-4" />
+              WNTR Simulation
+            </button>
+            <Dialog.Root open={showNewProjectDialog} onOpenChange={setShowNewProjectDialog}>
+              <Dialog.Trigger asChild>
+                <button className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-lg",
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+                  "transition-colors"
+                )}>
+                  <Plus className="w-4 h-4" />
+                  New Project
+                </button>
+              </Dialog.Trigger>
+              <NewProjectDialog onClose={() => setShowNewProjectDialog(false)} onProjectCreated={loadProjects} />
+            </Dialog.Root>
+          </div>
         </div>
         
         {/* Filters */}
@@ -252,7 +305,7 @@ export function HydraulicProjectsPanel() {
                             "hover:bg-accent rounded cursor-pointer",
                             "focus:bg-accent focus:outline-none"
                           )}
-                          onClick={() => window.open(`/project/${project.id}`, '_self')}
+                          onClick={() => setViewingProjectId(project.id)}
                         >
                           <FolderOpen className="w-4 h-4" />
                           Open
@@ -264,6 +317,7 @@ export function HydraulicProjectsPanel() {
                             "hover:bg-accent rounded cursor-pointer",
                             "focus:bg-accent focus:outline-none"
                           )}
+                          onClick={() => handleEditProject(project.id)}
                         >
                           <Edit className="w-4 h-4" />
                           Edit
@@ -316,6 +370,72 @@ export function HydraulicProjectsPanel() {
           </div>
         )}
       </div>
+      
+      {/* Edit Project Dialog */}
+      {editingProject && (
+        <Dialog.Root open={!!editingProject} onOpenChange={() => setEditingProject(null)}>
+          <EditProjectDialog
+            project={editingProject}
+            onClose={() => setEditingProject(null)}
+            onProjectUpdated={() => {
+              setEditingProject(null)
+              loadProjects()
+            }}
+          />
+        </Dialog.Root>
+      )}
+
+      {/* WNTR Dialogs */}
+      <Dialog.Root open={showWNTRWizard} onOpenChange={setShowWNTRWizard}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-40" />
+          <Dialog.Content className="fixed inset-0 z-50 overflow-hidden">
+            <div className="h-full w-full p-4">
+              <WNTRSimulationWizard 
+                onSimulationComplete={(results) => {
+                  console.log('Simulation completed:', results)
+                  setShowWNTRWizard(false)
+                }}
+              />
+              <Dialog.Close asChild>
+                <button 
+                  className="absolute top-4 right-4 p-2 rounded-lg bg-black/10 hover:bg-black/20"
+                  onClick={() => setShowWNTRWizard(false)}
+                >
+                  ✕
+                </button>
+              </Dialog.Close>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      <Dialog.Root open={showWNTRAnalysis} onOpenChange={setShowWNTRAnalysis}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-40" />
+          <Dialog.Content className="fixed inset-0 z-50 overflow-auto">
+            <div className="min-h-full w-full p-4">
+              <div className="bg-white rounded-lg max-w-6xl mx-auto">
+                <div className="p-6">
+                  <WNTRAnalysisPanel 
+                    onAnalysisComplete={(results) => {
+                      console.log('Analysis completed:', results)
+                    }}
+                  />
+                </div>
+                <Dialog.Close asChild>
+                  <button 
+                    className="absolute top-4 right-4 p-2 rounded-lg bg-black/10 hover:bg-black/20"
+                    onClick={() => setShowWNTRAnalysis(false)}
+                  >
+                    ✕
+                  </button>
+                </Dialog.Close>
+              </div>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   )
 }

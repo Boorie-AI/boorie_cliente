@@ -6,6 +6,8 @@ export { DatabaseHandler } from './database.handler'
 export { ChatHandler } from './chat.handler'
 export { AuthHandler } from './auth.handler'
 export { HydraulicHandler } from './hydraulic.handler'
+export { setupWNTRHandlers } from './wntr.handler'
+export { registerDocumentHandlers } from './document.handler'
 
 import { ServiceContainer } from '../../backend/services'
 import { ConversationHandler } from './conversation.handler'
@@ -14,6 +16,8 @@ import { DatabaseHandler } from './database.handler'
 import { ChatHandler } from './chat.handler'
 import { AuthHandler } from './auth.handler'
 import { HydraulicHandler } from './hydraulic.handler'
+import { setupWNTRHandlers } from './wntr.handler'
+import { registerDocumentHandlers } from './document.handler'
 import { createLogger } from '../../backend/utils/logger'
 
 const logger = createLogger('HandlersManager')
@@ -36,6 +40,16 @@ export class HandlersManager {
     this.chatHandler = new ChatHandler()
     this.authHandler = new AuthHandler(services.database)
     this.hydraulicHandler = new HydraulicHandler(services)
+    
+    // Setup WNTR handlers
+    setupWNTRHandlers()
+    
+    // Setup document handlers
+    try {
+      registerDocumentHandlers()
+    } catch (error) {
+      logger.warn('Document handlers registration failed, continuing without RAG support', error as Error)
+    }
     
     this.isInitialized = true
     logger.success('IPC handlers manager initialized successfully')

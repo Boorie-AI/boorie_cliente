@@ -8,7 +8,7 @@ import { ProjectType, NetworkType } from '@/types/hydraulic'
 
 interface NewProjectDialogProps {
   onClose: () => void
-  onProjectCreated: () => void
+  onProjectCreated: (project?: any) => void
 }
 
 export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialogProps) {
@@ -22,7 +22,8 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
       country: '',
       region: '',
       city: ''
-    }
+    },
+    status: 'planning' as any
   })
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -44,12 +45,12 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
       setCreating(true)
       setError(null)
       
-      await hydraulicService.createProject({
+      const newProject = await hydraulicService.createProject({
         ...formData,
         regulations: [] // Will be populated based on location
       })
       
-      onProjectCreated()
+      onProjectCreated(newProject)
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create project')
@@ -86,11 +87,12 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
       <Dialog.Content className={cn(
         "fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2",
         "bg-background border border-border rounded-xl shadow-xl",
-        "w-full max-w-2xl max-h-[90vh] overflow-hidden z-50"
+        "w-full max-w-2xl max-h-[85vh] overflow-hidden z-50",
+        "flex flex-col"
       )}>
-        <form onSubmit={handleSubmit} className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-border">
+        <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[85vh]">
+          {/* Header - Fixed */}
+          <div className="flex items-center justify-between p-6 border-b border-border flex-shrink-0">
             <Dialog.Title className="text-xl font-semibold text-foreground">
               Create New Hydraulic Project
             </Dialog.Title>
@@ -107,8 +109,8 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
             </Dialog.Close>
           </div>
           
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Content - Scrollable */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
             {error && (
               <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
                 {error}
@@ -286,10 +288,100 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                 <p>Based on your location, relevant hydraulic regulations will be automatically applied to your project.</p>
               </div>
             </div>
+            
+            {/* Additional Project Details */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-foreground">Additional Details</h3>
+              
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Project Status
+                </label>
+                <select
+                  value={formData.status || 'planning'}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                  className={cn(
+                    "w-full px-4 py-2 rounded-lg",
+                    "bg-input border border-border",
+                    "focus:outline-none focus:ring-2 focus:ring-ring"
+                  )}
+                >
+                  <option value="planning">Planning</option>
+                  <option value="design">Design</option>
+                  <option value="review">Review</option>
+                  <option value="approved">Approved</option>
+                  <option value="construction">Construction</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Expected Start Date
+                </label>
+                <input
+                  type="date"
+                  className={cn(
+                    "w-full px-4 py-2 rounded-lg",
+                    "bg-input border border-border",
+                    "focus:outline-none focus:ring-2 focus:ring-ring"
+                  )}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Project Budget (USD)
+                </label>
+                <input
+                  type="number"
+                  placeholder="e.g., 1000000"
+                  className={cn(
+                    "w-full px-4 py-2 rounded-lg",
+                    "bg-input border border-border",
+                    "focus:outline-none focus:ring-2 focus:ring-ring",
+                    "placeholder:text-muted-foreground"
+                  )}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Project Manager
+                </label>
+                <input
+                  type="text"
+                  placeholder="Name of the project manager"
+                  className={cn(
+                    "w-full px-4 py-2 rounded-lg",
+                    "bg-input border border-border",
+                    "focus:outline-none focus:ring-2 focus:ring-ring",
+                    "placeholder:text-muted-foreground"
+                  )}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Additional Notes
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Any additional information about the project..."
+                  className={cn(
+                    "w-full px-4 py-2 rounded-lg",
+                    "bg-input border border-border",
+                    "focus:outline-none focus:ring-2 focus:ring-ring",
+                    "placeholder:text-muted-foreground",
+                    "resize-none"
+                  )}
+                />
+              </div>
+            </div>
           </div>
           
-          {/* Footer */}
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-border">
+          {/* Footer - Fixed */}
+          <div className="flex items-center justify-end gap-3 p-6 border-t border-border flex-shrink-0">
             <button
               type="button"
               onClick={onClose}

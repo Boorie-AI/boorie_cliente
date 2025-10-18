@@ -114,6 +114,78 @@ export interface ElectronAPI {
     // Enhanced chat
     enhancedChat: (message: string, context: any) => Promise<{ success: boolean; data?: any; error?: string }>
   }
+
+  wntr: {
+    // File operations
+    loadINPFile: () => Promise<{ success: boolean; data?: any; error?: string }>
+    loadINPFromPath: (filePath: string) => Promise<{ success: boolean; data?: any; error?: string }>
+    saveINPFile: (content: string, fileName?: string) => Promise<{ success: boolean; filePath?: string; error?: string }>
+    
+    // Simulation
+    runSimulation: (options?: { simulationType?: 'single' | 'extended' }) => Promise<{ success: boolean; data?: any; error?: string }>
+    
+    // Analysis
+    analyzeNetwork: () => Promise<{ success: boolean; data?: any; error?: string }>
+    
+    // Export
+    exportJSON: () => Promise<{ success: boolean; message?: string; error?: string }>
+  }
+  
+  documents: {
+    upload: (options: {
+      category: 'hydraulics' | 'regulations' | 'best-practices'
+      subcategory?: string
+      region?: string[]
+      language?: string
+    }) => Promise<{
+      success: boolean
+      documents?: Array<{ id: string; fileName: string; title: string }>
+      message: string
+    }>
+    
+    search: (query: string, options?: any) => Promise<{
+      success: boolean
+      results?: any[]
+      message?: string
+    }>
+    
+    list: (filters?: {
+      category?: string
+      region?: string
+      language?: string
+    }) => Promise<{
+      success: boolean
+      documents?: any[]
+      message?: string
+    }>
+    
+    delete: (documentId: string) => Promise<{
+      success: boolean
+      message: string
+    }>
+    
+    update: (documentId: string, updates: any) => Promise<{
+      success: boolean
+      message: string
+    }>
+    
+    getEmbeddingProviders: () => Promise<{
+      success: boolean
+      providers?: Array<{
+        id: string
+        name: string
+        model: string
+        dimension: number
+      }>
+      currentProviderId?: string
+      message?: string
+    }>
+    
+    setEmbeddingProvider: (providerId: string) => Promise<{
+      success: boolean
+      message: string
+    }>
+  }
 }
 
 declare global {

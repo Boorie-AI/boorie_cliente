@@ -53,8 +53,12 @@ class Logger {
     }
   }
 
-  error(message: string, error?: Error, data?: any): void {
-    this.log(LogLevel.ERROR, message, data, error)
+  error(message: string, errorOrData?: Error | string | any, data?: any): void {
+    if (errorOrData instanceof Error) {
+      this.log(LogLevel.ERROR, message, data, errorOrData)
+    } else {
+      this.log(LogLevel.ERROR, message, errorOrData)
+    }
   }
 
   warn(message: string, data?: any): void {

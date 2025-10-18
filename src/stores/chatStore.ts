@@ -21,6 +21,7 @@ export interface Conversation {
   id: string
   title: string
   messages: Message[]
+  projectId?: string
   createdAt: Date
   updatedAt: Date
   model: string
@@ -35,17 +36,19 @@ interface ChatState {
   streamingBuffer: string
   
   // Actions
-  createNewConversation: () => void
+  createNewConversation: (projectId?: string) => void
   setActiveConversation: (id: string) => void
   addMessageToConversation: (conversationId: string, message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>
   updateConversationTitle: (id: string, title: string) => void
   updateConversationModel: (id: string, model: string, provider: string) => void
+  updateConversation: (id: string, updates: Partial<Conversation>) => void
   deleteConversation: (id: string) => void
   sendMessage: (content: string) => Promise<void>
   setStreamingMessage: (content: string) => void
   clearStreamingMessage: () => void
   saveConversation: (conversation: Conversation) => Promise<void>
-  loadConversations: () => Promise<void>
+  loadConversations: (projectId?: string) => Promise<void>
+  loadAllConversations: () => Promise<void>
   callOllamaAPI: (model: string, prompt: string, context: Message[]) => Promise<{ response: string; metadata: any }>
   callAPIProvider: (provider: string, model: string, prompt: string, context: Message[]) => Promise<{ response: string; metadata: any }>
 }
@@ -59,7 +62,7 @@ export const useChatStore = create<ChatState>()(
       streamingMessage: '',
       streamingBuffer: '',
 
-      createNewConversation: () => {
+      createNewConversation: (projectId?: string) => {
         // Get selected model from localStorage or use first available
         let selectedModel = { name: 'Default Model', provider: 'Ollama' }
         try {
@@ -75,6 +78,7 @@ export const useChatStore = create<ChatState>()(
           id: crypto.randomUUID(),
           title: 'New Conversation',
           messages: [],
+          projectId,
           createdAt: new Date(),
           updatedAt: new Date(),
           model: selectedModel.modelId || selectedModel.name, // Use modelId for API models, name for local models
@@ -147,6 +151,19 @@ export const useChatStore = create<ChatState>()(
         set((state) => ({
           conversations: state.conversations.map((conv) =>
             conv.id === id ? { ...conv, model, provider, updatedAt: new Date() } : conv
+          )
+        }))
+
+        const updatedConversation = get().conversations.find(c => c.id === id)
+        if (updatedConversation) {
+          get().saveConversation(updatedConversation)
+        }
+      },
+
+      updateConversation: (id, updates) => {
+        set((state) => ({
+          conversations: state.conversations.map((conv) =>
+            conv.id === id ? { ...conv, ...updates, updatedAt: new Date() } : conv
           )
         }))
 
@@ -278,7 +295,8 @@ export const useChatStore = create<ChatState>()(
               title: conversation.title,
               messages: conversation.messages,
               model: conversation.model,
-              provider: conversation.provider
+              provider: conversation.provider,
+              projectId: conversation.projectId
             })
           } else {
             // Create new conversation
@@ -287,7 +305,8 @@ export const useChatStore = create<ChatState>()(
               title: conversation.title,
               messages: conversation.messages,
               model: conversation.model,
-              provider: conversation.provider
+              provider: conversation.provider,
+              projectId: conversation.projectId
             })
           }
           
@@ -297,12 +316,12 @@ export const useChatStore = create<ChatState>()(
         }
       },
 
-      loadConversations: async () => {
+      loadConversations: async (projectId?: string) => {
         try {
           // Load conversations from database
           const storedConversations = await databaseService.getConversations()
           
-          const conversations: Conversation[] = storedConversations.map((conv: any) => ({
+          let conversations: Conversation[] = storedConversations.map((conv: any) => ({
             ...conv,
             createdAt: new Date(conv.createdAt),
             updatedAt: new Date(conv.updatedAt),
@@ -312,14 +331,24 @@ export const useChatStore = create<ChatState>()(
             })) : []
           }))
 
+          // Filter by projectId if provided
+          if (projectId) {
+            conversations = conversations.filter(conv => conv.projectId === projectId)
+          }
+
           // Sort by updated date (database should already sort, but let's be safe)
           conversations.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
 
           set({ conversations })
-          console.log('Loaded conversations from database:', conversations.length)
+          console.log(`Loaded conversations from database${projectId ? ` for project ${projectId}` : ''}:`, conversations.length)
         } catch (error) {
           console.error('Failed to load conversations from database:', error)
         }
+      },
+
+      loadAllConversations: async () => {
+        // Just call loadConversations without projectId to load all
+        await get().loadConversations()
       },
 
       callOllamaAPI: async (model: string, prompt: string, context: Message[]) => {

@@ -82,6 +82,49 @@
   @apply bg-muted-foreground/50;
 }
 
+/* Custom scrollbar for hydraulic calculator */
+.scrollbar-custom::-webkit-scrollbar {
+  width: 12px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-track {
+  @apply bg-muted/20 rounded-full;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  @apply bg-primary/30 rounded-full;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary/50;
+}
+
+/* Visible scrollbar like configuration */
+.scrollbar-visible {
+  overflow-y: scroll !important;
+}
+
+.scrollbar-visible::-webkit-scrollbar {
+  width: 10px;
+}
+
+.scrollbar-visible::-webkit-scrollbar-track {
+  @apply bg-muted/40;
+  border-radius: 5px;
+}
+
+.scrollbar-visible::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/40 rounded-full;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.scrollbar-visible::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/60;
+}
+
 /* Enhanced animations */
 .fade-in {
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);

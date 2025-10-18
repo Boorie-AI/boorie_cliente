@@ -1,0 +1,4 @@
+
+> boorie@1.0.0 dev:electron
+> wait-on http://localhost:5173 && electron .
+

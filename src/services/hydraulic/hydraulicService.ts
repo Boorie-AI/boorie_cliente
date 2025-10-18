@@ -39,10 +39,20 @@ export class HydraulicService {
     formulaId: string,
     inputs: Record<string, { value: number; unit: string }>
   ): Promise<CalculationResult> {
+    console.log('HydraulicService.calculate called with:', { formulaId, inputs })
     const result = await window.electronAPI.hydraulic.calculate(formulaId, inputs)
+    console.log('HydraulicService.calculate result:', result)
+    
     if (!result.success) {
+      console.error('Calculation failed:', result.error)
       throw new Error(result.error || 'Calculation failed')
     }
+    
+    if (!result.data) {
+      console.error('No data in result:', result)
+      throw new Error('No data returned from calculation')
+    }
+    
     return result.data
   }
   
@@ -123,6 +133,13 @@ export class HydraulicService {
       throw new Error(result.error || 'Failed to update project')
     }
     return result.data
+  }
+  
+  async deleteProject(projectId: string): Promise<void> {
+    const result = await window.electronAPI.hydraulic.deleteProject(projectId)
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to delete project')
+    }
   }
   
   async saveCalculation(

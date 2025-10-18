@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { HydraulicDocument } from '../../../src/types/hydraulic'
+const EmbeddingService = require('../embeddingService')
 
 export interface RAGSearchOptions {
   category?: 'hydraulics' | 'regulations' | 'best-practices'
@@ -18,7 +19,7 @@ export interface RAGSearchResult {
 
 export class HydraulicRAGService {
   private prisma: PrismaClient
-  private embeddingService: EmbeddingService
+  private embeddingService: any
   
   constructor(prisma: PrismaClient) {
     this.prisma = prisma
@@ -414,29 +415,3 @@ export class HydraulicRAGService {
   }
 }
 
-// Mock embedding service - replace with actual implementation
-class EmbeddingService {
-  async generateEmbedding(text: string): Promise<number[]> {
-    // This is a mock implementation
-    // In production, use OpenAI embeddings API or similar
-    
-    // For now, generate a random embedding
-    const dimension = 1536 // OpenAI embedding dimension
-    const embedding: number[] = []
-    
-    // Use text hash as seed for consistent embeddings
-    let hash = 0
-    for (let i = 0; i < text.length; i++) {
-      hash = ((hash << 5) - hash) + text.charCodeAt(i)
-      hash |= 0 // Convert to 32-bit integer
-    }
-    
-    // Generate pseudo-random embedding based on hash
-    for (let i = 0; i < dimension; i++) {
-      hash = (hash * 1103515245 + 12345) & 0x7fffffff
-      embedding.push((hash / 0x7fffffff) * 2 - 1) // Normalize to [-1, 1]
-    }
-    
-    return embedding
-  }
-}

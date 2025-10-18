@@ -2,20 +2,23 @@ import { useAppStore } from '@/stores/appStore'
 import { useChatStore } from '@/stores/chatStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { useTranslation } from 'react-i18next'
+import { useState, useEffect } from 'react'
 import {
   MessageSquare,
   Settings,
   FileText,
-  Mail,
-  Calendar,
-  ListTodo,
   ChevronLeft,
   ChevronRight,
   FolderOpen,
-  Calculator
+  Calculator,
+  Network,
+  ChevronDown
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import * as Tooltip from '@radix-ui/react-tooltip'
+import * as Collapsible from '@radix-ui/react-collapsible'
+import { hydraulicService } from '@/services/hydraulic/hydraulicService'
+import { HydraulicProject } from '@/types/hydraulic'
 import boorieIconDark from '@/assets/boorie_icon_dark.png'
 import boorieIconLight from '@/assets/boorie_icon_light.png'
 
@@ -30,15 +33,45 @@ export function Sidebar() {
 
   const { conversations, setActiveConversation } = useChatStore()
   const { theme } = usePreferencesStore()
+  const [projects, setProjects] = useState<HydraulicProject[]>([])
+  const [projectsOpen, setProjectsOpen] = useState<Record<string, boolean>>({})
+  const [generalOpen, setGeneralOpen] = useState(true)
+
+  useEffect(() => {
+    if (currentView === 'chat') {
+      loadProjects()
+    }
+  }, [currentView])
+  
+  const loadProjects = async () => {
+    try {
+      const projectList = await hydraulicService.listProjects()
+      setProjects(projectList)
+    } catch (error) {
+      console.error('Failed to load projects:', error)
+    }
+  }
+  
+  // Group conversations by project
+  const conversationsByProject = conversations.reduce((acc, conv) => {
+    const projectId = conv.projectId || 'general'
+    if (!acc[projectId]) {
+      acc[projectId] = []
+    }
+    acc[projectId].push(conv)
+    return acc
+  }, {} as Record<string, typeof conversations>)
+  
+  const toggleProject = (projectId: string) => {
+    setProjectsOpen(prev => ({ ...prev, [projectId]: !prev[projectId] }))
+  }
 
   const menuItems = [
     { id: 'chat', icon: MessageSquare, label: t('sidebar.chat'), view: 'chat' as const },
     { id: 'projects', icon: FolderOpen, label: 'Projects', view: 'projects' as const },
     { id: 'calculator', icon: Calculator, label: 'Calculator', view: 'calculator' as const },
+    { id: 'wntr', icon: Network, label: 'WNTR Network', view: 'wntr' as const },
     { id: 'rag', icon: FileText, label: t('sidebar.documents'), view: 'rag' as const },
-    { id: 'email', icon: Mail, label: t('sidebar.email'), view: 'email' as const },
-    { id: 'calendar', icon: Calendar, label: t('sidebar.calendar'), view: 'calendar' as const },
-    { id: 'todo', icon: ListTodo, label: t('sidebar.todo'), view: 'todo' as const },
     { id: 'settings', icon: Settings, label: t('sidebar.settings'), view: 'settings' as const },
   ]
 
@@ -132,25 +165,103 @@ export function Sidebar() {
               {t('sidebar.recentChats')}
             </h3>
             <div className="flex-1 overflow-y-auto max-h-[calc(100vh-400px)] pr-1">
-              <div className="space-y-1">
-                {conversations.slice(0, 20).map((conversation) => (
-                  <button
-                    key={conversation.id}
-                    onClick={() => setActiveConversation(conversation.id)}
-                    className={cn(
-                      "w-full text-left p-3 rounded-lg transition-all duration-200",
-                      "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                      "hover:shadow-sm"
-                    )}
-                  >
-                    <div className="truncate text-sm font-medium">
-                      {conversation.title || 'New Conversation'}
-                    </div>
-                    <div className="text-xs text-muted-foreground/70 mt-1">
-                      {new Date(conversation.updatedAt).toLocaleDateString()}
-                    </div>
-                  </button>
-                ))}
+              <div className="space-y-2">
+                {/* General conversations (no project) */}
+                {conversationsByProject.general && conversationsByProject.general.length > 0 && (
+                  <Collapsible.Root open={generalOpen} onOpenChange={setGeneralOpen}>
+                    <Collapsible.Trigger className={cn(
+                      "w-full flex items-center justify-between p-2 rounded-lg",
+                      "text-sm font-medium text-muted-foreground",
+                      "hover:bg-accent/50 transition-colors"
+                    )}>
+                      <span>General Chats</span>
+                      <ChevronDown
+                        size={14}
+                        className={cn("transition-transform", generalOpen && "rotate-180")}
+                      />
+                    </Collapsible.Trigger>
+                    <Collapsible.Content className="mt-1">
+                      <div className="ml-2 space-y-1">
+                        {conversationsByProject.general.map((conversation) => (
+                          <button
+                            key={conversation.id}
+                            onClick={() => setActiveConversation(conversation.id)}
+                            className={cn(
+                              "w-full text-left p-2 pl-4 rounded-lg transition-all duration-200",
+                              "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                              "hover:shadow-sm text-sm"
+                            )}
+                          >
+                            <div className="truncate">
+                              {conversation.title || 'New Conversation'}
+                            </div>
+                            <div className="text-xs text-muted-foreground/70 mt-0.5">
+                              {new Date(conversation.updatedAt).toLocaleDateString()}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </Collapsible.Content>
+                  </Collapsible.Root>
+                )}
+
+                {/* Project-specific conversations */}
+                {projects.map((project) => {
+                  const projectConversations = conversationsByProject[project.id] || []
+                  if (projectConversations.length === 0) return null
+                  
+                  const isOpen = projectsOpen[project.id] ?? false
+                  
+                  return (
+                    <Collapsible.Root
+                      key={project.id}
+                      open={isOpen}
+                      onOpenChange={() => toggleProject(project.id)}
+                    >
+                      <Collapsible.Trigger className={cn(
+                        "w-full flex items-center justify-between p-2 rounded-lg",
+                        "text-sm font-medium text-muted-foreground",
+                        "hover:bg-accent/50 transition-colors"
+                      )}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FolderOpen size={14} />
+                          <span className="truncate">{project.name}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                            {projectConversations.length}
+                          </span>
+                          <ChevronDown
+                            size={14}
+                            className={cn("transition-transform", isOpen && "rotate-180")}
+                          />
+                        </div>
+                      </Collapsible.Trigger>
+                      <Collapsible.Content className="mt-1">
+                        <div className="ml-2 space-y-1">
+                          {projectConversations.map((conversation) => (
+                            <button
+                              key={conversation.id}
+                              onClick={() => setActiveConversation(conversation.id)}
+                              className={cn(
+                                "w-full text-left p-2 pl-8 rounded-lg transition-all duration-200",
+                                "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                                "hover:shadow-sm text-sm"
+                              )}
+                            >
+                              <div className="truncate">
+                                {conversation.title || 'New Conversation'}
+                              </div>
+                              <div className="text-xs text-muted-foreground/70 mt-0.5">
+                                {new Date(conversation.updatedAt).toLocaleDateString()}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </Collapsible.Content>
+                    </Collapsible.Root>
+                  )
+                })}
 
                 {conversations.length === 0 && (
                   <div className="px-3 py-6 text-center">

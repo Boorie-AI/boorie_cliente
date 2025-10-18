@@ -13,10 +13,12 @@ model Conversation {
   title       String
   model       String
   provider    String
+  projectId   String?  // Optional link to hydraulic project
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   messages    Message[]
+  project     HydraulicProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@map("conversations")
 }
@@ -202,6 +204,7 @@ model HydraulicProject {
   calculations  HydraulicCalculation[]
   documents     ProjectDocument[]
   teamMembers   ProjectTeamMember[]
+  conversations Conversation[]
 
   @@map("hydraulic_projects")
 }

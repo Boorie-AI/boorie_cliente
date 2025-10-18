@@ -1,0 +1,189 @@
+{
+  "network": {
+    "name": "simple-network.inp",
+    "summary": {
+      "junctions": 4,
+      "tanks": 1,
+      "reservoirs": 1,
+      "pipes": 5,
+      "pumps": 0,
+      "valves": 0,
+      "patterns": 1,
+      "curves": 0
+    },
+    "nodes": [
+      {
+        "id": "J1",
+        "label": "J1",
+        "type": "junction",
+        "x": 100.0,
+        "y": 100.0,
+        "elevation": 50.0,
+        "demand": 0.1,
+        "pattern": "1"
+      },
+      {
+        "id": "J2",
+        "label": "J2",
+        "type": "junction",
+        "x": 200.0,
+        "y": 100.0,
+        "elevation": 50.0,
+        "demand": 0.1,
+        "pattern": "1"
+      },
+      {
+        "id": "J3",
+        "label": "J3",
+        "type": "junction",
+        "x": 200.0,
+        "y": 200.0,
+        "elevation": 50.0,
+        "demand": 0.1,
+        "pattern": "1"
+      },
+      {
+        "id": "J4",
+        "label": "J4",
+        "type": "junction",
+        "x": 300.0,
+        "y": 200.0,
+        "elevation": 50.0,
+        "demand": 0.15,
+        "pattern": "1"
+      },
+      {
+        "id": "R1",
+        "label": "R1",
+        "type": "reservoir",
+        "x": 0.0,
+        "y": 100.0,
+        "total_head": 0.0,
+        "pattern": null
+      },
+      {
+        "id": "T1",
+        "label": "T1",
+        "type": "tank",
+        "x": 200.0,
+        "y": 0.0,
+        "elevation": 80.0,
+        "init_level": 4.0,
+        "min_level": 0.0,
+        "max_level": 10.0,
+        "diameter": 20.0
+      }
+    ],
+    "links": [
+      {
+        "id": "P1",
+        "label": "P1",
+        "type": "pipe",
+        "from": "R1",
+        "to": "J1",
+        "length": 1000.0,
+        "diameter": 0.3,
+        "roughness": 100.0,
+        "status": "Open"
+      },
+      {
+        "id": "P2",
+        "label": "P2",
+        "type": "pipe",
+        "from": "J1",
+        "to": "J2",
+        "length": 800.0,
+        "diameter": 0.25,
+        "roughness": 100.0,
+        "status": "Open"
+      },
+      {
+        "id": "P3",
+        "label": "P3",
+        "type": "pipe",
+        "from": "J2",
+        "to": "T1",
+        "length": 600.0,
+        "diameter": 0.25,
+        "roughness": 100.0,
+        "status": "Open"
+      },
+      {
+        "id": "P4",
+        "label": "P4",
+        "type": "pipe",
+        "from": "J2",
+        "to": "J3",
+        "length": 700.0,
+        "diameter": 0.2,
+        "roughness": 100.0,
+        "status": "Open"
+      },
+      {
+        "id": "P5",
+        "label": "P5",
+        "type": "pipe",
+        "from": "J3",
+        "to": "J4",
+        "length": 900.0,
+        "diameter": 0.15,
+        "roughness": 100.0,
+        "status": "Open"
+      }
+    ],
+    "options": {
+      "time": {
+        "duration": 86400.0,
+        "hydraulic_timestep": 3600.0,
+        "quality_timestep": 300.0,
+        "pattern_timestep": 7200.0,
+        "pattern_start": 0.0,
+        "report_timestep": 3600.0,
+        "report_start": 0.0,
+        "start_clocktime": 0.0
+      },
+      "hydraulic": {
+        "headloss": "H-W",
+        "demand_model": "DDA",
+        "minimum_pressure": 0.0,
+        "required_pressure": 0.07,
+        "pressure_exponent": 0.5
+      },
+      "quality": {
+        "mode": "NONE",
+        "parameter": "NONE"
+      },
+      "solver": {}
+    },
+    "coordinate_system": {
+      "type": "projected",
+      "bounds": {
+        "minX": 0.0,
+        "maxX": 300.0,
+        "minY": 0.0,
+        "maxY": 200.0
+      },
+      "epsg": null,
+      "units": "feet"
+    },
+    "patterns": {
+      "1": [
+        1.0,
+        1.2,
+        1.4,
+        1.2,
+        1.0,
+        0.8,
+        0.6,
+        0.8,
+        1.0,
+        1.2,
+        1.4,
+        1.2
+      ]
+    },
+    "curves": {}
+  },
+  "simulation": false,
+  "connectivity": false
+}

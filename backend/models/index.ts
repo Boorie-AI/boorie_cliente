@@ -7,6 +7,7 @@ export interface IConversation {
   messages: IMessage[]
   model: string
   provider: string
+  projectId?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -146,6 +147,7 @@ export interface ICreateConversationData {
   messages: IMessage[]
   model: string
   provider: string
+  projectId?: string
 }
 
 export interface IUpdateConversationData {
@@ -153,6 +155,7 @@ export interface IUpdateConversationData {
   messages?: IMessage[]
   model?: string
   provider?: string
+  projectId?: string
 }
 
 export interface ICreateAIProviderData {

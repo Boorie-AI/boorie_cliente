@@ -14,8 +14,11 @@ export default defineConfig({
       '@/utils': path.resolve(__dirname, './src/utils'),
     },
   },
+  define: {
+    global: 'globalThis',
+  },
   server: {
-    port: 5173,
+    port: 3000,
   },
   build: {
     outDir: 'dist',

@@ -59,9 +59,9 @@ export interface ExtractedParameters {
 }
 
 export class HydraulicContextProcessor {
-  private queryPatterns: Map<QueryType, RegExp[]>
-  private parameterExtractors: Map<string, RegExp>
-  private unitPatterns: Map<string, RegExp>
+  private queryPatterns: Map<QueryType, RegExp[]> = new Map()
+  private parameterExtractors: Map<string, RegExp> = new Map()
+  private unitPatterns: Map<string, RegExp> = new Map()
   
   constructor() {
     this.initializePatterns()

@@ -55,6 +55,7 @@ export class DatabaseService {
       
       const result = conversations.map(conv => ({
         ...conv,
+        projectId: conv.projectId || undefined,
         messages: conv.messages.map(msg => ({
           id: msg.id,
           role: msg.role as 'user' | 'assistant' | 'system',
@@ -103,6 +104,7 @@ export class DatabaseService {
       
       const result = {
         ...conversation,
+        projectId: conversation.projectId || undefined,
         messages: conversation.messages.map(msg => ({
           id: msg.id,
           role: msg.role as 'user' | 'assistant' | 'system',
@@ -136,7 +138,8 @@ export class DatabaseService {
           id: data.id,
           title: data.title,
           model: data.model,
-          provider: data.provider
+          provider: data.provider,
+          projectId: data.projectId
         },
         include: {
           messages: true
@@ -145,6 +148,7 @@ export class DatabaseService {
       
       const result = {
         ...conversation,
+        projectId: conversation.projectId || undefined,
         messages: conversation.messages.map(msg => ({
           id: msg.id,
           role: msg.role as 'user' | 'assistant' | 'system',
@@ -190,6 +194,7 @@ export class DatabaseService {
       
       const result = {
         ...conversation,
+        projectId: conversation.projectId || undefined,
         messages: conversation.messages.map(msg => ({
           id: msg.id,
           role: msg.role as 'user' | 'assistant' | 'system',
