@@ -37,7 +37,38 @@
 - **Col·laboració en Equip**: Suport de projectes multiusuari
 - **Control de Versions**: Seguiment de canvis i historial de projectes
 
-## 🚀 Inici Ràpid
+## 📦 Descarregar i Instal·lar
+
+### 🚀 Última Versió - v1.0.0
+
+| Plataforma | Arquitectura | Descàrrega | Mida |
+|------------|-------------|------------|------|
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.0.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.0.0/Boorie-1.0.0-arm64.dmg) | ~150 MB |
+| 🐧 **Linux** | x64 | [Disponible al Release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.0.0) | ~200 MB |
+| 🪟 **Windows** | x64 | [Disponible al Release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.0.0) | ~200 MB |
+
+### Instruccions d'Instal·lació
+
+#### macOS
+1. Descarrega l'arxiu DMG de l'enllaç anterior
+2. Obre l'arxiu DMG descarregat
+3. Arrossega Boorie.app a la teva carpeta Aplicacions
+4. Executa Boorie des d'Aplicacions
+
+#### Linux
+1. Descarrega el paquet Linux des de la pàgina de releases
+2. Extreu l'arxiu: `tar -xzf boorie-linux.tar.gz`
+3. Executa: `./boorie`
+
+#### Windows
+1. Descarrega el paquet Windows des de la pàgina de releases
+2. Extreu l'arxiu ZIP
+3. Executa `Boorie.exe`
+
+### 🔗 Totes les Versions
+Veure totes les versions disponibles: [**GitHub Releases**](https://github.com/Boorie-AI/boorie_cliente/releases)
+
+## 🛠️ Configuració de Desenvolupament
 
 ### Requisits Previs
 - Node.js 18+ i npm
