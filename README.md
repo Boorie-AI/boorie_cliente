@@ -309,6 +309,18 @@ For support and questions:
 - 📖 Documentation: [GitHub Wiki](https://github.com/your-username/boorie_cliente/wiki)
 - 🐛 Issues: [GitHub Issues](https://github.com/your-username/boorie_cliente/issues)
 
+## 📚 Additional Documentation
+
+### Multilingual Wiki
+- 🇺🇸 [English Documentation](docs/wiki/en/Home.md)
+- 🇪🇸 [Documentación en Español](docs/wiki/es/Home.md)
+- 🇨🇦 [Documentació en Català](docs/wiki/ca/Home.md)
+
+### Language-Specific READMEs
+- 🇺🇸 [README in English](README.md)
+- 🇪🇸 [README en Español](README.es.md)
+- 🇨🇦 [README en Català](README.ca.md)
+
 ---
 
 **Made with ❤️ for Hydraulic Engineers**
