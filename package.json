@@ -113,7 +113,14 @@
       },
       {
         "from": "node_modules/.prisma",
-        "to": "app.asar.unpacked/node_modules/.prisma",
+        "to": "node_modules/.prisma",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "node_modules/@prisma/client",
+        "to": "node_modules/@prisma/client",
         "filter": [
           "**/*"
         ]
@@ -121,7 +128,8 @@
     ],
     "asarUnpack": [
       "node_modules/.prisma/**/*",
-      "node_modules/@prisma/client/**/*"
+      "node_modules/@prisma/client/**/*",
+      "node_modules/@prisma/engines/**/*"
     ],
     "mac": {
       "target": "dmg",

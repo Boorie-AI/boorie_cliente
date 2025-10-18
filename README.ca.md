@@ -43,9 +43,9 @@
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.0.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.0.0/Boorie-1.0.0-arm64.dmg) | ~150 MB |
-| 🐧 **Linux** | x64 | [Disponible al Release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.0.0) | ~200 MB |
-| 🪟 **Windows** | x64 | [Disponible al Release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.0.0) | ~200 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.0.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.0.0/Boorie-1.0.0-arm64.dmg) | ~137 MB |
+| 🪟 **Windows** | x64 | [Boorie Setup 1.0.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.0.0/Boorie%20Setup%201.0.0.exe) | ~105 MB |
+| 🐧 **Linux** | x64 | [Aviat disponible](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.0.0) | ~Per determinar |
 
 ### Instruccions d'Instal·lació
 

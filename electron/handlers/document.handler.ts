@@ -3,9 +3,10 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import { HydraulicRAGService } from '../../backend/services/hydraulic/ragService'
 import { PrismaClient } from '@prisma/client'
+import { getPrismaClient } from '../../backend/utils/prisma'
 
 export function registerDocumentHandlers() {
-  const prisma = new PrismaClient()
+  const prisma = getPrismaClient()
   const ragService = new HydraulicRAGService(prisma)
   const EmbeddingService = require('../../backend/services/embeddingService')
   const embeddingService = new EmbeddingService()

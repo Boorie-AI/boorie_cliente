@@ -2,6 +2,7 @@
 import { ipcMain } from 'electron'
 import { createLogger } from '../../backend/utils/logger'
 import { PrismaClient } from '@prisma/client'
+import { getPrismaClient } from '../../backend/utils/prisma'
 // Import types
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
@@ -44,7 +45,7 @@ export interface IPCChatResponse {
 }
 
 export class ChatHandler {
-  private prisma = new PrismaClient()
+  private prisma = getPrismaClient()
 
   constructor() {
     this.registerHandlers()

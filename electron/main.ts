@@ -3,6 +3,7 @@ import path from 'path'
 import log from 'electron-log'
 import { autoUpdater } from 'electron-updater'
 import { PrismaClient } from '@prisma/client'
+import { getPrismaClient, initializePrisma, disconnectPrisma } from '../backend/utils/prisma'
 
 // Configure hardware acceleration based on environment
 // Hardware acceleration is needed for WebGL/Mapbox maps
@@ -238,16 +239,8 @@ async function initDatabase(): Promise<void> {
       }
     }
 
-    prisma = new PrismaClient({
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL
-        }
-      }
-    })
-    
-    // Test the connection first
-    await prisma.$connect()
+    // Initialize Prisma with the new configuration
+    prisma = await initializePrisma()
     
     // Use Prisma db push to create/update database schema automatically
     if (isDev) {
@@ -372,7 +365,7 @@ app.on('before-quit', async () => {
     
     // Disconnect from database
     if (prisma) {
-      await prisma.$disconnect()
+      await disconnectPrisma()
       appLogger.success('Database connection closed')
     }
     
