@@ -1,5 +1,9 @@
 // Load environment variables FIRST
-require('dotenv').config()
+try {
+  require('dotenv').config()
+} catch (e) {
+  console.log('dotenv not loaded:', e)
+}
 
 // Configure Prisma environment BEFORE any imports
 try {
