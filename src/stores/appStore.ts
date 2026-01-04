@@ -8,17 +8,17 @@ export interface AppState {
   currentView: 'chat' | 'settings' | 'rag' | 'projects' | 'calculator' | 'wntr'
   theme: 'dark' | 'light'
   sidebarCollapsed: boolean
-  
+
   // AI Configuration
   activeAIProvider: 'ollama' | 'openai' | 'anthropic' | 'google'
   activeModel: string
-  
+
   // Authentication
   isAuthenticated: {
     microsoft: boolean
     google: boolean
   }
-  
+
   // Actions
   initializeApp: () => Promise<void>
   setCurrentView: (view: AppState['currentView']) => void
@@ -27,6 +27,7 @@ export interface AppState {
   setActiveAIProvider: (provider: AppState['activeAIProvider']) => void
   setActiveModel: (model: string) => void
   setAuthenticationStatus: (provider: 'microsoft' | 'google', status: boolean) => void
+  loadSettingsFromDatabase: () => Promise<void>
 }
 
 export const useAppStore = create<AppState>()(
@@ -77,7 +78,7 @@ export const useAppStore = create<AppState>()(
         loadSettingsFromDatabase: async () => {
           try {
             const settings = await databaseService.getSettings('general')
-            
+
             settings.forEach(setting => {
               switch (setting.key) {
                 case 'theme':
@@ -122,7 +123,7 @@ export const useAppStore = create<AppState>()(
         setTheme: async (theme) => {
           set({ theme })
           await databaseService.setSetting('theme', theme, 'general')
-          
+
           // Apply theme to document immediately
           const root = document.documentElement
           if (theme === 'dark') {
@@ -150,8 +151,8 @@ export const useAppStore = create<AppState>()(
             }
           }))
           await databaseService.setSetting(
-            `auth_${provider}`, 
-            status.toString(), 
+            `auth_${provider}`,
+            status.toString(),
             'authentication'
           )
         },

@@ -71,7 +71,7 @@ export function Sidebar() {
     { id: 'projects', icon: FolderOpen, label: 'Projects', view: 'projects' as const },
     { id: 'calculator', icon: Calculator, label: 'Calculator', view: 'calculator' as const },
     { id: 'wntr', icon: Network, label: 'WNTR Network', view: 'wntr' as const },
-    { id: 'rag', icon: FileText, label: t('sidebar.documents'), view: 'rag' as const },
+    { id: 'rag', icon: FileText, label: 'Wisdom Center', view: 'rag' as const },
     { id: 'settings', icon: Settings, label: t('sidebar.settings'), view: 'settings' as const },
   ]
 

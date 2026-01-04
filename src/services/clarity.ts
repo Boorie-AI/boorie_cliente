@@ -29,8 +29,8 @@ class ClarityService {
     };
 
     // Detect if running in Electron
-    this.isElectron = typeof window !== 'undefined' && 
-                      typeof (window as any).electronAPI !== 'undefined';
+    this.isElectron = typeof window !== 'undefined' &&
+      typeof (window as any).electronAPI !== 'undefined';
   }
 
   /**
@@ -71,8 +71,8 @@ class ClarityService {
     return new Promise((resolve, reject) => {
       try {
         // Create clarity function
-        (function(c: any, l: any, a: any, r: any, i: any, t: any, y: any) {
-          c[a] = c[a] || function() {
+        (function (c: any, l: any, a: any, r: any, i: any, t: any, y: any) {
+          c[a] = c[a] || function () {
             (c[a].q = c[a].q || []).push(arguments);
           };
           t = l.createElement(r);
@@ -80,7 +80,7 @@ class ClarityService {
           t.src = "https://www.clarity.ms/tag/" + i;
           y = l.getElementsByTagName(r)[0];
           y.parentNode?.insertBefore(t, y);
-        })(window, document, "clarity", "script", this.config.projectId);
+        })(window, document, "clarity", "script", this.config.projectId, undefined, undefined);
 
         // Initialize clarity
         if (window.clarity) {
@@ -107,7 +107,7 @@ class ClarityService {
         script.src = `https://www.clarity.ms/tag/${this.config.projectId}`;
         script.async = true;
         script.defer = true;
-        
+
         script.onload = () => {
           // Initialize clarity after script loads
           if (window.clarity) {
@@ -115,7 +115,7 @@ class ClarityService {
             resolve();
           } else {
             // Fallback: create clarity function manually
-            window.clarity = function() {
+            window.clarity = function () {
               (window.clarity!.q = window.clarity!.q || []).push(arguments);
             };
             window.clarity("init", this.config.projectId);
@@ -224,8 +224,8 @@ export const clarityService = new ClarityService();
 
 // Helper functions for easier usage
 export const initializeClarity = () => clarityService.initialize();
-export const trackClarityEvent = (event: string, properties?: Record<string, any>) => 
+export const trackClarityEvent = (event: string, properties?: Record<string, any>) =>
   clarityService.trackEvent(event, properties);
 export const setClarityUserId = (userId: string) => clarityService.setUserId(userId);
-export const setClaritySessionTag = (key: string, value: string) => 
+export const setClaritySessionTag = (key: string, value: string) =>
   clarityService.setSessionTag(key, value);

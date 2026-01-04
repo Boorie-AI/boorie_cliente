@@ -73,30 +73,8 @@ export interface GraphCalendarEvent {
 }
 
 export class MicrosoftGraphClient {
-  private baseUrl = 'https://graph.microsoft.com/v1.0'
-
   constructor() {
     console.log('Microsoft Graph Client initialized')
-  }
-
-  /**
-   * Gets a valid access token from the backend
-   */
-  private async getAccessToken(): Promise<string> {
-    if (!window.electronAPI?.auth) {
-      throw new Error('Auth API not available')
-    }
-
-    const result = await window.electronAPI.auth.getTokens('microsoft')
-    
-    if (!result.success || !result.data?.hasAccessToken) {
-      throw new Error('No valid Microsoft access token available')
-    }
-
-    // The backend only returns metadata for security, we need to make
-    // authenticated requests through the backend or get the actual token
-    // For now, we'll make requests through a backend proxy
-    throw new Error('Direct token access not implemented - use backend proxy')
   }
 
   /**
@@ -104,12 +82,12 @@ export class MicrosoftGraphClient {
    * Note: In production, this should go through the backend for security
    */
   private async makeAuthenticatedRequest(
-    endpoint: string, 
-    options: RequestInit = {}
+    _endpoint: string,
+    _options: RequestInit = {}
   ): Promise<any> {
     // For security, we should make API calls through the backend
     // This is a placeholder implementation
-    throw new Error('Direct Graph API calls not implemented - should use backend proxy')
+    throw new Error('Direct Microsoft Graph API calls not implemented - should use backend proxy')
   }
 
   /**
@@ -121,7 +99,7 @@ export class MicrosoftGraphClient {
       return response
     } catch (error) {
       console.error('Failed to get current user:', error)
-      throw new Error(`Failed to get user profile: ${error.message}`)
+      throw new Error(`Failed to get user profile: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -137,7 +115,7 @@ export class MicrosoftGraphClient {
       const response = await this.makeAuthenticatedRequest(
         `/me/messages?$top=${top}&$skip=${skip}&$orderby=receivedDateTime desc&$select=id,subject,bodyPreview,from,toRecipients,receivedDateTime,isRead,importance,hasAttachments`
       )
-      
+
       return {
         emails: response.value || [],
         hasMore: response['@odata.nextLink'] ? true : false,
@@ -145,7 +123,7 @@ export class MicrosoftGraphClient {
       }
     } catch (error) {
       console.error('Failed to get emails:', error)
-      throw new Error(`Failed to get emails: ${error.message}`)
+      throw new Error(`Failed to get emails: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -153,24 +131,24 @@ export class MicrosoftGraphClient {
    * Gets user's calendar events
    */
   async getCalendarEvents(
-    startDate?: Date, 
-    endDate?: Date, 
+    startDate?: Date,
+    endDate?: Date,
     top: number = 10
   ): Promise<GraphCalendarEvent[]> {
     try {
       let endpoint = `/me/events?$top=${top}&$orderby=start/dateTime`
-      
+
       if (startDate && endDate) {
         const startISO = startDate.toISOString()
         const endISO = endDate.toISOString()
         endpoint += `&$filter=start/dateTime ge '${startISO}' and end/dateTime le '${endISO}'`
       }
-      
+
       const response = await this.makeAuthenticatedRequest(endpoint)
       return response.value || []
     } catch (error) {
       console.error('Failed to get calendar events:', error)
-      throw new Error(`Failed to get calendar events: ${error.message}`)
+      throw new Error(`Failed to get calendar events: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -223,7 +201,7 @@ export class MicrosoftGraphClient {
       })
     } catch (error) {
       console.error('Failed to send email:', error)
-      throw new Error(`Failed to send email: ${error.message}`)
+      throw new Error(`Failed to send email: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -280,7 +258,7 @@ export class MicrosoftGraphClient {
       return response
     } catch (error) {
       console.error('Failed to create calendar event:', error)
-      throw new Error(`Failed to create calendar event: ${error.message}`)
+      throw new Error(`Failed to create calendar event: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -292,11 +270,11 @@ export class MicrosoftGraphClient {
       const response = await this.makeAuthenticatedRequest(
         `/me/drive/root/children?$top=${top}&$select=id,name,size,createdDateTime,lastModifiedDateTime,folder,file`
       )
-      
+
       return response.value || []
     } catch (error) {
       console.error('Failed to get OneDrive files:', error)
-      throw new Error(`Failed to get OneDrive files: ${error.message}`)
+      throw new Error(`Failed to get OneDrive files: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -320,7 +298,7 @@ export class MicrosoftGraphClient {
       }
 
       const tokenResult = await window.electronAPI.auth.getTokens('microsoft')
-      
+
       if (!tokenResult.success || !tokenResult.data?.hasAccessToken) {
         return {
           isAvailable: true,
@@ -341,7 +319,7 @@ export class MicrosoftGraphClient {
         isAvailable: false,
         hasToken: false,
         canMakeRequests: false,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       }
     }
   }
@@ -364,18 +342,18 @@ export class MicrosoftGraphClient {
 
       // Use the backend test connection instead of direct API calls
       const result = await window.electronAPI.auth.testConnection('microsoft')
-      
+
       return {
         success: result.success,
-        message: result.success 
-          ? `Connection successful: ${result.data?.user || 'Connected'}` 
+        message: result.success
+          ? `Connection successful: ${result.data?.user || 'Connected'}`
           : result.error || 'Connection test failed',
         data: result.data
       }
     } catch (error) {
       return {
         success: false,
-        message: `Connection test failed: ${error.message}`
+        message: `Connection test failed: ${error instanceof Error ? error.message : String(error)}`
       }
     }
   }

@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChatLayout } from '@/components/chat/ChatLayout'
 import { CustomTopBar } from '@/components/CustomTopBar'
-import { ClarityDebugPanel } from '@/components/ClarityDebugPanel'
 import { GlobalErrorTracker } from '@/components/GlobalErrorTracker'
 import { useAppStore } from '@/stores/appStore'
 import { cn } from '@/utils/cn'
@@ -54,7 +53,6 @@ function App() {
       <div className="flex-1 min-h-0">
         <ChatLayout />
       </div>
-      <ClarityDebugPanel />
     </div>
   )
 }

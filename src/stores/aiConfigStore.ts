@@ -12,6 +12,7 @@ export interface ProviderModel {
 export interface AIProvider {
   id: string
   name: string
+  type: 'local' | 'api'
   description: string
   isActive: boolean
   apiKey: string
@@ -26,7 +27,7 @@ export interface AIProvider {
 interface AIConfigState {
   providers: AIProvider[]
   isLoading: boolean
-  
+
   // Actions
   loadProviders: () => Promise<void>
   saveProvider: (provider: Partial<AIProvider>) => Promise<void>
@@ -42,6 +43,9 @@ interface AIConfigState {
   getActiveProviders: () => AIProvider[]
   getSelectedModels: () => { provider: AIProvider; model: ProviderModel }[]
   initializeProviders: (providers: AIProvider[]) => void
+  getProviderDescription: (name: string) => string
+  getProviderColor: (name: string) => string
+  getProviderOrder: (name: string) => number
 }
 
 export const useAIConfigStore = create<AIConfigState>()(
@@ -54,23 +58,24 @@ export const useAIConfigStore = create<AIConfigState>()(
         try {
           set({ isLoading: true })
           console.log('🔄 Loading AI providers from database...')
-          
+
           const savedProviders = await databaseService.getAIProviders()
           const savedModels = await databaseService.getAIModels()
-          
+
           // Map database providers to UI format
           const uiProviders: AIProvider[] = savedProviders.map(dbProvider => {
             const providerModels = savedModels.filter(model => model.providerId === dbProvider.id)
-            
+
             return {
               id: dbProvider.name.toLowerCase(), // Use lowercase name as ID for consistency
               name: dbProvider.name,
+              type: dbProvider.type as 'local' | 'api',
               description: get().getProviderDescription(dbProvider.name),
               isActive: dbProvider.isActive,
               apiKey: dbProvider.apiKey || '',
               isConnected: dbProvider.isConnected,
-              testStatus: dbProvider.lastTestResult === 'success' ? 'success' : 
-                         dbProvider.lastTestResult === 'error' ? 'error' : 'idle',
+              testStatus: dbProvider.lastTestResult === 'success' ? 'success' :
+                dbProvider.lastTestResult === 'error' ? 'error' : 'idle',
               testMessage: dbProvider.lastTestMessage || '',
               availableModels: providerModels.map(model => ({
                 modelId: model.modelId,
@@ -82,7 +87,7 @@ export const useAIConfigStore = create<AIConfigState>()(
               order: get().getProviderOrder(dbProvider.name)
             }
           })
-          
+
           set({ providers: uiProviders })
           console.log(`✅ Loaded ${uiProviders.length} providers from database`)
         } catch (error) {
@@ -95,16 +100,16 @@ export const useAIConfigStore = create<AIConfigState>()(
       saveProvider: async (providerData) => {
         try {
           console.log('💾 Saving provider to database:', providerData.name)
-          
+
           // Check if provider already exists
           const existingProviders = await databaseService.getAIProviders()
           const existingProvider = existingProviders.find(p => p.name === providerData.name)
-          
+
           if (existingProvider) {
             console.log('⚠️ Provider already exists, skipping creation:', providerData.name)
             return
           }
-          
+
           const savedProvider = await databaseService.saveAIProvider({
             name: providerData.name!,
             type: providerData.name?.toLowerCase() === 'ollama' ? 'local' : 'api',
@@ -113,12 +118,13 @@ export const useAIConfigStore = create<AIConfigState>()(
             isConnected: providerData.isConnected || false,
             config: null
           })
-          
+
           if (savedProvider) {
             // Add to local state
             const newProvider: AIProvider = {
               id: savedProvider.name.toLowerCase(), // Use lowercase name as ID for consistency
               name: savedProvider.name,
+              type: savedProvider.type as 'local' | 'api',
               description: get().getProviderDescription(savedProvider.name),
               isActive: savedProvider.isActive,
               apiKey: savedProvider.apiKey || '',
@@ -129,11 +135,11 @@ export const useAIConfigStore = create<AIConfigState>()(
               color: get().getProviderColor(savedProvider.name),
               order: get().getProviderOrder(savedProvider.name)
             }
-            
+
             set((state) => ({
               providers: [...state.providers, newProvider]
             }))
-            
+
             console.log('✅ Provider saved successfully')
           }
         } catch (error) {
@@ -144,25 +150,25 @@ export const useAIConfigStore = create<AIConfigState>()(
       updateProvider: async (providerId, updates) => {
         try {
           console.log('🔄 Updating provider:', providerId, updates)
-          
+
           // Find the actual provider database ID from the UI ID
           const providers = get().providers
           const provider = providers.find(p => p.id === providerId)
-          
+
           if (!provider) {
             console.error('❌ Provider not found:', providerId)
             return
           }
-          
+
           // Find the database provider by name to get the actual database ID
           const dbProviders = await databaseService.getAIProviders()
           const dbProvider = dbProviders.find(p => p.name === provider.name)
-          
+
           if (!dbProvider) {
             console.error('❌ Database provider not found:', provider.name)
             return
           }
-          
+
           // Map UI fields to database fields
           const dbUpdates: any = { ...updates }
           if (updates.testStatus) {
@@ -178,12 +184,12 @@ export const useAIConfigStore = create<AIConfigState>()(
           delete dbUpdates.description
           delete dbUpdates.color
           delete dbUpdates.order
-          
+
           const success = await databaseService.updateAIProvider(dbProvider.id, dbUpdates)
-          
+
           if (success) {
             set((state) => ({
-              providers: state.providers.map(p => 
+              providers: state.providers.map(p =>
                 p.id === providerId ? { ...p, ...updates } : p
               )
             }))
@@ -198,9 +204,9 @@ export const useAIConfigStore = create<AIConfigState>()(
         await get().updateProvider(providerId, {
           isActive,
           // Reset connection state when deactivating
-          ...(isActive ? {} : { 
-            isConnected: false, 
-            testStatus: 'idle' as const, 
+          ...(isActive ? {} : {
+            isConnected: false,
+            testStatus: 'idle' as const,
             testMessage: ''
           })
         })
@@ -208,8 +214,8 @@ export const useAIConfigStore = create<AIConfigState>()(
 
       updateAPIKey: async (providerId, apiKey) => {
         await get().updateProvider(providerId, {
-          apiKey, 
-          isConnected: false, 
+          apiKey,
+          isConnected: false,
           testStatus: 'idle' as const,
           testMessage: ''
         })
@@ -218,31 +224,31 @@ export const useAIConfigStore = create<AIConfigState>()(
       testProviderConnection: async (providerId) => {
         try {
           console.log('🔄 Testing provider connection:', providerId)
-          
+
           // Find the actual provider database ID from the UI ID
           const providers = get().providers
           const provider = providers.find(p => p.id === providerId)
-          
+
           if (!provider) {
             console.error('❌ Provider not found:', providerId)
             return false
           }
-          
+
           // Find the database provider by name to get the actual database ID
           const dbProviders = await databaseService.getAIProviders()
           const dbProvider = dbProviders.find(p => p.name === provider.name)
-          
+
           if (!dbProvider) {
             console.error('❌ Database provider not found:', provider.name)
             return false
           }
-          
+
           // Update UI to show testing state
           get().updateProviderConnection(providerId, false, 'testing', 'Testing connection...')
-          
+
           // Test connection via IPC using the actual database ID
           const result = await window.electronAPI.database.testAIProvider?.(dbProvider.id)
-          
+
           if (result?.success) {
             // Fetch models after successful connection
             await get().refreshProviderModels(providerId)
@@ -263,28 +269,28 @@ export const useAIConfigStore = create<AIConfigState>()(
       refreshProviderModels: async (providerId) => {
         try {
           console.log('🔄 Refreshing models for provider:', providerId)
-          
+
           // Find the actual provider database ID from the UI ID
           const providers = get().providers
           const provider = providers.find(p => p.id === providerId)
-          
+
           if (!provider) {
             console.error('❌ Provider not found:', providerId)
             return
           }
-          
+
           // Find the database provider by name to get the actual database ID
           const dbProviders = await databaseService.getAIProviders()
           const dbProvider = dbProviders.find(p => p.name === provider.name)
-          
+
           if (!dbProvider) {
             console.error('❌ Database provider not found:', provider.name)
             return
           }
-          
+
           // Use the database service method which handles the IPC correctly
           const result = await databaseService.refreshAIModels(dbProvider.id)
-          
+
           if (result?.success && result.data && Array.isArray(result.data)) {
             const providerModels: ProviderModel[] = result.data.map(model => ({
               modelId: model.modelId,
@@ -292,7 +298,7 @@ export const useAIConfigStore = create<AIConfigState>()(
               description: model.description || '',
               isSelected: model.isSelected || false
             }))
-            
+
             get().updateProviderConnection(providerId, true, 'success', 'Connected successfully', providerModels)
             console.log(`✅ Refreshed ${result.data.length} models for provider`)
           } else {
@@ -307,18 +313,18 @@ export const useAIConfigStore = create<AIConfigState>()(
 
       updateProviderConnection: (providerId, isConnected, testStatus, testMessage, models = []) => {
         set((state) => ({
-          providers: state.providers.map(p => 
-            p.id === providerId 
-              ? { 
-                  ...p, 
-                  isConnected,
-                  testStatus,
-                  testMessage,
-                  availableModels: models.map(model => ({
-                    ...model,
-                    isSelected: model.isSelected ?? false
-                  }))
-                } 
+          providers: state.providers.map(p =>
+            p.id === providerId
+              ? {
+                ...p,
+                isConnected,
+                testStatus,
+                testMessage,
+                availableModels: models.map(model => ({
+                  ...model,
+                  isSelected: model.isSelected ?? false
+                }))
+              }
               : p
           )
         }))
@@ -327,50 +333,50 @@ export const useAIConfigStore = create<AIConfigState>()(
       toggleModelSelection: async (providerId, modelId, isSelected) => {
         try {
           console.log('🔄 Toggling model selection:', { providerId, modelId, isSelected })
-          
+
           // Find the actual provider database ID from the UI ID
           const providers = get().providers
           const provider = providers.find(p => p.id === providerId)
-          
+
           if (!provider) {
             console.error('❌ Provider not found:', providerId)
             return
           }
-          
+
           // Find the database provider by name to get the actual database ID
           const dbProviders = await databaseService.getAIProviders()
           const dbProvider = dbProviders.find(p => p.name === provider.name)
-          
+
           if (!dbProvider) {
             console.error('❌ Database provider not found:', provider.name)
             return
           }
-          
+
           // Find the model in the database
           const allModels = await databaseService.getAIModels(dbProvider.id)
           const model = allModels.find(m => m.modelId === modelId)
-          
+
           if (model) {
             // Update model selection in database
             await databaseService.saveAIModel({
               ...model,
               isSelected
             })
-            
+
             // Update local state
             set((state) => ({
-              providers: state.providers.map(p => 
-                p.id === providerId 
+              providers: state.providers.map(p =>
+                p.id === providerId
                   ? {
-                      ...p,
-                      availableModels: p.availableModels.map(m => 
-                        m.modelId === modelId ? { ...m, isSelected } : m
-                      )
-                    }
+                    ...p,
+                    availableModels: p.availableModels.map(m =>
+                      m.modelId === modelId ? { ...m, isSelected } : m
+                    )
+                  }
                   : p
               )
             }))
-            
+
             console.log('✅ Model selection updated successfully')
           }
         } catch (error) {
@@ -381,25 +387,25 @@ export const useAIConfigStore = create<AIConfigState>()(
       addCustomModel: async (providerId, model) => {
         try {
           console.log('➕ Adding custom model:', { providerId, model })
-          
+
           // Find the actual provider database ID from the UI ID
           const providers = get().providers
           const provider = providers.find(p => p.id === providerId)
-          
+
           if (!provider) {
             console.error('❌ Provider not found:', providerId)
             return
           }
-          
+
           // Find the database provider by name to get the actual database ID
           const dbProviders = await databaseService.getAIProviders()
           const dbProvider = dbProviders.find(p => p.name === provider.name)
-          
+
           if (!dbProvider) {
             console.error('❌ Database provider not found:', provider.name)
             return
           }
-          
+
           const savedModel = await databaseService.saveAIModel({
             providerId: dbProvider.id,
             modelName: model.modelName,
@@ -409,15 +415,15 @@ export const useAIConfigStore = create<AIConfigState>()(
             isSelected: true,
             description: model.description
           })
-          
+
           if (savedModel) {
             set((state) => ({
-              providers: state.providers.map(p => 
-                p.id === providerId 
+              providers: state.providers.map(p =>
+                p.id === providerId
                   ? {
-                      ...p,
-                      availableModels: [...p.availableModels, { ...model, isSelected: true }]
-                    }
+                    ...p,
+                    availableModels: [...p.availableModels, { ...model, isSelected: true }]
+                  }
                   : p
               )
             }))
@@ -431,20 +437,20 @@ export const useAIConfigStore = create<AIConfigState>()(
       removeCustomModel: async (providerId, modelId) => {
         try {
           console.log('🗑️ Removing custom model:', { providerId, modelId })
-          
+
           // In a real implementation, you'd want to delete from database
           // For now, just update local state
           set((state) => ({
-            providers: state.providers.map(p => 
-              p.id === providerId 
+            providers: state.providers.map(p =>
+              p.id === providerId
                 ? {
-                    ...p,
-                    availableModels: p.availableModels.filter(m => m.modelId !== modelId)
-                  }
+                  ...p,
+                  availableModels: p.availableModels.filter(m => m.modelId !== modelId)
+                }
                 : p
             )
           }))
-          
+
           console.log('✅ Custom model removed successfully')
         } catch (error) {
           console.error('❌ Failed to remove custom model:', error)
@@ -458,7 +464,7 @@ export const useAIConfigStore = create<AIConfigState>()(
       getSelectedModels: () => {
         const activeProviders = get().getActiveProviders()
         const result: { provider: AIProvider; model: ProviderModel }[] = []
-        
+
         activeProviders.forEach(provider => {
           provider.availableModels
             .filter(model => model.isSelected)
@@ -466,7 +472,7 @@ export const useAIConfigStore = create<AIConfigState>()(
               result.push({ provider, model })
             })
         })
-        
+
         return result
       },
 
@@ -489,7 +495,7 @@ export const useAIConfigStore = create<AIConfigState>()(
         const colors: Record<string, string> = {
           'OpenAI': '#10a37f',
           'Anthropic': '#d97706',
-          'Google': '#4285f4', 
+          'Google': '#4285f4',
           'OpenRouter': '#8b5cf6'
         }
         return colors[name] || '#6b7280'

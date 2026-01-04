@@ -1,6 +1,6 @@
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "windows", "debian-openssl-3.0.x"]
+  binaryTargets = ["native", "darwin-arm64", "darwin", "windows", "debian-openssl-3.0.x", "linux-musl"]
 }
 
 datasource db {
@@ -205,6 +205,7 @@ model HydraulicProject {
   documents     ProjectDocument[]
   teamMembers   ProjectTeamMember[]
   conversations Conversation[]
+  networks      HydraulicNetwork[]
 
   @@map("hydraulic_projects")
 }
@@ -266,6 +267,7 @@ model HydraulicKnowledge {
   category    String   // 'hydraulics' | 'regulations' | 'best-practices'
   subcategory String
   region      String   // JSON array of applicable regions
+  secondaryCategories String? // JSON array of additional categories
   title       String
   content     String   // Main content of the document
   metadata    String   // JSON with formulas, tables, examples, references
@@ -309,4 +311,56 @@ model HydraulicComponent {
   updatedAt       DateTime @updatedAt
 
   @@map("hydraulic_components")
+}
+
+// Hydraulic Network Storage
+model HydraulicNetwork {
+  id                String   @id @default(cuid())
+  projectId         String
+  name              String
+  description       String?
+  filename          String   // Original filename (e.g., "network1.inp")
+  fileContent       String   // INP file content
+  networkData       String   // JSON serialized network data from WNTR
+  coordinateSystem  String?  // JSON with coordinate system info
+  summary           String   // JSON with network summary (nodes, pipes, etc.)
+  simulationResults String?  // JSON with last simulation results
+  version           String   @default("1.0")
+  isActive          Boolean  @default(true)
+  lastLoaded        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  project           HydraulicProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, name])
+  @@map("hydraulic_networks")
+}
+
+// RLHF Feedback System
+model Feedback {
+  id            String   @id @default(cuid())
+  query         String   // Original user query
+  response      String   // System response
+  rating        Int      // 1 (thumbs up) or -1 (thumbs down)
+  correction    String?  // Optional user correction text
+  context       String?  // JSON with retrieved documents IDs or content
+  modelUsed     String?  // Name of the model used (e.g., 'gpt-4', 'llama3')
+  category      String?  // 'hydraulics', 'regulations', etc.
+  userId        String?  // Optional user ID
+  createdAt     DateTime @default(now())
+  
+  @@map("feedback")
+}
+
+model LongTermMemory {
+  id          String   @id @default(cuid())
+  key         String   // Subject or Topic
+  value       String   // The fact or summary
+  category    String?  // 'summary', 'fact', 'user_preference'
+  confidence  Float    @default(1.0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("long_term_memory")
 }

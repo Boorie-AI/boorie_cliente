@@ -1,9 +1,10 @@
-import { Conversation, useChatStore } from '@/stores/chatStore'
-import { Edit2, MoreVertical, Trash2, Copy, Download, Plus, FolderOpen, FolderPlus } from 'lucide-react'
+import { Conversation, useChatStore, type WisdomConfiguration } from '@/stores/chatStore'
+import { Edit2, MoreVertical, Trash2, Copy, Download, Plus, FolderPlus } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useOnClickOutside } from '@/hooks/useOnClickOutside'
 import { cn } from '@/utils/cn'
 import { ModelSelector } from './ModelSelector'
+import { WisdomSelector } from './WisdomSelector'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { ProjectSelector } from './ProjectSelector'
 import { NewProjectDialog } from '@/components/hydraulic/NewProjectDialog'
@@ -19,7 +20,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false)
-  const { updateConversationTitle, deleteConversation, createNewConversation, updateConversation } = useChatStore()
+  const { updateConversationTitle, deleteConversation, createNewConversation, updateConversation, wisdomConfig, setWisdomConfig } = useChatStore()
   
   const menuRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -69,6 +70,10 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
       updateConversation(conversation.id, { projectId: newProject.id })
     }
     setShowNewProjectDialog(false)
+  }
+
+  const handleWisdomConfigChange = (config: WisdomConfiguration | undefined) => {
+    setWisdomConfig(config)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -168,6 +173,11 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
 
       <div className="flex items-center space-x-3">
         <ModelSelector />
+        <WisdomSelector
+          selectedConfig={wisdomConfig}
+          onConfigChange={handleWisdomConfigChange}
+          className="flex-shrink-0"
+        />
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setShowMenu(!showMenu)}

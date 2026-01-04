@@ -27,7 +27,7 @@ export function ChatArea() {
     return (
       <div className="flex-1 flex flex-col h-full bg-background">
         {/* Welcome Screen */}
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center max-w-4xl mx-auto px-4">
           <div className="text-center space-y-6 max-w-md mx-auto px-6">
             <div className="relative">
               <img 
@@ -77,7 +77,8 @@ export function ChatArea() {
 
   return (
     <div className="h-full flex bg-background">
-      <div className="flex-1 flex flex-col min-h-0">
+      {/* Main chat area - centered with max width */}
+      <div className="flex-1 flex flex-col min-h-0 max-w-4xl mx-auto">
         {/* Header with conversation info and model selector */}
         <div className="flex-shrink-0 border-b border-border/50 bg-card z-10">
           <ChatHeader conversation={activeConversation} />
@@ -85,7 +86,7 @@ export function ChatArea() {
         
         {/* Messages area with proper scrolling */}
         <div className="flex-1 overflow-y-auto min-h-0">
-          <div className="p-4">
+          <div className="p-4 max-w-3xl mx-auto">
             <MessageList 
               messages={activeConversation.messages} 
               isLoading={isLoading}
@@ -97,15 +98,19 @@ export function ChatArea() {
 
         {/* Input area */}
         <div className="flex-shrink-0 border-t border-border/50 bg-card/30">
-          <MessageInput />
+          <div className="max-w-3xl mx-auto">
+            <MessageInput />
+          </div>
         </div>
       </div>
       
-      {/* Project conversations list */}
-      <ProjectConversationsList 
-        projectId={activeConversation.projectId} 
-        currentConversationId={activeConversation.id}
-      />
+      {/* Project conversations list - fixed sidebar */}
+      <div className="flex-shrink-0">
+        <ProjectConversationsList 
+          projectId={activeConversation.projectId} 
+          currentConversationId={activeConversation.id}
+        />
+      </div>
     </div>
   )
 }

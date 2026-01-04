@@ -15,9 +15,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `./dev-start.sh` - Full development setup with complete build
 
 ### Testing
-- Currently no test commands configured in package.json
-- Test files can be found in root directory (e.g., test-wntr-functionality.py, test-hydraulic-calc.js)
-- WNTR testing: `python test-wntr-functionality.py` or `./run-with-wntr.sh python test-wntr-functionality.py`
+- No formal test framework configured in package.json
+- `test-files/` directory contains EPANET .inp files and test results for hydraulic simulations
+- Manual testing scripts in root directory for system verification:
+  - `test-*.js` - Various functionality tests (RAG, WNTR, IPC, database, etc.)
+  - `debug-*.js` - Debugging scripts for troubleshooting specific issues
+  - `check-*.js` - System validation and verification scripts
 
 ### Build & Distribution
 - `npm run build` - Build both frontend and Electron
@@ -34,7 +37,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Database
 - `npm run db:generate` - Generate Prisma client after schema changes
-- `npm run db:push` - Push schema changes to SQLite database
+- `npm run db:push` - Push schema changes to PostgreSQL database
 - `npm run db:migrate` - Run database migrations
 
 ### Python/WNTR Environment
@@ -46,19 +49,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Environment Variables
 
 Required variables (see `.env.example`):
-- `VITE_MAPBOX_ACCESS_TOKEN` - Mapbox access token for network visualization
+- `DATABASE_URL` - PostgreSQL database connection string (format: `postgresql://username:password@localhost:5432/dbname`)
+- `VITE_MAPBOX_ACCESS_TOKEN` - Mapbox access token for network visualization (get from https://account.mapbox.com/)
 
 Optional variables:
 - `VITE_DEFAULT_MAP_LNG` - Default map longitude (default: -70.9)
 - `VITE_DEFAULT_MAP_LAT` - Default map latitude (default: 42.35)
 - `VITE_DEFAULT_MAP_ZOOM` - Default map zoom level (default: 9)
-- `PYTHON_PATH` - Path to Python executable with WNTR installed
+- `VITE_CLARITY_PROJECT_ID` - Microsoft Clarity analytics project ID (default: ts4zpakpjj)
+- `VITE_CLARITY_ENABLED` - Enable/disable Clarity analytics (default: true)
+- `PYTHON_PATH` - Path to Python executable with WNTR installed (auto-configured by setup script)
+- `ENABLE_HARDWARE_ACCELERATION` - Enable/disable hardware acceleration (default: true)
 
 ## Architecture
 
 ### Tech Stack
 - **Frontend**: React 18 + TypeScript + Vite + TailwindCSS + Zustand + Radix UI
-- **Backend**: Electron 28 + TypeScript + Prisma ORM + SQLite
+- **Backend**: Electron 28 + TypeScript + Prisma ORM + PostgreSQL
 - **IPC**: Secure context-isolated communication via preload script
 - **Hydraulics**: Python WNTR integration for network analysis
 - **Visualization**: vis-network for hydraulic network diagrams, Mapbox for geographic views
@@ -80,7 +87,8 @@ boorie_cliente/
 │   └── services/         # Auth, security services
 ├── src/                  # React frontend (TypeScript)
 │   ├── components/       # UI components by feature
-│   │   └── hydraulic/    # Hydraulic engineering components
+│   │   ├── hydraulic/    # Hydraulic engineering components
+│   │   └── wisdom/       # Unified Wisdom Center components
 │   ├── services/         # Frontend service layer
 │   └── stores/           # Zustand state management
 ├── prisma/               # Database schema and migrations
@@ -88,6 +96,7 @@ boorie_cliente/
 │   ├── hydraulics/       # Technical documentation
 │   ├── regulations/      # Regional standards
 │   └── best-practices/   # Industry guidelines
+├── test-files/           # Test data (EPANET files, results)
 └── venv-wntr/           # WNTR virtual environment (auto-generated)
 ```
 
@@ -104,6 +113,8 @@ boorie_cliente/
    - `useAIConfigStore` - AI provider configurations
    - `usePreferencesStore` - User preferences (theme, language)
    - `useAppStore` - General app state and hydraulic projects
+   - `useProjectStore` - Project management state
+   - `useWNTRStore` - WNTR operations and network analysis state
 
 3. **Service Layer**: Both frontend and backend have service layers
    - Frontend services in `src/services/` handle UI-side logic
@@ -111,21 +122,79 @@ boorie_cliente/
    - Hydraulic services integrate WNTR and calculation engines
    - Clear separation of concerns between layers
 
-4. **Database**: SQLite with Prisma ORM
+4. **Database**: PostgreSQL with Prisma ORM
    - Schema in `prisma/schema.prisma`
-   - Models: HydraulicProject, HydraulicCalculation, ProjectDocument, HydraulicKnowledge, etc.
+   - Core models: Conversation, Message, AIProvider for chat functionality
+   - Hydraulic models: HydraulicProject, HydraulicCalculation, ProjectDocument, HydraulicKnowledge, etc.
    - Extended schema for hydraulic engineering domain
+   - Binary targets configured for cross-platform deployment: native, darwin-arm64, darwin, windows, debian-openssl-3.0.x, linux-musl
 
 5. **AI Integration**: Multi-provider support with hydraulic specialization
    - Providers: OpenAI, Anthropic, Google, OpenRouter, Ollama
-   - RAG system for hydraulic knowledge retrieval
+   - Advanced agentic RAG system for intelligent knowledge retrieval
    - Context-aware responses for engineering queries
+   - Network repository integration for hydraulic data analysis
+   - Microsoft Clarity analytics integration for usage tracking
 
 6. **WNTR Integration**: Python-based water network analysis
    - `wntrService.py` handles EPANET file operations
    - Simulation capabilities: hydraulic and water quality
    - Network topology and connectivity analysis
    - Results visualization in frontend
+
+## Unified Wisdom Center
+
+The **Unified Wisdom Center** is a centralized knowledge management interface that consolidates document management with Boorie's hydraulic knowledge catalog, providing a unified experience for managing the entire knowledge base.
+
+### Key Features
+
+1. **Unified Document View**:
+   - Single view including all documents (uploaded + catalog)
+   - Visual distinction with badges and icons (Uploaded vs Catalog)
+   - Intelligent filtering without separate tabs
+
+2. **Advanced Search Capabilities**:
+   - **Semantic RAG Search** (Shift+Enter): AI-powered knowledge retrieval
+   - **Simple text search**: Real-time filtering
+   - **Category filters**: Sources, Hydraulics, Pumping, Networks, etc.
+   - **Region filters**: MX, CO, ES, and other country codes
+
+3. **Document Management**:
+   - **File upload**: Advanced PDF processing with metadata extraction
+   - **Document processing**: Support for PDF, TXT, DOC, DOCX formats
+   - **Selective deletion**: Remove uploaded documents
+   - **Automatic categorization**: Content-based classification
+
+4. **Pre-indexed Catalog**:
+   - **Hierarchical view**: Expandable technical sections
+   - **Indexing status**: Clear indication (✓ Indexed / ○ Not Indexed)
+   - **On-demand indexing**: One-click document indexing
+   - **Complete metadata**: Pages, size, topics, description
+
+5. **Embedding Configuration**:
+   - **Multi-provider support**: OpenAI, Ollama embedding models
+   - **Dynamic switching**: Change between embedding models
+   - **Ollama auto-detection**: Automatic detection of local models
+   - **Real-time status**: Live connection status with Ollama
+   - **Model recommendations**: Popular embedding model suggestions
+
+### Architecture
+
+- **Main Component**: `src/components/wisdom/UnifiedWisdomPanel.tsx`
+- **APIs**: 
+  - `wisdom:upload` - Document upload and processing
+  - `wisdom:search` - Semantic search with RAG
+  - `wisdom:list` - Document listing with filters
+  - `wisdom:getCatalog` - Access to pre-indexed catalog
+  - `wisdom:indexFromCatalog` - Catalog document indexing
+
+### Usage
+
+1. **Access**: From sidebar "Wisdom Center"
+2. **Search**: Enter text and press Enter (simple) or Shift+Enter (RAG)
+3. **Filter**: Use category and region selectors
+4. **Upload**: Click "Add Document" button
+5. **Index**: Click "Index" button on non-indexed catalog documents
 
 ## Python/WNTR Setup
 
@@ -162,11 +231,15 @@ The project requires a properly configured Python environment with WNTR for hydr
    - Team collaboration features
    - Regulatory compliance tracking
 
-4. **Knowledge Base**:
-   - RAG-powered technical documentation
+4. **Unified Wisdom Center**:
+   - Centralized knowledge management interface
+   - RAG-powered technical documentation with semantic search
    - Regional regulations (Mexico, Colombia, Spain, etc.)
    - Best practices and design guidelines
    - Formula references with examples
+   - Document upload and processing (PDF, TXT, DOC, etc.)
+   - Pre-indexed catalog of hydraulic engineering resources
+   - Multi-provider embedding support (OpenAI, Ollama)
 
 ## Important Implementation Details
 
@@ -214,6 +287,9 @@ The project requires a properly configured Python environment with WNTR for hydr
    - Renderer entry: `src/main.tsx`
    - IPC handlers: `electron/handlers/index.ts`
    - Database service: `backend/services/database.service.ts`
+   - Agentic RAG: `electron/handlers/agenticRAG.handler.ts`
+   - Network Repository: `electron/handlers/networkRepository.handler.ts`
+   - Wisdom Center: `src/components/wisdom/UnifiedWisdomPanel.tsx`
 
 ## Development Guidelines
 
@@ -291,9 +367,10 @@ The project requires a properly configured Python environment with WNTR for hydr
    - Or manually set `PYTHON_PATH` in `.env` to a non-system Python with WNTR installed
    - See `docs/WNTR_PYTHON_SETUP.md` for detailed troubleshooting
 2. **vis-network warnings**: Expected due to peer dependency conflicts
-3. **Database connection**: Ensure SQLite file permissions are correct
+3. **Database connection**: Ensure PostgreSQL connection and permissions are correct
 4. **IPC timeout**: Increase timeout for large WNTR operations
 5. **Module resolution errors**: Run `./build-electron-proper.sh` or `./build-complete.sh` to fix import paths
+6. **Segmentation faults**: If app crashes with exit code 11, likely caused by hardware acceleration or native modules - hardware acceleration can be disabled via `ENABLE_HARDWARE_ACCELERATION=false`
 
 ### Debug Mode
 - Set `NODE_ENV=development` for detailed logging

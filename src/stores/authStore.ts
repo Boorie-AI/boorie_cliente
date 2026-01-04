@@ -33,24 +33,24 @@ export interface AuthState {
     microsoft: ConnectionStatus
     google: ConnectionStatus
   }
-  
+
   // User profiles
   userProfiles: UserProfile[]
-  
+
   // Loading states
   isLoading: {
     microsoft: boolean
     google: boolean
     general: boolean
   }
-  
+
   // Error states
   errors: {
     microsoft?: string
     google?: string
     general?: string
   }
-  
+
   // Last updated timestamp
   lastUpdated?: Date
 
@@ -58,20 +58,20 @@ export interface AuthState {
   initializeAuth: () => Promise<void>
   refreshConnectionStatus: () => Promise<void>
   refreshProviderStatus: (provider: 'microsoft' | 'google') => Promise<void>
-  
+
   // OAuth actions
   connectMicrosoft: () => Promise<boolean>
   connectGoogle: () => Promise<boolean>
   disconnect: (provider: 'microsoft' | 'google') => Promise<boolean>
-  
+
   // Profile management
   loadUserProfiles: () => Promise<void>
   getUserProfile: (provider: string) => UserProfile | null
-  
+
   // Token management
   refreshToken: (provider: 'microsoft' | 'google') => Promise<boolean>
   testConnection: (provider: 'microsoft' | 'google') => Promise<boolean>
-  
+
   // Utility actions
   setLoading: (provider: 'microsoft' | 'google' | 'general', loading: boolean) => void
   setError: (provider: 'microsoft' | 'google' | 'general', error?: string) => void
@@ -117,7 +117,7 @@ export const useAuthStore = create<AuthState>()(
           set({ lastUpdated: new Date() })
         } catch (error) {
           console.error('Failed to initialize auth:', error)
-          get().setError('general', `Initialization failed: ${error.message}`)
+          get().setError('general', `Initialization failed: ${error instanceof Error ? error.message : String(error)}`)
         } finally {
           get().setLoading('general', false)
         }
@@ -131,9 +131,9 @@ export const useAuthStore = create<AuthState>()(
           }
 
           const result = await window.electronAPI.auth.getConnectionStatus()
-          
+
           if (result.success && result.data) {
-            set((state) => ({
+            set(() => ({
               connectionStatus: {
                 microsoft: result.data.microsoft || initialConnectionStatus,
                 google: result.data.google || initialConnectionStatus
@@ -144,7 +144,7 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error) {
           console.error('Failed to refresh connection status:', error)
-          get().setError('general', `Failed to refresh status: ${error.message}`)
+          get().setError('general', `Failed to refresh status: ${error instanceof Error ? error.message : String(error)}`)
         }
       },
 
@@ -156,10 +156,10 @@ export const useAuthStore = create<AuthState>()(
 
           // Refresh overall status and extract provider-specific data
           await get().refreshConnectionStatus()
-          
+
         } catch (error) {
           console.error(`Failed to refresh ${provider} status:`, error)
-          get().setError(provider, `Failed to refresh status: ${error.message}`)
+          get().setError(provider, `Failed to refresh status: ${error instanceof Error ? error.message : String(error)}`)
         } finally {
           get().setLoading(provider, false)
         }
@@ -176,14 +176,14 @@ export const useAuthStore = create<AuthState>()(
           }
 
           const result = await window.electronAPI.auth.microsoftLogin()
-          
+
           if (result.success) {
             // Refresh status and profiles after successful connection
             await Promise.all([
               get().refreshProviderStatus('microsoft'),
               get().loadUserProfiles()
             ])
-            
+
             set({ lastUpdated: new Date() })
             return true
           } else {
@@ -191,7 +191,7 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error) {
           console.error('Microsoft connection failed:', error)
-          get().setError('microsoft', `Connection failed: ${error.message}`)
+          get().setError('microsoft', `Connection failed: ${error instanceof Error ? error.message : String(error)}`)
           return false
         } finally {
           get().setLoading('microsoft', false)
@@ -209,14 +209,14 @@ export const useAuthStore = create<AuthState>()(
           }
 
           const result = await window.electronAPI.auth.googleLogin()
-          
+
           if (result.success) {
             // Refresh status and profiles after successful connection
             await Promise.all([
               get().refreshProviderStatus('google'),
               get().loadUserProfiles()
             ])
-            
+
             set({ lastUpdated: new Date() })
             return true
           } else {
@@ -224,7 +224,7 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error) {
           console.error('Google connection failed:', error)
-          get().setError('google', `Connection failed: ${error.message}`)
+          get().setError('google', `Connection failed: ${error instanceof Error ? error.message : String(error)}`)
           return false
         } finally {
           get().setLoading('google', false)
@@ -242,14 +242,14 @@ export const useAuthStore = create<AuthState>()(
           }
 
           const result = await window.electronAPI.auth.logout(provider)
-          
+
           if (result.success) {
             // Refresh status and profiles after successful disconnection
             await Promise.all([
               get().refreshProviderStatus(provider),
               get().loadUserProfiles()
             ])
-            
+
             set({ lastUpdated: new Date() })
             return true
           } else {
@@ -257,7 +257,7 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error) {
           console.error(`${provider} disconnection failed:`, error)
-          get().setError(provider, `Disconnection failed: ${error.message}`)
+          get().setError(provider, `Disconnection failed: ${error instanceof Error ? error.message : String(error)}`)
           return false
         } finally {
           get().setLoading(provider, false)
@@ -272,7 +272,7 @@ export const useAuthStore = create<AuthState>()(
           }
 
           const result = await window.electronAPI.auth.getActiveProfiles()
-          
+
           if (result.success) {
             set({ userProfiles: result.data || [] })
           } else {
@@ -280,7 +280,7 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error) {
           console.error('Failed to load user profiles:', error)
-          get().setError('general', `Failed to load profiles: ${error.message}`)
+          get().setError('general', `Failed to load profiles: ${error instanceof Error ? error.message : String(error)}`)
         }
       },
 
@@ -301,7 +301,7 @@ export const useAuthStore = create<AuthState>()(
           }
 
           const result = await window.electronAPI.auth.refreshToken(provider)
-          
+
           if (result.success) {
             // Refresh status after successful token refresh
             await get().refreshProviderStatus(provider)
@@ -311,7 +311,7 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error) {
           console.error(`${provider} token refresh failed:`, error)
-          get().setError(provider, `Token refresh failed: ${error.message}`)
+          get().setError(provider, `Token refresh failed: ${error instanceof Error ? error.message : String(error)}`)
           return false
         } finally {
           get().setLoading(provider, false)
@@ -329,7 +329,7 @@ export const useAuthStore = create<AuthState>()(
           }
 
           const result = await window.electronAPI.auth.testConnection(provider)
-          
+
           if (result.success) {
             // Refresh status after successful test
             await get().refreshProviderStatus(provider)
@@ -339,7 +339,7 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error) {
           console.error(`${provider} connection test failed:`, error)
-          get().setError(provider, `Connection test failed: ${error.message}`)
+          get().setError(provider, `Connection test failed: ${error instanceof Error ? error.message : String(error)}`)
           return false
         } finally {
           get().setLoading(provider, false)
@@ -373,7 +373,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-store',
-      partialize: (state) => ({
+      partialize: (state: AuthState) => ({
         // Only persist user profiles and last updated time
         userProfiles: state.userProfiles,
         lastUpdated: state.lastUpdated

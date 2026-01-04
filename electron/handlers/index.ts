@@ -7,7 +7,9 @@ export { ChatHandler } from './chat.handler'
 export { AuthHandler } from './auth.handler'
 export { HydraulicHandler } from './hydraulic.handler'
 export { setupWNTRHandlers } from './wntr.handler'
-export { registerDocumentHandlers } from './document.handler'
+export { registerWisdomHandlers, registerVectorGraphHandlers } from './document.handler'
+export { NetworkRepositoryHandler } from './networkRepository.handler'
+export { registerAgenticRAGHandlers } from './agenticRAG.handler'
 
 import { ServiceContainer } from '../../backend/services'
 import { ConversationHandler } from './conversation.handler'
@@ -17,7 +19,9 @@ import { ChatHandler } from './chat.handler'
 import { AuthHandler } from './auth.handler'
 import { HydraulicHandler } from './hydraulic.handler'
 import { setupWNTRHandlers } from './wntr.handler'
-import { registerDocumentHandlers } from './document.handler'
+import { registerWisdomHandlers, registerVectorGraphHandlers } from './document.handler'
+import { NetworkRepositoryHandler } from './networkRepository.handler'
+import { registerAgenticRAGHandlers } from './agenticRAG.handler'
 import { createLogger } from '../../backend/utils/logger'
 
 const logger = createLogger('HandlersManager')
@@ -29,28 +33,41 @@ export class HandlersManager {
   private chatHandler: ChatHandler
   private authHandler: AuthHandler
   private hydraulicHandler: HydraulicHandler
+  private networkRepositoryHandler: NetworkRepositoryHandler
   private isInitialized = false
 
   constructor(services: ServiceContainer) {
     logger.info('Initializing IPC handlers manager')
-    
+
     this.conversationHandler = new ConversationHandler(services.conversation)
     this.aiProviderHandler = new AIProviderHandler(services.aiProvider)
     this.databaseHandler = new DatabaseHandler(services.database)
-    this.chatHandler = new ChatHandler()
+    this.chatHandler = new ChatHandler(services.database)
     this.authHandler = new AuthHandler(services.database)
     this.hydraulicHandler = new HydraulicHandler(services)
-    
+    this.networkRepositoryHandler = new NetworkRepositoryHandler(services.database.prisma)
+
     // Setup WNTR handlers
     setupWNTRHandlers()
-    
-    // Setup document handlers
+
+    // Setup wisdom handlers
     try {
-      registerDocumentHandlers()
+      registerWisdomHandlers(services.database.prisma)
+      registerVectorGraphHandlers(services.database.prisma)
     } catch (error) {
-      logger.warn('Document handlers registration failed, continuing without RAG support', error as Error)
+      logger.warn('Wisdom handlers registration failed, continuing without RAG support', error as Error)
     }
-    
+
+    // Setup agentic RAG handlers
+    try {
+      logger.info('Attempting to register agentic RAG handlers...')
+      registerAgenticRAGHandlers(services.database.prisma)
+      logger.success('Agentic RAG handlers registered successfully')
+    } catch (error) {
+      logger.error('Agentic RAG handlers registration failed', error as Error)
+      logger.warn('Continuing without agentic RAG support')
+    }
+
     this.isInitialized = true
     logger.success('IPC handlers manager initialized successfully')
   }
@@ -80,6 +97,10 @@ export class HandlersManager {
     return this.hydraulicHandler
   }
 
+  get networkRepository(): NetworkRepositoryHandler {
+    return this.networkRepositoryHandler
+  }
+
   // Check if handlers are initialized
   get initialized(): boolean {
     return this.isInitialized
@@ -93,15 +114,16 @@ export class HandlersManager {
     }
 
     logger.info('Cleaning up IPC handlers')
-    
+
     try {
       this.conversationHandler.unregisterHandlers()
       this.aiProviderHandler.unregisterHandlers()
       this.databaseHandler.unregisterHandlers()
       this.chatHandler.unregisterHandlers()
       this.hydraulicHandler.cleanup()
+      this.networkRepositoryHandler.cleanup()
       // Note: AuthHandler doesn't have unregisterHandlers method yet
-      
+
       this.isInitialized = false
       logger.success('IPC handlers cleaned up successfully')
     } catch (error) {
@@ -112,7 +134,7 @@ export class HandlersManager {
   // Health check for all handlers
   async healthCheck(): Promise<{ [key: string]: boolean }> {
     const results: { [key: string]: boolean } = {}
-    
+
     try {
       results.conversationHandler = this.conversationHandler ? true : false
       results.aiProviderHandler = this.aiProviderHandler ? true : false
@@ -120,8 +142,9 @@ export class HandlersManager {
       results.chatHandler = this.chatHandler ? true : false
       results.authHandler = this.authHandler ? true : false
       results.hydraulicHandler = this.hydraulicHandler ? true : false
+      results.networkRepositoryHandler = this.networkRepositoryHandler ? true : false
       results.initialized = this.isInitialized
-      
+
       logger.info('Handlers health check completed', results)
       return results
     } catch (error) {
@@ -133,6 +156,7 @@ export class HandlersManager {
         chatHandler: false,
         authHandler: false,
         hydraulicHandler: false,
+        networkRepositoryHandler: false,
         initialized: false,
         error: true
       }

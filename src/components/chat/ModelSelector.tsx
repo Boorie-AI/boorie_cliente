@@ -27,7 +27,7 @@ export function ModelSelector() {
 
   useEffect(() => {
     checkOllamaAndLoadModels()
-    
+
     // Load previously selected model from localStorage
     try {
       const stored = localStorage.getItem('selectedModel')
@@ -48,8 +48,8 @@ export function ModelSelector() {
   useEffect(() => {
     if (activeConversation) {
       // Try to find model by modelId first (for API models), then by name (for local models)
-      const modelId = availableModels.find(m => 
-        (m.modelId && m.modelId === activeConversation.model) || 
+      const modelId = availableModels.find(m =>
+        (m.modelId && m.modelId === activeConversation.model) ||
         m.name === activeConversation.model
       )?.id || ''
       setSelectedModel(modelId)
@@ -62,17 +62,17 @@ export function ModelSelector() {
 
   const checkOllamaAndLoadModels = async () => {
     let ollamaModels: Model[] = []
-    
+
     try {
       // Check Ollama status
       const response = await fetch('http://localhost:11434/api/tags', {
         method: 'GET',
       })
-      
+
       if (response.ok) {
         const data = await response.json()
         setOllamaStatus('available')
-        
+
         // Add Ollama models
         ollamaModels = (data.models || []).map((model: any) => ({
           id: `ollama-${model.name}`,
@@ -99,12 +99,14 @@ export function ModelSelector() {
       modelId: model.modelId // Store the actual model ID for API calls
     }))
 
-    // Combine all models
+    // Combine all models and deduplicate by ID
     const allModels = [...ollamaModels, ...apiModels]
-    setAvailableModels(allModels)
-    
+    const uniqueModels = Array.from(new Map(allModels.map(item => [item.id, item])).values())
+
+    setAvailableModels(uniqueModels)
+
     // Debug log
-    console.log('Loaded models:', allModels)
+    console.log('Loaded models:', uniqueModels)
     console.log('API models from config:', selectedAPIModels)
   }
 
@@ -113,17 +115,17 @@ export function ModelSelector() {
     if (selectedModelObj) {
       console.log('Selected model:', selectedModelObj)
       setSelectedModel(modelId)
-      
+
       // Update current conversation's model if there's an active conversation
       if (activeConversationId) {
         // For API models, use the actual modelId, for local models use the name
-        const modelForConversation = selectedModelObj.type === 'api' && selectedModelObj.modelId 
-          ? selectedModelObj.modelId 
+        const modelForConversation = selectedModelObj.type === 'api' && selectedModelObj.modelId
+          ? selectedModelObj.modelId
           : selectedModelObj.name
-        
+
         updateConversationModel(activeConversationId, modelForConversation, selectedModelObj.provider)
       }
-      
+
       // Store the selected model for new conversations
       localStorage.setItem('selectedModel', JSON.stringify({
         id: modelId,
@@ -168,114 +170,114 @@ export function ModelSelector() {
           </Select.Icon>
         </Select.Trigger>
 
-          <Select.Portal>
-            <Select.Content 
-              className="bg-popover border border-border rounded-lg shadow-lg min-w-[280px] max-h-[300px] overflow-hidden"
-              position="popper"
-              sideOffset={4}
-              style={{ zIndex: 99999 }}
-            >
-              <Select.Viewport className="p-1">
-                {/* Local Models Section */}
-                {ollamaStatus === 'available' && availableModels.some(m => m.type === 'local') && (
-                  <>
-                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Local Models (Ollama)
-                    </div>
-                    {availableModels
-                      .filter(m => m.type === 'local')
-                      .map((model) => (
-                        <Select.Item
-                          key={model.id}
-                          value={model.id}
-                          className={cn(
-                            "flex items-center space-x-3 px-3 py-2 rounded-md cursor-pointer",
-                            "hover:bg-accent hover:text-accent-foreground",
-                            "focus:bg-accent focus:text-accent-foreground focus:outline-none"
-                          )}
-                        >
-                          <Server size={16} className="text-green-600" />
-                          <div className="flex-1">
-                            <div className="font-medium">{model.name}</div>
-                            <div className="text-xs text-muted-foreground">{model.provider}</div>
-                          </div>
-                          <CheckCircle size={14} className="text-green-600" />
-                        </Select.Item>
-                      ))}
-                    <Select.Separator className="h-px bg-border my-1" />
-                  </>
-                )}
-
-                {/* Ollama Not Available */}
-                {ollamaStatus === 'unavailable' && (
-                  <>
-                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Local Models
-                    </div>
-                    <div className="px-3 py-3 text-sm text-muted-foreground">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <AlertCircle size={16} className="text-yellow-600" />
-                        <span>Ollama not detected</span>
-                      </div>
-                      <button
-                        onClick={() => setCurrentView('settings')}
-                        className="text-primary hover:underline text-xs"
+        <Select.Portal>
+          <Select.Content
+            className="bg-popover border border-border rounded-lg shadow-lg min-w-[280px] max-h-[300px] overflow-hidden"
+            position="popper"
+            sideOffset={4}
+            style={{ zIndex: 99999 }}
+          >
+            <Select.Viewport className="p-1">
+              {/* Local Models Section */}
+              {ollamaStatus === 'available' && availableModels.some(m => m.type === 'local') && (
+                <>
+                  <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Local Models (Ollama)
+                  </div>
+                  {availableModels
+                    .filter(m => m.type === 'local')
+                    .map((model) => (
+                      <Select.Item
+                        key={model.id}
+                        value={model.id}
+                        className={cn(
+                          "flex items-center space-x-3 px-3 py-2 rounded-md cursor-pointer",
+                          "hover:bg-accent hover:text-accent-foreground",
+                          "focus:bg-accent focus:text-accent-foreground focus:outline-none"
+                        )}
                       >
-                        Configure Ollama in Settings
-                      </button>
-                    </div>
-                    <Select.Separator className="h-px bg-border my-1" />
-                  </>
-                )}
-
-                {/* API Models Section */}
-                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  API Models
-                </div>
-                {availableModels
-                  .filter(m => m.type === 'api')
-                  .map((model) => (
-                    <Select.Item
-                      key={model.id}
-                      value={model.id}
-                      disabled={!model.isAvailable}
-                      className={cn(
-                        "flex items-center space-x-3 px-3 py-2 rounded-md cursor-pointer",
-                        model.isAvailable
-                          ? "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                          : "opacity-50 cursor-not-allowed",
-                        "focus:outline-none"
-                      )}
-                    >
-                      <Cloud size={16} className={model.isAvailable ? "text-blue-600" : "text-muted-foreground"} />
-                      <div className="flex-1">
-                        <div className="font-medium">{model.name}</div>
-                        <div className="text-xs text-muted-foreground">{model.provider}</div>
-                      </div>
-                      {model.isAvailable ? (
+                        <Server size={16} className="text-green-600" />
+                        <div className="flex-1">
+                          <div className="font-medium">{model.name}</div>
+                          <div className="text-xs text-muted-foreground">{model.provider}</div>
+                        </div>
                         <CheckCircle size={14} className="text-green-600" />
-                      ) : (
-                        <AlertCircle size={14} className="text-yellow-600" />
-                      )}
-                    </Select.Item>
-                  ))}
+                      </Select.Item>
+                    ))}
+                  <Select.Separator className="h-px bg-border my-1" />
+                </>
+              )}
 
-                <Select.Separator className="h-px bg-border my-1" />
-                <button
-                  onClick={() => setCurrentView('settings')}
-                  className={cn(
-                    "w-full flex items-center space-x-2 px-3 py-2 text-sm",
-                    "text-muted-foreground hover:text-foreground hover:bg-accent rounded-md",
-                    "transition-colors"
-                  )}
-                >
-                  <Settings size={16} />
-                  <span>Configure API Providers</span>
-                </button>
-              </Select.Viewport>
-            </Select.Content>
-          </Select.Portal>
-        </Select.Root>
+              {/* Ollama Not Available */}
+              {ollamaStatus === 'unavailable' && (
+                <>
+                  <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Local Models
+                  </div>
+                  <div className="px-3 py-3 text-sm text-muted-foreground">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <AlertCircle size={16} className="text-yellow-600" />
+                      <span>Ollama not detected</span>
+                    </div>
+                    <button
+                      onClick={() => setCurrentView('settings')}
+                      className="text-primary hover:underline text-xs"
+                    >
+                      Configure Ollama in Settings
+                    </button>
+                  </div>
+                  <Select.Separator className="h-px bg-border my-1" />
+                </>
+              )}
+
+              {/* API Models Section */}
+              <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                API Models
+              </div>
+              {availableModels
+                .filter(m => m.type === 'api')
+                .map((model) => (
+                  <Select.Item
+                    key={model.id}
+                    value={model.id}
+                    disabled={!model.isAvailable}
+                    className={cn(
+                      "flex items-center space-x-3 px-3 py-2 rounded-md cursor-pointer",
+                      model.isAvailable
+                        ? "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                        : "opacity-50 cursor-not-allowed",
+                      "focus:outline-none"
+                    )}
+                  >
+                    <Cloud size={16} className={model.isAvailable ? "text-blue-600" : "text-muted-foreground"} />
+                    <div className="flex-1">
+                      <div className="font-medium">{model.name}</div>
+                      <div className="text-xs text-muted-foreground">{model.provider}</div>
+                    </div>
+                    {model.isAvailable ? (
+                      <CheckCircle size={14} className="text-green-600" />
+                    ) : (
+                      <AlertCircle size={14} className="text-yellow-600" />
+                    )}
+                  </Select.Item>
+                ))}
+
+              <Select.Separator className="h-px bg-border my-1" />
+              <button
+                onClick={() => setCurrentView('settings')}
+                className={cn(
+                  "w-full flex items-center space-x-2 px-3 py-2 text-sm",
+                  "text-muted-foreground hover:text-foreground hover:bg-accent rounded-md",
+                  "transition-colors"
+                )}
+              >
+                <Settings size={16} />
+                <span>Configure API Providers</span>
+              </button>
+            </Select.Viewport>
+          </Select.Content>
+        </Select.Portal>
+      </Select.Root>
     </div>
   )
 }

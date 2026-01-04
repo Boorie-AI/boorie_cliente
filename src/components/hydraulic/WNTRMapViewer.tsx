@@ -105,7 +105,17 @@ interface TimeSeriesData {
   head: { [nodeId: string]: number[] }
 }
 
-export function WNTRMapViewer() {
+interface WNTRMapViewerProps {
+  networkData?: NetworkData | null
+  simulationResults?: SimulationResults | null
+  activeTimeStep?: number
+}
+
+export function WNTRMapViewer({
+  networkData: propNetworkData,
+  simulationResults: propSimulationResults,
+  activeTimeStep: propActiveTimeStep
+}: WNTRMapViewerProps) {
   const { t } = useTranslation()
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
@@ -113,8 +123,24 @@ export function WNTRMapViewer() {
   const [lng, setLng] = useState(-99.133208)
   const [lat, setLat] = useState(19.432608)
   const [zoom, setZoom] = useState(10)
-  const [networkData, setNetworkData] = useState<NetworkData | null>(null)
-  const [simulationResults, setSimulationResults] = useState<SimulationResults | null>(null)
+  const [networkData, setNetworkData] = useState<NetworkData | null>(propNetworkData || null)
+  const [simulationResults, setSimulationResults] = useState<SimulationResults | null>(propSimulationResults || null)
+
+  // Sync props to state
+  useEffect(() => {
+    setNetworkData(propNetworkData || null)
+  }, [propNetworkData])
+
+  useEffect(() => {
+    setSimulationResults(propSimulationResults || null)
+  }, [propSimulationResults])
+
+  // Sync time step from parent
+  useEffect(() => {
+    if (propActiveTimeStep !== undefined) {
+      setCurrentTimeStep(propActiveTimeStep)
+    }
+  }, [propActiveTimeStep])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [styleChanging, setStyleChanging] = useState(false)
@@ -123,27 +149,27 @@ export function WNTRMapViewer() {
   const showNetworkOverlay = true
   const [selectedNode, setSelectedNode] = useState<any>(null)
   const [selectedLink, setSelectedLink] = useState<any>(null)
-  
+
   // Check WebGL capabilities and satellite compatibility
   const checkSatelliteCompatibility = useCallback(() => {
     try {
       // Check if WebGL is available and working
       const canvas = document.createElement('canvas')
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
-      
+      const gl = (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null
+
       if (!gl) {
-        console.warn('WebGL not available - disabling satellite mode')
+        // console.warn('WebGL not available - disabling satellite mode')
         setSatelliteDisabled(true)
         return false
       }
-      
+
       // Check for known problematic renderer strings
-      const renderer = gl.getParameter(gl.RENDERER)
-      const vendor = gl.getParameter(gl.VENDOR)
-      
-      console.log('WebGL Renderer:', renderer)
-      console.log('WebGL Vendor:', vendor)
-      
+      const renderer = gl.getParameter(gl.RENDERER) || ''
+      const vendor = gl.getParameter(gl.VENDOR) || ''
+
+      // console.log('WebGL Renderer:', renderer)
+      // console.log('WebGL Vendor:', vendor)
+
       // Known problematic configurations that cause crashes with satellite imagery
       const problematicPatterns = [
         /software/i,
@@ -151,24 +177,24 @@ export function WNTRMapViewer() {
         /llvmpipe/i,
         /microsoft basic render driver/i
       ]
-      
-      const isProblematic = problematicPatterns.some(pattern => 
+
+      const isProblematic = problematicPatterns.some(pattern =>
         pattern.test(renderer) || pattern.test(vendor)
       )
-      
+
       if (isProblematic) {
-        console.warn('Problematic WebGL renderer detected - disabling satellite mode')
+        // console.warn('Problematic WebGL renderer detected - disabling satellite mode')
         setSatelliteDisabled(true)
         return false
       }
-      
+
       // Test WebGL context loss recovery
       const ext = gl.getExtension('WEBGL_lose_context')
       if (ext) {
         // This is just a capability check, not actually losing context
         console.log('WebGL context loss recovery available')
       }
-      
+
       return true
     } catch (error) {
       console.error('Error checking WebGL compatibility:', error)
@@ -176,7 +202,7 @@ export function WNTRMapViewer() {
       return false
     }
   }, [])
-  
+
   // Check satellite compatibility on mount
   useEffect(() => {
     // Check if satellite was previously disabled due to crashes
@@ -184,20 +210,20 @@ export function WNTRMapViewer() {
     if (satelliteDisabledBySystem === 'true') {
       console.log('Satellite mode was previously disabled by system')
       setSatelliteDisabled(true)
-      setError('Modo satélite deshabilitado debido a incompatibilidad del sistema.')
+      // setError('Modo satélite deshabilitado debido a incompatibilidad del sistema.')
     } else {
       // For now, disable satellite mode completely to prevent crashes
       // TODO: Remove this when satellite mode is stable
       console.warn('Satellite mode disabled preventively due to known crash issues')
       setSatelliteDisabled(true)
       localStorage.setItem('satellite-disabled-by-system', 'true')
-      setError('Modo satélite temporalmente deshabilitado para prevenir crashes del sistema.')
-      
+      // setError('Modo satélite temporalmente deshabilitado para prevenir crashes del sistema.')
+
       // Uncomment this line when satellite mode is stable:
       // checkSatelliteCompatibility()
     }
   }, [checkSatelliteCompatibility])
-  
+
   const [showSettingsDialog, setShowSettingsDialog] = useState(false)
   const [mapSettings, setMapSettings] = useState<MapSettings>({
     baseMap: 'streets',
@@ -206,26 +232,26 @@ export function WNTRMapViewer() {
     nodeSize: 8,
     linkWidth: 2
   })
-  
+
   // Listen for crash recovery messages from main process
   useEffect(() => {
     const cleanup = window.electronAPI?.onDisableSatelliteMode?.((data) => {
       console.warn('Received satellite disable request:', data)
       setSatelliteDisabled(true)
       setError(`${data.message} - Modo satélite ha sido deshabilitado permanentemente.`)
-      
+
       // Persist the disable state
       localStorage.setItem('satellite-disabled-by-system', 'true')
-      
+
       // If currently on satellite, switch to streets
       if (mapSettings.baseMap === 'satellite') {
         setMapSettings(prev => ({ ...prev, baseMap: 'streets' }))
       }
     })
-    
+
     return cleanup
   }, [mapSettings.baseMap])
-  
+
   // New states for advanced visualization
   const [currentTimeStep, setCurrentTimeStep] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -234,18 +260,18 @@ export function WNTRMapViewer() {
   const [colorScale, setColorScale] = useState({ min: 0, max: 100 })
   const [selectedElements, setSelectedElements] = useState<string[]>([])
   const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData | null>(null)
-  
+
   // Initialize map
   useEffect(() => {
     console.log('Map initialization useEffect triggered')
     console.log('mapContainer.current:', mapContainer.current)
     console.log('MAPBOX_ACCESS_TOKEN exists:', !!MAPBOX_ACCESS_TOKEN)
-    
+
     if (!mapContainer.current) {
       console.error('Map container ref is null')
       return
     }
-    
+
     // Check container dimensions
     const containerRect = mapContainer.current.getBoundingClientRect()
     console.log('Container dimensions:', {
@@ -254,34 +280,34 @@ export function WNTRMapViewer() {
       top: containerRect.top,
       left: containerRect.left
     })
-    
+
     if (containerRect.width === 0 || containerRect.height === 0) {
       console.error('Map container has zero dimensions:', containerRect)
       setError('Map container has invalid dimensions. Please check the layout.')
       return
     }
-    
+
     // Clean up existing map instance
     if (map.current) {
       map.current.remove()
       map.current = null
     }
-    
+
     // Check if Mapbox token is available
     if (!MAPBOX_ACCESS_TOKEN) {
       setError('Mapbox access token not configured. Please add VITE_MAPBOX_ACCESS_TOKEN to your .env file.')
       return
     }
-    
+
     try {
       console.log('Initializing Mapbox with token:', MAPBOX_ACCESS_TOKEN.substring(0, 10) + '...')
       console.log('Map container element:', mapContainer.current)
       console.log('Map settings:', { baseMap: mapSettings.baseMap, lng, lat, zoom })
-      
+
       // Verify mapboxgl is properly loaded
       console.log('mapboxgl object:', mapboxgl)
       console.log('mapboxgl.accessToken:', mapboxgl.accessToken)
-      
+
       // Try to create map with fallback styles
       const createMap = (style: string) => {
         return new mapboxgl.Map({
@@ -298,66 +324,66 @@ export function WNTRMapViewer() {
           }
         })
       }
-      
+
       // Try different styles with fallbacks
       let mapStyle = `mapbox://styles/mapbox/${mapSettings.baseMap}-v11`
-      
+
       // Fallback for satellite style if it fails
       if (mapSettings.baseMap === 'satellite') {
         mapStyle = 'mapbox://styles/mapbox/satellite-streets-v12' // Try newer satellite style
       }
-      
+
       console.log('Creating map with style:', mapStyle)
       map.current = createMap(mapStyle)
-      
+
       console.log('Map instance created:', map.current)
-    
-    // Add error handler with style fallback
-    map.current.on('error', (e) => {
-      console.error('Mapbox error:', e)
-      console.error('Error details:', {
-        status: e.error?.status,
-        message: e.error?.message,
-        type: e.type,
-        target: e.target
-      })
-      
-      if (e.error && e.error.status === 401) {
-        setError('Token de acceso Mapbox inválido. Verifique su token en el archivo .env.')
-      } else if (mapSettings.baseMap === 'satellite' && e.error) {
-        console.warn('Satellite style failed, falling back to streets')
-        try {
-          // Prevent infinite error loops
-          if (map.current) {
-            map.current.setStyle('mapbox://styles/mapbox/streets-v11')
-            setMapSettings(prev => ({ ...prev, baseMap: 'streets' }))
-            setError('Las imágenes satelitales fallaron. Se cambió a vista de calles automáticamente.')
+
+      // Add error handler with style fallback
+      map.current.on('error', (e) => {
+        console.error('Mapbox error:', e)
+        console.error('Error details:', {
+          status: e.error?.status,
+          message: e.error?.message,
+          type: e.type,
+          target: e.target
+        })
+
+        if (e.error && e.error.status === 401) {
+          setError('Token de acceso Mapbox inválido. Verifique su token en el archivo .env.')
+        } else if (mapSettings.baseMap === 'satellite' && e.error) {
+          console.warn('Satellite style failed, falling back to streets')
+          try {
+            // Prevent infinite error loops
+            if (map.current) {
+              map.current.setStyle('mapbox://styles/mapbox/streets-v11')
+              setMapSettings(prev => ({ ...prev, baseMap: 'streets' }))
+              setError('Las imágenes satelitales fallaron. Se cambió a vista de calles automáticamente.')
+            }
+          } catch (fallbackError) {
+            console.error('Fallback error:', fallbackError)
+            setError(`Error del mapa: ${e.error?.message || 'Error desconocido'}. Intente recargar la página.`)
           }
-        } catch (fallbackError) {
-          console.error('Fallback error:', fallbackError)
-          setError(`Error del mapa: ${e.error?.message || 'Error desconocido'}. Intente recargar la página.`)
+        } else {
+          setError(`Error del mapa: ${e.error?.message || 'Error desconocido'}`)
         }
-      } else {
-        setError(`Error del mapa: ${e.error?.message || 'Error desconocido'}`)
-      }
-    })
+      })
 
-    map.current.on('load', () => {
-      console.log('Map loaded successfully')
-    })
+      map.current.on('load', () => {
+        console.log('Map loaded successfully')
+      })
 
-    map.current.on('move', () => {
-      if (map.current) {
-        setLng(Number(map.current.getCenter().lng.toFixed(4)))
-        setLat(Number(map.current.getCenter().lat.toFixed(4)))
-        setZoom(Number(map.current.getZoom().toFixed(2)))
-      }
-    })
-    
+      map.current.on('move', () => {
+        if (map.current) {
+          setLng(Number(map.current.getCenter().lng.toFixed(4)))
+          setLat(Number(map.current.getCenter().lat.toFixed(4)))
+          setZoom(Number(map.current.getZoom().toFixed(2)))
+        }
+      })
+
       // Add navigation controls
       map.current.addControl(new mapboxgl.NavigationControl(), 'top-left')
       map.current.addControl(new mapboxgl.ScaleControl(), 'bottom-left')
-      
+
       // Click handlers will be added in separate useEffect
     } catch (err) {
       console.error('Map initialization error:', err)
@@ -372,21 +398,21 @@ export function WNTRMapViewer() {
         setError('Failed to initialize map. Please check your Mapbox configuration.')
       }
     }
-    
+
     return () => {
       // Reset any pending style changes
       setStyleChanging(false)
       setError(null)
-      
+
       map.current?.remove()
       map.current = null
     }
   }, []) // Only run once on mount
-  
+
   // Update map style
   useEffect(() => {
     if (!map.current || styleChanging) return
-    
+
     // Check if map is loaded before changing style
     if (!map.current.loaded()) {
       console.log('Map not yet loaded, waiting...')
@@ -401,7 +427,7 @@ export function WNTRMapViewer() {
       })
       return
     }
-    
+
     // Check satellite compatibility before switching
     if (mapSettings.baseMap === 'satellite') {
       if (satelliteDisabled || !checkSatelliteCompatibility()) {
@@ -411,29 +437,29 @@ export function WNTRMapViewer() {
         return
       }
     }
-    
+
     // Prevent multiple simultaneous style changes
     setStyleChanging(true)
-    
+
     try {
       let newStyle = `mapbox://styles/mapbox/${mapSettings.baseMap}-v11`
-      
+
       // Use updated satellite style
       if (mapSettings.baseMap === 'satellite') {
         newStyle = 'mapbox://styles/mapbox/satellite-streets-v12'
         console.log('Switching to satellite mode...')
       }
-      
+
       console.log('Changing map style to:', newStyle)
-      
+
       // Clear any previous errors
       setError(null)
-      
+
       // Set up one-time error handler for style change
       const handleStyleError = (e: any) => {
         console.error('Style change error:', e)
         setStyleChanging(false)
-        
+
         if (mapSettings.baseMap === 'satellite') {
           console.warn('Satellite style failed during change, reverting to streets')
           try {
@@ -460,13 +486,13 @@ export function WNTRMapViewer() {
         // Remove the error handler after use
         map.current?.off('error', handleStyleError)
       }
-      
+
       // Add temporary error handler
       map.current.on('error', handleStyleError)
-      
+
       // Set the new style
       map.current.setStyle(newStyle)
-      
+
       // Safety timeout to reset state even if style.load doesn't fire
       const timeoutId = setTimeout(() => {
         console.warn('Style change timeout, resetting state')
@@ -474,7 +500,7 @@ export function WNTRMapViewer() {
         setError('Tiempo de espera agotado al cambiar estilo. Intente de nuevo.')
         map.current?.off('error', handleStyleError)
       }, 5000) // 5 second timeout
-      
+
       // Remove error handler and reset state after successful style load
       map.current.once('style.load', () => {
         console.log('Style loaded successfully:', newStyle)
@@ -482,23 +508,23 @@ export function WNTRMapViewer() {
         clearTimeout(timeoutId)
         map.current?.off('error', handleStyleError)
       })
-      
+
     } catch (error) {
       console.error('Critical error changing map style:', error)
       setStyleChanging(false)
       setError(`Error crítico al cambiar estilo del mapa: ${error instanceof Error ? error.message : 'Error desconocido'}`)
-      
+
       // Revert to safe default if satellite fails
       if (mapSettings.baseMap === 'satellite') {
         setMapSettings(prev => ({ ...prev, baseMap: 'streets' }))
       }
     }
   }, [mapSettings.baseMap, styleChanging])
-  
+
   // Handle click events for manual positioning
   useEffect(() => {
     if (!map.current) return
-    
+
     const handleMapClick = (e: mapboxgl.MapMouseEvent) => {
       if (showSettingsDialog && networkData && networkData.coordinate_system?.type !== 'geographic') {
         setMapSettings(prev => ({
@@ -510,64 +536,64 @@ export function WNTRMapViewer() {
         }))
       }
     }
-    
+
     map.current.on('click', handleMapClick)
-    
+
     return () => {
       if (map.current) {
         map.current.off('click', handleMapClick)
       }
     }
   }, [showSettingsDialog, networkData])
-  
+
   // Smart coordinate system detection and conversion
   const detectCoordinateSystem = useCallback((networkData: NetworkData) => {
     // Find bounds of network
     const xCoords = networkData.nodes.map(n => n.x || n.coordinates?.[0] || 0)
     const yCoords = networkData.nodes.map(n => n.y || n.coordinates?.[1] || 0)
-    
+
     const minX = Math.min(...xCoords)
     const maxX = Math.max(...xCoords)
     const minY = Math.min(...yCoords)
     const maxY = Math.max(...yCoords)
-    
+
     // Get file name for detection
     const fileName = networkData.name?.toLowerCase() || ''
-    
+
     console.log('=== COORDINATE ANALYSIS ===')
     console.log('File name:', fileName)
     console.log('Coordinate bounds:', { minX, maxX, minY, maxY })
     console.log('Coordinate ranges:', { rangeX: maxX - minX, rangeY: maxY - minY })
     console.log('First 5 node coordinates:', networkData.nodes.slice(0, 5).map(n => ({ id: n.id, x: n.x, y: n.y })))
     console.log('Network coordinate_system from backend:', networkData.coordinate_system)
-    console.log('Sample coordinate values:', { 
+    console.log('Sample coordinate values:', {
       sampleX: [minX, (minX + maxX) / 2, maxX],
       sampleY: [minY, (minY + maxY) / 2, maxY]
     })
     console.log('TK-Lomas detected:', fileName.includes('tk-lomas'))
     console.log('Cartagena detected:', fileName.includes('cartagena'))
-    
+
     // Check if already geographic
-    if (minX >= -180 && maxX <= 180 && minY >= -90 && maxY <= 90 && 
-        Math.abs(maxX - minX) < 10 && Math.abs(maxY - minY) < 10) {
+    if (minX >= -180 && maxX <= 180 && minY >= -90 && maxY <= 90 &&
+      Math.abs(maxX - minX) < 10 && Math.abs(maxY - minY) < 10) {
       return {
         isGeographic: true,
         epsgCode: 'EPSG:4326',
         region: 'Geographic coordinates'
       }
     }
-    
+
     // Analyze for UTM zones (multiple regions)
     if (minX > 100000 && minX < 1000000) {
-      
+
       // Special handling for TK-Lomas Cartagena file (highest priority)
       if (fileName.includes('tk-lomas') || fileName.includes('cartagena')) {
         console.log('🎯 Detected TK-Lomas/Cartagena file')
-        
+
         // Test different coordinate systems for these specific coordinates
         // Current coordinates: ~842913, 1641804
         // These don't match typical Cartagena UTM coordinates
-        
+
         // Try MAGNA-SIRGAS Colombia Bogotá zone (EPSG:3116)
         if (minX > 800000 && minX < 1200000 && minY > 1600000 && minY < 1700000) {
           console.log('Using MAGNA-SIRGAS Bogotá zone for TK-Lomas')
@@ -578,7 +604,7 @@ export function WNTRMapViewer() {
             centerApprox: [-75.5, 10.4]
           }
         }
-        
+
         // Try UTM Zone 17N (western Colombia)
         if (minX > 800000 && minX < 900000) {
           console.log('Using UTM Zone 17N for TK-Lomas (western coordinates)')
@@ -589,7 +615,7 @@ export function WNTRMapViewer() {
             centerApprox: [-75.5, 10.4]
           }
         }
-        
+
         // Fallback to UTM Zone 18N
         console.log('Using UTM Zone 18N for TK-Lomas (fallback)')
         return {
@@ -599,7 +625,7 @@ export function WNTRMapViewer() {
           centerApprox: [-75.5, 10.4]
         }
       }
-      
+
       // Colombia Caribbean coast (Cartagena zone) - typical coordinates
       if (minX > 200000 && minX < 900000 && minY > 1000000 && minY < 1300000) {
         return {
@@ -609,11 +635,11 @@ export function WNTRMapViewer() {
           centerApprox: [-75.5, 10.4]
         }
       }
-      
+
       // Mexico zones (but NOT for TK-Lomas which is Cartagena)
       if ((fileName.includes('mexico') || fileName.includes('mx')) ||
-          (minX > 200000 && minX < 900000 && minY > 1800000 && minY < 2600000)) {
-        
+        (minX > 200000 && minX < 900000 && minY > 1800000 && minY < 2600000)) {
+
         // Mexico City area (Zone 14N)
         if (minX > 400000 && minX < 700000 && minY > 2000000 && minY < 2300000) {
           return {
@@ -623,7 +649,7 @@ export function WNTRMapViewer() {
             centerApprox: [-99.1, 19.4] // Mexico City
           }
         }
-        
+
         // Generic Mexico
         return {
           isGeographic: false,
@@ -632,7 +658,7 @@ export function WNTRMapViewer() {
           centerApprox: [-99.1, 19.4]
         }
       }
-      
+
       // Colombia interior
       if (minX > 200000 && minX < 900000 && minY > 400000 && minY < 700000) {
         return {
@@ -642,7 +668,7 @@ export function WNTRMapViewer() {
           centerApprox: [-74.1, 4.6]
         }
       }
-      
+
       // MAGNA-SIRGAS Bogotá
       if (minX > 900000 && minX < 1200000 && minY > 900000 && minY < 1200000) {
         return {
@@ -652,7 +678,7 @@ export function WNTRMapViewer() {
           centerApprox: [-74.1, 4.6]
         }
       }
-      
+
       // Generic UTM detection - try to guess by Y coordinate
       if (minY > 1800000) {
         // Likely Mexico/North America
@@ -699,7 +725,7 @@ export function WNTRMapViewer() {
         }
       }
     }
-    
+
     // Fallback
     return {
       isGeographic: false,
@@ -708,18 +734,18 @@ export function WNTRMapViewer() {
       centerApprox: [-75.5, 10.4]
     }
   }, [])
-  
+
   // Convert network coordinates to geographic coordinates using proj4
   const convertToGeoCoordinates = useCallback((networkData: NetworkData) => {
     const coordSystem = detectCoordinateSystem(networkData)
-    
+
     console.log('Detected coordinate system:', coordSystem)
-    
+
     // If already geographic, no conversion needed
     if (coordSystem.isGeographic) {
       const xCoords = networkData.nodes.map(n => n.x || n.coordinates?.[0] || 0)
       const yCoords = networkData.nodes.map(n => n.y || n.coordinates?.[1] || 0)
-      
+
       return {
         bounds: {
           minLon: Math.min(...xCoords),
@@ -731,20 +757,20 @@ export function WNTRMapViewer() {
         coordinateSystem: coordSystem
       }
     }
-    
+
     // Use proj4 for accurate coordinate transformation
     try {
       const sourceProjection = coordSystem.epsgCode
       const targetProjection = 'EPSG:4326' // WGS84
-      
+
       console.log(`Converting from ${sourceProjection} to ${targetProjection}`)
-      
+
       // Get sample coordinates to establish bounds
       const sampleCoords = networkData.nodes.slice(0, Math.min(100, networkData.nodes.length))
         .map(node => {
           const x = node.x || node.coordinates?.[0] || 0
           const y = node.y || node.coordinates?.[1] || 0
-          
+
           try {
             const [lon, lat] = proj4(sourceProjection, targetProjection, [x, y])
             return { lon, lat, valid: true }
@@ -754,22 +780,22 @@ export function WNTRMapViewer() {
           }
         })
         .filter(coord => coord.valid)
-      
+
       if (sampleCoords.length === 0) {
         throw new Error('No valid coordinates could be converted')
       }
-      
+
       // Calculate bounds from converted coordinates
       const lons = sampleCoords.map(c => c.lon)
       const lats = sampleCoords.map(c => c.lat)
-      
+
       const bounds = {
         minLon: Math.min(...lons),
         maxLon: Math.max(...lons),
         minLat: Math.min(...lats),
         maxLat: Math.max(...lats)
       }
-      
+
       console.log('=== COORDINATE CONVERSION RESULTS ===')
       console.log('Source projection:', sourceProjection)
       console.log('Target projection:', targetProjection)
@@ -780,7 +806,7 @@ export function WNTRMapViewer() {
         const converted = sampleCoords[i]
         console.log(`  Node ${node.id}: [${original[0]}, ${original[1]}] -> [${converted?.lon}, ${converted?.lat}]`)
       })
-      
+
       return {
         bounds,
         transform: (x: number, y: number) => {
@@ -794,14 +820,14 @@ export function WNTRMapViewer() {
         },
         coordinateSystem: coordSystem
       }
-      
+
     } catch (error) {
       console.error('Coordinate conversion failed:', error)
-      
+
       // Fallback to approximate conversion
       const centerLon = coordSystem.centerApprox?.[0] || -75.5
       const centerLat = coordSystem.centerApprox?.[1] || 10.4
-      
+
       return {
         bounds: {
           minLon: centerLon - 0.05,
@@ -815,18 +841,18 @@ export function WNTRMapViewer() {
       }
     }
   }, [detectCoordinateSystem])
-  
+
   // Add network overlay to map
   const addNetworkToMap = useCallback(() => {
     if (!map.current || !networkData) return
-    
+
     console.log('Adding network to map:', {
       nodesCount: networkData.nodes.length,
       linksCount: networkData.links.length,
       firstNode: networkData.nodes[0],
       coordinateSystem: networkData.coordinate_system
     })
-    
+
     // Remove existing layers if any
     const layersToRemove = ['network-nodes', 'network-links', 'node-labels']
     layersToRemove.forEach(layerId => {
@@ -834,17 +860,17 @@ export function WNTRMapViewer() {
         map.current.removeLayer(layerId)
       }
     })
-    
+
     const sourcesToRemove = ['network-nodes', 'network-links']
     sourcesToRemove.forEach(sourceId => {
       if (map.current?.getSource(sourceId)) {
         map.current.removeSource(sourceId)
       }
     })
-    
+
     const geoConversion = convertToGeoCoordinates(networkData)
     console.log('GeoConversion result:', geoConversion)
-    
+
     // Create GeoJSON for nodes
     const nodesGeoJSON: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
@@ -853,23 +879,30 @@ export function WNTRMapViewer() {
           node.x || node.coordinates?.[0] || 0,
           node.y || node.coordinates?.[1] || 0
         )
-        
+
         // Debug first few nodes
         if (networkData.nodes.indexOf(node) < 3) {
           console.log(`Node ${node.id}: Original (${node.x}, ${node.y}) -> Transformed (${coords[0]}, ${coords[1]})`)
         }
-        
+
         let color = '#3B82F6' // Default junction color
         if (node.type === 'tank') color = '#EF4444'
         else if (node.type === 'reservoir') color = '#10B981'
-        
+
         // Apply simulation results if available
         if (simulationResults?.node_results?.[node.id]) {
-          const pressure = simulationResults.node_results[node.id].pressure
-          if (pressure < 20) color = '#DC2626' // Red for low pressure
-          else if (pressure > 80) color = '#F97316' // Orange for high pressure
+          const pressureArray = simulationResults.node_results[node.id].pressure
+          // Access specific time step if it exists, otherwise use 0 or default
+          const pressure = Array.isArray(pressureArray) && currentTimeStep !== undefined
+            ? pressureArray[currentTimeStep] ?? pressureArray[0]
+            : pressureArray
+
+          if (typeof pressure === 'number') {
+            if (pressure < 20) color = '#DC2626' // Red for low pressure
+            else if (pressure > 80) color = '#F97316' // Orange for high pressure
+          }
         }
-        
+
         return {
           type: 'Feature',
           geometry: {
@@ -883,22 +916,26 @@ export function WNTRMapViewer() {
             color: color,
             elevation: node.elevation,
             demand: node.demand,
-            pressure: simulationResults?.node_results?.[node.id]?.pressure,
-            head: simulationResults?.node_results?.[node.id]?.head
+            pressure: Array.isArray(simulationResults?.node_results?.[node.id]?.pressure)
+              ? simulationResults?.node_results?.[node.id]?.pressure[currentTimeStep]
+              : simulationResults?.node_results?.[node.id]?.pressure,
+            head: Array.isArray(simulationResults?.node_results?.[node.id]?.head)
+              ? simulationResults?.node_results?.[node.id]?.head[currentTimeStep]
+              : simulationResults?.node_results?.[node.id]?.head
           }
         }
       })
     }
-    
+
     // Create GeoJSON for links
     const linksGeoJSON: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
       features: networkData.links.map(link => {
         const fromNode = networkData.nodes.find(n => n.id === link.from)
         const toNode = networkData.nodes.find(n => n.id === link.to)
-        
+
         if (!fromNode || !toNode) return null
-        
+
         const fromCoords = geoConversion.transform(
           fromNode.x || fromNode.coordinates?.[0] || 0,
           fromNode.y || fromNode.coordinates?.[1] || 0
@@ -907,10 +944,10 @@ export function WNTRMapViewer() {
           toNode.x || toNode.coordinates?.[0] || 0,
           toNode.y || toNode.coordinates?.[1] || 0
         )
-        
+
         let color = '#6B7280' // Default pipe color
         let width = mapSettings.linkWidth
-        
+
         if (link.type === 'pump') {
           color = '#DC2626'
           width = mapSettings.linkWidth * 2
@@ -918,13 +955,18 @@ export function WNTRMapViewer() {
           color = '#0891B2'
           width = mapSettings.linkWidth * 1.5
         }
-        
+
         // Apply simulation results if available
         if (simulationResults?.link_results?.[link.id]) {
-          const flow = Math.abs(simulationResults.link_results[link.id].flowrate || 0)
+          const flowArray = simulationResults.link_results[link.id].flowrate
+          const flowValue = Array.isArray(flowArray) && currentTimeStep !== undefined
+            ? flowArray[currentTimeStep] ?? flowArray[0]
+            : flowArray
+
+          const flow = Math.abs(flowValue || 0)
           width = Math.min(flow * 0.5 + mapSettings.linkWidth, mapSettings.linkWidth * 4)
         }
-        
+
         return {
           type: 'Feature',
           geometry: {
@@ -939,105 +981,101 @@ export function WNTRMapViewer() {
             width: width,
             length: link.length,
             diameter: link.diameter,
-            flowrate: simulationResults?.link_results?.[link.id]?.flowrate,
-            velocity: simulationResults?.link_results?.[link.id]?.velocity
+            flowrate: Array.isArray(simulationResults?.link_results?.[link.id]?.flowrate)
+              ? simulationResults?.link_results?.[link.id]?.flowrate[currentTimeStep]
+              : simulationResults?.link_results?.[link.id]?.flowrate,
+            velocity: Array.isArray(simulationResults?.link_results?.[link.id]?.velocity)
+              ? simulationResults?.link_results?.[link.id]?.velocity[currentTimeStep]
+              : simulationResults?.link_results?.[link.id]?.velocity
           }
         }
       }).filter(Boolean) as GeoJSON.Feature[]
     }
-    
+
     // Add sources
     try {
-      map.current.addSource('network-links', {
-        type: 'geojson',
-        data: linksGeoJSON
-      })
-      console.log('Links source added successfully')
-    } catch (e) {
-      console.error('Error adding links source:', e)
-    }
-    
-    try {
-      map.current.addSource('network-nodes', {
-        type: 'geojson',
-        data: nodesGeoJSON
-      })
-      console.log('Nodes source added successfully')
-    } catch (e) {
-      console.error('Error adding nodes source:', e)
-    }
-    
-    // Add layers
-    console.log('Adding layers to map...')
-    console.log('Links GeoJSON features:', linksGeoJSON.features.length)
-    console.log('Nodes GeoJSON features:', nodesGeoJSON.features.length)
-    
-    // Links layer
-    map.current.addLayer({
-      id: 'network-links',
-      type: 'line',
-      source: 'network-links',
-      paint: {
-        'line-color': ['get', 'color'],
-        'line-width': ['get', 'width'],
-        'line-opacity': mapSettings.opacity
-      }
-    })
-    console.log('Links layer added')
-    
-    // Nodes layer
-    map.current.addLayer({
-      id: 'network-nodes',
-      type: 'circle',
-      source: 'network-nodes',
-      paint: {
-        'circle-radius': mapSettings.nodeSize,
-        'circle-color': ['get', 'color'],
-        'circle-stroke-width': 2,
-        'circle-stroke-color': '#ffffff',
-        'circle-opacity': mapSettings.opacity
-      }
-    })
-    console.log('Nodes layer added')
-    
-    // Check if layers were added successfully
-    setTimeout(() => {
-      if (map.current) {
-        const nodesLayer = map.current.getLayer('network-nodes')
-        const linksLayer = map.current.getLayer('network-links')
-        console.log('Layers check:', {
-          nodesLayerExists: !!nodesLayer,
-          linksLayerExists: !!linksLayer
+      if (map.current.getSource('network-links')) {
+        (map.current.getSource('network-links') as mapboxgl.GeoJSONSource).setData(linksGeoJSON);
+      } else {
+        map.current.addSource('network-links', {
+          type: 'geojson',
+          data: linksGeoJSON
         })
-        
-        // Check source data
-        const nodesSource = map.current.getSource('network-nodes') as mapboxgl.GeoJSONSource
-        const linksSource = map.current.getSource('network-links') as mapboxgl.GeoJSONSource
-        if (nodesSource && linksSource) {
-          console.log('Sources exist, checking features...')
-        }
       }
-    }, 1000)
-    
-    // Labels layer
-    if (mapSettings.showLabels) {
+    } catch (e) {
+      console.error('Error adding/updating links source:', e)
+    }
+
+    try {
+      if (map.current.getSource('network-nodes')) {
+        (map.current.getSource('network-nodes') as mapboxgl.GeoJSONSource).setData(nodesGeoJSON);
+      } else {
+        map.current.addSource('network-nodes', {
+          type: 'geojson',
+          data: nodesGeoJSON
+        })
+      }
+    } catch (e) {
+      console.error('Error adding/updating nodes source:', e)
+    }
+
+    // Add layers if they don't exist
+    if (!map.current.getLayer('network-links')) {
       map.current.addLayer({
-        id: 'node-labels',
-        type: 'symbol',
-        source: 'network-nodes',
+        id: 'network-links',
+        type: 'line',
+        source: 'network-links',
         layout: {
-          'text-field': ['get', 'label'],
-          'text-size': 12,
-          'text-offset': [0, 1.5]
+          'line-join': 'round',
+          'line-cap': 'round'
         },
         paint: {
-          'text-color': '#000000',
-          'text-halo-color': '#ffffff',
-          'text-halo-width': 2
+          'line-color': ['get', 'color'],
+          'line-width': ['get', 'width']
         }
-      })
+      });
     }
-    
+
+    if (!map.current.getLayer('network-nodes')) {
+      map.current.addLayer({
+        id: 'network-nodes',
+        type: 'circle',
+        source: 'network-nodes',
+        paint: {
+          'circle-radius': mapSettings.nodeSize,
+          'circle-color': ['get', 'color'],
+          'circle-stroke-width': 1,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+    }
+
+    if (mapSettings.showLabels) {
+      if (!map.current.getLayer('node-labels')) {
+        map.current.addLayer({
+          id: 'node-labels',
+          type: 'symbol',
+          source: 'network-nodes',
+          layout: {
+            'text-field': ['get', 'label'],
+            'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
+            'text-radial-offset': 0.5,
+            'text-justify': 'auto',
+            'text-size': 12
+          },
+          paint: {
+            'text-color': '#000000',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 2
+          }
+        });
+      }
+    } else {
+      if (map.current.getLayer('node-labels')) {
+        map.current.removeLayer('node-labels');
+      }
+    }
+
     // Add click handlers
     map.current.on('click', 'network-nodes', (e) => {
       if (e.features && e.features.length > 0) {
@@ -1045,23 +1083,23 @@ export function WNTRMapViewer() {
         setSelectedNode(feature.properties)
       }
     })
-    
+
     map.current.on('click', 'network-links', (e) => {
       if (e.features && e.features.length > 0) {
         const feature = e.features[0]
         setSelectedLink(feature.properties)
       }
     })
-    
+
     // Change cursor on hover
     map.current.on('mouseenter', 'network-nodes', () => {
       if (map.current) map.current.getCanvas().style.cursor = 'pointer'
     })
-    
+
     map.current.on('mouseleave', 'network-nodes', () => {
       if (map.current) map.current.getCanvas().style.cursor = ''
     })
-    
+
     // Fit map to network bounds
     const bounds = new mapboxgl.LngLatBounds()
     let boundsCount = 0
@@ -1072,19 +1110,19 @@ export function WNTRMapViewer() {
       }
     })
     console.log(`Extended bounds with ${boundsCount} points`)
-    
+
     // Only fit bounds if we have valid bounds
     try {
       const sw = bounds.getSouthWest()
       const ne = bounds.getNorthEast()
-      
+
       // Check if bounds are valid (not infinite or NaN)
       if (isFinite(sw.lat) && isFinite(sw.lng) && isFinite(ne.lat) && isFinite(ne.lng)) {
         console.log('Fitting to bounds:', {
           sw: { lat: sw.lat, lng: sw.lng },
           ne: { lat: ne.lat, lng: ne.lng }
         })
-        map.current.fitBounds(bounds, { 
+        map.current.fitBounds(bounds, {
           padding: 50,
           maxZoom: 16
         })
@@ -1094,9 +1132,9 @@ export function WNTRMapViewer() {
     } catch (e) {
       console.warn('Could not fit bounds:', e)
     }
-    
+
   }, [networkData, simulationResults, mapSettings, convertToGeoCoordinates])
-  
+
   // Update network overlay when data or settings change
   useEffect(() => {
     if (showNetworkOverlay && networkData && map.current) {
@@ -1112,14 +1150,14 @@ export function WNTRMapViewer() {
       }
     }
   }, [networkData, simulationResults, showNetworkOverlay, mapSettings, addNetworkToMap])
-  
+
   const handleFileUpload = async () => {
     try {
       setLoading(true)
       setError(null)
-      
+
       const result = await window.electronAPI.wntr.loadINPFile()
-      
+
       if (result.success && result.data) {
         console.log('Network loaded:', result.data)
         setNetworkData(result.data)
@@ -1133,16 +1171,16 @@ export function WNTRMapViewer() {
       setLoading(false)
     }
   }
-  
+
   const handleRunSimulation = async () => {
     if (!networkData) return
-    
+
     try {
       setLoading(true)
       setError(null)
-      
+
       const result = await window.electronAPI.wntr.runSimulation({ simulationType: 'single' })
-      
+
       if (result.success && result.data) {
         setSimulationResults(result.data)
         // Refresh the map overlay with new results
@@ -1158,13 +1196,13 @@ export function WNTRMapViewer() {
       setLoading(false)
     }
   }
-  
+
   const handleExportGeoJSON = () => {
     if (!networkData) return
-    
+
     const geoConversion = convertToGeoCoordinates(networkData)
     console.log('GeoConversion result:', geoConversion)
-    
+
     const exportData = {
       type: 'FeatureCollection',
       features: [
@@ -1173,7 +1211,7 @@ export function WNTRMapViewer() {
             node.x || node.coordinates?.[0] || 0,
             node.y || node.coordinates?.[1] || 0
           )
-          
+
           return {
             type: 'Feature',
             geometry: {
@@ -1189,9 +1227,9 @@ export function WNTRMapViewer() {
         ...networkData.links.map(link => {
           const fromNode = networkData.nodes.find(n => n.id === link.from)
           const toNode = networkData.nodes.find(n => n.id === link.to)
-          
+
           if (!fromNode || !toNode) return null
-          
+
           const fromCoords = geoConversion.transform(
             fromNode.x || fromNode.coordinates?.[0] || 0,
             fromNode.y || fromNode.coordinates?.[1] || 0
@@ -1200,7 +1238,7 @@ export function WNTRMapViewer() {
             toNode.x || toNode.coordinates?.[0] || 0,
             toNode.y || toNode.coordinates?.[1] || 0
           )
-          
+
           return {
             type: 'Feature',
             geometry: {
@@ -1215,7 +1253,7 @@ export function WNTRMapViewer() {
         }).filter(Boolean)
       ]
     }
-    
+
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -1224,7 +1262,7 @@ export function WNTRMapViewer() {
     a.click()
     URL.revokeObjectURL(url)
   }
-  
+
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background">
@@ -1237,7 +1275,7 @@ export function WNTRMapViewer() {
               Water distribution networks overlaid on OpenStreetMap
             </p>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {/* Test button to add sample network */}
             <button
@@ -1269,7 +1307,7 @@ export function WNTRMapViewer() {
             >
               Test Network
             </button>
-            
+
             <button
               onClick={handleFileUpload}
               disabled={loading}
@@ -1282,14 +1320,14 @@ export function WNTRMapViewer() {
               <FileUp className="w-4 h-4" />
               Load INP File
             </button>
-            
+
             {networkData && (
               <>
                 <button
                   onClick={() => {
                     if (map.current && networkData) {
                       const geoConversion = convertToGeoCoordinates(networkData)
-                      
+
                       // Get the first few nodes to check their coordinates
                       const firstNodes = networkData.nodes.slice(0, 5)
                       console.log('Checking first nodes:')
@@ -1297,14 +1335,14 @@ export function WNTRMapViewer() {
                         const coords = geoConversion.transform(node.x, node.y)
                         console.log(`${node.id}: [${coords[0]}, ${coords[1]}]`)
                       })
-                      
+
                       // Try to fit bounds again
                       const bounds = new mapboxgl.LngLatBounds()
                       networkData.nodes.forEach(node => {
                         const coords = geoConversion.transform(node.x, node.y)
                         bounds.extend(coords as [number, number])
                       })
-                      
+
                       map.current.fitBounds(bounds, { padding: 50, maxZoom: 16 })
                     }
                   }}
@@ -1316,7 +1354,7 @@ export function WNTRMapViewer() {
                 >
                   Center on Network
                 </button>
-                
+
                 <button
                   onClick={handleRunSimulation}
                   disabled={loading}
@@ -1329,7 +1367,7 @@ export function WNTRMapViewer() {
                   <Play className="w-4 h-4" />
                   Simulate
                 </button>
-                
+
                 <button
                   onClick={handleExportGeoJSON}
                   disabled={loading}
@@ -1342,7 +1380,7 @@ export function WNTRMapViewer() {
                 >
                   <Download className="w-4 h-4" />
                 </button>
-                
+
                 <button
                   onClick={() => {
                     if (networkData) {
@@ -1385,7 +1423,7 @@ export function WNTRMapViewer() {
             )}
           </div>
         </div>
-        
+
         {/* Network Summary */}
         {networkData && (
           <div className="mt-4 space-y-2">
@@ -1409,15 +1447,15 @@ export function WNTRMapViewer() {
                 <strong className="text-foreground">{networkData.summary.valves}</strong> Valves
               </span>
             </div>
-            
+
             {/* Coordinate System Info */}
             {networkData && (
               <div className="text-xs text-muted-foreground space-y-1">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-3 h-3" />
                   <span>
-                    Coordinate System: {networkData.coordinate_system?.type === 'geographic' ? 'Geographic (Lat/Lon)' : 
-                                       networkData.coordinate_system?.type === 'projected' ? 'Projected' : 'Auto-detected'}
+                    Coordinate System: {networkData.coordinate_system?.type === 'geographic' ? 'Geographic (Lat/Lon)' :
+                      networkData.coordinate_system?.type === 'projected' ? 'Projected' : 'Auto-detected'}
                     {networkData.coordinate_system?.units && ` • Units: ${networkData.coordinate_system.units}`}
                   </span>
                 </div>
@@ -1438,7 +1476,7 @@ export function WNTRMapViewer() {
           </div>
         )}
       </div>
-      
+
       {/* Map Container */}
       <div className="flex-1 relative">
         {loading && (
@@ -1446,7 +1484,7 @@ export function WNTRMapViewer() {
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         )}
-        
+
         {!MAPBOX_ACCESS_TOKEN ? (
           <div className="w-full h-full flex items-center justify-center bg-muted/20">
             <div className="text-center max-w-md p-8">
@@ -1475,16 +1513,16 @@ export function WNTRMapViewer() {
             <div ref={mapContainer} className="w-full h-full">
               {/* Map will be rendered here */}
             </div>
-            
+
             {/* Overlay message when style is changing */}
             {styleChanging && (
               <div className="absolute inset-0 pointer-events-auto flex items-center justify-center">
                 <div className="bg-background/90 backdrop-blur-sm rounded-lg p-4 border border-border cursor-pointer hover:bg-background/95 transition-colors"
-                     onClick={() => {
-                       console.log('User cancelled style change')
-                       setStyleChanging(false)
-                       setError('Cambio de estilo cancelado por el usuario.')
-                     }}>
+                  onClick={() => {
+                    console.log('User cancelled style change')
+                    setStyleChanging(false)
+                    setError('Cambio de estilo cancelado por el usuario.')
+                  }}>
                   <div className="text-center">
                     <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
                     <p className="text-sm font-medium">Cambiando estilo del mapa...</p>
@@ -1493,7 +1531,7 @@ export function WNTRMapViewer() {
                 </div>
               </div>
             )}
-            
+
             {/* Overlay message when no network is loaded */}
             {!networkData && !loading && (
               <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
@@ -1521,13 +1559,13 @@ export function WNTRMapViewer() {
             )}
           </div>
         )}
-        
+
         {/* Map Controls */}
         <div className="absolute bottom-20 right-4 bg-background/90 backdrop-blur-sm rounded-lg p-2 text-xs">
           <div>Longitude: {lng} | Latitude: {lat} | Zoom: {zoom}</div>
         </div>
-        
-        
+
+
         {/* Selected Element Info */}
         {(selectedNode || selectedLink) && (
           <div className="absolute top-4 left-4 bg-background/95 backdrop-blur-sm rounded-lg p-4 max-w-sm shadow-lg border border-border">
@@ -1548,7 +1586,7 @@ export function WNTRMapViewer() {
                 </div>
               </div>
             )}
-            
+
             {selectedLink && (
               <div className="space-y-2">
                 <h3 className="font-semibold">Link: {selectedLink.label}</h3>
@@ -1563,7 +1601,7 @@ export function WNTRMapViewer() {
                 </div>
               </div>
             )}
-            
+
             <button
               onClick={() => {
                 setSelectedNode(null)
@@ -1576,7 +1614,7 @@ export function WNTRMapViewer() {
           </div>
         )}
       </div>
-      
+
       {/* Settings Dialog */}
       <Dialog.Root open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
         <Dialog.Portal>
@@ -1587,7 +1625,7 @@ export function WNTRMapViewer() {
             "p-6 z-50"
           )}>
             <Dialog.Title className="text-xl font-semibold mb-4">Map Settings</Dialog.Title>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">
@@ -1600,9 +1638,9 @@ export function WNTRMapViewer() {
                 </label>
                 <select
                   value={mapSettings.baseMap}
-                  onChange={(e) => setMapSettings({ 
-                    ...mapSettings, 
-                    baseMap: e.target.value as MapSettings['baseMap'] 
+                  onChange={(e) => setMapSettings({
+                    ...mapSettings,
+                    baseMap: e.target.value as MapSettings['baseMap']
                   })}
                   disabled={styleChanging}
                   className={cn(
@@ -1637,7 +1675,7 @@ export function WNTRMapViewer() {
                   </div>
                 )}
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium mb-2 block">
                   Network Opacity: {mapSettings.opacity}
@@ -1648,14 +1686,14 @@ export function WNTRMapViewer() {
                   max="1"
                   step="0.1"
                   value={mapSettings.opacity}
-                  onChange={(e) => setMapSettings({ 
-                    ...mapSettings, 
-                    opacity: parseFloat(e.target.value) 
+                  onChange={(e) => setMapSettings({
+                    ...mapSettings,
+                    opacity: parseFloat(e.target.value)
                   })}
                   className="w-full"
                 />
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium mb-2 block">
                   Node Size: {mapSettings.nodeSize}
@@ -1666,14 +1704,14 @@ export function WNTRMapViewer() {
                   max="20"
                   step="1"
                   value={mapSettings.nodeSize}
-                  onChange={(e) => setMapSettings({ 
-                    ...mapSettings, 
-                    nodeSize: parseInt(e.target.value) 
+                  onChange={(e) => setMapSettings({
+                    ...mapSettings,
+                    nodeSize: parseInt(e.target.value)
                   })}
                   className="w-full"
                 />
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium mb-2 block">
                   Link Width: {mapSettings.linkWidth}
@@ -1684,28 +1722,28 @@ export function WNTRMapViewer() {
                   max="10"
                   step="1"
                   value={mapSettings.linkWidth}
-                  onChange={(e) => setMapSettings({ 
-                    ...mapSettings, 
-                    linkWidth: parseInt(e.target.value) 
+                  onChange={(e) => setMapSettings({
+                    ...mapSettings,
+                    linkWidth: parseInt(e.target.value)
                   })}
                   className="w-full"
                 />
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   id="showLabels"
                   checked={mapSettings.showLabels}
-                  onChange={(e) => setMapSettings({ 
-                    ...mapSettings, 
-                    showLabels: e.target.checked 
+                  onChange={(e) => setMapSettings({
+                    ...mapSettings,
+                    showLabels: e.target.checked
                   })}
                   className="rounded"
                 />
                 <label htmlFor="showLabels" className="text-sm">Show node labels</label>
               </div>
-              
+
               {/* Manual Position Adjustment */}
               {networkData && networkData.coordinate_system?.type !== 'geographic' && (
                 <div className="pt-4 border-t border-border">
@@ -1713,7 +1751,7 @@ export function WNTRMapViewer() {
                   <p className="text-xs text-muted-foreground mb-3">
                     Click on the map to set the center point for your network
                   </p>
-                  
+
                   {mapSettings.manualPosition && (
                     <div className="space-y-2">
                       <div className="text-xs">
@@ -1725,9 +1763,9 @@ export function WNTRMapViewer() {
                         <span className="ml-2 font-mono">{mapSettings.manualPosition.lon.toFixed(6)}</span>
                       </div>
                       <button
-                        onClick={() => setMapSettings({ 
-                          ...mapSettings, 
-                          manualPosition: undefined 
+                        onClick={() => setMapSettings({
+                          ...mapSettings,
+                          manualPosition: undefined
                         })}
                         className="text-xs text-primary hover:underline"
                       >
@@ -1738,7 +1776,7 @@ export function WNTRMapViewer() {
                 </div>
               )}
             </div>
-            
+
             <div className="flex gap-2 mt-6">
               <button
                 onClick={() => setShowSettingsDialog(false)}
@@ -1750,7 +1788,7 @@ export function WNTRMapViewer() {
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
-      
+
       {/* Error Display */}
       {error && (
         <div className="absolute bottom-4 right-4 max-w-md p-4 bg-destructive/10 border border-destructive/20 rounded-lg">

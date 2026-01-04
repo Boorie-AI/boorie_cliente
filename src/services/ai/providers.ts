@@ -1,9 +1,14 @@
-import { AIProvider, AIModel } from '@prisma/client'
+export interface ProviderModel {
+  modelId: string
+  modelName: string
+  description: string
+  isSelected: boolean
+}
 
 export interface ProviderTestResult {
   success: boolean
   message: string
-  models?: AIModel[]
+  models?: ProviderModel[]
 }
 
 export interface APIProviderConfig {
@@ -121,7 +126,7 @@ export async function testOpenAIConnection(apiKey: string): Promise<ProviderTest
 
     if (response.ok) {
       const data = await response.json()
-      const availableModels = data.data?.filter((model: any) => 
+      const availableModels = data.data?.filter((model: any) =>
         API_PROVIDERS.find(p => p.id === 'openai')?.defaultModels.includes(model.id)
       ) || []
 
@@ -168,8 +173,8 @@ export async function testGoogleConnection(apiKey: string): Promise<ProviderTest
 
     if (response.ok) {
       const data = await response.json()
-      const availableModels = data.models?.filter((model: any) => 
-        API_PROVIDERS.find(p => p.id === 'google')?.defaultModels.some(m => 
+      const availableModels = data.models?.filter((model: any) =>
+        API_PROVIDERS.find(p => p.id === 'google')?.defaultModels.some(m =>
           model.name.includes(m)
         )
       ) || []
@@ -278,7 +283,7 @@ function getModelDescription(modelId: string): string {
     'gemini-1.5-flash': 'Fast multimodal model',
     'gemini-pro': 'Balanced performance model'
   }
-  
+
   return descriptions[modelId] || 'AI language model'
 }
 

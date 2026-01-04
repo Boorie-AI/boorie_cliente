@@ -268,6 +268,7 @@ export interface HydraulicDocument {
   category: 'hydraulics' | 'regulations' | 'best-practices'
   subcategory: string
   region: string[]
+  secondaryCategories?: string[]
   title: string
   content: string
   metadata: {

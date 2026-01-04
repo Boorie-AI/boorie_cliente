@@ -6,6 +6,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+electron-debug.log
+main.log
+renderer.log
 
 node_modules
 dist
@@ -57,7 +60,16 @@ app/dist/
 *.swp
 *.swo
 
+# Python virtual environment
+venv-wntr/
+
 # Misc
 coverage/
 .nyc_output/
 .cache/
+# NPM cache
+.npm-cache
+
+# Database files
+*.db
+rag-knowledge/

@@ -24,7 +24,7 @@ export class TokenSecurityService {
   constructor() {
     // Check if safeStorage is available (requires user to be logged into OS)
     this.isEncryptionAvailable = safeStorage.isEncryptionAvailable()
-    
+
     if (!this.isEncryptionAvailable) {
       this.logger.warn('OS-level encryption not available, tokens will be stored with basic encoding')
     } else {
@@ -177,7 +177,7 @@ export class TokenSecurityService {
 
       // Get encrypted tokens from database
       const result = await databaseService.getAuthToken(provider, tokenType)
-      
+
       if (!result.success || !result.data) {
         this.logger.info('No tokens found for provider', { provider, tokenType })
         return null
@@ -211,7 +211,7 @@ export class TokenSecurityService {
 
     const now = new Date()
     const expirationWithBuffer = new Date(tokenData.expiresAt.getTime() - (bufferMinutes * 60 * 1000))
-    
+
     return now >= expirationWithBuffer
   }
 
@@ -238,7 +238,7 @@ export class TokenSecurityService {
       this.logger.debug('Deleting tokens securely', { provider })
 
       const result = await databaseService.deleteAuthTokens(provider)
-      
+
       if (!result.success) {
         throw new Error(result.error)
       }

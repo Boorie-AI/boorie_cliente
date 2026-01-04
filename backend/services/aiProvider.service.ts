@@ -23,6 +23,68 @@ export class AIProviderService {
   }
 
   // AI Provider Operations
+  async initializeDefaultProviders(): Promise<void> {
+    try {
+      this.logger.info('Initializing default AI providers')
+
+      const providers = [
+        {
+          name: 'openai',
+          type: 'api',
+          apiKey: process.env.OPENAI_API_KEY,
+          config: { baseUrl: 'https://api.openai.com/v1' }
+        },
+        {
+          name: 'anthropic',
+          type: 'api',
+          apiKey: process.env.ANTHROPIC_API_KEY,
+          config: { baseUrl: 'https://api.anthropic.com/v1' }
+        },
+        {
+          name: 'ollama',
+          type: 'local',
+          config: { baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434' }
+        },
+        {
+          name: 'nvidia',
+          type: 'api',
+          apiKey: process.env.NVIDIA_API_KEY,
+          config: { baseUrl: 'https://integrate.api.nvidia.com/v1' }
+        }
+      ]
+
+      for (const p of providers) {
+        // Prepare update data - don't overwrite apiKey if it exists and we don't have a new one
+        const updateData: any = {
+          type: p.type,
+          config: JSON.stringify(p.config)
+        }
+
+        if (p.apiKey) {
+          updateData.apiKey = p.apiKey
+        }
+
+        await this.databaseService.prisma.aIProvider.upsert({
+          where: { name: p.name },
+          update: updateData,
+          create: {
+            name: p.name,
+            type: p.type,
+            apiKey: p.apiKey || '',
+            isActive: true,
+            isConnected: false,
+            config: JSON.stringify(p.config)
+          }
+        })
+        this.logger.debug(`Ensured provider ${p.name} is active`)
+      }
+
+      this.logger.success('Default AI providers initialized')
+    } catch (error) {
+      this.logger.error('Failed to initialize default providers', error as Error)
+    }
+  }
+
   async getAllProviders(): Promise<IServiceResponse<IAIProvider[]>> {
     try {
       this.logger.debug('Getting all AI providers')
@@ -104,7 +166,7 @@ export class AIProviderService {
         id: result.data?.id,
         name: result.data?.name
       })
-      return result
+      return result as unknown as IServiceResponse<IAIProvider>
     } catch (error) {
       this.logger.error('Failed to create AI provider', error as Error, data)
       return {
@@ -154,7 +216,7 @@ export class AIProviderService {
         id: result.data?.id,
         name: result.data?.name
       })
-      return result
+      return result as unknown as IServiceResponse<IAIProvider>
     } catch (error) {
       this.logger.error('Failed to update AI provider', error as Error, { id, updates })
       return {
@@ -402,6 +464,58 @@ export class AIProviderService {
     }
   }
 
+  async ensureOllamaModel(modelName: string, providerId?: string): Promise<boolean> {
+    try {
+      this.logger.debug('Ensuring Ollama model exists', { modelName })
+
+      let ollamaUrl = 'http://localhost:11434'
+
+      // If provider ID is given, try to get URL from config
+      if (providerId) {
+        const providerResult = await this.getProviderById(providerId)
+        if (providerResult.success && providerResult.data?.config?.baseUrl) {
+          ollamaUrl = providerResult.data.config.baseUrl
+        }
+      }
+
+      // Check if model exists
+      const response = await fetch(`${ollamaUrl}/api/tags`)
+      if (!response.ok) {
+        this.logger.warn('Failed to list Ollama models')
+        return false
+      }
+
+      const data = await response.json() as { models?: any[] }
+      const modelExists = data.models?.some((m: any) => m.name.includes(modelName))
+
+      if (modelExists) {
+        this.logger.debug('Model already exists', { modelName })
+        return true
+      }
+
+      this.logger.info('Model not found, pulling...', { modelName })
+
+      // Pull model
+      const pullResponse = await fetch(`${ollamaUrl}/api/pull`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: modelName, stream: false })
+      })
+
+      if (pullResponse.ok) {
+        this.logger.success('Successfully pulled model', { modelName })
+        return true
+      } else {
+        const errorText = await pullResponse.text()
+        this.logger.error('Failed to pull model', new Error(errorText), { modelName })
+        return false
+      }
+    } catch (error) {
+      this.logger.error('Error ensuring Ollama model', error as Error, { modelName })
+      return false
+    }
+  }
+
   // Private helper methods
   private validateProviderData(data: ICreateAIProviderData): void {
     validateString(data.name, 'Name', 1, 100)
@@ -516,11 +630,11 @@ export class AIProviderService {
       // Test the API key by making a request to the models endpoint (doesn't require credits)
       let response: Response
       try {
-        this.logger.debug('Attempting to connect to Anthropic API...', { 
+        this.logger.debug('Attempting to connect to Anthropic API...', {
           url: 'https://api.anthropic.com/v1/models',
           hasApiKey: !!provider.apiKey
         })
-        
+
         response = await fetch('https://api.anthropic.com/v1/models', {
           method: 'GET',
           headers: {
@@ -531,14 +645,14 @@ export class AIProviderService {
           // Add timeout to prevent hanging
           signal: AbortSignal.timeout(15000) // 15 second timeout
         })
-        
-        this.logger.debug('Anthropic API response received', { 
+
+        this.logger.debug('Anthropic API response received', {
           status: response.status,
-          ok: response.ok 
+          ok: response.ok
         })
       } catch (fetchError) {
         this.logger.error('Anthropic API connection failed', fetchError as Error)
-        
+
         if (fetchError instanceof Error) {
           if (fetchError.name === 'AbortError') {
             throw new Error('Anthropic API request timed out. Please check your internet connection and try again.')
@@ -553,7 +667,7 @@ export class AIProviderService {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({})) as any
         const errorMessage = errorData.error?.message || 'Unknown error'
-        
+
         switch (response.status) {
           case 401:
             throw new Error('Invalid API key')
@@ -624,7 +738,7 @@ export class AIProviderService {
   private async fetchAPIModels(provider: IAIProvider): Promise<any[]> {
     try {
       this.logger.debug('🚀 Starting fetchAPIModels', { providerName: provider.name })
-      
+
       if (!provider.apiKey) {
         this.logger.warn('❌ No API key provided for provider', { provider: provider.name })
         throw new AIProviderError('API key is required to fetch models', provider.name)
@@ -636,9 +750,9 @@ export class AIProviderService {
       })
 
       const lowerCaseName = provider.name.toLowerCase()
-      this.logger.debug('🔄 About to switch on provider name', { 
+      this.logger.debug('🔄 About to switch on provider name', {
         lowerCaseName,
-        originalName: provider.name 
+        originalName: provider.name
       })
 
       switch (lowerCaseName) {
@@ -654,6 +768,9 @@ export class AIProviderService {
         case 'openrouter':
           this.logger.debug('Matched OpenRouter case, calling fetchOpenRouterModels')
           return await this.fetchOpenRouterModels(provider)
+        case 'nvidia':
+          this.logger.debug('Matched Nvidia case, calling fetchNvidiaModels')
+          return await this.fetchNvidiaModels(provider)
         default:
           this.logger.warn('❌ API model fetching not implemented for provider', {
             provider: provider.name,
@@ -708,11 +825,11 @@ export class AIProviderService {
 
   private async fetchAnthropicModels(provider: IAIProvider): Promise<any[]> {
     try {
-      this.logger.debug('🚀 STARTING: Fetching Anthropic models from API', { 
+      this.logger.debug('🚀 STARTING: Fetching Anthropic models from API', {
         provider: provider.name,
-        hasApiKey: !!provider.apiKey 
+        hasApiKey: !!provider.apiKey
       })
-      
+
       const response = await fetch('https://api.anthropic.com/v1/models', {
         headers: {
           'x-api-key': provider.apiKey!,
@@ -721,7 +838,7 @@ export class AIProviderService {
         }
       })
 
-      this.logger.debug('📡 Anthropic API Response received', { 
+      this.logger.debug('📡 Anthropic API Response received', {
         status: response.status,
         ok: response.ok
       })
@@ -737,12 +854,12 @@ export class AIProviderService {
       }
 
       const data = await response.json() as { data?: any[] }
-      this.logger.debug('📋 Anthropic API data received', { 
+      this.logger.debug('📋 Anthropic API data received', {
         hasData: !!data.data,
         dataLength: data.data?.length,
         rawData: data
       })
-      
+
       if (!data.data || !Array.isArray(data.data)) {
         this.logger.warn('Invalid response from Anthropic models API, falling back to known models')
         return this.getKnownAnthropicModels()
@@ -815,7 +932,7 @@ export class AIProviderService {
       'claude-3-opus-20240229': 'Most powerful model for complex reasoning',
       'claude-3-sonnet-20240229': 'Balanced model for most tasks'
     }
-    
+
     return descriptions[modelId] || `Anthropic Claude model: ${modelId}`
   }
 
@@ -880,6 +997,90 @@ export class AIProviderService {
     } catch (error) {
       this.logger.error('Failed to fetch OpenRouter models', error as Error)
       return []
+    }
+  }
+
+  private async fetchNvidiaModels(provider: IAIProvider): Promise<any[]> {
+    try {
+      // Use config base URL or default
+      const config = provider.config ? JSON.parse(provider.config) : {}
+      const baseUrl = config.baseUrl || 'https://integrate.api.nvidia.com/v1'
+
+      this.logger.debug('Fetching Nvidia models', { baseUrl })
+
+      const response = await fetch(`${baseUrl}/models`, {
+        headers: {
+          'Authorization': `Bearer ${provider.apiKey}`,
+          'Accept': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Nvidia API error: ${response.status} ${response.statusText}`)
+      }
+
+      const data = await response.json() as { data?: any[] }
+
+      const models = data.data?.map((model: any) => ({
+        modelId: model.id,
+        modelName: model.id.split('/').pop() || model.id,
+        isDefault: model.id === 'nvidia/llama-3.1-nemotron-70b-instruct',
+        isAvailable: true,
+        isSelected: false,
+        description: `Nvidia model: ${model.id}`,
+        metadata: {
+          owned_by: model.owned_by,
+          permission: model.permission
+        }
+      })) || []
+
+      // Ensure the user's specific model is included if not returned by API (sometimes lists are incomplete or filtered)
+      const userModelId = 'nvidia/llama-3.1-nemotron-ultra-253b-v1'
+      if (!models.find(m => m.modelId === userModelId)) {
+        models.push({
+          modelId: userModelId,
+          modelName: 'Llama 3.1 Nemotron Ultra 253B',
+          isDefault: false,
+          isAvailable: true,
+          isSelected: false,
+          description: 'Nvidia Llama 3.1 Nemotron Ultra 253B',
+          metadata: {
+            owned_by: 'nvidia',
+            permission: []
+          }
+        })
+      }
+
+      return models
+    } catch (error) {
+      this.logger.error('Failed to fetch Nvidia models', error as Error)
+      // Return hardcoded common Nvidia models as fallback
+      return [
+        {
+          modelId: 'nvidia/llama-3.1-nemotron-70b-instruct',
+          modelName: 'Llama 3.1 Nemotron 70B',
+          isDefault: true,
+          isAvailable: true,
+          isSelected: false,
+          description: 'Nvidia Llama 3.1 Nemotron 70B Instruct'
+        },
+        {
+          modelId: 'meta/llama-3.1-405b-instruct',
+          modelName: 'Llama 3.1 405B',
+          isDefault: false,
+          isAvailable: true,
+          isSelected: false,
+          description: 'Meta Llama 3.1 405B Instruct'
+        },
+        {
+          modelId: 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
+          modelName: 'Llama 3.1 Nemotron Ultra 253B',
+          isDefault: false,
+          isAvailable: true,
+          isSelected: false,
+          description: 'Nvidia Llama 3.1 Nemotron Ultra 253B'
+        }
+      ]
     }
   }
 }

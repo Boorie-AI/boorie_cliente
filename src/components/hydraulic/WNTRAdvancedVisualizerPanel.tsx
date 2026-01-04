@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Activity, 
-  Droplets, 
-  Gauge, 
-  Play, 
-  Pause, 
+import {
+  Activity,
+  Droplets,
+  Gauge,
+  Play,
+  Pause,
   Square,
   BarChart3,
   TrendingUp,
@@ -17,6 +17,49 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+
+// Custom plugin to draw vertical line at current time step
+const verticalLinePlugin = {
+  id: 'verticalLine',
+  afterDraw: (chart: any, args: any, options: any) => {
+    if (typeof options.index !== 'number') return;
+    const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
+    const xPos = x.getPixelForValue(options.index);
+
+    if (xPos) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(xPos, top);
+      ctx.lineTo(xPos, bottom);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+};
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  verticalLinePlugin
+);
 
 interface VisualizationSettings {
   showPressureMap: boolean;
@@ -86,7 +129,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
     if (simulationResults?.stats) {
       const pressureStats = simulationResults.stats.pressure;
       const flowStats = simulationResults.stats.flow;
-      
+
       setSettings(prev => ({
         ...prev,
         pressureRange: pressureStats ? [pressureStats.minimum, pressureStats.maximum] : prev.pressureRange,
@@ -125,11 +168,11 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
   // Generate flow histogram data
   const generateFlowHistogram = () => {
     if (!simulationResults?.link_results) return [];
-    
-    const flows = Object.values(simulationResults.link_results).map((link: any) => 
+
+    const flows = Object.values(simulationResults.link_results).map((link: any) =>
       Math.abs(link.flowrate || 0)
     );
-    
+
     // Create histogram bins
     const bins = [
       { range: '0-0.1', count: 0, percentage: 0 },
@@ -163,156 +206,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
 
   return (
     <div className="w-80 h-full bg-slate-900 text-white p-4 space-y-4 overflow-y-auto">
-      {/* Header */}
-      <div className="text-center">
-        <h2 className="text-lg font-semibold">
-          {networkData ? 'Magnetic Island, AU - Demo' : 'WNTR Visualizer'}
-        </h2>
-        <div className="text-sm text-gray-400 mt-1">
-          Precisión del modelo: {simulationResults ? 'Alta' : 'N/A'}
-        </div>
-      </div>
 
-      {/* Coordinates Info */}
-      {coordinates && (
-        <div className="text-xs text-gray-400 text-right">
-          <div>Lat: {coordinates.lat.toFixed(5)} Lon: {coordinates.lon.toFixed(5)}</div>
-          <div>Unidades: Sistema Internacional</div>
-        </div>
-      )}
-
-      {/* Pressure Section */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-white text-base flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Gauge className="h-4 w-4" />
-              Presiones
-            </div>
-            <Switch
-              checked={settings.showPressureMap}
-              onCheckedChange={(checked) => handleSettingChange('showPressureMap', checked)}
-            />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* No selection message */}
-          <div className="text-sm text-gray-400 text-center">
-            No hay puntos de suministro seleccionados
-          </div>
-
-          {/* Color Scale */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              {pressureColors.map((color, index) => (
-                <div
-                  key={index}
-                  className="w-6 h-4 flex-1"
-                  style={{ backgroundColor: color.color }}
-                />
-              ))}
-            </div>
-            <div className="flex justify-between text-xs text-gray-400">
-              <span>0</span>
-              <span>10</span>
-              <span>20</span>
-              <span>30</span>
-              <span>40</span>
-              <span>50</span>
-              <span>60</span>
-            </div>
-          </div>
-
-          {/* Pressure Stats */}
-          {simulationResults?.stats?.pressure && (
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-slate-700 p-2 rounded">
-                <div className="text-xs text-gray-400">N/A mca</div>
-                <div className="text-sm">Mínima</div>
-              </div>
-              <div className="bg-slate-700 p-2 rounded">
-                <div className="text-xs text-gray-400">N/A mca</div>
-                <div className="text-sm">Máxima</div>
-              </div>
-            </div>
-          )}
-
-          {/* Toggle for pressure map */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Mostrar capa de presiones en el mapa</span>
-            <Switch
-              checked={settings.showPressureMap}
-              onCheckedChange={(checked) => handleSettingChange('showPressureMap', checked)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Flow Section */}
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-white text-base flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Droplets className="h-4 w-4" />
-              Caudal
-            </div>
-            <Switch
-              checked={settings.showFlowMap}
-              onCheckedChange={(checked) => handleSettingChange('showFlowMap', checked)}
-            />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Flow info */}
-          {simulationResults?.stats?.flow && (
-            <div className="text-sm text-gray-400">
-              {(simulationResults.stats.flow.total_demand || 0).toFixed(2)} km de red. Unidades en l/s.
-            </div>
-          )}
-
-          {/* Flow Histogram */}
-          <div className="space-y-2">
-            <div className="bg-slate-700 p-3 rounded">
-              <div className="text-lg font-bold text-white">
-                {flowHistogram.length > 1 ? `${flowHistogram[1].percentage.toFixed(1)}%` : '0%'}
-              </div>
-              <div className="space-y-1 mt-2">
-                {flowHistogram.map((bin, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <div 
-                      className="h-2 bg-purple-400 rounded"
-                      style={{ 
-                        width: `${(bin.percentage / maxBinPercentage) * 100}%`,
-                        minWidth: bin.percentage > 0 ? '2px' : '0px'
-                      }}
-                    />
-                    <span className="text-xs text-gray-400 w-8">
-                      {bin.percentage.toFixed(0)}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-between text-xs text-gray-400 mt-2">
-                <span>0-0.1</span>
-                <span>0.1-1</span>
-                <span>1-10</span>
-                <span>10-100</span>
-                <span>100-1000</span>
-                <span>1000+</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Toggle for flow map */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Muestra los caudales en el mapa</span>
-            <Switch
-              checked={settings.showFlowMap}
-              onCheckedChange={(checked) => handleSettingChange('showFlowMap', checked)}
-            />
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Simulation Controls */}
       {simulationResults && (
@@ -330,9 +224,19 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                 size="sm"
                 variant="outline"
                 onClick={togglePlayback}
-                className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+                className="relative overflow-hidden bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
               >
-                {settings.isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                {/* Progress Bar Background */}
+                <div
+                  className="absolute left-0 top-0 bottom-0 bg-blue-500/30 transition-all duration-300 ease-in-out"
+                  style={{
+                    width: `${((settings.timeStep) / ((simulationResults.timestamps?.length || 1) - 1)) * 100}%`
+                  }}
+                />
+
+                <span className="relative z-10 flex items-center">
+                  {settings.isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                </span>
               </Button>
               <Button
                 size="sm"
@@ -382,6 +286,43 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
         </Card>
       )}
 
+      {/* Pressure Section */}
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-white text-base flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Gauge className="h-4 w-4" />
+              Presiones
+            </div>
+            <Switch
+              checked={settings.showPressureMap}
+              onCheckedChange={(checked) => handleSettingChange('showPressureMap', checked)}
+            />
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* No selection message */}
+          <div className="text-sm text-gray-400 text-center">
+            No hay puntos de suministro seleccionados
+          </div>
+
+
+
+          {/* Toggle for pressure map */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Mostrar capa de presiones en el mapa</span>
+            <Switch
+              checked={settings.showPressureMap}
+              onCheckedChange={(checked) => handleSettingChange('showPressureMap', checked)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+
+
+
+
       {/* Model Info */}
       <Card className="bg-slate-800 border-slate-700">
         <CardContent className="pt-3">
@@ -405,6 +346,137 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
           </div>
         </CardContent>
       </Card>
+      {/* Charts Section - Moved here as per request */}
+      {simulationResults && simulationResults.node_results && (
+        <div className="space-y-4 pt-4 border-t border-slate-700">
+
+          {/* Demand Curve */}
+          <Card className="bg-slate-800 border-slate-700">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-white text-sm flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-green-400" />
+                Curva de Demanda
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-40">
+              <Line
+                data={{
+                  labels: simulationResults.timestamps.map((t: number) => {
+                    const hours = Math.floor(t);
+                    return `${hours}:00`;
+                  }),
+                  datasets: [
+                    {
+                      label: 'Demanda Total (L/s)',
+                      data: simulationResults.timestamps.map((_, i) => {
+                        let sum = 0;
+                        if (simulationResults.node_results) {
+                          Object.values(simulationResults.node_results).forEach((node: any) => {
+                            if (node.demand && node.demand[i]) sum += node.demand[i];
+                          });
+                        }
+                        return sum;
+                      }),
+                      borderColor: 'rgb(59, 130, 246)',
+                      backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                      borderWidth: 2,
+                      pointRadius: 0,
+                      tension: 0.4
+                    }
+                  ]
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  animation: { duration: 0 },
+                  plugins: {
+                    legend: { display: false },
+                    // @ts-ignore - Custom plugin options
+                    verticalLine: { index: settings.timeStep }
+                  },
+                  scales: {
+                    x: { display: true, ticks: { maxTicksLimit: 6, color: '#888' }, grid: { display: false } },
+                    y: { display: true, ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                  }
+                }}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Pumps Flow Chart */}
+          {networkData?.links?.some((l: any) => l.type?.toLowerCase() === 'pump') && (
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-white text-sm flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-blue-400" />
+                  Caudal de Bombas
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="h-40">
+                <Line
+                  data={{
+                    labels: simulationResults.timestamps.map((t: number) => {
+                      const hours = Math.floor(t);
+                      return `${hours}:00`;
+                    }),
+                    datasets: networkData.links
+                      .filter((l: any) => l.type?.toLowerCase() === 'pump')
+                      .map((pump: any, idx: number) => ({
+                        label: pump.id,
+                        data: simulationResults.link_results[pump.id]?.flowrate || [],
+                        borderColor: `hsl(${(idx + 2) * 137.5 % 360}, 70%, 50%)`,
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.1,
+                        borderDash: [5, 5]
+                      }))
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 0 },
+                    plugins: {
+                      legend: { position: 'top', labels: { boxWidth: 8, font: { size: 10 }, color: '#aaa' } },
+                      // @ts-ignore - Custom plugin options
+                      verticalLine: { index: settings.timeStep }
+                    },
+                    scales: {
+                      x: { display: true, ticks: { maxTicksLimit: 6, color: '#888' }, grid: { display: false } },
+                      y: { display: true, ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    }
+                  }}
+                />
+              </CardContent>
+              {/* Pump Status List */}
+              <div className="px-4 pb-4 border-t border-slate-700 pt-3">
+                <div className="text-xs font-semibold text-gray-400 mb-2">Estado Actual (Paso {settings.timeStep})</div>
+                <div className="space-y-2">
+                  {networkData.links
+                    .filter((l: any) => l.type?.toLowerCase() === 'pump')
+                    .map((pump: any) => {
+                      const flow = simulationResults.link_results[pump.id]?.flowrate?.[settings.timeStep] || 0;
+                      // Assume ON if flow > 0.001
+                      const isOn = Math.abs(flow) > 0.001;
+
+                      return (
+                        <div key={pump.id} className="flex items-center justify-between text-xs">
+                          <span className="text-gray-300 font-medium">{pump.id}</span>
+                          <div className="flex items-center gap-3">
+
+                            <Badge variant="outline" className={`${isOn ? 'text-green-400 border-green-400 bg-green-400/10' : 'text-red-400 border-red-400 bg-red-400/10'}`}>
+                              {isOn ? 'ON' : 'OFF'}
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 };

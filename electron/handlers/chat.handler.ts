@@ -1,8 +1,7 @@
 // Chat Handler - IPC handlers for chat and AI provider API calls
 import { ipcMain } from 'electron'
 import { createLogger } from '../../backend/utils/logger'
-import { PrismaClient } from '@prisma/client'
-import { getPrismaClient } from '../../backend/utils/prisma'
+import { DatabaseService } from '../../backend/services'
 // Import types
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
@@ -45,9 +44,10 @@ export interface IPCChatResponse {
 }
 
 export class ChatHandler {
-  private prisma = getPrismaClient()
+  private databaseService: DatabaseService
 
-  constructor() {
+  constructor(databaseService: DatabaseService) {
+    this.databaseService = databaseService
     this.registerHandlers()
     logger.info('Chat handler initialized')
   }
@@ -56,26 +56,26 @@ export class ChatHandler {
     // Handler for sending chat messages through backend
     ipcMain.handle('chat:send-message', async (event, params: SendChatMessageParams) => {
       try {
-        logger.debug('IPC: Sending chat message', { 
-          provider: params.provider, 
-          model: params.model, 
-          messageCount: params.messages.length 
+        logger.debug('IPC: Sending chat message', {
+          provider: params.provider,
+          model: params.model,
+          messageCount: params.messages.length
         })
 
         const result = await this.sendChatMessage(params)
-        
-        logger.success('IPC: Chat message sent successfully', { 
-          provider: params.provider, 
-          model: params.model 
+
+        logger.success('IPC: Chat message sent successfully', {
+          provider: params.provider,
+          model: params.model
         })
-        
+
         return result
       } catch (error) {
-        logger.error('IPC: Failed to send chat message', error as Error, { 
-          provider: params.provider, 
-          model: params.model 
+        logger.error('IPC: Failed to send chat message', error as Error, {
+          provider: params.provider,
+          model: params.model
         })
-        
+
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error'
@@ -90,23 +90,31 @@ export class ChatHandler {
     const { provider, model, messages, apiKey, stream = false } = params
 
     try {
+      // Get system prompt from database and add it to messages if not already present
+      logger.info('Processing chat message', { provider, model, messageCount: messages.length })
+      const messagesWithSystemPrompt = await this.addSystemPrompt(messages)
+      logger.info('Messages after system prompt processing', { messageCount: messagesWithSystemPrompt.length })
+
       let result: ChatResponse
-      
+
       switch (provider.toLowerCase()) {
         case 'anthropic':
-          result = await this.sendAnthropicMessage(model, messages, apiKey)
+          result = await this.sendAnthropicMessage(model, messagesWithSystemPrompt, apiKey)
           break
         case 'openai':
-          result = await this.sendOpenAIMessage(model, messages, apiKey)
+          result = await this.sendOpenAIMessage(model, messagesWithSystemPrompt, apiKey)
           break
         case 'google':
-          result = await this.sendGoogleMessage(model, messages, apiKey)
+          result = await this.sendGoogleMessage(model, messagesWithSystemPrompt, apiKey)
           break
         case 'openrouter':
-          result = await this.sendOpenRouterMessage(model, messages, apiKey)
+          result = await this.sendOpenRouterMessage(model, messagesWithSystemPrompt, apiKey)
           break
         case 'ollama':
-          result = await this.sendOllamaMessage(model, messages, apiKey || '')
+          result = await this.sendOllamaMessage(model, messagesWithSystemPrompt, apiKey || '')
+          break
+        case 'nvidia':
+          result = await this.sendNvidiaMessage(model, messagesWithSystemPrompt, apiKey)
           break
         default:
           throw new Error(`Unsupported chat provider: ${provider}`)
@@ -121,11 +129,43 @@ export class ChatHandler {
       }
     } catch (error) {
       logger.error('Chat message failed', error as Error, { provider, model })
-      
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
       }
+    }
+  }
+
+  private async addSystemPrompt(messages: ChatMessage[]): Promise<ChatMessage[]> {
+    try {
+      // Check if there's already a system message
+      const hasSystemMessage = messages.some(msg => msg.role === 'system')
+      if (hasSystemMessage) {
+        logger.info('System message already present in conversation')
+        return messages
+      }
+
+      // Get system prompt from database
+      const systemPromptSetting = await this.databaseService.prisma.appSetting.findUnique({
+        where: { key: 'system_prompt' }
+      })
+
+      if (systemPromptSetting && systemPromptSetting.value.trim()) {
+        logger.info('Adding system prompt to conversation', { promptLength: systemPromptSetting.value.length })
+        // Add system prompt as first message
+        return [
+          { role: 'system', content: systemPromptSetting.value },
+          ...messages
+        ]
+      } else {
+        logger.warn('No system prompt found in database')
+      }
+
+      return messages
+    } catch (error) {
+      logger.warn('Failed to load system prompt, proceeding without it', error as Error)
+      return messages
     }
   }
 
@@ -156,7 +196,7 @@ export class ChatHandler {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({})) as any
       const errorMessage = errorData.error?.message || 'Unknown error'
-      
+
       // Provide specific error messages based on status code
       switch (response.status) {
         case 400:
@@ -164,35 +204,35 @@ export class ChatHandler {
             throw new Error('💳 Insufficient Anthropic credits. Please go to Plans & Billing in your Anthropic account to add credits or upgrade your plan.')
           }
           throw new Error(`Bad request to Anthropic: ${errorMessage}`)
-        
+
         case 401:
           throw new Error('🔑 Invalid Anthropic API key. Please check your API key in settings.')
-        
+
         case 403:
           if (errorMessage.toLowerCase().includes('credit') || errorMessage.toLowerCase().includes('billing') || errorMessage.toLowerCase().includes('balance')) {
             throw new Error('💳 Insufficient Anthropic credits. Please go to Plans & Billing in your Anthropic account to add credits or upgrade your plan.')
           }
           throw new Error('🚫 Access denied to Anthropic API. Please check your account permissions.')
-        
+
         case 404:
           throw new Error(`Anthropic model "${model}" not found. Please select a different model.`)
-        
+
         case 429:
           throw new Error('Too many requests to Anthropic. Please try again later.')
-        
+
         case 500:
         case 502:
         case 503:
         case 504:
           throw new Error('Anthropic API is temporarily unavailable. Please try again in a few moments.')
-        
+
         default:
           throw new Error(`Anthropic API error (${response.status}): ${errorMessage}`)
       }
     }
 
     const data = await response.json() as any
-    
+
     return {
       response: data.content?.[0]?.text || 'No response from Anthropic',
       metadata: {
@@ -259,7 +299,7 @@ export class ChatHandler {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({})) as any
       const errorMessage = errorData.error?.message || 'Unknown error'
-      
+
       switch (response.status) {
         case 401:
           throw new Error('🔑 Invalid OpenAI API key. Please check your API key in settings.')
@@ -281,7 +321,7 @@ export class ChatHandler {
     }
 
     const data = await response.json() as any
-    
+
     return {
       response: data.choices[0]?.message?.content || 'No response from OpenAI',
       metadata: {
@@ -325,7 +365,7 @@ export class ChatHandler {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({})) as any
       const errorMessage = errorData.error?.message || 'Unknown error'
-      
+
       switch (response.status) {
         case 400:
           throw new Error(`Bad request to Google AI: ${errorMessage}`)
@@ -347,7 +387,7 @@ export class ChatHandler {
     const data = await response.json() as any
     const content = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from Google AI'
     const usageMetadata = data.usageMetadata || {}
-    
+
     return {
       response: content,
       metadata: {
@@ -415,7 +455,7 @@ export class ChatHandler {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({})) as any
       const errorMessage = errorData.error?.message || 'Unknown error'
-      
+
       switch (response.status) {
         case 401:
           throw new Error('🔑 Invalid OpenRouter API key. Please check your API key in settings.')
@@ -436,7 +476,7 @@ export class ChatHandler {
     }
 
     const data = await response.json() as any
-    
+
     return {
       response: data.choices[0]?.message?.content || 'No response from OpenRouter',
       metadata: {
@@ -452,7 +492,7 @@ export class ChatHandler {
 
   private async sendOllamaMessage(model: string, messages: ChatMessage[], apiKey: string): Promise<ChatResponse> {
     // Get Ollama base URL from provider config
-    const providers = await this.prisma.aIProvider.findMany({
+    const providers = await this.databaseService.prisma.aIProvider.findMany({
       where: { type: 'ollama', isActive: true }
     })
     const ollamaProvider = providers[0]
@@ -485,7 +525,7 @@ export class ChatHandler {
       if (!response.ok) {
         const errorData = await response.text()
         logger.error('Ollama API error', new Error(errorData), { status: response.status })
-        
+
         switch (response.status) {
           case 404:
             throw new Error(`Ollama model "${model}" not found. Please pull the model first: ollama pull ${model}`)
@@ -497,7 +537,7 @@ export class ChatHandler {
       }
 
       const data = await response.json() as any
-      
+
       return {
         response: data.message?.content || 'No response from Ollama',
         metadata: {
@@ -516,13 +556,71 @@ export class ChatHandler {
       if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Request to Ollama timed out. The model may be too large or slow.')
       }
-      
+
       // Check if Ollama is running
       if (error instanceof Error && (error.message.includes('fetch failed') || error.message.includes('ECONNREFUSED'))) {
         throw new Error('Cannot connect to Ollama. Please ensure Ollama is installed and running (ollama serve).')
       }
-      
+
       throw error
+    }
+  }
+
+  private async sendNvidiaMessage(model: string, messages: ChatMessage[], apiKey: string): Promise<ChatResponse> {
+    const requestBody = {
+      model: model,
+      messages: messages,
+      stream: false,
+      max_tokens: 4096,
+      temperature: 0.5,
+      top_p: 1,
+      // frequency_penalty: 0,
+      // presence_penalty: 0
+    }
+
+    logger.debug('Nvidia API Request via backend', { model, messagesCount: messages.length })
+
+    const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(requestBody),
+      signal: AbortSignal.timeout(60000) // 60 second timeout
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({})) as any
+      const errorMessage = errorData.detail || errorData.title || `Error ${response.status}`
+
+      switch (response.status) {
+        case 401:
+          throw new Error('🔑 Invalid Nvidia API key. Please check your API key in settings.')
+        case 402:
+          throw new Error('💳 Insufficient Nvidia credits.')
+        case 403:
+          throw new Error('🚫 Access denied to Nvidia API. Please check your account permissions.')
+        case 429:
+          throw new Error('Too many requests to Nvidia. Please try again later.')
+        default:
+          throw new Error(`Nvidia API error (${response.status}): ${errorMessage}`)
+      }
+    }
+
+    const data = await response.json() as any
+
+    return {
+      response: data.choices?.[0]?.message?.content || 'No response from Nvidia',
+      metadata: {
+        model: data.model || model,
+        provider: 'Nvidia',
+        tokens: data.usage?.total_tokens || 0,
+        usage: data.usage || {},
+        finish_reason: data.choices?.[0]?.finish_reason,
+        created_at: new Date(data.created * 1000).toISOString(),
+      }
     }
   }
 

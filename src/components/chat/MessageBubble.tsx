@@ -1,7 +1,6 @@
 import { Message } from '@/stores/chatStore'
 import { Copy, User, Bot } from 'lucide-react'
 import { useState } from 'react'
-import { TypewriterText } from './TypewriterText'
 import { MarkdownRenderer } from './MarkdownRenderer'
 
 interface MessageBubbleProps {
@@ -32,20 +31,18 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
       <div className={`flex max-w-[70%] ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
         {/* Avatar */}
         <div className={`flex-shrink-0 ${isUser ? 'ml-3' : 'mr-3'}`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-            isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-          }`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+            }`}>
             {isUser ? <User size={16} /> : <Bot size={16} />}
           </div>
         </div>
 
         {/* Message Content */}
         <div className={`relative ${isUser ? 'mr-2' : 'ml-2'}`}>
-          <div className={`rounded-lg p-4 ${
-            isUser 
-              ? 'bg-primary text-primary-foreground' 
-              : 'bg-muted text-foreground'
-          } ${isStreaming ? 'animate-pulse' : ''}`}>
+          <div className={`rounded-lg p-4 ${isUser
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-muted text-foreground'
+            } ${isStreaming ? 'animate-pulse' : ''}`}>
             {/* Message text */}
             <div className="relative">
               <MarkdownRenderer content={message.content} />
@@ -69,39 +66,74 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
                   )}
                 </div>
                 {message.metadata.sources && message.metadata.sources.length > 0 && (
-                  <div className="mt-1">
-                    <span className="font-semibold">Sources:</span>
-                    <ul className="list-disc list-inside ml-2">
-                      {message.metadata.sources.map((source, index) => (
-                        <li key={index}>{source}</li>
+                  <div className="mt-2">
+                    <div className="flex items-center space-x-1 mb-1">
+                      <span className="font-semibold text-blue-600">📚 Fuentes RAG:</span>
+                    </div>
+                    <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2 space-y-1">
+                      {message.metadata.sources.map((source: any, index: number) => (
+                        <div key={index} className="text-xs">
+                          {typeof source === 'string' ? (
+                            <div className="text-blue-700 dark:text-blue-300">• {source}</div>
+                          ) : (
+                            <div className="space-y-1">
+                              <div className="font-medium text-blue-800 dark:text-blue-200">
+                                📄 {source.title || `Documento ${index + 1}`}
+                              </div>
+                              {source.category && (
+                                <div className="text-blue-600 dark:text-blue-400">
+                                  🏷️ {source.category}
+                                </div>
+                              )}
+                              {source.relevance && (
+                                <div className="text-blue-600 dark:text-blue-400">
+                                  🎯 Relevancia: {(source.relevance * 100).toFixed(0)}%
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       ))}
-                    </ul>
+                    </div>
+                  </div>
+                )}
+                {message.metadata.ragEnabled && (
+                  <div className="mt-1 flex items-center space-x-1">
+                    <span className="text-xs text-green-600 dark:text-green-400">🧠 RAG Habilitado</span>
+                    {message.metadata.originalQuery && message.metadata.originalQuery !== message.content && (
+                      <span className="text-xs text-amber-600 dark:text-amber-400">✨ Consulta mejorada</span>
+                    )}
+                  </div>
+                )}
+
+                {message.metadata.ragAttempted && (!message.metadata.sources || message.metadata.sources.length === 0) && (
+                  <div className="mt-1 flex items-center space-x-1">
+                    <span className="text-xs text-muted-foreground">🧠 RAG: Sin información relevante encontrada</span>
                   </div>
                 )}
               </div>
             )}
           </div>
+        </div>
 
-          {/* Timestamp and actions */}
-          <div className={`flex items-center mt-1 space-x-2 opacity-0 group-hover:opacity-100 transition-opacity ${
-            isUser ? 'justify-end' : 'justify-start'
+        {/* Timestamp and actions */}
+        <div className={`flex items-center mt-1 space-x-2 opacity-0 group-hover:opacity-100 transition-opacity ${isUser ? 'justify-end' : 'justify-start'
           }`}>
-            <span className="text-xs text-muted-foreground">
-              {formatTime(message.timestamp)}
-            </span>
-            
-            <button
-              onClick={handleCopy}
-              className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-              title="Copy message"
-            >
-              <Copy size={12} />
-            </button>
-            
-            {copied && (
-              <span className="text-xs text-green-600">Copied!</span>
-            )}
-          </div>
+          <span className="text-xs text-muted-foreground">
+            {formatTime(message.timestamp)}
+          </span>
+
+          <button
+            onClick={handleCopy}
+            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+            title="Copy message"
+          >
+            <Copy size={12} />
+          </button>
+
+          {copied && (
+            <span className="text-xs text-green-600">Copied!</span>
+          )}
         </div>
       </div>
     </div>

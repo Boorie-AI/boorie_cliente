@@ -121,7 +121,6 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
       }
 
       // Add code block
-      const language = match[1] || ''
       const code = match[2].trim()
       parts.push(
         <pre key={elementKey++} className="bg-card border border-border rounded-lg p-4 my-3 overflow-x-auto">

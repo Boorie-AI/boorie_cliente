@@ -3,24 +3,40 @@ import { useClarity } from '@/components/ClarityProvider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { WNTRMapViewer } from './WNTRMapViewer';
 import { WNTRAdvancedMapViewer } from './WNTRAdvancedMapViewer';
-import { WNTRNetworkVisualization } from './WNTRNetworkVisualization';
-import { 
-  FileUp, Play, Stop, Pause, BarChart3, Download, Map, Network, 
-  Settings, Layers, Eye, EyeOff, RefreshCw, AlertCircle, 
-  Activity, Droplets, Gauge, TrendingUp, Database, FileText,
-  ChevronRight, Zap, Target, Shield, Construction
+import { ProjectDashboard } from './ProjectDashboard';
+import { Project, NetworkAsset, CalculationAsset } from '../../types/project';
+import {
+  FileUp, Play, BarChart3, Map, Network,
+  Eye, RefreshCw, AlertCircle,
+  Activity, Gauge, TrendingUp, Database, FileText,
+  Zap, Target, FolderOpen, ChevronDown
 } from 'lucide-react';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 interface WNTRMainInterfaceProps {
   projectId?: string;
@@ -55,12 +71,18 @@ interface AnalysisResults {
 }
 
 interface SimulationResults {
-  status: string;
-  execution_time: number;
-  summary: Record<string, any>;
-  node_results: any;
-  link_results: any;
-  timestamps: number[];
+  success: boolean;
+  error?: string;
+  data: {
+    status: string;
+    execution_time: number;
+    summary: Record<string, any>;
+    node_results: any;
+    link_results: any;
+    timestamps: number[];
+    stats?: any;
+    error?: string;
+  }
 }
 
 interface WNTRViewSettings {
@@ -78,20 +100,133 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 }) => {
   // Clarity tracking
   const { trackEvent, isReady: clarityReady } = useClarity();
-  
+
+  // PROJECT MANAGEMENT STATE
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+
+  // Load projects from localStorage on mount
+  useEffect(() => {
+    const savedProjects = localStorage.getItem('wntr_projects');
+    if (savedProjects) {
+      try {
+        const parsed = JSON.parse(savedProjects);
+        setProjects(parsed);
+      } catch (e) {
+        console.error('Failed to load projects:', e);
+      }
+    }
+  }, []);
+
+  // Save projects to localStorage whenever they change
+  useEffect(() => {
+    if (projects.length > 0) {
+      localStorage.setItem('wntr_projects', JSON.stringify(projects));
+    }
+  }, [projects]);
+
+  // Project Management Functions
+  const handleCreateProject = useCallback((name: string, description: string) => {
+    const newProject: Project = {
+      id: `proj_${Date.now()}`,
+      name,
+      description,
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString(),
+      networks: [],
+      calculations: [],
+      chats: []
+    };
+    setProjects(prev => [...prev, newProject]);
+    setCurrentProject(newProject);
+  }, []);
+
+  const handleSelectProject = useCallback((project: Project) => {
+    setCurrentProject(project);
+  }, []);
+
+  const handleDeleteProject = useCallback((projectId: string) => {
+    setProjects(prev => prev.filter(p => p.id !== projectId));
+    if (currentProject?.id === projectId) {
+      setCurrentProject(null);
+    }
+  }, [currentProject]);
+
+  const handleSaveNetworkToProject = useCallback((data: NetworkData) => {
+    if (!currentProject) return;
+
+    const networkAsset: NetworkAsset = {
+      id: `net_${Date.now()}`,
+      name: data.name,
+      uploadDate: new Date().toISOString(),
+      nodeCount: data.summary?.junctions || 0,
+      linkCount: data.summary?.pipes || 0,
+      data: data
+    };
+
+    setProjects(prev => prev.map(p =>
+      p.id === currentProject.id
+        ? { ...p, networks: [...p.networks, networkAsset], lastModified: new Date().toISOString() }
+        : p
+    ));
+
+    setCurrentProject(prev => prev ? {
+      ...prev,
+      networks: [...prev.networks, networkAsset],
+      lastModified: new Date().toISOString()
+    } : null);
+  }, [currentProject]);
+
+  const handleSaveCalculationToProject = useCallback((name: string, networkId: string, results: any) => {
+    if (!currentProject) return;
+
+    const calculation: CalculationAsset = {
+      id: `calc_${Date.now()}`,
+      name,
+      date: new Date().toISOString(),
+      status: 'completed',
+      networkId,
+      results
+    };
+
+    setProjects(prev => prev.map(p =>
+      p.id === currentProject.id
+        ? { ...p, calculations: [...p.calculations, calculation], lastModified: new Date().toISOString() }
+        : p
+    ));
+
+    setCurrentProject(prev => prev ? {
+      ...prev,
+      calculations: [...prev.calculations, calculation],
+      lastModified: new Date().toISOString()
+    } : null);
+  }, [currentProject]);
+
   // Core state
   const [networkData, setNetworkData] = useState<NetworkData | null>(null);
   const [analysisResults, setAnalysisResults] = useState<AnalysisResults>({});
-  const [simulationResults, setSimulationResults] = useState<SimulationResults | null>(null);
+  // Core state - Updated to hold multiple simulation results
+  interface ProjectSimulationResults {
+    hydraulic: SimulationResults | null;
+    quality: SimulationResults | null;
+    scenario: SimulationResults | null;
+  }
+
+  const [simulationResults, setSimulationResults] = useState<ProjectSimulationResults>({
+    hydraulic: null,
+    quality: null,
+    scenario: null
+  });
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Operation states
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [simulationProgress, setSimulationProgress] = useState(0);
-  
+
   // View settings
   const [viewSettings, setViewSettings] = useState<WNTRViewSettings>({
     showMap: true,
@@ -100,29 +235,32 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     showSimulation: true,
     activeVisualization: 'map'
   });
-  
+
   // Current active operations
-  const [activeTab, setActiveTab] = useState('overview');
-  const [selectedAnalysisType, setSelectedAnalysisType] = useState<'topology' | 'criticality' | 'resilience'>('topology');
-  const [selectedSimulationType, setSelectedSimulationType] = useState<'hydraulic' | 'water_quality' | 'scenario'>('hydraulic');
+  const [highlightedComponents, setHighlightedComponents] = useState<string[]>([]);
+  const [simulationDuration, setSimulationDuration] = useState<number>(24);
+  const [simulationTimestep, setSimulationTimestep] = useState<number>(60); // minutes
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
 
   // Load network file
   const handleLoadNetwork = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       // Track file loading start
       if (clarityReady) {
         trackEvent('wntr_file_load_started');
       }
-      
+
       const result = await window.electronAPI.wntr.loadINPFile();
-      
+
       if (result.success && result.data) {
         setNetworkData(result.data);
-        setActiveTab('network');
-        
+
+        // Save to current project
+        handleSaveNetworkToProject(result.data);
+
         // Track successful file load
         if (clarityReady) {
           trackEvent('wntr_file_loaded', {
@@ -137,7 +275,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load network file';
       setError(errorMessage);
-      
+
       // Track file loading error
       if (clarityReady) {
         trackEvent('wntr_file_load_error', {
@@ -147,1125 +285,658 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [clarityReady, trackEvent]);
+  }, [clarityReady, trackEvent, handleSaveNetworkToProject]);
 
-  // Run analysis
-  const handleRunAnalysis = useCallback(async (analysisType: 'topology' | 'criticality' | 'resilience') => {
+  // Run ALL analyses sequentially
+  const handleRunAllAnalyses = useCallback(async () => {
     if (!networkData) {
       setError('No network data loaded');
       return;
     }
-    
+
     try {
       setIsAnalyzing(true);
       setAnalysisProgress(0);
       setError(null);
-      
+
       // First ensure the INP file is loaded in the backend
       console.log('Loading INP file before analysis:', networkData.name);
       const loadResult = await window.electronAPI.wntr.loadINPFromPath(`data/${networkData.name}`);
       console.log('Load result:', loadResult);
-      
+
       if (!loadResult.success) {
         throw new Error(`Failed to load INP file: ${loadResult.error}`);
       }
-      
-      const progressInterval = setInterval(() => {
-        setAnalysisProgress(prev => Math.min(prev + 10, 90));
-      }, 500);
 
-      let result;
-      console.log(`Running ${analysisType} analysis for network:`, networkData?.name);
-      
-      // Track analysis start
-      if (clarityReady) {
-        trackEvent('wntr_analysis_started', {
-          analysis_type: analysisType,
-          network_name: networkData?.name,
-          has_network_data: !!networkData
-        });
-      }
-      
-      switch (analysisType) {
-        case 'topology':
-          result = await window.electronAPI.wntr.analyzeNetworkTopology({
-            network_file: networkData.name,
-            include_centrality: true,
-            include_connectivity: true
-          });
-          break;
-        case 'criticality':
-          result = await window.electronAPI.wntr.analyzeComponentCriticality({
-            network_file: networkData.name,
-            analysis_type: 'comprehensive',
-            include_pipes: true,
-            include_pumps: true,
-            include_nodes: true
-          });
-          break;
-        case 'resilience':
-          result = await window.electronAPI.wntr.calculateResilienceMetrics({
-            network_file: networkData.name,
-            include_topological: true,
-            include_hydraulic: true,
-            include_economic: true,
-            include_serviceability: true
-          });
-          break;
-      }
+      // 1. Topology
+      setAnalysisProgress(10);
+      const topologyRes = await window.electronAPI.wntr.analyzeNetworkTopology({
+        network_file: networkData.name,
+        include_centrality: true, include_connectivity: true
+      });
+      setAnalysisResults(prev => ({ ...prev, topology: topologyRes }));
+      setAnalysisProgress(40);
 
-      console.log(`${analysisType} analysis result:`, result);
+      // 2. Criticality
+      const criticalityRes = await window.electronAPI.wntr.analyzeComponentCriticality({
+        network_file: networkData.name,
+        analysis_type: 'comprehensive', include_pipes: true, include_pumps: true, include_nodes: true
+      });
+      setAnalysisResults(prev => ({ ...prev, criticality: criticalityRes }));
+      setAnalysisProgress(70);
 
-      clearInterval(progressInterval);
+      // 3. Resilience
+      const resilienceRes = await window.electronAPI.wntr.calculateResilienceMetrics({
+        network_file: networkData.name,
+        include_topological: true, include_hydraulic: true, include_economic: true, include_serviceability: true
+      });
+      setAnalysisResults(prev => ({ ...prev, resilience: resilienceRes }));
       setAnalysisProgress(100);
-      
-      // Track analysis completion
-      if (clarityReady) {
-        trackEvent('wntr_analysis_completed', {
-          analysis_type: analysisType,
-          success: result?.success || false,
-          network_name: networkData?.name,
-          result_has_data: !!(result && Object.keys(result).length > 0)
-        });
-      }
-      
-      setAnalysisResults(prev => ({ ...prev, [analysisType]: result }));
-      
+
       if (onAnalysisComplete) {
-        onAnalysisComplete({ [analysisType]: result });
+        onAnalysisComplete({ topology: topologyRes, criticality: criticalityRes, resilience: resilienceRes });
       }
-      
-      setActiveTab('analysis');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Analysis failed';
       setError(errorMessage);
-      
-      // Track analysis error
-      if (clarityReady) {
-        trackEvent('wntr_analysis_error', {
-          analysis_type: analysisType,
-          error_message: errorMessage,
-          network_name: networkData?.name
-        });
-      }
     } finally {
       setIsAnalyzing(false);
-      setAnalysisProgress(0);
+      // setAnalysisProgress(0); // Leave at 100 for visual confirmation
     }
   }, [networkData, onAnalysisComplete]);
 
-  // Run simulation
-  const handleRunSimulation = useCallback(async (simulationType: 'hydraulic' | 'water_quality' | 'scenario') => {
+
+
+  // Run ALL simulations sequentially
+  const handleRunAllSimulations = useCallback(async () => {
     if (!networkData) return;
-    
+
     try {
       setIsSimulating(true);
       setSimulationProgress(0);
       setError(null);
-      
-      const progressInterval = setInterval(() => {
-        setSimulationProgress(prev => Math.min(prev + 8, 90));
-      }, 600);
 
-      let result;
-      switch (simulationType) {
-        case 'hydraulic':
-          result = await window.electronAPI.wntr.runHydraulicSimulation({
-            network_file: networkData.name,
-            duration: 24,
-            timestep: 1,
-            demand_multiplier: 1.0,
-            pattern_start: '00:00:00'
-          });
-          break;
-        case 'water_quality':
-          result = await window.electronAPI.wntr.runWaterQualitySimulation({
-            network_file: networkData.name,
-            parameter: 'age',
-            duration: 24,
-            timestep: 1
-          });
-          break;
-        case 'scenario':
-          result = await window.electronAPI.wntr.runScenarioSimulation({
-            network_file: networkData.name,
-            scenario_type: 'pipe_closure',
-            start_time: 0,
-            duration: 24,
-            components: []
-          });
-          break;
+      // Reset current results
+      setSimulationResults({ hydraulic: null, quality: null, scenario: null });
+
+      // First ensure the INP file is loaded in the backend
+      console.log('Loading INP file before simulation:', networkData.name);
+      const loadResult = await window.electronAPI.wntr.loadINPFromPath(`data/${networkData.name}`);
+
+      if (!loadResult.success) {
+        // Attempt to load without path prefix if data/ fails (fallback)
+        console.warn('Failed to load from data/, trying direct name:', loadResult.error);
+        // This is a safety check/fallback if needed, but for now we'll stick to the pattern
+        if (loadResult.error?.includes('No such file')) {
+          throw new Error(`INP file not found in data/ directory: ${networkData.name}`);
+        }
       }
 
-      clearInterval(progressInterval);
+      // 1. Hydraulic
+      setSimulationProgress(10);
+      const hydraulicRes = await window.electronAPI.wntr.runHydraulicSimulation({
+        network_file: networkData.name,
+        duration: simulationDuration,      // Python script expects Hours
+        timestep: simulationTimestep / 60, // Python script expects Hours (from minutes)
+        demand_multiplier: 1.0,
+        pattern_start: '00:00:00'
+      });
+      setSimulationResults(prev => ({ ...prev, hydraulic: hydraulicRes }));
+      setSimulationProgress(40);
+
+      // 2. Water Quality
+      const qualityRes = await window.electronAPI.wntr.runWaterQualitySimulation({
+        network_file: networkData.name,
+        parameter: 'age', duration: 24, timestep: 1
+      });
+      setSimulationResults(prev => ({ ...prev, quality: qualityRes }));
+      setSimulationProgress(70);
+
+      // 3. Scenario (Pipe Closure - standard test)
+      const scenarioRes = await window.electronAPI.wntr.runScenarioSimulation({
+        network_file: networkData.name,
+        scenario_type: 'pipe_closure', start_time: 0, duration: 24, components: []
+      });
+      setSimulationResults(prev => ({ ...prev, scenario: scenarioRes }));
       setSimulationProgress(100);
-      
-      setSimulationResults(result);
-      
-      if (onSimulationComplete) {
-        onSimulationComplete(result);
+
+      // Save simulations to project
+      if (currentProject && networkData) {
+        const currentNetwork = currentProject.networks.find(n => n.name === networkData.name);
+        const networkId = currentNetwork?.id || 'unknown';
+
+        // Save each simulation type
+        if (hydraulicRes.success) {
+          handleSaveCalculationToProject('Simulación Hidráulica', networkId, hydraulicRes.data);
+        }
+        if (qualityRes.success) {
+          handleSaveCalculationToProject('Calidad del Agua', networkId, qualityRes.data);
+        }
+        if (scenarioRes.success) {
+          handleSaveCalculationToProject('Simulación de Escenario', networkId, scenarioRes.data);
+        }
       }
-      
-      setActiveTab('simulation');
+
+      // Notify completion (using hydraulic as primary for legacy handlers if any)
+      if (onSimulationComplete) {
+        onSimulationComplete(hydraulicRes);
+      }
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Simulation failed');
+      setError(err instanceof Error ? err.message : 'Simulation suite failed');
     } finally {
       setIsSimulating(false);
-      setSimulationProgress(0);
+      // setSimulationProgress(0); // Leave at 100 to show success
     }
-  }, [networkData, onSimulationComplete]);
+  }, [networkData, onSimulationComplete, simulationDuration, simulationTimestep, currentProject, handleSaveCalculationToProject]);
 
-  // Generate comprehensive report
-  const handleGenerateReport = useCallback(async () => {
-    if (!networkData) return;
 
-    try {
-      const reportData = await window.electronAPI.wntr.generateComprehensiveReport({
-        project_id: projectId || 'default',
-        network_file: networkData.name,
-        analysis_results: analysisResults,
-        simulation_results: simulationResults,
-        include_visualizations: true
-      });
 
-      const blob = new Blob([reportData.content], { type: 'text/markdown' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = reportData.filename;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Report generation failed');
+
+
+  // Dashboard Layout Render
+  const renderDashboard = () => {
+    // 1. NO PROJECT SELECTED: Show Project Dashboard
+    if (!currentProject) {
+      return (
+        <ProjectDashboard
+          projects={projects}
+          onSelectProject={handleSelectProject}
+          onCreateProject={handleCreateProject}
+          onDeleteProject={handleDeleteProject}
+        />
+      );
     }
-  }, [projectId, networkData, analysisResults, simulationResults]);
 
-  const renderOverviewTab = () => (
-    <div className="space-y-6">
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5" />
-            Quick Actions
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Button
-            onClick={handleLoadNetwork}
-            disabled={isLoading}
-            className="h-20 flex flex-col gap-2"
-            variant="outline"
-          >
-            <FileUp className="h-6 w-6" />
-            <span className="text-sm">Load Network</span>
-          </Button>
-          
-          <Button
-            onClick={() => handleRunAnalysis('topology')}
-            disabled={!networkData || isAnalyzing}
-            className="h-20 flex flex-col gap-2"
-            variant="outline"
-          >
-            <Target className="h-6 w-6" />
-            <span className="text-sm">Analyze</span>
-          </Button>
-          
-          <Button
-            onClick={() => handleRunSimulation('hydraulic')}
-            disabled={!networkData || isSimulating}
-            className="h-20 flex flex-col gap-2"
-            variant="outline"
-          >
-            <Play className="h-6 w-6" />
-            <span className="text-sm">Simulate</span>
-          </Button>
-          
-          <Button
-            onClick={() => setViewSettings(prev => ({ ...prev, activeVisualization: 'map' }))}
-            disabled={!networkData}
-            className="h-20 flex flex-col gap-2"
-            variant="outline"
-          >
-            <Map className="h-6 w-6" />
-            <span className="text-sm">Visualize</span>
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Status Overview */}
-      {networkData && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Network Status */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Network className="h-4 w-4" />
-                Network Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Status</span>
-                <Badge variant="outline" className="text-green-600">Loaded</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Nodes</span>
-                <span className="font-mono">{networkData.summary.junctions + networkData.summary.tanks + networkData.summary.reservoirs}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Links</span>
-                <span className="font-mono">{networkData.summary.pipes + networkData.summary.pumps + networkData.summary.valves}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Analysis Status */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Analysis Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Topology</span>
-                <Badge variant={analysisResults.topology ? "default" : "secondary"}>
-                  {analysisResults.topology ? "Complete" : "Pending"}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Criticality</span>
-                <Badge variant={analysisResults.criticality ? "default" : "secondary"}>
-                  {analysisResults.criticality ? "Complete" : "Pending"}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Resilience</span>
-                <Badge variant={analysisResults.resilience ? "default" : "secondary"}>
-                  {analysisResults.resilience ? "Complete" : "Pending"}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Simulation Status */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                Simulation Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Status</span>
-                <Badge variant={simulationResults ? "default" : "secondary"}>
-                  {simulationResults ? "Complete" : "Not Run"}
-                </Badge>
-              </div>
-              {simulationResults && (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Duration</span>
-                    <span className="font-mono">{simulationResults.execution_time?.toFixed(2)}s</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Results</span>
-                    <Badge variant="outline" className="text-green-600">Available</Badge>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Progress Indicators */}
-      {(isAnalyzing || isSimulating) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Operations in Progress</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {isAnalyzing && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Analysis Progress</span>
-                  <span className="text-sm text-muted-foreground">{analysisProgress}%</span>
-                </div>
-                <Progress value={analysisProgress} />
-              </div>
-            )}
-            {isSimulating && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Simulation Progress</span>
-                  <span className="text-sm text-muted-foreground">{simulationProgress}%</span>
-                </div>
-                <Progress value={simulationProgress} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-
-  const renderNetworkTab = () => (
-    <div className="space-y-6">
-      {!networkData ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Database className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Network Loaded</h3>
-            <p className="text-muted-foreground text-center mb-6 max-w-md">
-              Load an EPANET .inp file to view network details and perform analysis
-            </p>
-            <Button onClick={handleLoadNetwork} disabled={isLoading}>
-              <FileUp className="h-4 w-4 mr-2" />
-              Load Network File
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
+    // 2. PROJECT SELECTED BUT NO NETWORK: Show Welcome with project context
+    if (!networkData) {
+      return (
         <>
-          {/* Network Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Network className="h-5 w-5" />
-                  Network Summary: {networkData.name}
-                </div>
-                <Button onClick={handleLoadNetwork} variant="outline" size="sm">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Reload
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{networkData.summary.junctions}</div>
-                  <div className="text-sm text-muted-foreground">Junctions</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">{networkData.summary.tanks}</div>
-                  <div className="text-sm text-muted-foreground">Tanks</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{networkData.summary.reservoirs}</div>
-                  <div className="text-sm text-muted-foreground">Reservoirs</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-600">{networkData.summary.pipes}</div>
-                  <div className="text-sm text-muted-foreground">Pipes</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">{networkData.summary.pumps}</div>
-                  <div className="text-sm text-muted-foreground">Pumps</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">{networkData.summary.valves}</div>
-                  <div className="text-sm text-muted-foreground">Valves</div>
-                </div>
+          {/* Project Header Bar */}
+          <div className="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentProject(null)}
+                className="text-slate-400 hover:text-white"
+              >
+                <ChevronDown className="h-4 w-4 mr-2 rotate-90" />
+                Proyectos
+              </Button>
+              <div className="h-4 w-px bg-slate-700" />
+              <div className="flex items-center gap-2">
+                <FolderOpen className="h-4 w-4 text-blue-400" />
+                <span className="font-semibold text-white">{currentProject.name}</span>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="flex items-center gap-4 text-xs text-slate-400">
+              <div className="flex items-center gap-1">
+                <Database className="h-3 w-3" />
+                <span>{currentProject.networks.length} redes</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Activity className="h-3 w-3" />
+                <span>{currentProject.calculations.length} simulaciones</span>
+              </div>
+            </div>
+          </div>
 
-          {/* Coordinate System Info */}
-          {networkData.coordinate_system && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Coordinate System Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Type:</span>
-                    <span className="font-mono">{networkData.coordinate_system.type}</span>
-                  </div>
-                  {networkData.coordinate_system.epsg && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">EPSG:</span>
-                      <span className="font-mono">{networkData.coordinate_system.epsg}</span>
-                    </div>
-                  )}
-                  {networkData.coordinate_system.units && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Units:</span>
-                      <span className="font-mono">{networkData.coordinate_system.units}</span>
-                    </div>
-                  )}
+          {/* Welcome Screen */}
+          <div className="flex flex-col items-center justify-center h-[calc(100%-60px)] p-6">
+            <Card className="w-full max-w-md">
+              <CardHeader className="text-center">
+                <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-4">
+                  <Network className="h-10 w-10 text-primary" />
                 </div>
+                <CardTitle>Proyecto: {currentProject.name}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {currentProject.description && (
+                  <p className="text-center text-muted-foreground text-sm">
+                    {currentProject.description}
+                  </p>
+                )}
+
+                <div
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/50 cursor-pointer border-primary/50'
+                    }`}
+                  onClick={!isLoading ? handleLoadNetwork : undefined}
+                >
+                  <FileUp className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
+                  <h3 className="font-semibold mb-1">Cargar Red Hidráulica</h3>
+                  <p className="text-xs text-muted-foreground">Click para buscar archivos .inp</p>
+                </div>
+
+                {error && (
+                  <Alert className="border-red-500/50 text-red-600 bg-red-50 dark:bg-red-900/10">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                {currentProject.networks.length > 0 && (
+                  <div className="pt-4 border-t">
+                    <h4 className="text-sm font-medium mb-2">Redes Guardadas</h4>
+                    <div className="space-y-2">
+                      {currentProject.networks.map((net) => (
+                        <Button
+                          key={net.id}
+                          variant="outline"
+                          size="sm"
+                          className="w-full justify-start text-xs"
+                          onClick={() => setNetworkData(net.data)}
+                        >
+                          <Database className="h-3 w-3 mr-2" />
+                          {net.name}
+                          <span className="ml-auto text-muted-foreground">
+                            {net.nodeCount} nudos
+                          </span>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          )}
+          </div>
         </>
-      )}
-    </div>
-  );
+      );
+    }
 
-  const renderAnalysisTab = () => (
-    <div className="space-y-6">
-      {/* Analysis Controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Network Analysis
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Label>Analysis Type:</Label>
-            <Select value={selectedAnalysisType} onValueChange={(value) => setSelectedAnalysisType(value as any)}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="topology">Topology Analysis</SelectItem>
-                <SelectItem value="criticality">Criticality Analysis</SelectItem>
-                <SelectItem value="resilience">Resilience Metrics</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              onClick={() => handleRunAnalysis(selectedAnalysisType)}
-              disabled={!networkData || isAnalyzing}
-            >
-              {isAnalyzing ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <Target className="h-4 w-4 mr-2" />
-                  Run Analysis
-                </>
-              )}
+    // 3. PROJECT + NETWORK LOADED: Show main interface
+
+    return (
+      <div className="flex h-[calc(100vh-65px)] overflow-hidden bg-background">
+        {/* Left Sidebar - Controls & Results */}
+        <div className={`flex-shrink-0 border-r bg-card flex flex-col h-full shadow-lg z-10 transition-all duration-300 ${isLeftSidebarCollapsed ? 'w-0 overflow-hidden' : 'w-[400px]'}`}>
+          <div className="p-4 border-b flex items-center justify-between bg-muted/30">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <Database className="h-4 w-4 flex-shrink-0 text-primary" />
+              <span className="font-semibold truncate" title={networkData.name}>{networkData.name}</span>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setNetworkData(null)} title="Close Network">
+              <FileUp className="h-4 w-4" />
             </Button>
           </div>
 
-          {isAnalyzing && (
-            <div className="space-y-2">
-              <Progress value={analysisProgress} />
-              <p className="text-sm text-center text-muted-foreground">
-                {selectedAnalysisType} analysis in progress... {analysisProgress}%
-              </p>
+          <Tabs defaultValue="simulate" className="flex-1 flex flex-col min-h-0">
+            <div className="px-4 pt-2 border-b bg-muted/10">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="simulate" title="Simulation">
+                  <Play className="h-4 w-4" />
+                </TabsTrigger>
+                <TabsTrigger value="analyze" title="Analysis">
+                  <Target className="h-4 w-4" />
+                </TabsTrigger>
+
+                <TabsTrigger value="layers" title="Layers">
+                  <Map className="h-4 w-4" />
+                </TabsTrigger>
+              </TabsList>
             </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Analysis Results */}
-      {Object.keys(analysisResults).length > 0 && (
-        <Tabs defaultValue="topology" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="topology">Topology</TabsTrigger>
-            <TabsTrigger value="criticality">Criticality</TabsTrigger>
-            <TabsTrigger value="resilience">Resilience</TabsTrigger>
-          </TabsList>
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+              {/* SIMULATION TAB */}
+              <TabsContent value="simulate" className="mt-0 space-y-4">
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-blue-500" />
+                    Hydraulic Simulation
+                  </h3>
 
-          <TabsContent value="topology">
-            {analysisResults.topology ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Topology Analysis Results</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    <div className="text-center p-3 bg-muted/20 rounded-lg">
-                      <div className="text-lg font-bold">{analysisResults.topology.topology_metrics?.basic_metrics?.nodes || 0}</div>
-                      <div className="text-sm text-muted-foreground">Total Nodes</div>
-                    </div>
-                    <div className="text-center p-3 bg-muted/20 rounded-lg">
-                      <div className="text-lg font-bold">{analysisResults.topology.topology_metrics?.basic_metrics?.edges || 0}</div>
-                      <div className="text-sm text-muted-foreground">Total Links</div>
-                    </div>
-                    <div className="text-center p-3 bg-muted/20 rounded-lg">
-                      <div className="text-lg font-bold">{analysisResults.topology.topology_metrics?.basic_metrics?.density?.toFixed(4) || 'N/A'}</div>
-                      <div className="text-sm text-muted-foreground">Density</div>
-                    </div>
-                    <div className="text-center p-3 bg-muted/20 rounded-lg">
-                      <div className="text-lg font-bold">{analysisResults.topology.topology_metrics?.basic_metrics?.average_degree?.toFixed(2) || 'N/A'}</div>
-                      <div className="text-sm text-muted-foreground">Avg Degree</div>
-                    </div>
-                  </div>
+                  <div className="p-3 bg-muted/20 rounded-lg text-sm space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Run comprehensive analysis including Hydraulic, Water Quality, and Scenario simulations sequentially.
+                    </p>
 
-                  {/* Connectivity Information */}
-                  <div className="mt-4 space-y-3">
-                    <h4 className="text-sm font-medium mb-2">Connectivity Analysis</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      <div className="text-center p-3 bg-muted/10 rounded-lg">
-                        <div className="text-sm font-medium">
-                          {analysisResults.topology.topology_metrics?.connectivity?.is_connected ? 'Connected' : 'Disconnected'}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Network Status</div>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">Duration (hours)</div>
+                        <input
+                          type="number"
+                          value={simulationDuration}
+                          onChange={(e) => setSimulationDuration(Number(e.target.value))}
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        />
                       </div>
-                      <div className="text-center p-3 bg-muted/10 rounded-lg">
-                        <div className="text-sm font-medium">
-                          {analysisResults.topology.topology_metrics?.connectivity?.connected_components || 0}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Components</div>
-                      </div>
-                      <div className="text-center p-3 bg-muted/10 rounded-lg">
-                        <div className="text-sm font-medium">
-                          {analysisResults.topology.topology_metrics?.connectivity?.average_clustering?.toFixed(3) || 'N/A'}
-                        </div>
-                        <div className="text-xs text-muted-foreground">Clustering</div>
+                      <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">Timestep (mins)</div>
+                        <input
+                          type="number"
+                          value={simulationTimestep}
+                          onChange={(e) => setSimulationTimestep(Number(e.target.value))}
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        />
                       </div>
                     </div>
                   </div>
 
-                  {/* Centrality Information */}
-                  {analysisResults.topology.topology_metrics?.centrality && (
-                    <div className="mt-4">
-                      <h4 className="text-sm font-medium mb-2">Most Critical Nodes</h4>
-                      <div className="space-y-2">
-                        {analysisResults.topology.topology_metrics.centrality.most_critical_betweenness && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Betweenness:</span>
-                            <Badge variant="outline">{analysisResults.topology.topology_metrics.centrality.most_critical_betweenness}</Badge>
-                          </div>
-                        )}
-                        {analysisResults.topology.topology_metrics.centrality.most_critical_closeness && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Closeness:</span>
-                            <Badge variant="outline">{analysisResults.topology.topology_metrics.centrality.most_critical_closeness}</Badge>
-                          </div>
-                        )}
-                        {analysisResults.topology.topology_metrics.centrality.most_critical_degree && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Degree:</span>
-                            <Badge variant="outline">{analysisResults.topology.topology_metrics.centrality.most_critical_degree}</Badge>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="text-center py-8">
-                  <p className="text-muted-foreground">Run topology analysis to see results</p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
+                  <Button
+                    className="w-full"
+                    onClick={handleRunAllSimulations}
+                    disabled={isSimulating}
+                  >
+                    {isSimulating ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Running Simulations...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4 mr-2" />
+                        Run All Simulations
+                      </>
+                    )}
+                  </Button>
 
-          <TabsContent value="criticality">
-            {analysisResults.criticality ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Criticality Analysis Results</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {/* Top Critical Nodes */}
-                    {analysisResults.criticality.criticality_analysis?.top_critical_nodes && (
-                      <div>
-                        <h4 className="text-sm font-medium mb-2">Top Critical Nodes</h4>
-                        <div className="space-y-2">
-                          {analysisResults.criticality.criticality_analysis.top_critical_nodes
-                            .slice(0, 5)
-                            .map(([nodeId, nodeData]: [string, any]) => (
-                              <div key={nodeId} className="flex justify-between items-center">
-                                <span className="font-mono text-sm">{nodeId}</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-mono text-sm">{nodeData.overall_score.toFixed(3)}</span>
-                                  <Badge variant={nodeData.classification === 'high' ? 'destructive' : nodeData.classification === 'medium' ? 'default' : 'secondary'} className="text-xs">
-                                    {nodeData.classification}
-                                  </Badge>
+                  {isSimulating && <Progress value={simulationProgress} className="h-2" />}
+
+                  {isSimulating && <Progress value={simulationProgress} className="h-2" />}
+
+                  {/* Simulation Results (Hydraulic, Quality, Scenario) */}
+                  <div className="space-y-4 pt-4 border-t">
+                    {/* Hydraulic Simulation */}
+                    {simulationResults?.hydraulic?.data ? (
+                      <Card>
+                        <CardHeader className="p-3 pb-0">
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Hydraulic</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 text-sm space-y-2">
+                          <div className="flex justify-between">
+                            <span>Status:</span>
+                            <span className="font-medium text-green-600">Completed</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Duration:</span>
+                            <span className="font-mono">{simulationResults.hydraulic.data.execution_time?.toFixed(2)}s</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Nodes/Links:</span>
+                            <span className="font-mono">{Object.keys(simulationResults.hydraulic.data.node_results || {}).length}/{Object.keys(simulationResults.hydraulic.data.link_results || {}).length}</span>
+                          </div>
+                          {/* Detailed Stats */}
+                          {simulationResults.hydraulic.data.stats && (
+                            <div className="pt-2 border-t space-y-2">
+                              <div className="text-[10px] text-muted-foreground font-semibold">PRESSURE (m)</div>
+                              <div className="grid grid-cols-3 gap-1 text-xs">
+                                <div>
+                                  <div className="text-[9px] text-muted-foreground">Min</div>
+                                  <div className="font-mono">{simulationResults.hydraulic.data.stats.pressure?.min?.toFixed(2)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-[9px] text-muted-foreground">Avg</div>
+                                  <div className="font-mono">{simulationResults.hydraulic.data.stats.pressure?.mean?.toFixed(2)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-[9px] text-muted-foreground">Max</div>
+                                  <div className="font-mono">{simulationResults.hydraulic.data.stats.pressure?.max?.toFixed(2)}</div>
                                 </div>
                               </div>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Top Critical Links */}
-                    {analysisResults.criticality.criticality_analysis?.top_critical_links && (
-                      <div>
-                        <h4 className="text-sm font-medium mb-2">Top Critical Links</h4>
-                        <div className="space-y-2">
-                          {analysisResults.criticality.criticality_analysis.top_critical_links
-                            .slice(0, 5)
-                            .map(([linkId, linkData]: [string, any]) => (
-                              <div key={linkId} className="flex justify-between items-center">
-                                <span className="font-mono text-sm">{linkId}</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-mono text-sm">{linkData.overall_score.toFixed(3)}</span>
-                                  <Badge variant={linkData.classification === 'high' ? 'destructive' : linkData.classification === 'medium' ? 'default' : 'secondary'} className="text-xs">
-                                    {linkData.classification}
-                                  </Badge>
+                              <div className="text-[10px] text-muted-foreground font-semibold mt-2">FLOW (LPS) / VEL (m/s)</div>
+                              <div className="grid grid-cols-2 gap-1 text-xs">
+                                <div>
+                                  <div className="text-[9px] text-muted-foreground">Max Flow</div>
+                                  <div className="font-mono">{simulationResults.hydraulic.data.stats.flow?.max?.toFixed(2)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-[9px] text-muted-foreground">Max Vel</div>
+                                  <div className="font-mono">{simulationResults.hydraulic.data.stats.velocity?.max?.toFixed(2)}</div>
                                 </div>
                               </div>
+                              <div className="flex justify-between text-xs mt-1">
+                                <div className="text-[10px] text-muted-foreground">Total Length</div>
+                                <div className="font-mono">{simulationResults.hydraulic.data.stats.flow?.total_demand?.toFixed(2)} km</div>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      simulationResults?.hydraulic?.success === false ? (
+                        <Alert variant="destructive" className="mt-2 text-xs">
+                          <AlertCircle className="h-3 w-3 inline mr-1" />
+                          <span className="font-semibold">Error:</span> {simulationResults.hydraulic.error || "Unknown error"}
+                        </Alert>
+                      ) : (
+                        !isSimulating && (
+                          <div className="text-xs text-muted-foreground text-center p-4 border border-dashed rounded bg-muted/20">
+                            Results will appear here.
+                          </div>
+                        )
+                      )
+                    )}
+
+                    {/* Water Quality Results */}
+                    {simulationResults?.quality?.data && (
+                      <Card>
+                        <CardHeader className="p-3 pb-0">
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Water Quality</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 text-sm space-y-2">
+                          <div className="flex justify-between">
+                            <span>Status:</span>
+                            <span className="font-medium text-green-600">Completed</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Duration:</span>
+                            <span className="font-mono">{simulationResults.quality.data.execution_time?.toFixed(2)}s</span>
+                          </div>
+                          {/* WQ Stats */}
+                          {simulationResults.quality.data.stats?.quality && (
+                            <div className="pt-2 border-t space-y-2">
+                              <div className="text-[10px] text-muted-foreground font-semibold">PARAMETER: {simulationResults.quality.data.stats.quality.parameter}</div>
+                              <div className="grid grid-cols-3 gap-1 text-xs">
+                                <div>
+                                  <div className="text-[9px] text-muted-foreground">Min</div>
+                                  <div className="font-mono">{simulationResults.quality.data.stats.quality.min?.toFixed(2)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-[9px] text-muted-foreground">Avg</div>
+                                  <div className="font-mono">{simulationResults.quality.data.stats.quality.mean?.toFixed(2)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-[9px] text-muted-foreground">Max</div>
+                                  <div className="font-mono">{simulationResults.quality.data.stats.quality.max?.toFixed(2)}</div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          <div className="text-xs text-muted-foreground font-mono mt-1 opacity-75">
+                            {simulationResults.quality.data.summary?.note}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Scenario Results */}
+                    {simulationResults?.scenario?.data && (
+                      <Card>
+                        <CardHeader className="p-3 pb-0">
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Scenario</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 text-sm space-y-2">
+                          <div className="flex justify-between">
+                            <span>Status:</span>
+                            <span className="font-medium text-green-600">Completed</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Duration:</span>
+                            <span className="font-mono">{simulationResults.scenario.data.execution_time?.toFixed(2)}s</span>
+                          </div>
+                          {/* Scenario Stats */}
+                          {simulationResults.scenario.data.stats && (
+                            <div className="pt-2 border-t space-y-2">
+                              <div className="text-[10px] text-muted-foreground font-semibold">PRESSURE (m)</div>
+                              <div className="grid grid-cols-3 gap-1 text-xs">
+                                <div>
+                                  <div className="text-[9px] text-muted-foreground">Min</div>
+                                  <div className="font-mono">{simulationResults.scenario.data.stats.pressure?.min?.toFixed(2)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-[9px] text-muted-foreground">Mean</div>
+                                  <div className="font-mono">{simulationResults.scenario.data.stats.pressure?.mean?.toFixed(2)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-[9px] text-muted-foreground">Max</div>
+                                  <div className="font-mono">{simulationResults.scenario.data.stats.pressure?.max?.toFixed(2)}</div>
+                                </div>
+                              </div>
+                              <div className="text-[10px] text-muted-foreground font-semibold mt-2">LINK STATS</div>
+                              <div className="grid grid-cols-2 gap-1 text-xs">
+                                <div>
+                                  <div className="text-[9px] text-muted-foreground">Max Flow</div>
+                                  <div className="font-mono">{simulationResults.scenario.data.stats.flow?.max?.toFixed(2)}</div>
+                                </div>
+                                <div>
+                                  <div className="text-[9px] text-muted-foreground">Max Vel</div>
+                                  <div className="font-mono">{simulationResults.scenario.data.stats.velocity?.max?.toFixed(2)}</div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          <div className="text-xs text-muted-foreground">
+                            {simulationResults.scenario.data.summary?.note}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </div>
+
+
+              </TabsContent>
+
+              {/* ANALYSIS TAB */}
+              <TabsContent value="analyze" className="mt-0 space-y-4">
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    <Target className="h-4 w-4 text-purple-500" />
+                    Network Analysis
+                  </h3>
+
+                  <Button
+                    className="w-full"
+                    onClick={handleRunAllAnalyses}
+                    disabled={isAnalyzing}
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Target className="h-4 w-4 mr-2" />
+                        Run All Analyses
+                      </>
+                    )}
+                  </Button>
+                  {isAnalyzing && <Progress value={analysisProgress} className="h-2" />}
+
+                  {/* Analysis Results */}
+                  <div className="space-y-4 pt-4 border-t">
+                    {analysisResults.topology?.data && (
+                      <Card>
+                        <CardHeader className="p-3 pb-0">
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Topology</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 text-sm space-y-1">
+                          <div className="flex justify-between"><span>Density:</span> <span className="font-mono">{analysisResults.topology.data.topology_metrics.basic_metrics?.density?.toFixed(4)}</span></div>
+                          <div className="flex justify-between"><span>Avg Degree:</span> <span className="font-mono">{analysisResults.topology.data.topology_metrics.basic_metrics?.average_degree?.toFixed(2)}</span></div>
+                          <div className="flex justify-between"><span>Diameter:</span> <span className="font-mono">{analysisResults.topology.data.topology_metrics.basic_metrics?.diameter}</span></div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {analysisResults.criticality?.data && (
+                      <Card>
+                        <CardHeader className="p-3 pb-0">
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Criticality</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 text-sm space-y-1">
+                          <div className="text-xs text-muted-foreground mb-1">Top Critical Nodes:</div>
+                          <div className="flex flex-wrap gap-1">
+                            {analysisResults.criticality.data.criticality_analysis?.top_critical_nodes?.slice(0, 3).map((n: any) => (
+                              <Badge
+                                key={n[0]}
+                                variant={highlightedComponents.includes(n[0]) ? "default" : "outline"}
+                                className="text-[10px] h-5 cursor-pointer hover:bg-primary/20"
+                                onClick={() => setHighlightedComponents(prev => prev.includes(n[0]) ? prev.filter(x => x !== n[0]) : [...prev, n[0]])}
+                              >
+                                {n[0]}
+                              </Badge>
                             ))}
-                        </div>
-                      </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {analysisResults.resilience?.data && (
+                      <Card>
+                        <CardHeader className="p-3 pb-0">
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Resilience</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-3 text-sm space-y-1">
+                          {/* Accessing proper nested data based on known structure */}
+                          <div className="flex justify-between">
+                            <span>Hydraulic:</span>
+                            <span className="font-mono">{analysisResults.resilience.data.resilience_metrics?.hydraulic?.todini_index?.toFixed(4) || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Service:</span>
+                            <span className="font-mono">{analysisResults.resilience.data.resilience_metrics?.serviceability?.pressure_serviceability?.toFixed(4) || 'N/A'}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="text-center py-8">
-                  <p className="text-muted-foreground">Run criticality analysis to see results</p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="resilience">
-            {analysisResults.resilience ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Resilience Metrics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    <div className="text-center p-3 bg-muted/20 rounded-lg">
-                      <div className="text-lg font-bold">
-                        {analysisResults.resilience.resilience_metrics?.topographic?.score?.toFixed(3) || 'N/A'}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Topographic</div>
-                    </div>
-                    <div className="text-center p-3 bg-muted/20 rounded-lg">
-                      <div className="text-lg font-bold">
-                        {analysisResults.resilience.resilience_metrics?.hydraulic?.score?.toFixed(3) || 'N/A'}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Hydraulic</div>
-                    </div>
-                    <div className="text-center p-3 bg-muted/20 rounded-lg">
-                      <div className="text-lg font-bold">
-                        {analysisResults.resilience.resilience_metrics?.economic?.score?.toFixed(3) || 'N/A'}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Economic</div>
-                    </div>
-                    <div className="text-center p-3 bg-muted/20 rounded-lg">
-                      <div className="text-lg font-bold">
-                        {analysisResults.resilience.resilience_metrics?.overall?.score?.toFixed(3) || 'N/A'}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Overall Score</div>
-                    </div>
-                  </div>
-
-                  {/* Overall Classification */}
-                  {analysisResults.resilience.resilience_metrics?.overall && (
-                    <div className="text-center p-4 bg-muted/10 rounded-lg">
-                      <div className="text-lg font-bold mb-2">Network Resilience Classification</div>
-                      <Badge 
-                        variant={
-                          analysisResults.resilience.resilience_metrics.overall.classification === 'excellent' ? 'default' :
-                          analysisResults.resilience.resilience_metrics.overall.classification === 'good' ? 'secondary' :
-                          analysisResults.resilience.resilience_metrics.overall.classification === 'fair' ? 'outline' :
-                          'destructive'
-                        }
-                        className="text-base px-4 py-2"
-                      >
-                        {analysisResults.resilience.resilience_metrics.overall.classification.toUpperCase()}
-                      </Badge>
-                    </div>
-                  )}
-
-                  {/* Detailed Metrics */}
-                  {analysisResults.resilience.resilience_metrics?.topographic && (
-                    <div className="mt-4">
-                      <h4 className="text-sm font-medium mb-2">Topographic Details</h4>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Algebraic Connectivity:</span>
-                          <span className="font-mono">{analysisResults.resilience.resilience_metrics.topographic.algebraic_connectivity.toFixed(4)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Average Degree:</span>
-                          <span className="font-mono">{analysisResults.resilience.resilience_metrics.topographic.average_degree.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Link Density:</span>
-                          <span className="font-mono">{analysisResults.resilience.resilience_metrics.topographic.link_density.toFixed(4)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Meshedness:</span>
-                          <span className="font-mono">{analysisResults.resilience.resilience_metrics.topographic.meshedness_coefficient.toFixed(4)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Economic Details */}
-                  {analysisResults.resilience.resilience_metrics?.economic && (
-                    <div className="mt-4">
-                      <h4 className="text-sm font-medium mb-2">Economic Assessment</h4>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Replacement Cost:</span>
-                          <span className="font-mono">${(analysisResults.resilience.resilience_metrics.economic.estimated_replacement_cost / 1000).toFixed(0)}k</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Economic Efficiency:</span>
-                          <span className="font-mono">{analysisResults.resilience.resilience_metrics.economic.economic_efficiency.toFixed(3)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="text-center py-8">
-                  <p className="text-muted-foreground">Run resilience analysis to see results</p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
-      )}
-    </div>
-  );
-
-  const renderSimulationTab = () => (
-    <div className="space-y-6">
-      {/* Simulation Controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Play className="h-5 w-5" />
-            Hydraulic Simulation
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Label>Simulation Type:</Label>
-            <Select value={selectedSimulationType} onValueChange={(value) => setSelectedSimulationType(value as any)}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="hydraulic">Hydraulic Analysis</SelectItem>
-                <SelectItem value="water_quality">Water Quality</SelectItem>
-                <SelectItem value="scenario">Scenario Analysis</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              onClick={() => handleRunSimulation(selectedSimulationType)}
-              disabled={!networkData || isSimulating}
-            >
-              {isSimulating ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Simulating...
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4 mr-2" />
-                  Run Simulation
-                </>
-              )}
-            </Button>
-          </div>
-
-          {isSimulating && (
-            <div className="space-y-2">
-              <Progress value={simulationProgress} />
-              <p className="text-sm text-center text-muted-foreground">
-                {selectedSimulationType} simulation in progress... {simulationProgress}%
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Simulation Results */}
-      {simulationResults && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Simulation Results</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              <div className="text-center p-3 bg-muted/20 rounded-lg">
-                <div className="text-lg font-bold text-green-600">{simulationResults.status}</div>
-                <div className="text-sm text-muted-foreground">Status</div>
-              </div>
-              <div className="text-center p-3 bg-muted/20 rounded-lg">
-                <div className="text-lg font-bold">{simulationResults.execution_time?.toFixed(2)}s</div>
-                <div className="text-sm text-muted-foreground">Duration</div>
-              </div>
-              <div className="text-center p-3 bg-muted/20 rounded-lg">
-                <div className="text-lg font-bold">{simulationResults.timestamps?.length || 0}</div>
-                <div className="text-sm text-muted-foreground">Time Steps</div>
-              </div>
-              <div className="text-center p-3 bg-muted/20 rounded-lg">
-                <div className="text-lg font-bold">
-                  {Object.keys(simulationResults.node_results || {}).length}
                 </div>
-                <div className="text-sm text-muted-foreground">Nodes</div>
-              </div>
+              </TabsContent>
+
+              {/* RESULTS TAB - Aggregating Analysis/Sim Results */}
+
+
+              {/* LAYERS / VIEW SETTINGS TAB */}
+              <TabsContent value="layers" className="mt-0 space-y-4">
+                <h3 className="font-semibold text-sm">Map Layers & Visualization</h3>
+                <p className="text-xs text-muted-foreground">
+                  Detailed layer control is available directly on the Advanced Map Viewer.
+                </p>
+                {/* We could duplicate controls here or just rely on the map's own UI */}
+                <Button variant="outline" size="sm" className="w-full" onClick={handleLoadNetwork}>
+                  <RefreshCw className="h-3 w-3 mr-2" /> Reset View
+                </Button>
+              </TabsContent>
+
             </div>
+          </Tabs>
+        </div >
 
-            {simulationResults.summary && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium mb-2">Summary</h4>
-                <div className="space-y-2">
-                  {Object.entries(simulationResults.summary).map(([key, value]) => (
-                    <div key={key} className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">{key}:</span>
-                      <span className="text-sm font-mono">{String(value)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-
-  const renderVisualizationTab = () => (
-    <div className="space-y-6">
-      {/* Visualization Controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Eye className="h-5 w-5" />
-            Visualization Options
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <Button
-              variant={viewSettings.activeVisualization === 'map' ? 'default' : 'outline'}
-              onClick={() => setViewSettings(prev => ({ ...prev, activeVisualization: 'map' }))}
-              className="h-20 flex flex-col gap-2"
-            >
-              <Map className="h-6 w-6" />
-              <span className="text-sm">Map View</span>
-            </Button>
-            
-            <Button
-              variant={viewSettings.activeVisualization === 'advanced' ? 'default' : 'outline'}
-              onClick={() => setViewSettings(prev => ({ ...prev, activeVisualization: 'advanced' }))}
-              className="h-20 flex flex-col gap-2"
-            >
-              <Gauge className="h-6 w-6" />
-              <span className="text-sm">Advanced</span>
-            </Button>
-            
-            <Button
-              variant={viewSettings.activeVisualization === 'network' ? 'default' : 'outline'}
-              onClick={() => setViewSettings(prev => ({ ...prev, activeVisualization: 'network' }))}
-              className="h-20 flex flex-col gap-2"
-            >
-              <Network className="h-6 w-6" />
-              <span className="text-sm">Network Graph</span>
-            </Button>
-            
-            <Button
-              variant={viewSettings.activeVisualization === 'results' ? 'default' : 'outline'}
-              onClick={() => setViewSettings(prev => ({ ...prev, activeVisualization: 'results' }))}
-              className="h-20 flex flex-col gap-2"
-            >
-              <BarChart3 className="h-6 w-6" />
-              <span className="text-sm">Results</span>
-            </Button>
-            
-            <Button
-              variant={viewSettings.activeVisualization === 'analysis' ? 'default' : 'outline'}
-              onClick={() => setViewSettings(prev => ({ ...prev, activeVisualization: 'analysis' }))}
-              className="h-20 flex flex-col gap-2"
-            >
-              <TrendingUp className="h-6 w-6" />
-              <span className="text-sm">Analysis</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Visualization Content */}
-      <div className="h-[600px] w-full">
-        {viewSettings.activeVisualization === 'map' && (
-          <div className="h-full w-full rounded-lg border border-border overflow-hidden">
-            <WNTRMapViewer />
-          </div>
-        )}
-        
-        {viewSettings.activeVisualization === 'advanced' && (
-          <div className="h-full w-full overflow-hidden">
-            <WNTRAdvancedMapViewer 
-              networkData={networkData}
-              simulationResults={simulationResults}
-              onDataLoaded={setNetworkData}
-              onSimulationCompleted={setSimulationResults}
-            />
-          </div>
-        )}
-        
-        {viewSettings.activeVisualization === 'network' && (
-          <div className="h-full w-full rounded-lg border border-border overflow-hidden">
-            <WNTRNetworkVisualization 
-              networkData={networkData}
-              simulationResults={simulationResults}
-              analysisResults={analysisResults}
-            />
-          </div>
-        )}
-        
-        {viewSettings.activeVisualization === 'results' && (
-          <Card className="h-full">
-            <CardContent className="text-center py-12">
-              <div className="space-y-4">
-                <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto" />
-                <h3 className="text-lg font-semibold">Simulation Results</h3>
-                <p className="text-muted-foreground">
-                  Time-series visualization of hydraulic parameters
-                </p>
-                {simulationResults && (
-                  <div className="mt-6 text-left space-y-2">
-                    <div className="text-sm">
-                      <strong>Status:</strong> {simulationResults.status}
-                    </div>
-                    {simulationResults.node_results && (
-                      <div className="text-sm">
-                        <strong>Nodes analyzed:</strong> {Object.keys(simulationResults.node_results).length}
-                      </div>
-                    )}
-                    {simulationResults.link_results && (
-                      <div className="text-sm">
-                        <strong>Links analyzed:</strong> {Object.keys(simulationResults.link_results).length}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        
-        {viewSettings.activeVisualization === 'analysis' && (
-          <Card className="h-full">
-            <CardContent className="text-center py-12">
-              <div className="space-y-4">
-                <TrendingUp className="h-16 w-16 text-muted-foreground mx-auto" />
-                <h3 className="text-lg font-semibold">Analysis Visualization</h3>
-                <p className="text-muted-foreground">
-                  Network analysis results and critical component identification
-                </p>
-                {analysisResults && (
-                  <div className="mt-6 text-left space-y-2">
-                    {analysisResults.topology && (
-                      <div className="text-sm">
-                        <strong>Topology:</strong> Analysis completed
-                      </div>
-                    )}
-                    {analysisResults.criticality && (
-                      <div className="text-sm">
-                        <strong>Criticality:</strong> Component analysis available
-                      </div>
-                    )}
-                    {analysisResults.resilience && (
-                      <div className="text-sm">
-                        <strong>Resilience:</strong> Metrics calculated
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    </div>
-  );
+        {/* Main Content - The Map */}
+        < div className="flex-1 h-full relative font-sans" >
+          {/* Sidebar Toggle Button */}
+          < button
+            onClick={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
+            className="absolute left-0 top-4 z-20 bg-card text-foreground p-1 rounded-r-md border-r border-y border-border hover:bg-muted shadow-md flex items-center justify-center w-6 h-8"
+            title={isLeftSidebarCollapsed ? "Show Sidebar" : "Hide Sidebar"}
+          >
+            {isLeftSidebarCollapsed ? ">>" : "<<"}
+          </button >
+          <WNTRAdvancedMapViewer
+            networkData={networkData}
+            simulationResults={simulationResults?.hydraulic?.data}
+            onDataLoaded={setNetworkData}
+            onSimulationCompleted={(res: any) => setSimulationResults(prev => ({ ...prev, hydraulic: { success: true, data: res } }))}
+          />
+        </div >
+      </div >
+    );
+  };
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      {/* Header */}
-      <div className="border-b border-border p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">WNTR Analysis Suite</h1>
-            <p className="text-muted-foreground mt-1">
-              Comprehensive water network analysis and simulation platform
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {networkData && (
-              <Button onClick={handleGenerateReport} variant="outline">
-                <FileText className="h-4 w-4 mr-2" />
-                Generate Report
-              </Button>
-            )}
-            <Button onClick={handleLoadNetwork} disabled={isLoading}>
-              <FileUp className="h-4 w-4 mr-2" />
-              Load Network
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-          <div className="border-b border-border px-6">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="network">Network</TabsTrigger>
-              <TabsTrigger value="analysis">Analysis</TabsTrigger>
-              <TabsTrigger value="simulation">Simulation</TabsTrigger>
-              <TabsTrigger value="visualization">Visualization</TabsTrigger>
-            </TabsList>
-          </div>
-
-          <div className="flex-1 overflow-auto">
-            <div className="p-6">
-              <TabsContent value="overview" className="mt-0">
-                {renderOverviewTab()}
-              </TabsContent>
-              
-              <TabsContent value="network" className="mt-0">
-                {renderNetworkTab()}
-              </TabsContent>
-              
-              <TabsContent value="analysis" className="mt-0">
-                {renderAnalysisTab()}
-              </TabsContent>
-              
-              <TabsContent value="simulation" className="mt-0">
-                {renderSimulationTab()}
-              </TabsContent>
-              
-              <TabsContent value="visualization" className="mt-0">
-                {renderVisualizationTab()}
-              </TabsContent>
-            </div>
-          </div>
-        </Tabs>
-      </div>
-
-      {/* Error Display */}
-      {error && (
-        <Alert className="m-6 border-destructive/50 text-destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between">
-            <span>{error}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setError(null)}
-              className="h-auto p-0 text-destructive hover:text-destructive/80"
-            >
-              Dismiss
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
+    <div className="w-full h-full bg-background text-foreground overflow-hidden">
+      {renderDashboard()}
     </div>
   );
 };

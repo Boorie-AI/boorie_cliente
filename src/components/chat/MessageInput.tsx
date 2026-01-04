@@ -68,7 +68,7 @@ export function MessageInput() {
   }, [])
 
   return (
-    <div className="p-4 border-t border-border bg-card relative z-10">
+    <div className="p-4 relative z-10">
       <form onSubmit={handleSubmit} className="flex items-center space-x-2"
             onClick={(e) => {
               // If clicking on the form but not on a button, focus the textarea

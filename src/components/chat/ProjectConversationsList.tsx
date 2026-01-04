@@ -8,7 +8,6 @@ import {
   Calendar, 
   MoreVertical, 
   Send,
-  Plus,
   FolderPlus,
   X
 } from 'lucide-react'
@@ -72,7 +71,7 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
   }
   
   return (
-    <div className="w-80 h-full border-l border-border bg-card/50 flex flex-col">
+    <div className="w-64 h-full border-l border-border bg-card/50 flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">

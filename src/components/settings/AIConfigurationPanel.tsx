@@ -104,7 +104,7 @@ export function AIConfigurationPanel() {
   const initializeProviders = async () => {
     // First load existing providers from database
     await loadProviders()
-    
+
     // If no providers exist, create default ones
     if (providers.length === 0) {
       await createDefaultProviders()
@@ -113,7 +113,7 @@ export function AIConfigurationPanel() {
 
   const createDefaultProviders = async () => {
     console.log('🆕 Creating default AI providers...')
-    
+
     const defaultProviders = [
       {
         name: 'OpenAI',
@@ -358,7 +358,8 @@ export function AIConfigurationPanel() {
             modelId: model.modelId,
             isDefault: model.isSelected,
             isAvailable: true,
-            metadata: { description: model.description }
+            metadata: { description: model.description },
+            isSelected: false
           })
         }
         console.log('✅ Successfully saved provider and models to database')
@@ -431,8 +432,8 @@ export function AIConfigurationPanel() {
     if (!searchTerm.trim()) {
       return provider.availableModels
     }
-    
-    return provider.availableModels.filter(model => 
+
+    return provider.availableModels.filter(model =>
       model.modelName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       model.modelId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (model.description && model.description.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -749,7 +750,7 @@ export function AIConfigurationPanel() {
             </div>
 
             <div className="space-y-6">
-              {providers.map((provider) => (
+              {providers.filter(p => p.type === 'api').map((provider) => (
                 <div key={provider.id} className="bg-card rounded-xl border border-border overflow-hidden">
                   {/* Provider Header */}
                   <div className="p-4 sm:p-6 border-b border-border">
@@ -846,7 +847,7 @@ export function AIConfigurationPanel() {
                         <div className="space-y-3">
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                             <label className="text-sm font-medium text-card-foreground">
-                              {t('ai.availableModels')} 
+                              {t('ai.availableModels')}
                               {modelSearchTerms[provider.id] ? (
                                 <span className="text-muted-foreground">
                                   ({getFilteredModels(provider).length}/{provider.availableModels.length})
@@ -855,20 +856,20 @@ export function AIConfigurationPanel() {
                                 <span className="text-muted-foreground">({provider.availableModels.length})</span>
                               )}
                             </label>
-                            {provider.id === 'openrouter' && (
-                              <button
-                                onClick={() => {
-                                  setSelectedProviderId(provider.id)
-                                  setShowAddModelDialog(true)
-                                }}
-                                className="flex items-center space-x-1 px-3 py-1 text-xs bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors self-start sm:self-auto"
-                              >
-                                <Plus className="w-3 h-3" />
-                                <span>{t('ai.addModel')}</span>
-                              </button>
-                            )}
+
+                            <button
+                              onClick={() => {
+                                setSelectedProviderId(provider.id)
+                                setShowAddModelDialog(true)
+                              }}
+                              className="flex items-center space-x-1 px-3 py-1 text-xs bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors self-start sm:self-auto"
+                            >
+                              <Plus className="w-3 h-3" />
+                              <span>{t('ai.addModel')}</span>
+                            </button>
+
                           </div>
-                          
+
                           {/* Search Bar */}
                           {provider.availableModels.length > 5 && (
                             <div className="relative">
@@ -891,44 +892,44 @@ export function AIConfigurationPanel() {
                               </div>
                             ) : (
                               getFilteredModels(provider).map((model) => (
-                              <div key={model.modelId} className={cn(
-                                "flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 rounded-lg border transition-all space-y-3 sm:space-y-0",
-                                model.isSelected
-                                  ? "bg-primary/10 border-primary/30 shadow-sm"
-                                  : "bg-accent/30 border-border/50 hover:bg-accent/50"
-                              )}>
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium text-card-foreground truncate text-sm sm:text-base">
-                                    {model.modelName}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                                    {model.description}
-                                  </div>
-                                </div>
-                                <div className="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-3 sm:ml-4 flex-shrink-0">
-                                  {model.isSelected && (
-                                    <div className="flex items-center space-x-1 text-xs text-primary">
-                                      <CheckCircle className="w-3 h-3" />
-                                      <span className="hidden sm:inline">{t('ai.active')}</span>
+                                <div key={`${provider.id}-${model.modelId}`} className={cn(
+                                  "flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 rounded-lg border transition-all space-y-3 sm:space-y-0",
+                                  model.isSelected
+                                    ? "bg-primary/10 border-primary/30 shadow-sm"
+                                    : "bg-accent/30 border-border/50 hover:bg-accent/50"
+                                )}>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-card-foreground truncate text-sm sm:text-base">
+                                      {model.modelName}
                                     </div>
-                                  )}
-                                  <Switch.Root
-                                    checked={model.isSelected}
-                                    onCheckedChange={(checked) => handleModelToggle(provider.id, model.modelId, checked)}
-                                    className="w-9 h-5 bg-gray-200 rounded-full data-[state=checked]:bg-primary relative flex-shrink-0"
-                                  >
-                                    <Switch.Thumb className="block w-4 h-4 bg-white rounded-full transition-transform duration-100 translate-x-0.5 data-[state=checked]:translate-x-4" />
-                                  </Switch.Root>
-                                  {provider.id === 'openrouter' && (
-                                    <button
-                                      onClick={() => removeCustomModel(provider.id, model.modelId)}
-                                      className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors flex-shrink-0"
+                                    <div className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                      {model.description}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-3 sm:ml-4 flex-shrink-0">
+                                    {model.isSelected && (
+                                      <div className="flex items-center space-x-1 text-xs text-primary">
+                                        <CheckCircle className="w-3 h-3" />
+                                        <span className="hidden sm:inline">{t('ai.active')}</span>
+                                      </div>
+                                    )}
+                                    <Switch.Root
+                                      checked={model.isSelected}
+                                      onCheckedChange={(checked) => handleModelToggle(provider.id, model.modelId, checked)}
+                                      className="w-9 h-5 bg-gray-200 rounded-full data-[state=checked]:bg-primary relative flex-shrink-0"
                                     >
-                                      <X className="w-4 h-4" />
-                                    </button>
-                                  )}
+                                      <Switch.Thumb className="block w-4 h-4 bg-white rounded-full transition-transform duration-100 translate-x-0.5 data-[state=checked]:translate-x-4" />
+                                    </Switch.Root>
+                                    {provider.id === 'openrouter' && (
+                                      <button
+                                        onClick={() => removeCustomModel(provider.id, model.modelId)}
+                                        className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors flex-shrink-0"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
                               ))
                             )}
                           </div>

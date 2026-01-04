@@ -72,7 +72,7 @@ export interface GoogleDriveFile {
 }
 
 export class GoogleApisClient {
-  private baseUrl = 'https://www.googleapis.com'
+
 
   constructor() {
     console.log('Google APIs Client initialized')
@@ -81,30 +81,21 @@ export class GoogleApisClient {
   /**
    * Gets a valid access token from the backend
    */
-  private async getAccessToken(): Promise<string> {
-    if (!window.electronAPI?.auth) {
-      throw new Error('Auth API not available')
+  /*
+    private async getAccessToken(): Promise<string> {
+      if (!this.client) throw new Error('Client not initialized')
+      // Implementation would use this.client.getToken()
+      return 'mock-token'
     }
-
-    const result = await window.electronAPI.auth.getTokens('google')
-    
-    if (!result.success || !result.data?.hasAccessToken) {
-      throw new Error('No valid Google access token available')
-    }
-
-    // The backend only returns metadata for security, we need to make
-    // authenticated requests through the backend or get the actual token
-    // For now, we'll make requests through a backend proxy
-    throw new Error('Direct token access not implemented - use backend proxy')
-  }
+  */
 
   /**
    * Makes an authenticated request to Google APIs
    * Note: In production, this should go through the backend for security
    */
   private async makeAuthenticatedRequest(
-    endpoint: string, 
-    options: RequestInit = {}
+    _endpoint: string,
+    _options: RequestInit = {}
   ): Promise<any> {
     // For security, we should make API calls through the backend
     // This is a placeholder implementation
@@ -120,7 +111,7 @@ export class GoogleApisClient {
       return response
     } catch (error) {
       console.error('Failed to get current user:', error)
-      throw new Error(`Failed to get user profile: ${error.message}`)
+      throw new Error(`Failed to get user profile: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -138,24 +129,24 @@ export class GoogleApisClient {
   }> {
     try {
       let endpoint = `/gmail/v1/users/me/messages?maxResults=${maxResults}`
-      
+
       if (pageToken) {
         endpoint += `&pageToken=${pageToken}`
       }
-      
+
       if (query) {
         endpoint += `&q=${encodeURIComponent(query)}`
       }
 
       const response = await this.makeAuthenticatedRequest(endpoint)
-      
+
       // Get full message details for each message
       const messagePromises = (response.messages || []).map(async (msg: any) => {
         return this.makeAuthenticatedRequest(`/gmail/v1/users/me/messages/${msg.id}`)
       })
-      
+
       const messages = await Promise.all(messagePromises)
-      
+
       return {
         messages,
         nextPageToken: response.nextPageToken,
@@ -163,7 +154,7 @@ export class GoogleApisClient {
       }
     } catch (error) {
       console.error('Failed to get Gmail messages:', error)
-      throw new Error(`Failed to get Gmail messages: ${error.message}`)
+      throw new Error(`Failed to get Gmail messages: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -204,7 +195,7 @@ export class GoogleApisClient {
       })
     } catch (error) {
       console.error('Failed to send Gmail message:', error)
-      throw new Error(`Failed to send Gmail message: ${error.message}`)
+      throw new Error(`Failed to send Gmail message: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -222,24 +213,24 @@ export class GoogleApisClient {
   }> {
     try {
       let endpoint = `/calendar/v3/calendars/${calendarId}/events?maxResults=${maxResults}&singleEvents=true&orderBy=startTime`
-      
+
       if (timeMin) {
         endpoint += `&timeMin=${timeMin.toISOString()}`
       }
-      
+
       if (timeMax) {
         endpoint += `&timeMax=${timeMax.toISOString()}`
       }
 
       const response = await this.makeAuthenticatedRequest(endpoint)
-      
+
       return {
         events: response.items || [],
         nextPageToken: response.nextPageToken
       }
     } catch (error) {
       console.error('Failed to get calendar events:', error)
-      throw new Error(`Failed to get calendar events: ${error.message}`)
+      throw new Error(`Failed to get calendar events: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -263,18 +254,18 @@ export class GoogleApisClient {
         summary: event.summary,
         description: event.description,
         location: event.location,
-        start: event.isAllDay 
+        start: event.isAllDay
           ? { date: event.start.toISOString().split('T')[0] }
-          : { 
-              dateTime: event.start.toISOString(),
-              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-            },
+          : {
+            dateTime: event.start.toISOString(),
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+          },
         end: event.isAllDay
           ? { date: event.end.toISOString().split('T')[0] }
-          : { 
-              dateTime: event.end.toISOString(),
-              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-            }
+          : {
+            dateTime: event.end.toISOString(),
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+          }
       }
 
       if (event.attendees && event.attendees.length > 0) {
@@ -295,7 +286,7 @@ export class GoogleApisClient {
       return response
     } catch (error) {
       console.error('Failed to create calendar event:', error)
-      throw new Error(`Failed to create calendar event: ${error.message}`)
+      throw new Error(`Failed to create calendar event: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -312,24 +303,24 @@ export class GoogleApisClient {
   }> {
     try {
       let endpoint = `/drive/v3/files?pageSize=${pageSize}&fields=nextPageToken,files(id,name,mimeType,size,createdTime,modifiedTime,webViewLink,webContentLink,parents,thumbnailLink)`
-      
+
       if (pageToken) {
         endpoint += `&pageToken=${pageToken}`
       }
-      
+
       if (query) {
         endpoint += `&q=${encodeURIComponent(query)}`
       }
 
       const response = await this.makeAuthenticatedRequest(endpoint)
-      
+
       return {
         files: response.files || [],
         nextPageToken: response.nextPageToken
       }
     } catch (error) {
       console.error('Failed to get Drive files:', error)
-      throw new Error(`Failed to get Drive files: ${error.message}`)
+      throw new Error(`Failed to get Drive files: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -358,7 +349,7 @@ export class GoogleApisClient {
         reader.readAsArrayBuffer(file)
       })
 
-      const multipartRequestBody = 
+      const multipartRequestBody =
         delimiter +
         'Content-Type: application/json\r\n\r\n' +
         JSON.stringify(metadata) +
@@ -381,7 +372,7 @@ export class GoogleApisClient {
       return response
     } catch (error) {
       console.error('Failed to upload Drive file:', error)
-      throw new Error(`Failed to upload Drive file: ${error.message}`)
+      throw new Error(`Failed to upload Drive file: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -405,7 +396,7 @@ export class GoogleApisClient {
       }
 
       const tokenResult = await window.electronAPI.auth.getTokens('google')
-      
+
       if (!tokenResult.success || !tokenResult.data?.hasAccessToken) {
         return {
           isAvailable: true,
@@ -426,7 +417,7 @@ export class GoogleApisClient {
         isAvailable: false,
         hasToken: false,
         canMakeRequests: false,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       }
     }
   }
@@ -449,18 +440,18 @@ export class GoogleApisClient {
 
       // Use the backend test connection instead of direct API calls
       const result = await window.electronAPI.auth.testConnection('google')
-      
+
       return {
         success: result.success,
-        message: result.success 
-          ? `Connection successful: ${result.data?.user || 'Connected'}` 
+        message: result.success
+          ? `Connection successful: ${result.data?.user || 'Connected'}`
           : result.error || 'Connection test failed',
         data: result.data
       }
     } catch (error) {
       return {
         success: false,
-        message: `Connection test failed: ${error.message}`
+        message: `Connection test failed: ${error instanceof Error ? error.message : String(error)}`
       }
     }
   }

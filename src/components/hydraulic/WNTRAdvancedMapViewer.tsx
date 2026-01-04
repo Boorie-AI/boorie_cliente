@@ -4,16 +4,15 @@ import { WNTRAdvancedVisualizerPanel } from './WNTRAdvancedVisualizerPanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
-import { 
-  Play, 
-  Pause, 
-  Square, 
-  SkipBack, 
+import {
+  Play,
+  Pause,
+  Square,
+  SkipBack,
   SkipForward,
   ChevronLeft,
   ChevronRight,
-  Calendar,
-  Clock
+  Calendar
 } from 'lucide-react';
 
 interface NetworkData {
@@ -87,7 +86,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
     isPlaying: false,
     playbackSpeed: 1
   });
-  
+
   const [currentTime, setCurrentTime] = useState(new Date('2025-10-09T05:42:00'));
   const [coordinates, setCoordinates] = useState({ lat: -19.15995, lon: 146.88143 });
   const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -110,7 +109,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
     if (visualizationSettings.isPlaying && simulationResults) {
       const maxSteps = simulationResults.timestamps?.length || 1;
       const interval = 1000 / visualizationSettings.playbackSpeed;
-      
+
       playbackIntervalRef.current = setInterval(() => {
         setVisualizationSettings(prev => {
           const nextStep = prev.timeStep + 1;
@@ -167,15 +166,15 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('es-ES', { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: false 
+      hour12: false
     });
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('es-ES', { 
+    return date.toLocaleDateString('es-ES', {
       weekday: 'long',
       day: '2-digit',
       month: '2-digit',
@@ -194,39 +193,26 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
   const timeLabels = generateTimeLabels();
   const maxTimeSteps = simulationResults?.timestamps?.length || 24;
 
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
+
   return (
-    <div className="flex h-screen bg-gray-900">
+    <div className="flex h-screen bg-gray-900 overflow-hidden">
       {/* Main Map Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Map Container */}
         <div className="flex-1 relative">
-          <WNTRMapViewer />
-          
-          {/* Overlay info */}
-          <div className="absolute top-4 left-4 space-y-2">
-            <Card className="bg-black/70 border-gray-600">
-              <CardContent className="p-3 text-white">
-                <div className="text-sm">
-                  <div className="font-medium">
-                    {networkData?.name || 'Magnetic Island, AU - Demo'}
-                  </div>
-                  <div className="text-xs text-gray-300 mt-1">
-                    Precisión del modelo: {simulationResults ? 'Alta' : 'N/A'}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <WNTRMapViewer
+            networkData={networkData}
+            simulationResults={simulationResults}
+            activeTimeStep={visualizationSettings.timeStep}
+          />
 
-          {/* Coordinates info */}
-          <div className="absolute top-4 right-96 text-white text-sm bg-black/70 px-3 py-2 rounded">
-            <div>Lat: {coordinates.lat.toFixed(5)} Lon: {coordinates.lon.toFixed(5)}</div>
-            <div>Unidades: Sistema Internacional</div>
-          </div>
+          {/* Overlay info - Empty for now as requested */}
+
         </div>
 
         {/* Timeline Control Bar */}
-        <Card className="m-0 rounded-none bg-slate-800 border-t border-slate-600">
+        <Card className="m-0 rounded-none bg-slate-800 border-t border-slate-600 z-10">
           <CardContent className="p-4">
             <div className="space-y-3">
               {/* Date and Time Display */}
@@ -290,7 +276,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                   <div className="relative">
                     <Slider
                       value={[visualizationSettings.timeStep]}
-                      onValueChange={([value]) => 
+                      onValueChange={([value]) =>
                         setVisualizationSettings(prev => ({ ...prev, timeStep: value }))
                       }
                       max={maxTimeSteps - 1}
@@ -298,14 +284,14 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                       className="w-full"
                     />
                     {/* Time position indicator */}
-                    <div 
+                    <div
                       className="absolute top-0 w-2 h-6 bg-blue-500 rounded transform -translate-x-1/2 -translate-y-1"
-                      style={{ 
-                        left: `${(visualizationSettings.timeStep / (maxTimeSteps - 1)) * 100}%` 
+                      style={{
+                        left: `${(visualizationSettings.timeStep / (maxTimeSteps - 1)) * 100}%`
                       }}
                     />
                   </div>
-                  
+
                   {/* Time Labels */}
                   <div className="flex justify-between text-xs text-gray-400 px-1">
                     {timeLabels.map((label, index) => (
@@ -325,12 +311,32 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
       </div>
 
       {/* Right Sidebar Panel */}
-      <WNTRAdvancedVisualizerPanel
-        networkData={networkData}
-        simulationResults={simulationResults}
-        onSettingsChange={handleSettingsChange}
-        coordinates={coordinates}
-      />
+      <div className={`relative flex-shrink-0 border-l border-slate-700 bg-slate-900 transition-all duration-300 ease-in-out ${isRightSidebarCollapsed ? 'w-0' : 'w-80'}`}>
+
+        {/* Toggle Button */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
+          className="absolute -left-3 top-4 z-50 h-6 w-6 rounded-full border border-slate-600 bg-slate-800 p-0 text-slate-400 hover:bg-slate-700 hover:text-white"
+          title={isRightSidebarCollapsed ? "Show Sidebar" : "Hide Sidebar"}
+        >
+          {isRightSidebarCollapsed ? (
+            <ChevronLeft className="h-3 w-3" />
+          ) : (
+            <ChevronRight className="h-3 w-3" />
+          )}
+        </Button>
+
+        <div className={`h-full w-80 overflow-hidden ${isRightSidebarCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
+          <WNTRAdvancedVisualizerPanel
+            networkData={networkData}
+            simulationResults={simulationResults}
+            onSettingsChange={handleSettingsChange}
+            coordinates={coordinates}
+          />
+        </div>
+      </div>
     </div>
   );
 };

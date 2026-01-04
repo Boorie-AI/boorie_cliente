@@ -31,26 +31,26 @@ const defaultPreferences: UserPreferences = {
 export const usePreferencesStore = create<PreferencesState>()(
   devtools(
     persist(
-      (set, get) => ({
+      (set) => ({
         ...defaultPreferences,
 
         loadPreferences: async () => {
           try {
             const preferences = await databaseService.getSettings('preferences')
-            
+
             const updatedPrefs = { ...defaultPreferences }
-            
+
             preferences.forEach(setting => {
               const key = setting.key as keyof UserPreferences
               if (key in updatedPrefs) {
                 if (typeof updatedPrefs[key] === 'boolean') {
-                  updatedPrefs[key] = setting.value === 'true' as any
+                  (updatedPrefs[key] as boolean) = setting.value === 'true'
                 } else {
-                  updatedPrefs[key] = setting.value as any
+                  (updatedPrefs[key] as string) = setting.value
                 }
               }
             })
-            
+
             set(updatedPrefs)
           } catch (error) {
             console.error('Failed to load preferences:', error)
@@ -61,12 +61,12 @@ export const usePreferencesStore = create<PreferencesState>()(
           try {
             // Update local state
             set({ [key]: value })
-            
+
             // If language is being changed, update i18n
             if (key === 'language') {
               i18n.changeLanguage(value as string)
             }
-            
+
             // Persist to database
             await databaseService.setSetting(key, value.toString(), 'preferences')
           } catch (error) {
@@ -77,7 +77,7 @@ export const usePreferencesStore = create<PreferencesState>()(
         resetPreferences: async () => {
           try {
             set(defaultPreferences)
-            
+
             // Save all default preferences to database
             for (const [key, value] of Object.entries(defaultPreferences)) {
               await databaseService.setSetting(key, value.toString(), 'preferences')

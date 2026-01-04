@@ -3,7 +3,6 @@
  * Helps verify that Microsoft Clarity is working correctly
  */
 
-import React from 'react';
 import { useClarity } from './ClarityProvider';
 import { useClarityTracking } from '@/hooks/useClarityTracking';
 import { Button } from '@/components/ui/button';

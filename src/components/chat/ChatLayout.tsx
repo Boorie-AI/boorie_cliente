@@ -4,10 +4,10 @@ import { useClarity } from '@/components/ClarityProvider'
 import { Sidebar } from './Sidebar'
 import { ChatArea } from './ChatArea'
 import { SettingsPanel } from '@/components/settings/SettingsPanel'
-import { RAGPanel } from '@/components/rag/RAGPanel'
+import { UnifiedWisdomPanel } from '@/components/wisdom/UnifiedWisdomPanel'
 import { HydraulicProjectsPanel } from '@/components/hydraulic/HydraulicProjectsPanel'
 import { HydraulicCalculator } from '@/components/hydraulic/HydraulicCalculator'
-import { WNTRViewer } from '@/components/hydraulic/WNTRViewer'
+import { WNTRMainInterface } from '@/components/hydraulic/WNTRMainInterface'
 import { cn } from '@/utils/cn'
 
 export function ChatLayout() {
@@ -31,13 +31,13 @@ export function ChatLayout() {
       case 'settings':
         return <SettingsPanel />
       case 'rag':
-        return <RAGPanel />
+        return <UnifiedWisdomPanel />
       case 'projects':
         return <HydraulicProjectsPanel />
       case 'calculator':
         return <HydraulicCalculator />
       case 'wntr':
-        return <WNTRViewer />
+        return <WNTRMainInterface />
       default:
         return <ChatArea />
     }

@@ -1,8 +1,16 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { sendChatMessage, type ChatMessage } from '@/services/chat'
+import { type ChatMessage } from '@/services/chat'
 import { useAIConfigStore } from './aiConfigStore'
 import { databaseService } from '@/services/database'
+
+export interface WisdomConfiguration {
+  enabled: boolean
+  searchTopK: number
+  searchMethod: 'agentic'
+  categories: string[]
+  embeddingProvider?: string
+}
 
 export interface Message {
   id: string
@@ -14,6 +22,10 @@ export interface Message {
     provider?: string
     tokens?: number
     sources?: string[]
+    ragEnabled?: boolean
+    originalQuery?: string
+    enhancedQuery?: boolean
+    ragAttempted?: boolean
   }
 }
 
@@ -34,7 +46,10 @@ interface ChatState {
   isLoading: boolean
   streamingMessage: string
   streamingBuffer: string
-  
+
+  // Wisdom/RAG configuration
+  wisdomConfig: WisdomConfiguration | undefined
+
   // Actions
   createNewConversation: (projectId?: string) => void
   setActiveConversation: (id: string) => void
@@ -51,6 +66,10 @@ interface ChatState {
   loadAllConversations: () => Promise<void>
   callOllamaAPI: (model: string, prompt: string, context: Message[]) => Promise<{ response: string; metadata: any }>
   callAPIProvider: (provider: string, model: string, prompt: string, context: Message[]) => Promise<{ response: string; metadata: any }>
+
+  // Wisdom/RAG actions
+  setWisdomConfig: (config: WisdomConfiguration | undefined) => void
+  enhancePromptWithRAG: (originalPrompt: string) => Promise<{ enhancedPrompt: string; sources?: any[] }>
 }
 
 export const useChatStore = create<ChatState>()(
@@ -61,10 +80,11 @@ export const useChatStore = create<ChatState>()(
       isLoading: false,
       streamingMessage: '',
       streamingBuffer: '',
+      wisdomConfig: undefined,
 
       createNewConversation: (projectId?: string) => {
         // Get selected model from localStorage or use first available
-        let selectedModel = { name: 'Default Model', provider: 'Ollama' }
+        let selectedModel: { name: string; provider: string; modelId?: string } = { name: 'Default Model', provider: 'Ollama' }
         try {
           const stored = localStorage.getItem('selectedModel')
           if (stored) {
@@ -110,13 +130,13 @@ export const useChatStore = create<ChatState>()(
           conversations: state.conversations.map((conv) =>
             conv.id === conversationId
               ? {
-                  ...conv,
-                  messages: [...conv.messages, message],
-                  updatedAt: new Date(),
-                  title: conv.messages.length === 0 && message.role === 'user' 
-                    ? message.content.slice(0, 50) + (message.content.length > 50 ? '...' : '')
-                    : conv.title
-                }
+                ...conv,
+                messages: [...conv.messages, message],
+                updatedAt: new Date(),
+                title: conv.messages.length === 0 && message.role === 'user'
+                  ? message.content.slice(0, 50) + (message.content.length > 50 ? '...' : '')
+                  : conv.title
+              }
               : conv
           )
         }))
@@ -191,7 +211,7 @@ export const useChatStore = create<ChatState>()(
       sendMessage: async (content) => {
         const state = get()
         const activeConversation = state.conversations.find(c => c.id === state.activeConversationId)
-        
+
         if (!activeConversation) {
           // Create new conversation if none is active
           get().createNewConversation()
@@ -210,47 +230,89 @@ export const useChatStore = create<ChatState>()(
 
         set({ isLoading: true })
 
+        // Enhance prompt with RAG if enabled
+        let enhancedPrompt = content
+        let ragSources: any[] = []
+        try {
+          const ragResult = await get().enhancePromptWithRAG(content)
+          enhancedPrompt = ragResult.enhancedPrompt
+          ragSources = ragResult.sources || []
+        } catch (error) {
+          console.warn('Failed to enhance prompt with RAG, using original:', error)
+        }
+
         try {
           const conversation = get().conversations.find(c => c.id === conversationId)
           if (!conversation) throw new Error('Conversation not found')
-          
+
           console.log('Sending message with conversation:', {
             model: conversation.model,
             provider: conversation.provider,
-            message: content
+            message: content,
+            enhancedWithRAG: enhancedPrompt !== content
           })
-          
-          let response: string
-          let metadata: any
-          
+
           // Clear any previous streaming message
           get().clearStreamingMessage()
-          
-          // Check if it's an Ollama model (local)
-          if (conversation.provider === 'Ollama') {
-            const ollamaResponse = await get().callOllamaAPI(conversation.model, content, conversation.messages)
-            response = ollamaResponse.response
-            metadata = ollamaResponse.metadata
-          } else {
-            // Handle API providers
-            try {
-              const apiResponse = await get().callAPIProvider(conversation.provider, conversation.model, content, conversation.messages)
-              response = apiResponse.response
-              metadata = apiResponse.metadata
-            } catch (error) {
-              console.error(`Failed to call ${conversation.provider} API:`, error)
-              response = `Error connecting to ${conversation.provider}: ${error instanceof Error ? error.message : 'Unknown error'}`
-              metadata = {
-                model: conversation.model,
-                provider: conversation.provider,
-                tokens: 0
-              }
-            }
+
+          // Get API key for the provider
+          const aiConfigStore = useAIConfigStore.getState()
+          const providerConfig = aiConfigStore.providers.find(p => p.name === conversation.provider)
+          const apiKey = providerConfig?.apiKey || ''
+
+          // Prepare messages for chat handler (includes system prompt automatically)
+          const messages: ChatMessage[] = conversation.messages.map(msg => ({
+            role: msg.role,
+            content: msg.content
+          }))
+
+          // Add the current user message (use enhanced prompt if RAG is enabled)
+          messages.push({
+            role: 'user',
+            content: enhancedPrompt
+          })
+
+          // Use the chat handler which automatically includes system prompt
+          const result = await window.electronAPI.chat.sendMessage({
+            provider: conversation.provider,
+            model: conversation.model,
+            messages: messages,
+            apiKey: apiKey
+          })
+
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to send message')
           }
-          
+
+          const response = result.data?.response || ''
+          const metadata = result.data?.metadata || {
+            model: conversation.model,
+            provider: conversation.provider,
+            tokens: 0
+          }
+
           // Clear streaming message before adding final message
           get().clearStreamingMessage()
-          
+
+          // Add RAG sources to metadata if available
+          if (enhancedPrompt !== content) {
+            // RAG was used, add RAG info to metadata
+            console.log('🧠 Adding RAG metadata to message:', {
+              sourcesCount: ragSources.length,
+              sourceTitles: ragSources.map((s: any) => s.title || s.name || 'Sin título'),
+              ragEnabled: true
+            })
+            metadata.ragEnabled = true
+            metadata.originalQuery = content
+            metadata.enhancedQuery = enhancedPrompt !== content
+            metadata.sources = ragSources
+            metadata.ragAttempted = true
+          } else {
+            console.log('⚠️ RAG not used - enhanced prompt equals original')
+            metadata.ragAttempted = true
+            metadata.ragEnabled = state.wisdomConfig?.enabled
+          }
+
           // Add assistant message
           await get().addMessageToConversation(conversationId, {
             role: 'assistant',
@@ -288,7 +350,7 @@ export const useChatStore = create<ChatState>()(
           // Check if conversation exists in database
           const existingConversations = await databaseService.getConversations()
           const existingConversation = existingConversations.find(c => c.id === conversation.id)
-          
+
           if (existingConversation) {
             // Update existing conversation
             await databaseService.updateConversation(conversation.id, {
@@ -309,7 +371,7 @@ export const useChatStore = create<ChatState>()(
               projectId: conversation.projectId
             })
           }
-          
+
           console.log('Conversation saved to database:', conversation.title)
         } catch (error) {
           console.error('Failed to save conversation to database:', error)
@@ -320,7 +382,7 @@ export const useChatStore = create<ChatState>()(
         try {
           // Load conversations from database
           const storedConversations = await databaseService.getConversations()
-          
+
           let conversations: Conversation[] = storedConversations.map((conv: any) => ({
             ...conv,
             createdAt: new Date(conv.createdAt),
@@ -355,27 +417,27 @@ export const useChatStore = create<ChatState>()(
         try {
           // Clean model name (remove 'ollama-' prefix if present)
           const cleanModelName = model.startsWith('ollama-') ? model.replace('ollama-', '') : model
-          
+
           // Prepare context messages for Ollama
           const messages = context.slice(-10).map(msg => ({
             role: msg.role,
             content: msg.content
           }))
-          
+
           // Add current prompt
           messages.push({ role: 'user', content: prompt })
-          
+
           console.log(`Calling Ollama API with model: ${cleanModelName}`)
           console.log('Messages to send:', messages)
-          
+
           const requestBody = {
             model: cleanModelName,
             messages: messages,
             stream: true
           }
-          
+
           console.log('Request body:', requestBody)
-          
+
           const response = await fetch('http://localhost:11434/api/chat', {
             method: 'POST',
             headers: {
@@ -383,32 +445,32 @@ export const useChatStore = create<ChatState>()(
             },
             body: JSON.stringify(requestBody)
           })
-          
+
           if (!response.ok) {
             throw new Error(`Ollama API error: ${response.status} ${response.statusText}`)
           }
-          
+
           let fullResponse = ''
           let totalTokens = 0
-          
+
           // Stream the response
           const reader = response.body?.getReader()
           const decoder = new TextDecoder()
-          
+
           if (reader) {
             try {
               while (true) {
                 const { done, value } = await reader.read()
                 if (done) break
-                
+
                 const chunk = decoder.decode(value)
                 const lines = chunk.split('\n').filter(line => line.trim())
-                
+
                 for (const line of lines) {
                   try {
                     const data = JSON.parse(line)
                     console.log('Streaming data:', data) // Debug log
-                    
+
                     if (data.message?.content) {
                       fullResponse += data.message.content
                       console.log('Updated fullResponse:', fullResponse) // Debug log
@@ -427,7 +489,7 @@ export const useChatStore = create<ChatState>()(
               reader.releaseLock()
             }
           }
-          
+
           return {
             response: fullResponse || 'No response from Ollama',
             metadata: {
@@ -439,7 +501,7 @@ export const useChatStore = create<ChatState>()(
           }
         } catch (error) {
           console.error('Ollama API call failed:', error)
-          throw new Error(`Failed to connect to Ollama: ${error.message}`)
+          throw new Error(`Failed to connect to Ollama: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }
       },
 
@@ -448,7 +510,7 @@ export const useChatStore = create<ChatState>()(
           // Get API key from AI config store
           const aiConfigStore = useAIConfigStore.getState()
           const providerConfig = aiConfigStore.providers.find(p => p.name === provider)
-          
+
           if (!providerConfig || !providerConfig.apiKey) {
             throw new Error(`No API key configured for ${provider}`)
           }
@@ -490,6 +552,90 @@ export const useChatStore = create<ChatState>()(
         } catch (error) {
           console.error(`${provider} API call failed:`, error)
           throw new Error(`Failed to connect to ${provider}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        }
+      },
+
+      // Wisdom/RAG methods
+      setWisdomConfig: (config: WisdomConfiguration | undefined) => {
+        set({ wisdomConfig: config })
+        console.log('🧠 Wisdom configuration updated:', config)
+      },
+
+      enhancePromptWithRAG: async (originalPrompt: string): Promise<{ enhancedPrompt: string; sources?: any[] }> => {
+        const state = get()
+
+        console.log('🧠 RAG Enhancement Check:', {
+          wisdomEnabled: state.wisdomConfig?.enabled,
+          categories: state.wisdomConfig?.categories,
+          searchMethod: state.wisdomConfig?.searchMethod,
+          topK: state.wisdomConfig?.searchTopK
+        })
+
+        if (!state.wisdomConfig?.enabled) {
+          console.log('⚠️ RAG disabled, using original prompt')
+          return { enhancedPrompt: originalPrompt }
+        }
+
+        try {
+          console.log('🔍 Enhancing prompt with RAG:', originalPrompt)
+
+          // Get system prompt from database
+          const systemPrompt = await databaseService.getSetting('system_prompt')
+
+          // Query RAG system using agentic RAG
+          console.log('📡 Querying agentic RAG with options:', {
+            categories: state.wisdomConfig.categories.length > 0 ? state.wisdomConfig.categories : undefined,
+            searchTopK: state.wisdomConfig.searchTopK,
+            technicalLevel: 'intermediate'
+          })
+
+          const ragResult = await window.electronAPI.agenticRAG.query(originalPrompt, {
+            categories: state.wisdomConfig.categories.length > 0 ? state.wisdomConfig.categories : undefined,
+            searchTopK: state.wisdomConfig.searchTopK,
+            technicalLevel: 'intermediate'
+          })
+
+          console.log('📋 RAG Result:', {
+            success: ragResult.success,
+            hasData: !!ragResult.data,
+            sourcesCount: ragResult.data?.sources?.length || 0,
+            error: ragResult.error
+          })
+
+          if (!ragResult.success || !ragResult.data) {
+            console.warn('❌ RAG query failed, using original prompt:', ragResult.error || 'No data')
+            return { enhancedPrompt: originalPrompt }
+          }
+
+          // Build enhanced prompt with context
+          let enhancedPrompt = ''
+
+          // Add system prompt if available
+          if (systemPrompt) {
+            enhancedPrompt += `${systemPrompt}\n\n`
+          }
+
+          // Add RAG context
+          if (ragResult.data.sources && ragResult.data.sources.length > 0) {
+            enhancedPrompt += '=== CONTEXT FROM HYDRAULIC ENGINEERING KNOWLEDGE ===\n\n'
+
+            ragResult.data.sources.forEach((source: any, index: number) => {
+              enhancedPrompt += `[Source ${index + 1}]: ${source.title}\n`
+              enhancedPrompt += `${source.content}\n\n`
+            })
+
+            enhancedPrompt += '=== END CONTEXT ===\n\n'
+            enhancedPrompt += 'Based on the above hydraulic engineering context, please answer the following question:\n\n'
+          }
+
+          enhancedPrompt += originalPrompt
+
+          console.log('✅ Prompt enhanced with RAG context')
+          return { enhancedPrompt: enhancedPrompt, sources: ragResult.data.sources }
+
+        } catch (error) {
+          console.error('Failed to enhance prompt with RAG:', error)
+          return { enhancedPrompt: originalPrompt }
         }
       }
     }),
