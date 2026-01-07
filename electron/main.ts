@@ -391,9 +391,8 @@ function createWindow(): void {
     appLogger.info('Window ready to show')
     mainWindow.show()
 
-    if (isDev) {
-      mainWindow.webContents.openDevTools()
-    }
+    // FORCE ENABLE DEVTOOLS FOR DEBUGGING
+    mainWindow.webContents.openDevTools()
   })
 
   // Listen for window state changes
