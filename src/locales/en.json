@@ -9,7 +9,11 @@
     "close": "Close",
     "loading": "Loading...",
     "error": "Error",
-    "success": "Success"
+    "success": "Success",
+    "next": "Next",
+    "previous": "Previous",
+    "finish": "Finish",
+    "skipOnboarding": "Skip Tutorial"
   },
   "sidebar": {
     "chat": "Chat",
@@ -165,5 +169,27 @@
     "comingSoon": "RAG System Coming Soon",
     "comingSoonDesc": "Upload and manage your documents for AI-powered search and retrieval.",
     "uploadDocuments": "Upload Documents"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Welcome to Boorie!",
+      "desc": "Boorie is your local and cloud AI client designed to maximize your productivity, especially in hydraulic engineering."
+    },
+    "ai": {
+      "setup": "AI Setup",
+      "setupDesc": "To get started, we recommend using local models for better privacy and speed. Install Ollama for a full experience!"
+    },
+    "rag": {
+      "title": "Knowledge Base (RAG)",
+      "desc": "Upload your technical documents and regulations. The AI will be able to consult this information to give you precise and grounded answers."
+    },
+    "projects": {
+      "title": "Project Management",
+      "desc": "Organize your calculations, networks, and documents by project. All centralized for your convenience."
+    },
+    "calculator": {
+      "title": "Engineering Tools",
+      "desc": "Access integrated hydraulic calculators and network analysis with WNTR directly."
+    }
   }
 }

@@ -39,13 +39,20 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.0.0
+### 🚀 Última Versión - v1.3.2
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.0.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.0.0/Boorie-1.0.0-arm64.dmg) | ~137 MB |
-| 🪟 **Windows** | x64 | [Boorie Setup 1.0.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.0.0/Boorie%20Setup%201.0.0.exe) | ~105 MB |
-| 🐧 **Linux** | x64 | [Próximamente](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.0.0) | ~Por determinar |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.3.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.2/Boorie-1.3.2-arm64.dmg) | ~227 MB |
+| 🪟 **Windows** | x64 | [Boorie.Setup.1.3.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.2/Boorie.Setup.1.3.2.exe) | ~170 MB |
+| 🐧 **Linux** | x64 | [Próximamente](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.3.2) | ~Por determinar |
+
+### 📝 Novedades en v1.3.2
+- **Experiencia de Inicio**: Añadida guía de bienvenida profesional para nuevos usuarios.
+- **Mejoras UI**: Tema claro por defecto y eliminación de créditos en la barra lateral.
+- **Mejoras de Desarrollo**: Herramientas de desarrollador desactivadas por defecto en producción.
+- **Mejora RAG**: Procesamiento robusto de archivos PDF/DOCX.
+- **Vectorización de Conversaciones**: Los mensajes se vectorizan automáticamente en Milvus.
 
 ### Instrucciones de Instalación
 

@@ -9,7 +9,11 @@
     "close": "Tancar",
     "loading": "Carregant...",
     "error": "Error",
-    "success": "Èxit"
+    "success": "Èxit",
+    "next": "Següent",
+    "previous": "Anterior",
+    "finish": "Finalitzar",
+    "skipOnboarding": "Ometre tutorial"
   },
   "sidebar": {
     "chat": "Xat",
@@ -19,7 +23,7 @@
     "todo": "Tasques",
     "settings": "Configuració",
     "expandSidebar": "Expandir barra lateral",
-    "collapseSidebar": "Contraure barra lateral",
+    "collapseSidebar": "Contraer barra lateral",
     "recentChats": "Xats Recents",
     "noConversations": "Encara no hi ha converses",
     "startNewChat": "Inicia un nou xat per començar"
@@ -64,7 +68,7 @@
     "localModels": "Models Locals (Ollama)",
     "apiProviders": "Proveïdors d'API",
     "ollamaConfiguration": "Configuració d'Ollama",
-    "ollamaDesc": "Gestiona els teus models d'IA locals amb Ollama",
+    "ollamaDesc": "Gestiona els teus models d'IA locals with Ollama",
     "refresh": "Actualitzar",
     "installModel": "Instal·lar Model",
     "installing": "Instal·lant...",
@@ -96,7 +100,7 @@
     "deleteModelDesc": "Aquesta acció no es pot desfer",
     "deleteModelConfirm": "Estàs segur que vols eliminar",
     "deleteModelWarning": "Això eliminarà permanentment el model del teu sistema. Sempre pots reinstal·lar-lo més tard si és necessari.",
-    "addCustomModel": "Afegir Model Personalitzat",
+    "addCustomModel": "Afegir Model Personalitat",
     "modelId": "ID del Model",
     "description": "Descripció",
     "optional": "Opcional",
@@ -165,5 +169,27 @@
     "comingSoon": "Sistema RAG Properament",
     "comingSoonDesc": "Puja i gestiona els teus documents per a cerca i recuperació amb IA.",
     "uploadDocuments": "Pujar Documents"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Benvingut a Boorie!",
+      "desc": "Boorie és el teu client d'IA local i al núvol dissenyat per maximitzar la teva productivitat, especialment en enginyeria hidràulica."
+    },
+    "ai": {
+      "setup": "Configuració d'IA",
+      "setupDesc": "Per començar, et recomanem utilitzar models locals per a més privadesa i velocitat. Instal·la Ollama per a una experiència completa!"
+    },
+    "rag": {
+      "title": "Base de Coneixements (RAG)",
+      "desc": "Puja els teus documents tècnics i normatives. La IA podrà consultar aquesta informació per donar-te respostes precises i fonamentades."
+    },
+    "projects": {
+      "title": "Gestió de Projectes",
+      "desc": "Organitza els teus càlculs, xarxes i documents per projecte. Tot centralitzat per a la teva comoditat."
+    },
+    "calculator": {
+      "title": "Eines d'Enginyeria",
+      "desc": "Accedeix a calculadores hidràuliques integrades i anàlisi de xarxes amb WNTR de forma directa."
+    }
   }
 }

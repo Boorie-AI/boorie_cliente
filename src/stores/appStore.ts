@@ -8,6 +8,9 @@ export interface AppState {
   currentView: 'chat' | 'settings' | 'rag' | 'projects' | 'calculator' | 'wntr'
   theme: 'dark' | 'light'
   sidebarCollapsed: boolean
+  showOnboarding: boolean
+  onboardingStep: number
+  settingsTab: string
 
   // AI Configuration
   activeAIProvider: 'ollama' | 'openai' | 'anthropic' | 'google'
@@ -28,6 +31,10 @@ export interface AppState {
   setActiveModel: (model: string) => void
   setAuthenticationStatus: (provider: 'microsoft' | 'google', status: boolean) => void
   loadSettingsFromDatabase: () => Promise<void>
+  setShowOnboarding: (show: boolean) => void
+  setOnboardingStep: (step: number) => void
+  completeOnboarding: () => Promise<void>
+  setSettingsTab: (tab: string) => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -36,8 +43,11 @@ export const useAppStore = create<AppState>()(
       (set, get) => ({
         isInitialized: false,
         currentView: 'chat',
-        theme: 'dark',
+        theme: 'light',
         sidebarCollapsed: false,
+        showOnboarding: false,
+        onboardingStep: 0,
+        settingsTab: 'general',
         activeAIProvider: 'ollama',
         activeModel: 'llama2',
         isAuthenticated: {
@@ -67,6 +77,15 @@ export const useAppStore = create<AppState>()(
 
             // Load conversations
             await useChatStore.getState().loadConversations()
+
+            // Check if this is the first launch
+            const onboarded = await databaseService.getSetting('onboarding_completed')
+            if (onboarded !== 'true') {
+              set({
+                showOnboarding: true,
+                currentView: 'settings'
+              })
+            }
 
             set({ isInitialized: true })
           } catch (error) {
@@ -155,6 +174,23 @@ export const useAppStore = create<AppState>()(
             status.toString(),
             'authentication'
           )
+        },
+
+        setShowOnboarding: (show) => {
+          set({ showOnboarding: show })
+        },
+
+        setOnboardingStep: (step) => {
+          set({ onboardingStep: step })
+        },
+
+        completeOnboarding: async () => {
+          set({ showOnboarding: false })
+          await databaseService.setSetting('onboarding_completed', 'true', 'general')
+        },
+
+        setSettingsTab: (tab) => {
+          set({ settingsTab: tab })
         },
       }),
       {

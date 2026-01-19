@@ -16,7 +16,7 @@
 
 # Related configuration of etcd, used to store Milvus metadata & service discovery.
 etcd:
-  endpoints: localhost:2381
+  endpoints: localhost:2379
   rootPath: by-dev # The root path where data is stored in etcd
   metaSubPath: meta # metaRootPath = rootPath + '/' + metaSubPath
   kvSubPath: kv # kvRootPath = rootPath + '/' + kvSubPath
@@ -174,7 +174,7 @@ rootCoord:
   # can specify ip for example
   # ip: 127.0.0.1
   ip: 127.0.0.1 # if not specify address, will use the first unicastable address as local ip
-  port: 53101
+  port: 53100
   grpc:
     serverMaxSendSize: 536870912
     serverMaxRecvSize: 268435456
@@ -234,8 +234,8 @@ proxy:
   # can specify ip for example
   # ip: 127.0.0.1
   ip: 127.0.0.1 # if not specify address, will use the first unicastable address as local ip
-  port: 19532
-  internalPort: 19533
+  port: 19530
+  internalPort: 19529
   grpc:
     serverMaxSendSize: 268435456
     serverMaxRecvSize: 67108864
@@ -264,7 +264,7 @@ queryCoord:
   # can specify ip for example
   # ip: 127.0.0.1
   ip: 127.0.0.1 # if not specify address, will use the first unicastable address as local ip
-  port: 19534
+  port: 19531
   grpc:
     serverMaxSendSize: 536870912
     serverMaxRecvSize: 268435456
@@ -346,7 +346,7 @@ queryNode:
   # can specify ip for example
   # ip: 127.0.0.1
   ip: 127.0.0.1 # if not specify address, will use the first unicastable address as local ip
-  port: 21125
+  port: 21123
   grpc:
     serverMaxSendSize: 536870912
     serverMaxRecvSize: 268435456
@@ -370,7 +370,7 @@ indexNode:
   # can specify ip for example
   # ip: 127.0.0.1
   ip: 127.0.0.1 # if not specify address, will use the first unicastable address as local ip
-  port: 21122
+  port: 21121
   grpc:
     serverMaxSendSize: 536870912
     serverMaxRecvSize: 268435456
@@ -425,7 +425,7 @@ dataCoord:
   # can specify ip for example
   # ip: 127.0.0.1
   ip: 127.0.0.1 # if not specify address, will use the first unicastable address as local ip
-  port: 13334
+  port: 13333
   grpc:
     serverMaxSendSize: 536870912
     serverMaxRecvSize: 268435456
@@ -451,7 +451,7 @@ dataNode:
   # can specify ip for example
   # ip: 127.0.0.1
   ip: 127.0.0.1 # if not specify address, will use the first unicastable address as local ip
-  port: 21126
+  port: 21124
   grpc:
     serverMaxSendSize: 536870912
     serverMaxRecvSize: 268435456

@@ -5,8 +5,10 @@ import { GeneralTab, AccountsTab } from './tabs'
 import { MilvusInspector } from './MilvusInspector'
 import { cn } from '@/utils/cn'
 import * as Tabs from '@radix-ui/react-tabs'
+import { useAppStore } from '@/stores/appStore'
 
 export function SettingsPanel() {
+  const { settingsTab, setSettingsTab } = useAppStore()
   const { t } = useTranslation()
 
   return (
@@ -20,7 +22,11 @@ export function SettingsPanel() {
           </div>
 
           {/* Tabs Container */}
-          <Tabs.Root defaultValue="general" className="flex-1 flex flex-col overflow-hidden min-h-0">
+          <Tabs.Root
+            value={settingsTab}
+            onValueChange={setSettingsTab}
+            className="flex-1 flex flex-col overflow-hidden min-h-0"
+          >
             {/* Tab List */}
             <Tabs.List className="flex space-x-1 bg-muted p-1 rounded-lg w-fit mb-6">
               <Tabs.Trigger

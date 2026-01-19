@@ -278,27 +278,6 @@ export function Sidebar() {
           </div>
         )}
 
-        {/* Footer / Credits */}
-        {!sidebarCollapsed && (
-          <div className="mt-auto p-4 border-t border-border/40 bg-accent/5">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 block mb-2">
-                Created By
-              </span>
-              <div className="space-y-1">
-                <p className="text-[11px] font-medium text-muted-foreground/80 hover:text-foreground transition-colors cursor-default">
-                  Phd Luis Mora
-                </p>
-                <p className="text-[11px] font-medium text-muted-foreground/80 hover:text-foreground transition-colors cursor-default">
-                  Javier Molina
-                </p>
-                <p className="text-[11px] font-medium text-muted-foreground/80 hover:text-foreground transition-colors cursor-default">
-                  Cristina Cruz
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </Tooltip.Provider>
   )

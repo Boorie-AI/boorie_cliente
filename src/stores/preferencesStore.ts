@@ -24,7 +24,7 @@ const defaultPreferences: UserPreferences = {
   showTypingIndicators: true,
   defaultModelType: 'local',
   defaultModelId: '',
-  theme: 'dark',
+  theme: 'light',
   language: 'es'
 }
 

@@ -9,7 +9,11 @@
     "close": "Cerrar",
     "loading": "Cargando...",
     "error": "Error",
-    "success": "Éxito"
+    "success": "Éxito",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "finish": "Finalizar",
+    "skipOnboarding": "Omitir tutorial"
   },
   "sidebar": {
     "chat": "Chat",
@@ -165,5 +169,27 @@
     "comingSoon": "Sistema RAG Próximamente",
     "comingSoonDesc": "Sube y gestiona tus documentos para búsqueda y recuperación con IA.",
     "uploadDocuments": "Subir Documentos"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "¡Bienvenido a Boorie!",
+      "desc": "Boorie es tu cliente de IA local y en la nube diseñado para maximizar tu productividad, especialmente en ingeniería hidráulica."
+    },
+    "ai": {
+      "setup": "Configuración de IA",
+      "setupDesc": "Para empezar, te recomendamos usar modelos locales para mayor privacidad y velocidad. ¡Instala Ollama para una experiencia completa!"
+    },
+    "rag": {
+      "title": "Base de Conocimientos (RAG)",
+      "desc": "Sube tus documentos técnicos y normativas. La IA podrá consultar esta información para darte respuestas precisas y fundamentadas."
+    },
+    "projects": {
+      "title": "Gestión de Proyectos",
+      "desc": "Organiza tus cálculos, redes y documentos por proyecto. Todo centralizado para tu comodidad."
+    },
+    "calculator": {
+      "title": "Herramientas de Ingeniería",
+      "desc": "Accede a calculadoras hidráulicas integradas y análisis de redes con WNTR de forma directa."
+    }
   }
 }

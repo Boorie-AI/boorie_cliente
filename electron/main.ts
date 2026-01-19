@@ -410,7 +410,7 @@ function createWindow(): void {
     mainWindow.show()
 
     // FORCE ENABLE DEVTOOLS FOR DEBUGGING
-    mainWindow.webContents.openDevTools()
+    // mainWindow.webContents.openDevTools()
   })
 
   // Listen for window state changes
