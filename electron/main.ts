@@ -19,10 +19,13 @@ if (typeof global !== 'undefined' && !global.crypto) {
 // Configure Prisma environment BEFORE any imports
 try {
   const electronModule = require('electron');
-  console.log('Electron module loaded:', Object.keys(electronModule));
-  if (!electronModule.app || !electronModule.app.isPackaged) {
+  // Use multiple checks for packaged app detection
+  const appInstance = electronModule.app;
+  const isPackaged = appInstance ? appInstance.isPackaged : (!process.defaultApp && (process.resourcesPath && !process.resourcesPath.includes('node_modules')));
+
+  if (!isPackaged) {
     // Development mode - no special configuration needed
-    console.log('Running in development mode (or app is not packaged)');
+    console.log('Running in development mode');
   } else {
     // Production mode - configure Prisma paths
     // Production mode - configure Prisma paths
@@ -193,9 +196,10 @@ async function initializePrisma(): Promise<any> {
       // Try to load directly from the generated Prisma client
       // We look in multiple possible locations
       const possiblePaths = [
-        path.join(__dirname, '..', '..', 'node_modules', '.prisma', 'client', 'index.js'), // Dev: dist/electron/ -> root/node_modules
+        path.join(__dirname, '..', '..', 'node_modules', '.prisma', 'client', 'index.js'), // Dev
         path.join(__dirname, 'node_modules', '.prisma', 'client', 'index.js'), // Fallback
-        path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', '.prisma', 'client', 'index.js') // Packaged
+        path.join(process.resourcesPath, '.prisma', 'client', 'index.js'), // Packaged (extraResources)
+        path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', '.prisma', 'client', 'index.js') // Alternative packaged
       ]
 
       let loaded = false
@@ -235,11 +239,14 @@ async function initializePrisma(): Promise<any> {
       throw new Error(`Cannot load PrismaClient: ${(loadError as Error).message}`)
     }
 
-    // Use PostgreSQL database from environment
-    const databaseUrl = process.env.DATABASE_URL
+    // Initialize database path if not using a specific DATABASE_URL
+    const databasePath = initializeDatabasePath()
+    const databaseUrl = process.env.DATABASE_URL || `file:${databasePath}`
+
+    console.log(`Using database at: ${databasePath}`)
 
     if (!databaseUrl) {
-      throw new Error('DATABASE_URL environment variable is required')
+      throw new Error('DATABASE_URL or valid database path is required')
     }
 
     console.log(`Initializing Prisma with database: ${databaseUrl}`)

@@ -39,13 +39,13 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.3.1
+### 🚀 Latest Release - v1.3.2
 
 | Platform | Architecture | Download | Size |
 |----------|-------------|----------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.3.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.1/Boorie-1.3.1-arm64.dmg) | ~227 MB |
-| 🪟 **Windows** | x64 | [Boorie Setup 1.3.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.1/Boorie%20Setup%201.3.1.exe) | ~170 MB |
-| 🐧 **Linux** | x64 | [Coming Soon](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.3.1) | ~TBD |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.3.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.2/Boorie-1.3.2-arm64.dmg) | ~227 MB |
+| 🪟 **Windows** | x64 | [Boorie Setup 1.3.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.2/Boorie%20Setup%201.3.2.exe) | ~170 MB |
+| 🐧 **Linux** | x64 | [Coming Soon](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.3.2) | ~TBD |
 
 ### ✨ Credits
 Created and developed by:
@@ -53,11 +53,11 @@ Created and developed by:
 - **Javier Molina**
 - **Cristina Cruz**
 
-### 📝 What's New in v1.3.1
+### 📝 What's New in v1.3.2
+- **Stability**: Fixed production startup crash on macOS and Windows.
 - **UI Credits**: Added creator credits in the sidebar footer.
-- **RAG & Search Upgrade**: Robust file processing for PDFs/DOCX, memory-optimized synchronization (batch processing), and automatic truncation of oversized content to prevent crashes.
+- **RAG & Search Upgrade**: Robust file processing for PDFs/DOCX.
 - **Conversation Vectorization**: All chat messages are now automatically vectorized and stored in Milvus.
-- **Reliability**: Fixed startup crashes related to Milvus and embedding timeouts.
 
 
 ### Installation Instructions
