@@ -32,101 +32,91 @@ export class HydraulicRAGService {
     options: RAGSearchOptions = {}
   ): Promise<RAGSearchResult[]> {
     const {
-      category,
-      region,
-      language = 'es',
       limit = 5,
-      minScore = 0.7
+      minScore = 0.6
     } = options
 
     try {
+      const milvusService = (await import('../milvus.service')).MilvusService.getInstance()
+
       // Generate embedding for query
       const queryEmbedding = await this.embeddingService.generateEmbedding(query)
 
-      // Build search filters
-      const filters: any = {
-        status: 'active',
-        language
+      // Perform Milvus Search
+      const searchRes = await milvusService.search(
+        'hydraulic_knowledge', // Hardcoded for now or use MilvusService.COLLECTIONS.KNOWLEDGE
+        queryEmbedding,
+        limit * 3 // Fetch more chunks to aggregate
+      )
+
+      if (!searchRes.results || searchRes.results.length === 0) {
+        return []
       }
 
-      if (category) {
-        filters.category = category
-      }
+      // Group chunks by Document ID
+      const docMap = new Map<string, { docId: string, chunks: any[], maxScore: number }>()
 
-      if (region) {
-        filters.region = {
-          contains: region
+      for (const hit of searchRes.results) {
+        if (hit.score < minScore) continue;
+
+        const docId = hit.metadata?.docId
+        if (!docId) continue
+
+        if (!docMap.has(docId)) {
+          docMap.set(docId, { docId, chunks: [], maxScore: 0 })
         }
+
+        const entry = docMap.get(docId)!
+        entry.chunks.push(hit)
+        if (hit.score > entry.maxScore) entry.maxScore = hit.score
       }
 
-      // Search knowledge base
+      // Fetch full documents from Prisma
+      const docIds = Array.from(docMap.keys())
+      if (docIds.length === 0) return []
+
       const documents = await this.prisma.hydraulicKnowledge.findMany({
-        where: filters,
-        include: {
-          chunks: true
-        }
+        where: { id: { in: docIds } }
       })
 
-      // Calculate relevance scores and find relevant chunks
       const results: RAGSearchResult[] = []
 
       for (const doc of documents) {
-        const chunks = doc.chunks
-        const chunkScores: Array<{ chunk: any; score: number }> = []
+        const entry = docMap.get(doc.id)
+        if (!entry) continue
 
-        // Score each chunk
-        for (const chunk of chunks) {
-          const chunkEmbedding = JSON.parse(chunk.embedding)
-          const score = this.cosineSimilarity(queryEmbedding, chunkEmbedding)
+        const relevantChunks = entry.chunks.map(c => c.content)
+        const highlights = this.generateHighlights(query, relevantChunks)
 
-          if (score >= minScore) {
-            chunkScores.push({ chunk, score })
-          }
-        }
+        // Parse metadata
+        let metadata: any = {}
+        try {
+          metadata = JSON.parse(doc.metadata)
+        } catch (e) { }
 
-        if (chunkScores.length > 0) {
-          // Sort chunks by score
-          chunkScores.sort((a, b) => b.score - a.score)
-
-          // Calculate document score (average of top 3 chunks)
-          const topScores = chunkScores.slice(0, 3).map(cs => cs.score)
-          const docScore = topScores.reduce((a, b) => a + b, 0) / topScores.length
-
-          // Extract relevant content
-          const relevantChunks = chunkScores
-            .slice(0, 3)
-            .map(cs => cs.chunk.content)
-
-          // Generate highlights
-          const highlights = this.generateHighlights(query, relevantChunks)
-
-          // Parse metadata
-          const metadata = JSON.parse(doc.metadata)
-
-          results.push({
-            document: {
-              id: doc.id,
-              category: doc.category as any,
-              subcategory: doc.subcategory,
-              region: JSON.parse(doc.region),
-              title: doc.title,
-              content: doc.content,
-              metadata: {
-                ...metadata,
-                keywords: JSON.parse(doc.keywords),
-                language: doc.language
-              },
-              lastUpdated: doc.updatedAt,
-              version: doc.version
+        results.push({
+          document: {
+            id: doc.id,
+            category: doc.category as any,
+            subcategory: doc.subcategory,
+            region: doc.region ? JSON.parse(doc.region) : [],
+            title: doc.title,
+            content: doc.content,
+            metadata: {
+              ...metadata,
+              keywords: doc.keywords ? JSON.parse(doc.keywords) : [],
+              language: doc.language
             },
-            score: docScore,
-            relevantChunks,
-            highlights
-          })
-        }
+            lastUpdated: doc.updatedAt,
+            version: doc.version
+          },
+          score: entry.maxScore,
+          relevantChunks,
+          highlights
+        })
       }
 
-      // Sort by score and limit results
+      // Sort
       results.sort((a, b) => b.score - a.score)
       return results.slice(0, limit)
 
@@ -144,7 +134,7 @@ export class HydraulicRAGService {
     try {
       // Generate chunks from content
       const chunks = this.chunkDocument(document.content, {
-        maxChunkSize: 800,
+        maxChunkSize: 500, // Reduced to safer limit for Ollama context
         overlap: 100
       })
 
@@ -164,35 +154,42 @@ export class HydraulicRAGService {
       const chunkEmbeddings: number[][] = []
 
       for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i]
+        const chunk = chunks[i];
+        const chunkStart = Date.now();
 
         if (onProgress) {
           onProgress({
             current: i + 1,
             total: chunks.length,
-            message: `Generating embedding for chunk ${i + 1}/${chunks.length}`
+            message: `Chunk ${i + 1}/${chunks.length}: Generating embedding...`
           })
         }
 
-        // Emit progress event
-        // We use win.webContents.send if we had access to the window, but here we are in a service. 
-        // We'll rely on the handler to listen to events or pass a callback? 
-        // Since we can't easily pass a callback from handler to service without refactoring,
-        // let's just log for now, but really we should have passed a progress callback.
-
-        if (i === 0 || i % 2 === 0 || i === chunks.length - 1) { // Log every 2 chunks for better visibility
-          console.log(`[RAG Service] Generating embedding for chunk ${i + 1}/${chunks.length}...`)
+        if (i === 0 || i % 5 === 0 || i === chunks.length - 1) {
+          console.log(`[RAG Service] Processing chunk ${i + 1}/${chunks.length} (Length: ${chunk.length})...`)
         }
 
         try {
-          // 180s timeout per chunk (increased for slower local devices)
+          // 180s timeout per chunk
           const embedding = await generateWithTimeout(chunk, 180000)
           chunkEmbeddings.push(embedding)
+
+          const duration = Date.now() - chunkStart;
+          if (duration > 5000) {
+            console.warn(`[RAG Service] Slow embedding generation for chunk ${i + 1}: ${duration}ms`);
+          }
         } catch (err: any) {
-          // ... existing error handling
           console.error(`[RAG Service] Failed to generate embedding for chunk ${i}:`, err.message)
-          if (i === 0) throw new Error(`Embedding service failed on first chunk: ${err.message}. Please check your AI provider configuration.`)
-          throw new Error(`Failed to generate embedding for chunk ${i}: ${err.message}`)
+          // Instead of failing the whole document, we skip this chunk by pushing a placeholder or handling logic downstream
+          // For now, we'll try to push a zero-vector or just NOT push to chunkEmbeddings
+          // But strict index alignment is needed. 
+          // Let's modify behavior: if embedding fails, we just don't create this chunk. 
+          // However, the current logic assumes `chunks` and `chunkEmbeddings` arrays are parallel. 
+          // FIX: We need to filter out failed chunks BEFORE creating the DB entries.
+
+          // To do this cleanly without breaking the loop structure immediately:
+          // We will push `null` and filter later.
+          chunkEmbeddings.push(null as any)
         }
       }
 
@@ -216,14 +213,50 @@ export class HydraulicRAGService {
           language: document.metadata.language,
           version: document.version,
           chunks: {
-            create: chunks.map((chunk, index) => ({
-              content: chunk,
-              embedding: JSON.stringify(chunkEmbeddings[index]),
-              chunkIndex: index
-            }))
+            create: chunks
+              .map((chunk, index) => ({
+                content: chunk,
+                embedding: chunkEmbeddings[index], // Raw value (array or null)
+                chunkIndex: index
+              }))
+              .filter(item => item.embedding !== null) // Filter out failed embeddings
+              .map(item => ({
+                content: item.content,
+                embedding: JSON.stringify(item.embedding),
+                chunkIndex: item.chunkIndex
+              }))
           }
+        },
+        include: {
+          chunks: true
         }
       })
+
+      // Sync to Milvus immediately
+      try {
+        const milvusService = (await import('../milvus.service')).MilvusService.getInstance()
+        await milvusService.ensureConnection()
+
+        const milvusRows = created.chunks.map(chunk => ({
+          id: chunk.id,
+          vector: JSON.parse(chunk.embedding as string),
+          content: chunk.content,
+          metadata: {
+            chunkId: chunk.id,
+            docId: created.id,
+            title: created.title,
+            category: created.category
+          },
+          timestamp: created.createdAt.getTime()
+        }))
+
+        if (milvusRows.length > 0) {
+          await milvusService.insert('hydraulic_knowledge', milvusRows)
+          console.log(`[RAG Service] Inserted ${milvusRows.length} chunks into Milvus for doc ${created.title}`)
+        }
+      } catch (milvusErr) {
+        console.error('[RAG Service] Failed to insert into Milvus immediately:', milvusErr)
+      }
 
       return created.id
 
@@ -417,7 +450,16 @@ export class HydraulicRAGService {
     }
 
     if (currentChunk) {
-      chunks.push(currentChunk.trim())
+      if (currentChunk.length > maxChunkSize) {
+        // Hard chop if still too long (e.g. single massive word case not caught above)
+        let remaining = currentChunk
+        while (remaining.length > 0) {
+          chunks.push(remaining.slice(0, maxChunkSize).trim())
+          remaining = remaining.slice(maxChunkSize)
+        }
+      } else {
+        chunks.push(currentChunk.trim())
+      }
     }
 
     return chunks

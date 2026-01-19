@@ -30,27 +30,27 @@ export function ChatArea() {
         <div className="flex-1 flex items-center justify-center max-w-4xl mx-auto px-4">
           <div className="text-center space-y-6 max-w-md mx-auto px-6">
             <div className="relative">
-              <img 
-                src={boorieIconLight} 
-                alt="Boorie Logo" 
+              <img
+                src={boorieIconLight}
+                alt="Boorie Logo"
                 className="w-32 h-auto mx-auto mb-6 drop-shadow-lg"
               />
             </div>
-            
+
             <div className="space-y-3">
               <h2 className="text-2xl font-bold text-foreground">Welcome to Boorie</h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
                 Your intelligent AI assistant is ready to help. Start a conversation to begin exploring the possibilities.
               </p>
             </div>
-            
+
             <div className="space-y-4 flex flex-col items-center">
-              <ProjectSelector 
+              <ProjectSelector
                 selectedProjectId={selectedProjectId}
                 onProjectSelect={setSelectedProjectId}
                 className="justify-center"
               />
-              
+
               <button
                 onClick={() => useChatStore.getState().createNewConversation(selectedProjectId)}
                 className={cn(
@@ -62,9 +62,9 @@ export function ChatArea() {
                 Start New Chat
               </button>
             </div>
-            
+
             <div className="text-sm text-muted-foreground/70">
-              {selectedProjectId ? 
+              {selectedProjectId ?
                 "This conversation will be linked to the selected project" :
                 "Select a project to link conversations or start without one"
               }
@@ -78,17 +78,17 @@ export function ChatArea() {
   return (
     <div className="h-full flex bg-background">
       {/* Main chat area - centered with max width */}
-      <div className="flex-1 flex flex-col min-h-0 max-w-4xl mx-auto">
+      <div className="flex-1 flex flex-col min-h-0 max-w-7xl mx-auto">
         {/* Header with conversation info and model selector */}
         <div className="flex-shrink-0 border-b border-border/50 bg-card z-10">
           <ChatHeader conversation={activeConversation} />
         </div>
-        
+
         {/* Messages area with proper scrolling */}
         <div className="flex-1 overflow-y-auto min-h-0">
-          <div className="p-4 max-w-3xl mx-auto">
-            <MessageList 
-              messages={activeConversation.messages} 
+          <div className="p-4 max-w-5xl mx-auto">
+            <MessageList
+              messages={activeConversation.messages}
               isLoading={isLoading}
               streamingMessage={streamingMessage}
             />
@@ -98,16 +98,16 @@ export function ChatArea() {
 
         {/* Input area */}
         <div className="flex-shrink-0 border-t border-border/50 bg-card/30">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-5xl mx-auto">
             <MessageInput />
           </div>
         </div>
       </div>
-      
+
       {/* Project conversations list - fixed sidebar */}
       <div className="flex-shrink-0">
-        <ProjectConversationsList 
-          projectId={activeConversation.projectId} 
+        <ProjectConversationsList
+          projectId={activeConversation.projectId}
           currentConversationId={activeConversation.id}
         />
       </div>

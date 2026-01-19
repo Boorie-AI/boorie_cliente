@@ -238,19 +238,41 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
   // Delete document
   ipcMain.handle('wisdom:delete', async (event, documentId: string) => {
     try {
-      // Delete chunks first
+      // Delete from Milvus first
+      try {
+        const milvusService = (await import('../../backend/services/milvus.service')).MilvusService.getInstance()
+        // We need to find chunks to get their IDs or delete by expression if supported
+        // For now, simpler approach: get chunks, then delete from Milvus by ID
+        const chunks = await prismaClient.knowledgeChunk.findMany({
+          where: { knowledgeId: documentId },
+          select: { id: true }
+        })
+
+        if (chunks.length > 0) {
+          const chunkIds = chunks.map(c => c.id)
+          await milvusService.delete(
+            'hydraulic_knowledge', // Use constant in real code
+            chunkIds
+          )
+          console.log(`[Document Handler] Deleted ${chunkIds.length} chunks from Milvus`)
+        }
+      } catch (milvusError) {
+        console.error('[Document Handler] Failed to delete from Milvus (continuing with DB delete):', milvusError)
+      }
+
+      // Delete chunks from DB
       await prismaClient.knowledgeChunk.deleteMany({
         where: { knowledgeId: documentId }
       })
 
-      // Delete document
+      // Delete document from DB
       await prismaClient.hydraulicKnowledge.delete({
         where: { id: documentId }
       })
 
       return {
         success: true,
-        message: 'Document deleted successfully'
+        message: 'Document deleted successfully from Database and Vector Store'
       }
     } catch (error: any) {
       console.error('Document delete error:', error)
@@ -963,14 +985,30 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
           let fileContent: string
 
           // Handle different file types
+          // Handle different file types
           if (fileExtension === '.pdf') {
             try {
               const pdfBuffer = await fs.readFile(filePath)
-              // TODO: Implement proper PDF text extraction
-              fileContent = `PDF Document: ${fileName}\nContent extraction requires PDF processing library.`
-            } catch (error) {
+              const pdfParse = require('pdf-parse')
+              const data = await pdfParse(pdfBuffer)
+              fileContent = data.text
+
+              if (!fileContent || fileContent.trim().length === 0) {
+                console.warn(`[Bulk Upload] Warning: Empty content extracted from PDF ${fileName}`)
+                fileContent = `PDF Document: ${fileName}\n(Empty content extracted)`
+              }
+            } catch (error: any) {
               console.warn(`Could not process PDF ${fileName}:`, error)
-              fileContent = `PDF Document: ${fileName}\nUnable to extract text content.`
+              fileContent = `PDF Document: ${fileName}\nError extracting content: ${error.message}`
+            }
+          } else if (fileExtension === '.docx') {
+            try {
+              const mammoth = require('mammoth')
+              const result = await mammoth.extractRawText({ path: filePath })
+              fileContent = result.value
+            } catch (error: any) {
+              console.warn(`Could not process DOCX ${fileName}:`, error)
+              fileContent = `DOCX Document: ${fileName}\nError extracting content: ${error.message}`
             }
           } else {
             fileContent = await fs.readFile(filePath, 'utf-8')

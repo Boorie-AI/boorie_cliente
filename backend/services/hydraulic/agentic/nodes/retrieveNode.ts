@@ -22,6 +22,10 @@ export class RetrieveNode {
     this.config = config
   }
 
+  public setConfig(config: RetrievalConfig) {
+    this.config = config
+  }
+
   async execute(state: AgenticRAGState, stateManager: StateManager): Promise<RetrievalResult> {
     const startTime = Date.now()
 
@@ -90,15 +94,32 @@ export class RetrieveNode {
       // Generate embedding
       // const queryEmbedding = await this.embeddingService.generateEmbedding(query) // Not used directly here, handled inside hybridSearch
 
+      console.log(`[RetrieveNode] Executing hybrid search for query: "${query}" with config:`, {
+        topK: this.config.topK * 2,
+        minScore: this.config.minScore,
+        category: undefined,
+        region: this.config.regions?.[0],
+        language: state.queryLanguage
+      })
+
       // Attempt 1: Strict search with explicit filters
       let searchResults = await this.vectorService.hybridSearch(query, {
         topK: this.config.topK * 2, // Get more for filtering
         minSemanticScore: this.config.minScore,
-        category: state.engineeringDomain === 'general' ? undefined : state.engineeringDomain,
+        // Disable strict category filtering based on inferred domain.
+        // Rely on semantic search and user-selected categories (post-filtering) instead.
+        // This fixes the issue where inferred domain 'hydraulics' doesn't match 'fuentes-hidrologia' in DB.
+        category: undefined,
         region: this.config.regions?.[0],
-        language: state.queryLanguage
+        // Disable strict language filtering as many documents may lack language metadata.
+        // Semantic search handles language matching implicitly.
+        language: undefined // state.queryLanguage
         // includeMetadata: this.config.includeMetadata
       })
+
+      console.log(`[RetrieveNode] Hybrid search returned ${searchResults.length} results before filtering. First 2 ID/Scores:`,
+        searchResults.slice(0, 2).map((r: any) => ({ id: r.id, score: r.score, category: r.metadata?.category }))
+      )
 
       // Attempt 2: Fallback - Relaxed search if no/few results found
       // This handles cases where the domain might be misclassified or documents are uncategorized
@@ -222,6 +243,7 @@ export class RetrieveNode {
         if (this.config.categories && this.config.categories.length > 0) {
           const docCategory = result.metadata?.category || result.category
           if (!this.config.categories.includes(docCategory)) {
+            console.log(`[RetrieveNode] Filtering out doc ${result.id} due to category mismatch: ${docCategory} not in [${this.config.categories}]`)
             return false
           }
         }
@@ -252,7 +274,7 @@ export class RetrieveNode {
         id: result.id,
         content: result.content,
         metadata: {
-          source: result.metadata?.documentTitle || result.metadata?.source || (result as any).source || (result as any).title || 'Unknown',
+          source: result.metadata?.title || result.metadata?.documentTitle || result.metadata?.source || (result as any).source || (result as any).title || 'Unknown',
           page: result.metadata?.page || (result as any).page,
           section: result.metadata?.section || (result as any).section,
           category: result.metadata?.category || (result as any).category,

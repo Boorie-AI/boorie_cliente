@@ -39,18 +39,19 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.2.0
+### 🚀 Latest Release - v1.3.0
 
 | Platform | Architecture | Download | Size |
 |----------|-------------|----------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.2.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.2.0/Boorie-1.2.0-arm64.dmg) | ~227 MB |
-| 🪟 **Windows** | x64 | [Boorie Setup 1.2.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.2.0/Boorie%20Setup%201.2.0.exe) | ~170 MB |
-| 🐧 **Linux** | x64 | [Coming Soon](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.2.0) | ~TBD |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.3.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.0/Boorie-1.3.0-arm64.dmg) | ~227 MB |
+| 🪟 **Windows** | x64 | [Boorie Setup 1.3.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.0/Boorie%20Setup%201.3.0.exe) | ~170 MB |
+| 🐧 **Linux** | x64 | [Coming Soon](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.3.0) | ~TBD |
 
-### 📝 What's New in v1.2.0
-- **Critical Fix**: Resolved startup crash on macOS/Windows caused by missing `dotenv` dependency.
-- **Improved Performance**: Optimized application startup and runtime performance.
-- **Dependency Updates**: Updated core dependencies for better stability and security.
+### 📝 What's New in v1.3.0
+- **RAG & Search Upgrade**: Robust file processing for PDFs/DOCX, memory-optimized synchronization (batch processing), and automatic truncation of oversized content to prevent crashes.
+- **Conversation Vectorization**: All chat messages are now automatically vectorized and stored in Milvus, enabling purely semantic search across conversation history.
+- **UI Improvements**: Widened chat interface for better readability of technical responses.
+- **Reliability**: Fixed startup crashes related to Milvus and embedding timeouts.
 
 
 ### Installation Instructions

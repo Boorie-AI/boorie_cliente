@@ -112,6 +112,22 @@ async function start() {
         process.env.VITE_PORT = port;
         process.env.ELECTRON_START_URL = `http://localhost:${port}`;
 
+        // Start Milvus Lite Server
+        log('Milvus', 'Starting Milvus Lite server...', colors.cyan);
+        const milvus = spawn('python3', ['scripts/start_milvus.py'], {
+            stdio: 'pipe',
+            shell: true
+        });
+
+        milvus.stdout.on('data', (data) => {
+            log('Milvus', data.toString().trim(), colors.cyan);
+        });
+
+        milvus.stderr.on('data', (data) => {
+            // Milvus often logs to stderr for info
+            log('Milvus', data.toString().trim(), colors.cyan);
+        });
+
         log('Vite', 'Starting frontend server...');
 
         // Start Vite with specific port and strict mode preventing auto-switching

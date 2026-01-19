@@ -22,6 +22,7 @@ import { setupWNTRHandlers } from './wntr.handler'
 import { registerWisdomHandlers, registerVectorGraphHandlers } from './document.handler'
 import { NetworkRepositoryHandler } from './networkRepository.handler'
 import { registerAgenticRAGHandlers } from './agenticRAG.handler'
+import { registerMilvusHandlers } from './milvus.handler'
 import { createLogger } from '../../backend/utils/logger'
 
 const logger = createLogger('HandlersManager')
@@ -66,6 +67,14 @@ export class HandlersManager {
     } catch (error) {
       logger.error('Agentic RAG handlers registration failed', error as Error)
       logger.warn('Continuing without agentic RAG support')
+    }
+
+    // Setup Milvus handlers
+    try {
+      registerMilvusHandlers()
+      logger.info('Milvus handlers registered')
+    } catch (error) {
+      logger.warn('Milvus handlers registration failed', error as Error)
     }
 
     this.isInitialized = true

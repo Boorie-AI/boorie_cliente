@@ -4,14 +4,20 @@ import { HybridSearchService } from "./hydraulic/hybridSearch";
 import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
+import { MilvusService } from "./milvus.service";
+import { EmbeddingService } from "./embedding.service";
 
 export class LangChainRAGService {
     private prisma: PrismaClient;
     private searchService: HybridSearchService;
+    private milvusService: MilvusService;
+    private embeddingService: EmbeddingService;
 
     constructor(prisma: PrismaClient) {
         this.prisma = prisma;
         this.searchService = new HybridSearchService(prisma);
+        this.milvusService = MilvusService.getInstance();
+        this.embeddingService = new EmbeddingService(prisma);
     }
 
     async processMessage(userId: string, conversationId: string, query: string) {
@@ -83,12 +89,12 @@ export class LangChainRAGService {
         if (!conversationId) return;
 
         // Save User Message
-        await this.prisma.message.create({
+        const userMsg = await this.prisma.message.create({
             data: { conversationId, role: 'user', content: query }
         });
 
         // Save AI Response with metadata (sources)
-        await this.prisma.message.create({
+        const aiMsg = await this.prisma.message.create({
             data: {
                 conversationId,
                 role: 'assistant',
@@ -96,6 +102,28 @@ export class LangChainRAGService {
                 metadata: JSON.stringify({ sources: sources.map(s => s.id) })
             }
         });
+
+        // 7. Save to Milvus (Conversational Memory)
+        try {
+            // Generate embedding for the USER query (usually what we want to search against later)
+            const vector = await this.embeddingService.generateEmbedding(query);
+
+            await this.milvusService.insert(MilvusService.COLLECTIONS.CONVERSATIONS, [{
+                id: userMsg.id, // Use Prisma ID
+                vector: vector,
+                content: `Q: ${query}\nA: ${response}`, // Store Q&A pair context
+                metadata: {
+                    conversationId: conversationId,
+                    role: 'interaction',
+                    sourceIds: sources.map(s => s.id)
+                },
+                timestamp: userMsg.createdAt.getTime()
+            }]);
+
+            console.log(`[LangChainRAG] Saved interaction ${userMsg.id} to Milvus`);
+        } catch (e) {
+            console.error('[LangChainRAG] Failed to save conversation to Milvus', e);
+        }
     }
 
     // RLHF Endpoint to save feedback

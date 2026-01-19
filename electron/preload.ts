@@ -322,6 +322,15 @@ const electronAPI = {
     getIndexingStatus: () => ipcRenderer.invoke('agentic-rag-indexing-status'),
 
     validateQuery: (query: string) => ipcRenderer.invoke('agentic-rag-validate-query', query),
+  },
+
+  // Milvus inspector
+  milvus: {
+    listCollections: () => ipcRenderer.invoke('milvus:listCollections'),
+    getCollectionStatistics: (collectionName: string) => ipcRenderer.invoke('milvus:getCollectionStatistics', collectionName),
+    describeCollection: (collectionName: string) => ipcRenderer.invoke('milvus:describeCollection', collectionName),
+    inspect: (options: { collectionName: string, limit: number, offset: number, filter?: string }) =>
+      ipcRenderer.invoke('milvus:inspect', options),
   }
 }
 

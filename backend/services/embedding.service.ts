@@ -54,6 +54,14 @@ export class EmbeddingService {
     }
 
     async generateEmbedding(text: string): Promise<number[]> {
+        // Helper to wrap embed call with timeout
+        const embedWithTimeout = async (embeddings: any, text: string, timeoutMs: number = 30000) => {
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error(`Embedding generation timed out after ${timeoutMs}ms`)), timeoutMs)
+            );
+            return Promise.race([embeddings.embedQuery(text), timeoutPromise]) as Promise<number[]>;
+        };
+
         // 1. Try Active Provider if set
         if (this._activeProvider) {
             try {
@@ -63,32 +71,27 @@ export class EmbeddingService {
                 if (pid.includes('openai')) {
                     const apiKey = process.env.OPENAI_API_KEY;
                     if (!apiKey) {
-                        // If selected but no key, maybe we should fall through? 
-                        // But if user explicitly selected it, we should probably error or warn.
-                        // For default behavior, we'll try to fallback.
                         console.warn("[EmbeddingService] Active provider is OpenAI but no key found. Falling back to auto-discovery.");
-                        // Fall through to discovery
                     } else {
                         const embeddings = new OpenAIEmbeddings({
                             openAIApiKey: apiKey,
                             modelName: this._activeProvider.model
                         });
-                        return await embeddings.embedQuery(text);
+                        return await embedWithTimeout(embeddings, text);
                     }
                 }
 
                 // Ollama
                 else if (pid.includes('ollama')) {
                     const embeddings = new OllamaEmbeddings({
-                        baseUrl: "http://localhost:11434",
+                        baseUrl: "http://127.0.0.1:11434", // Force IPv4
                         model: this._activeProvider.model
                     });
-                    return await embeddings.embedQuery(text);
+                    return await embedWithTimeout(embeddings, text, 60000); // 60s for local model
                 }
             } catch (e) {
                 console.error(`[EmbeddingService] Error using active provider ${this._activeProvider.name}:`, e);
                 console.log("[EmbeddingService] Falling back to auto-discovery...");
-                // Fall through to discovery on error
             }
         }
 
@@ -109,9 +112,8 @@ export class EmbeddingService {
                     openAIApiKey: openaiProvider.apiKey || process.env.OPENAI_API_KEY,
                     modelName: "text-embedding-3-small"
                 });
-                const result = await embeddings.embedQuery(text);
+                const result = await embedWithTimeout(embeddings, text);
 
-                // Auto-set as active for future consistency
                 this._activeProvider = {
                     id: 'openai-db',
                     name: 'OpenAI (Database)',
@@ -138,10 +140,19 @@ export class EmbeddingService {
                 const config = ollamaProvider.config ? JSON.parse(ollamaProvider.config) : {};
                 const model = "nomic-embed-text";
                 const embeddings = new OllamaEmbeddings({
-                    baseUrl: config.baseUrl || "http://localhost:11434",
+                    baseUrl: config.baseUrl || "http://127.0.0.1:11434",
                     model: model
                 });
-                const result = await embeddings.embedQuery(text);
+
+                // Validate if Ollama is reachable first
+                try {
+                    return await embedWithTimeout(embeddings, text, 180000); // Increased to 3 mins for slower machines
+                } catch (ollamaErr: any) {
+                    if (ollamaErr.cause && (ollamaErr.cause.code === 'ECONNREFUSED' || ollamaErr.cause.code === 'ETIMEDOUT')) {
+                        throw new Error(`Ollama connection failed at ${config.baseUrl || "http://127.0.0.1:11434"}. Is Ollama running?`);
+                    }
+                    throw ollamaErr;
+                }
 
                 this._activeProvider = {
                     id: 'ollama-db',
@@ -149,7 +160,6 @@ export class EmbeddingService {
                     model: model,
                     dimension: 768
                 };
-                return result;
             } catch (e) {
                 console.error("Error generating Ollama embedding:", e);
             }
@@ -163,7 +173,7 @@ export class EmbeddingService {
                     openAIApiKey: process.env.OPENAI_API_KEY,
                     modelName: "text-embedding-3-small"
                 });
-                const result = await embeddings.embedQuery(text);
+                const result = await embedWithTimeout(embeddings, text);
 
                 this._activeProvider = {
                     id: 'openai-env',
@@ -181,10 +191,10 @@ export class EmbeddingService {
         try {
             console.log("[EmbeddingService] Attempting default local Ollama (nomic-embed-text)");
             const embeddings = new OllamaEmbeddings({
-                baseUrl: "http://localhost:11434",
+                baseUrl: "http://127.0.0.1:11434",
                 model: "nomic-embed-text"
             });
-            const result = await embeddings.embedQuery(text);
+            const result = await embedWithTimeout(embeddings, text, 180000);
 
             this._activeProvider = {
                 id: 'ollama-local',
@@ -193,8 +203,12 @@ export class EmbeddingService {
                 dimension: 768
             };
             return result;
-        } catch (e) {
-            // Silent fail here, will throw generic error below
+        } catch (e: any) {
+            if (e.cause && (e.cause.code === 'ECONNREFUSED' || e.cause.code === 'ETIMEDOUT')) {
+                console.warn("[EmbeddingService] Default local Ollama unreachable. Is 'ollama serve' running?");
+            } else {
+                console.warn("[EmbeddingService] Default local Ollama failed:", e.message);
+            }
         }
 
         throw new Error("No active embedding provider found. Please configure OpenAI or ensure Ollama is running with 'nomic-embed-text'.");

@@ -496,7 +496,7 @@ export class ChatHandler {
       where: { type: 'ollama', isActive: true }
     })
     const ollamaProvider = providers[0]
-    const baseUrl = ollamaProvider?.config ? JSON.parse(ollamaProvider.config).baseUrl : 'http://localhost:11434'
+    const baseUrl = ollamaProvider?.config ? JSON.parse(ollamaProvider.config).baseUrl : 'http://127.0.0.1:11434'
 
     // Convert messages to Ollama format
     const ollamaMessages = messages.map(msg => ({
@@ -557,9 +557,14 @@ export class ChatHandler {
         throw new Error('Request to Ollama timed out. The model may be too large or slow.')
       }
 
-      // Check if Ollama is running
-      if (error instanceof Error && (error.message.includes('fetch failed') || error.message.includes('ECONNREFUSED'))) {
-        throw new Error('Cannot connect to Ollama. Please ensure Ollama is installed and running (ollama serve).')
+      // Check if Ollama is running - check both FetchError cause and message content
+      if (error instanceof Error) {
+        const cause = (error as any).cause
+        if ((cause && (cause.code === 'ECONNREFUSED' || cause.code === 'ETIMEDOUT')) ||
+          error.message.includes('fetch failed') ||
+          error.message.includes('ECONNREFUSED')) {
+          throw new Error(`Cannot connect to Ollama at ${baseUrl}. Please ensure Ollama is installed and running (ollama serve).`)
+        }
       }
 
       throw error

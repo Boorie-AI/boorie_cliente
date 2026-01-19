@@ -8,8 +8,9 @@ export class ReformulateNode {
   private technicalTerms: Record<string, string[]>
 
   constructor() {
-    this.ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434'
-    this.model = process.env.OLLAMA_MODEL || 'nemotron-3-nano'
+    this.ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434'
+    // Force using the available model
+    this.model = 'llama3.2:3b'; // Was: process.env.OLLAMA_MODEL || 'nemotron-3-nano'
     this.technicalTerms = this.loadTechnicalTerms()
   }
 
@@ -82,7 +83,7 @@ export class ReformulateNode {
           top_p: 0.9,
           max_tokens: 500
         }
-      })
+      }, { timeout: 30000 })
 
       return this.parseReformulations(response.data.response)
     } catch (error) {

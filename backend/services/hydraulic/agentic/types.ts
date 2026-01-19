@@ -5,6 +5,7 @@ export interface Document {
   content: string
   metadata: {
     source: string
+    title?: string
     page?: number
     section?: string
     category?: string

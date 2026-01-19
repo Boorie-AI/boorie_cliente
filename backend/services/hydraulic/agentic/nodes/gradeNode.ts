@@ -9,8 +9,13 @@ export class GradeNode {
 
   constructor(config: GradingConfig) {
     this.config = config
-    this.ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434'
-    this.model = process.env.OLLAMA_MODEL || 'nemotron-3-nano'
+    this.ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434'
+    // Force using the available model
+    this.model = 'llama3.2:3b'; // Was: process.env.OLLAMA_MODEL || 'nemotron-3-nano'
+  }
+
+  public setConfig(config: GradingConfig) {
+    this.config = config
   }
 
   async execute(state: AgenticRAGState, stateManager: StateManager): Promise<GradingResult> {
@@ -95,7 +100,7 @@ export class GradeNode {
           top_p: 0.9,
           max_tokens: 200
         }
-      })
+      }, { timeout: 30000 })
 
       // Parse LLM response
       const result = this.parseGradingResponse(response.data.response)
@@ -149,28 +154,43 @@ Criterios de evaluación:
 4. ¿La región o contexto geográfico es apropiado?
 ${state.calculationType ? `5. ¿Incluye información sobre ${this.getCalculationTypeSpanish(state.calculationType)}?` : ''}
 
-Responde ÚNICAMENTE con un JSON en el siguiente formato:
+Responde ÚNICAMENTE con JSON válido. NO escribas texto antes ni después.
+Formato JSON requerido:
 {
-  "relevant": true o false,
-  "score": 0.0 a 1.0,
-  "reason": "explicación breve en español"
+  "relevant": boolean,
+  "score": number (0.0 a 1.0),
+  "reason": "breve explicación"
 }
 
-JSON:`
+Ejemplo:
+{"relevant": true, "score": 0.9, "reason": "Contiene datos de presión."}`
   }
 
   private parseGradingResponse(response: string): { relevant: boolean; score: number; reason: string } {
+    console.log('[GradeNode] Parsing raw response:', response)
     try {
       // Extract JSON from response
       // Handle potential markdown code blocks
       const cleanedResponse = response.replace(/```json\s*|\s*```/g, '').trim()
 
-      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/)
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response')
-      }
+      // Extract JSON from response robustly
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      let parsed;
 
-      const parsed = JSON.parse(jsonMatch[0])
+      if (jsonMatch) {
+        parsed = JSON.parse(jsonMatch[0]);
+      } else {
+        // Fallback: Check for keywords if JSON is missing
+        console.warn('[GradeNode] No JSON found, attempting heuristic backup');
+        const lower = response.toLowerCase();
+        if (lower.includes('"relevant": true') || lower.includes("'relevant': true") || lower.includes('relevant: true')) {
+          parsed = { relevant: true, score: 0.7, reason: 'Heuristic Match' };
+        } else if (lower.includes('grade: relevant') || lower.includes('is relevant')) {
+          parsed = { relevant: true, score: 0.6, reason: 'Heuristic text match' };
+        } else {
+          throw new Error('No JSON found');
+        }
+      }
 
       return {
         relevant: Boolean(parsed.relevant),

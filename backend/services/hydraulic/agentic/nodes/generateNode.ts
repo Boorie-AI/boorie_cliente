@@ -9,8 +9,13 @@ export class GenerateNode {
 
   constructor(config: GenerationConfig) {
     this.config = config
-    this.ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434'
-    this.model = process.env.OLLAMA_MODEL || 'nemotron-3-nano'
+    this.ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434'
+    // Force using the available model to prevent swapping
+    this.model = 'llama3.2:3b'; // Was: process.env.OLLAMA_MODEL || 'nemotron-3-nano'
+  }
+
+  public setConfig(config: GenerationConfig) {
+    this.config = config
   }
 
   async execute(state: AgenticRAGState, stateManager: StateManager): Promise<GenerationResult> {
@@ -48,7 +53,7 @@ export class GenerateNode {
             max_tokens: this.config.maxTokens,
             repeat_penalty: 1.1
           }
-        })
+        }, { timeout: 60000 })
         generation = response.data.response
       }
 
