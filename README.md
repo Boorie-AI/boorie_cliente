@@ -44,7 +44,7 @@
 | Platform | Architecture | Download | Size |
 |----------|-------------|----------|------|
 | 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.3.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.2/Boorie-1.3.2-arm64.dmg) | ~227 MB |
-| 🪟 **Windows** | x64 | [Boorie Setup 1.3.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.2/Boorie%20Setup%201.3.2.exe) | ~170 MB |
+| 🪟 **Windows** | x64 | [Boorie.Setup.1.3.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.2/Boorie.Setup.1.3.2.exe) | ~170 MB |
 | 🐧 **Linux** | x64 | [Coming Soon](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.3.2) | ~TBD |
 
 ### ✨ Credits
