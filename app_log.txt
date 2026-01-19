@@ -1,0 +1,535 @@
+
+> boorie@1.3.0 dev
+> node scripts/dev-runner.js
+
+[36m[System][0m Checking for available ports...
+[32m[System][0m Using default port: 3000
+[36m[Milvus][0m Starting Milvus Lite server...
+[36m[Vite][0m Starting frontend server...
+[36m[System][0m Waiting for frontend to be ready at http://localhost:3000...
+[36m[Milvus][0m Starting Milvus Lite server in /Users/islacreativa/repositorio/boorie_cliente/data...
+[31m[Vite][0m [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+[32m[Vite][0m VITE v5.4.21  ready in 130 ms
+[32m[Vite][0m ➜  Local:   http://localhost:3000/
+[32m[Vite][0m ➜  Network: use --host to expose
+[32m[System][0m Frontend is ready!
+[36m[Electron][0m Building and starting Electron...
+
+> boorie@1.3.0 build:electron-ts
+> tsc -p tsconfig.electron.json && node scripts/copy-assets.js
+
+Copying assets to dist...
+Copied backend/services/hydraulic/hydraulicCalculator.py -> /Users/islacreativa/repositorio/boorie_cliente/dist/backend/services/hydraulic/hydraulicCalculator.py
+Copied backend/services/hydraulic/wntrService.py -> /Users/islacreativa/repositorio/boorie_cliente/dist/backend/services/hydraulic/wntrService.py
+Copied backend/services/hydraulic/wntr_analysis_service.py -> /Users/islacreativa/repositorio/boorie_cliente/dist/backend/services/hydraulic/wntr_analysis_service.py
+Copied backend/services/hydraulic/wntr_simulation_service.py -> /Users/islacreativa/repositorio/boorie_cliente/dist/backend/services/hydraulic/wntr_simulation_service.py
+Assets copied successfully.
+[36m[Electron][0m Starting electron from: /Users/islacreativa/repositorio/boorie_cliente/node_modules/.bin/electron
+[31m[Vite][0m Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[dotenv@17.2.3] injecting env (13) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+Global crypto polyfill applied successfully
+Electron module loaded: [
+  'nativeImage',       'shell',
+  'app',               'autoUpdater',
+  'BaseWindow',        'BrowserView',
+  'BrowserWindow',     'clipboard',
+  'contentTracing',    'crashReporter',
+  'desktopCapturer',   'dialog',
+  'globalShortcut',    'ipcMain',
+  'inAppPurchase',     'Menu',
+  'MenuItem',          'MessageChannelMain',
+  'nativeTheme',       'net',
+  'netLog',            'Notification',
+  'powerMonitor',      'powerSaveBlocker',
+  'pushNotifications', 'protocol',
+  'safeStorage',       'screen',
+  'session',           'ShareMenu',
+  'systemPreferences', 'TouchBar',
+  'Tray',              'utilityProcess',
+  'View',              'webContents',
+  'WebContentsView',   'webFrameMain',
+  'ImageView'
+]
+Running in development mode (or app is not packaged)
+Hardware acceleration enabled for WebGL support
+Loading Prisma client for development...
+ℹ️ [2026-01-19T15:31:02.426Z] [INFO] [DatabaseService] OS-level encryption available for secure token storage 
+ℹ️ [2026-01-19T15:31:02.429Z] [INFO] [DatabaseService] OAuth Window Manager initialized 
+ℹ️ [2026-01-19T15:31:02.430Z] [INFO] [DatabaseService] Microsoft Auth Service initialized 
+⚠️ [2026-01-19T15:31:02.430Z] [WARN] [DatabaseService] Microsoft Client ID not configured. Set MS_CLIENT_ID environment variable. 
+ℹ️ [2026-01-19T15:31:02.430Z] [INFO] [DatabaseService] Google Auth Service initialized 
+⚠️ [2026-01-19T15:31:02.430Z] [WARN] [DatabaseService] Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables. 
+ℹ️ [2026-01-19T15:31:02.430Z] [INFO] [DatabaseService] Token Refresh Service initialized 
+HydraulicCalculatorWrapper initialized with: {
+  pythonPath: '/Users/islacreativa/repositorio/boorie_cliente/venv-wntr/bin/python3',
+  scriptPath: '/Users/islacreativa/repositorio/boorie_cliente/dist/backend/services/hydraulic/hydraulicCalculator.py'
+}
+Using Python from PYTHON_PATH: /Users/islacreativa/repositorio/boorie_cliente/venv-wntr/bin/python3
+ℹ️ [2026-01-19T15:31:02.503Z] [INFO] [Application] Application starting { isPackaged: false, isDev: true }
+(node:51159) Warning: Accessing non-existent property 'PrismaClient' of module exports inside circular dependency
+(Use `Electron --trace-warnings ...` to show where the warning was created)
+✅ [2026-01-19T15:31:02.534Z] [SUCCESS] [DatabaseService] OAuth callback server started on localhost:8020 
+ℹ️ [2026-01-19T15:31:02.569Z] [INFO] [Application] Initializing application services 
+ℹ️ [2026-01-19T15:31:02.569Z] [INFO] [Application] Python environment check delegated to wntrWrapper 
+ℹ️ [2026-01-19T15:31:02.569Z] [INFO] [Application] Initializing database 
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+
+✔ Generated Prisma Client (v6.19.0) to ./node_modules/@prisma/client in 158ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Interested in query caching in just a few lines of code? Try Accelerate today! https://pris.ly/tip-3-accelerate
+
+Attempting to load PrismaClient from: /Users/islacreativa/repositorio/boorie_cliente/node_modules/.prisma/client/index.js
+PrismaClient loaded directly from: /Users/islacreativa/repositorio/boorie_cliente/node_modules/.prisma/client/index.js
+PrismaClient loaded successfully
+Initializing Prisma with database: file:./dev.db
+prisma:info Starting a sqlite pool with 29 connections.
+Prisma client connected successfully
+prisma:query SELECT 1 as test
+Prisma client test query successful
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": SQLite database "dev.db" at "file:./dev.db"
+
+The database is already in sync with the Prisma schema.
+
+Running generate... (Use --skip-generate to skip the generators)
+[2K[1A[2K[GRunning generate... - Prisma Client
+[2K[1A[2K[G✔ Generated Prisma Client (v6.19.0) to ./node_modules/@prisma/client in 108ms
+
+✅ [2026-01-19T15:31:05.155Z] [SUCCESS] [Application] Database initialized and connected successfully 
+ℹ️ [2026-01-19T15:31:05.155Z] [INFO] [Application] Initializing service container 
+ℹ️ [2026-01-19T15:31:05.155Z] [INFO] [ConversationService] Conversation service initialized 
+[MilvusService] Connecting to Milvus Server at 127.0.0.1:19530
+ℹ️ [2026-01-19T15:31:05.206Z] [INFO] [AIProviderService] AI Provider service initialized 
+✅ [2026-01-19T15:31:05.206Z] [SUCCESS] [Application] Service container initialized successfully 
+ℹ️ [2026-01-19T15:31:05.206Z] [INFO] [Application] Initializing services async 
+ℹ️ [2026-01-19T15:31:05.206Z] [INFO] [AIProviderService] Initializing default AI providers 
+ℹ️ [2026-01-19T15:31:05.206Z] [INFO] [HandlersManager] Initializing IPC handlers manager 
+ℹ️ [2026-01-19T15:31:05.206Z] [INFO] [ConversationHandler] Conversation IPC handlers registered 
+ℹ️ [2026-01-19T15:31:05.206Z] [INFO] [AIProviderHandler] AI Provider IPC handlers registered 
+ℹ️ [2026-01-19T15:31:05.206Z] [INFO] [DatabaseHandler] Database IPC handlers registered 
+✅ [2026-01-19T15:31:05.206Z] [SUCCESS] [ChatHandler] Chat IPC handlers registered successfully 
+ℹ️ [2026-01-19T15:31:05.206Z] [INFO] [ChatHandler] Chat handler initialized 
+ℹ️ [2026-01-19T15:31:05.206Z] [INFO] [DatabaseService] Microsoft Auth Service initialized 
+⚠️ [2026-01-19T15:31:05.206Z] [WARN] [DatabaseService] Microsoft Client ID not configured. Set MS_CLIENT_ID environment variable. 
+ℹ️ [2026-01-19T15:31:05.206Z] [INFO] [DatabaseService] Google Auth Service initialized 
+⚠️ [2026-01-19T15:31:05.206Z] [WARN] [DatabaseService] Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables. 
+ℹ️ [2026-01-19T15:31:05.206Z] [INFO] [DatabaseService] Microsoft Auth Service initialized 
+⚠️ [2026-01-19T15:31:05.206Z] [WARN] [DatabaseService] Microsoft Client ID not configured. Set MS_CLIENT_ID environment variable. 
+ℹ️ [2026-01-19T15:31:05.206Z] [INFO] [DatabaseService] Google Auth Service initialized 
+⚠️ [2026-01-19T15:31:05.206Z] [WARN] [DatabaseService] Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables. 
+ℹ️ [2026-01-19T15:31:05.206Z] [INFO] [DatabaseService] Token Refresh Service initialized 
+ℹ️ [2026-01-19T15:31:05.206Z] [INFO] [DatabaseService] Auth handler initialized 
+🐛 [2026-01-19T15:31:05.207Z] [DEBUG] [DatabaseService] Registering auth IPC handlers 
+✅ [2026-01-19T15:31:05.207Z] [SUCCESS] [DatabaseService] Auth IPC handlers registered 
+ℹ️ [2026-01-19T15:31:05.207Z] [INFO] [DatabaseService] Starting token refresh service 
+🐛 [2026-01-19T15:31:05.207Z] [DEBUG] [DatabaseService] Scheduling refresh for existing tokens 
+🐛 [2026-01-19T15:31:05.207Z] [DEBUG] [DatabaseService] Scheduling token refresh for microsoft 
+🐛 [2026-01-19T15:31:05.207Z] [DEBUG] [DatabaseService] Retrieving tokens securely { provider: 'microsoft', tokenType: 'access' }
+ℹ️ [2026-01-19T15:31:05.207Z] [INFO] [Application] Registering hydraulic IPC handlers 
+✅ [2026-01-19T15:31:05.207Z] [SUCCESS] [Application] Hydraulic handlers registered successfully 
+[Vector Graph Handler] Registering handlers...
+ℹ️ [2026-01-19T15:31:05.208Z] [INFO] [HandlersManager] Attempting to register agentic RAG handlers... 
+[AgenticRAG Handler] Starting registration...
+[AgenticRAG Handler] Registration completed successfully
+✅ [2026-01-19T15:31:05.208Z] [SUCCESS] [HandlersManager] Agentic RAG handlers registered successfully 
+[Milvus Handler] Registering handlers...
+ℹ️ [2026-01-19T15:31:05.208Z] [INFO] [HandlersManager] Milvus handlers registered 
+✅ [2026-01-19T15:31:05.208Z] [SUCCESS] [HandlersManager] IPC handlers manager initialized successfully 
+ℹ️ [2026-01-19T15:31:05.208Z] [INFO] [Application] Setting up basic IPC handlers 
+✅ [2026-01-19T15:31:05.208Z] [SUCCESS] [Application] Basic IPC handlers registered 
+✅ [2026-01-19T15:31:05.208Z] [SUCCESS] [Application] Application services initialized successfully 
+Loading development URL: http://localhost:3000
+Started loading web contents
+ℹ️ [2026-01-19T15:31:05.287Z] [INFO] [Application] Started loading web contents 
+✅ [2026-01-19T15:31:05.289Z] [SUCCESS] [Application] Main window created successfully 
+ℹ️ [2026-01-19T15:31:05.289Z] [INFO] [Application] AppUpdater initialized 
+✅ [2026-01-19T15:31:05.289Z] [SUCCESS] [Application] Application ready and running 
+prisma:query INSERT INTO `main`.`ai_providers` (`id`, `name`, `type`, `apiKey`, `isActive`, `isConnected`, `config`, `createdAt`, `updatedAt`) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT  (`name`) DO UPDATE SET `type` = ?, `config` = ?, `updatedAt` = ? WHERE (`main`.`ai_providers`.`name` = ? AND 1=1) RETURNING `id` AS `id`, `name` AS `name`, `type` AS `type`, `apiKey` AS `apiKey`, `isActive` AS `isActive`, `isConnected` AS `isConnected`, `lastTestResult` AS `lastTestResult`, `lastTestMessage` AS `lastTestMessage`, `config` AS `config`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+prisma:query SELECT `main`.`auth_tokens`.`id`, `main`.`auth_tokens`.`provider`, `main`.`auth_tokens`.`tokenType`, `main`.`auth_tokens`.`accessToken`, `main`.`auth_tokens`.`refreshToken`, `main`.`auth_tokens`.`expiresAt`, `main`.`auth_tokens`.`createdAt`, `main`.`auth_tokens`.`updatedAt` FROM `main`.`auth_tokens` WHERE ((`main`.`auth_tokens`.`provider` = ? AND `main`.`auth_tokens`.`tokenType` = ?) AND 1=1) LIMIT ? OFFSET ?
+🐛 [2026-01-19T15:31:05.309Z] [DEBUG] [AIProviderService] Ensured provider openai is active 
+ℹ️ [2026-01-19T15:31:05.309Z] [INFO] [DatabaseService] No tokens found for provider { provider: 'microsoft', tokenType: 'access' }
+⚠️ [2026-01-19T15:31:05.309Z] [WARN] [DatabaseService] No valid tokens found for microsoft 
+🐛 [2026-01-19T15:31:05.309Z] [DEBUG] [DatabaseService] No tokens to schedule for microsoft 
+🐛 [2026-01-19T15:31:05.309Z] [DEBUG] [DatabaseService] Scheduling token refresh for google 
+🐛 [2026-01-19T15:31:05.309Z] [DEBUG] [DatabaseService] Retrieving tokens securely { provider: 'google', tokenType: 'access' }
+prisma:query INSERT INTO `main`.`ai_providers` (`id`, `name`, `type`, `apiKey`, `isActive`, `isConnected`, `config`, `createdAt`, `updatedAt`) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT  (`name`) DO UPDATE SET `type` = ?, `config` = ?, `updatedAt` = ? WHERE (`main`.`ai_providers`.`name` = ? AND 1=1) RETURNING `id` AS `id`, `name` AS `name`, `type` AS `type`, `apiKey` AS `apiKey`, `isActive` AS `isActive`, `isConnected` AS `isConnected`, `lastTestResult` AS `lastTestResult`, `lastTestMessage` AS `lastTestMessage`, `config` AS `config`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+prisma:query SELECT `main`.`auth_tokens`.`id`, `main`.`auth_tokens`.`provider`, `main`.`auth_tokens`.`tokenType`, `main`.`auth_tokens`.`accessToken`, `main`.`auth_tokens`.`refreshToken`, `main`.`auth_tokens`.`expiresAt`, `main`.`auth_tokens`.`createdAt`, `main`.`auth_tokens`.`updatedAt` FROM `main`.`auth_tokens` WHERE ((`main`.`auth_tokens`.`provider` = ? AND `main`.`auth_tokens`.`tokenType` = ?) AND 1=1) LIMIT ? OFFSET ?
+🐛 [2026-01-19T15:31:05.312Z] [DEBUG] [AIProviderService] Ensured provider anthropic is active 
+ℹ️ [2026-01-19T15:31:05.313Z] [INFO] [DatabaseService] No tokens found for provider { provider: 'google', tokenType: 'access' }
+⚠️ [2026-01-19T15:31:05.313Z] [WARN] [DatabaseService] No valid tokens found for google 
+🐛 [2026-01-19T15:31:05.313Z] [DEBUG] [DatabaseService] No tokens to schedule for google 
+✅ [2026-01-19T15:31:05.313Z] [SUCCESS] [DatabaseService] Token refresh service started successfully 
+[MilvusService] Connected successfully
+prisma:query INSERT INTO `main`.`ai_providers` (`id`, `name`, `type`, `apiKey`, `isActive`, `isConnected`, `config`, `createdAt`, `updatedAt`) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT  (`name`) DO UPDATE SET `type` = ?, `config` = ?, `updatedAt` = ? WHERE (`main`.`ai_providers`.`name` = ? AND 1=1) RETURNING `id` AS `id`, `name` AS `name`, `type` AS `type`, `apiKey` AS `apiKey`, `isActive` AS `isActive`, `isConnected` AS `isConnected`, `lastTestResult` AS `lastTestResult`, `lastTestMessage` AS `lastTestMessage`, `config` AS `config`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+🐛 [2026-01-19T15:31:05.318Z] [DEBUG] [AIProviderService] Ensured provider ollama is active 
+prisma:query INSERT INTO `main`.`ai_providers` (`id`, `name`, `type`, `apiKey`, `isActive`, `isConnected`, `config`, `createdAt`, `updatedAt`) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT  (`name`) DO UPDATE SET `type` = ?, `config` = ?, `apiKey` = ?, `updatedAt` = ? WHERE (`main`.`ai_providers`.`name` = ? AND 1=1) RETURNING `id` AS `id`, `name` AS `name`, `type` AS `type`, `apiKey` AS `apiKey`, `isActive` AS `isActive`, `isConnected` AS `isConnected`, `lastTestResult` AS `lastTestResult`, `lastTestMessage` AS `lastTestMessage`, `config` AS `config`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+🐛 [2026-01-19T15:31:05.323Z] [DEBUG] [AIProviderService] Ensured provider nvidia is active 
+✅ [2026-01-19T15:31:05.323Z] [SUCCESS] [AIProviderService] Default AI providers initialized 
+ℹ️ [2026-01-19T15:31:05.323Z] [INFO] [Application] Ensuring default model llama3.2:3b exists... 
+🐛 [2026-01-19T15:31:05.323Z] [DEBUG] [AIProviderService] Ensuring Ollama model exists { modelName: 'llama3.2:3b' }
+Resource request: http://localhost:3000/
+🐛 [2026-01-19T15:31:05.340Z] [DEBUG] [AIProviderService] Model already exists { modelName: 'llama3.2:3b' }
+✅ [2026-01-19T15:31:05.340Z] [SUCCESS] [Application] Default model llama3.2:3b is ready 
+Resource request: http://localhost:3000/@vite/client
+Resource request: http://localhost:3000/src/main.tsx
+Resource request: http://localhost:3000/@react-refresh
+Resource request: http://localhost:3000/node_modules/vite/dist/client/env.mjs
+Resource request: http://localhost:3000/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/react.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/react-dom_client.js?v=d9be9253
+Resource request: http://localhost:3000/src/App.tsx
+Resource request: http://localhost:3000/src/components/ClarityProvider.tsx
+Resource request: http://localhost:3000/src/index.css
+Resource request: http://localhost:3000/node_modules/mapbox-gl/dist/mapbox-gl.css
+Renderer console [0]: [vite] connecting...
+  at line 495 in http://localhost:3000/@vite/client
+Resource request: ws://localhost:3000/?token=RtaQsHxXZrsy
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-RLJ2RCJQ.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-DC5AMYBS.js?v=d9be9253
+Resource request: http://localhost:3000/src/services/clarity.ts
+Resource request: http://localhost:3000/node_modules/.vite/deps/react-i18next.js?v=d9be9253
+Resource request: http://localhost:3000/src/components/chat/ChatLayout.tsx
+Resource request: http://localhost:3000/src/components/CustomTopBar.tsx
+Resource request: http://localhost:3000/src/components/GlobalErrorTracker.tsx
+Resource request: http://localhost:3000/src/stores/appStore.ts
+Resource request: http://localhost:3000/src/utils/cn.ts
+Resource request: http://localhost:3000/src/i18n.ts
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-KDCVS43I.js?v=d9be9253
+Renderer console [0]: [vite] connected.
+  at line 618 in http://localhost:3000/@vite/client
+Resource request: http://localhost:3000/src/components/chat/Sidebar.tsx
+Resource request: http://localhost:3000/src/components/chat/ChatArea.tsx
+Resource request: http://localhost:3000/src/components/settings/SettingsPanel.tsx
+Resource request: http://localhost:3000/src/components/wisdom/UnifiedWisdomPanel.tsx
+Resource request: http://localhost:3000/src/components/hydraulic/HydraulicProjectsPanel.tsx
+Resource request: http://localhost:3000/src/components/hydraulic/HydraulicCalculator.tsx
+Resource request: http://localhost:3000/src/components/hydraulic/WNTRMainInterface.tsx
+Resource request: http://localhost:3000/node_modules/.vite/deps/lucide-react.js?v=d9be9253
+Resource request: http://localhost:3000/src/assets/boorie_icon_light.png?import
+Resource request: http://localhost:3000/node_modules/.vite/deps/zustand.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/zustand_middleware.js?v=d9be9253
+Resource request: http://localhost:3000/src/services/database/index.ts
+Resource request: http://localhost:3000/src/stores/chatStore.ts
+Resource request: http://localhost:3000/node_modules/.vite/deps/clsx.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/tailwind-merge.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/i18next.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/i18next-browser-languagedetector.js?v=d9be9253
+Resource request: http://localhost:3000/src/locales/es.json?import
+Resource request: http://localhost:3000/src/locales/ca.json?import
+Resource request: http://localhost:3000/src/locales/en.json?import
+Resource request: http://localhost:3000/src/stores/preferencesStore.ts
+Resource request: http://localhost:3000/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/@radix-ui_react-collapsible.js?v=d9be9253
+Resource request: http://localhost:3000/src/services/hydraulic/hydraulicService.ts
+Resource request: http://localhost:3000/src/assets/boorie_icon_dark.png?import
+Resource request: http://localhost:3000/src/components/chat/MessageList.tsx
+Resource request: http://localhost:3000/src/components/chat/MessageInput.tsx
+Resource request: http://localhost:3000/src/components/chat/ChatHeader.tsx
+Resource request: http://localhost:3000/src/components/chat/ProjectSelector.tsx
+Resource request: http://localhost:3000/src/components/chat/ProjectConversationsList.tsx
+Resource request: http://localhost:3000/src/components/settings/AIConfigurationPanel.tsx
+Resource request: http://localhost:3000/src/components/settings/SystemPromptPanel.tsx
+Resource request: http://localhost:3000/src/components/settings/tabs/index.ts
+Resource request: http://localhost:3000/src/components/settings/MilvusInspector.tsx
+Resource request: http://localhost:3000/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=d9be9253
+Resource request: http://localhost:3000/src/stores/aiConfigStore.ts
+Resource request: http://localhost:3000/src/components/wisdom/VectorGraphViewer.tsx
+Resource request: http://localhost:3000/src/components/wisdom/BulkUploadDialog.tsx
+Resource request: http://localhost:3000/src/components/ui/button.tsx
+Resource request: http://localhost:3000/src/components/ui/card.tsx
+Resource request: http://localhost:3000/src/components/ui/tabs.tsx
+Resource request: http://localhost:3000/src/components/ui/badge.tsx
+Resource request: http://localhost:3000/src/components/ui/progress.tsx
+Resource request: http://localhost:3000/src/components/ui/alert.tsx
+Resource request: http://localhost:3000/src/components/hydraulic/WNTRAdvancedMapViewer.tsx
+Resource request: http://localhost:3000/src/components/hydraulic/ProjectDashboard.tsx
+Resource request: http://localhost:3000/node_modules/.vite/deps/chart__js.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-FDPK2L5D.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-UZEBFF5N.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-IYLPTW25.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-2UNHLBKZ.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-S725DACQ.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-SXRO4INX.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-Z477X6VB.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-BSDPHYDU.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-ZE2UXZ6J.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-XPNPL4AV.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-5Q5YC75F.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-YET6DF75.js?v=d9be9253
+Resource request: http://localhost:3000/src/components/chat/MessageBubble.tsx
+Resource request: http://localhost:3000/src/components/chat/TypingIndicator.tsx
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-TYZE7PG5.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-5L7UVHBE.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-YTSVISRC.js?v=d9be9253
+[51159:0119/163105.454324:ERROR:simple_file_enumerator.cc(58)] Could not get file info for /Users/islacreativa/Library/Application Support/boorie/Code Cache/js/f20e21569f9f777c_0
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-C3SW5GT2.js?v=d9be9253
+Resource request: http://localhost:3000/src/hooks/useOnClickOutside.ts
+Resource request: http://localhost:3000/src/components/chat/ModelSelector.tsx
+Resource request: http://localhost:3000/src/components/chat/WisdomSelector.tsx
+Resource request: http://localhost:3000/src/components/ui/ConfirmationModal.tsx
+Resource request: http://localhost:3000/src/components/hydraulic/NewProjectDialog.tsx
+Resource request: http://localhost:3000/node_modules/.vite/deps/@radix-ui_react-dialog.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/@radix-ui_react-select.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/@radix-ui_react-dropdown-menu.js?v=d9be9253
+Resource request: http://localhost:3000/src/components/settings/tabs/GeneralTab.tsx
+Resource request: http://localhost:3000/src/components/settings/tabs/AccountsTab.tsx
+Resource request: http://localhost:3000/node_modules/.vite/deps/@radix-ui_react-progress.js?v=d9be9253
+Resource request: http://localhost:3000/src/components/hydraulic/WNTRMapViewer.tsx
+Resource request: http://localhost:3000/src/components/hydraulic/WNTRAdvancedVisualizerPanel.tsx
+Resource request: http://localhost:3000/src/components/ui/slider.tsx
+Resource request: http://localhost:3000/src/components/chat/MarkdownRenderer.tsx
+Resource request: http://localhost:3000/node_modules/.vite/deps/@radix-ui_react-switch.js?v=d9be9253
+Resource request: http://localhost:3000/src/services/ai/providers.ts
+Resource request: http://localhost:3000/src/assets/anthropic.png?import
+Resource request: http://localhost:3000/src/assets/openai.png?import
+Resource request: http://localhost:3000/src/assets/google.png?import
+Resource request: http://localhost:3000/src/assets/openrouter.png?import
+Resource request: http://localhost:3000/src/assets/ollama.png?import
+Resource request: http://localhost:3000/src/components/ui/scroll-area.tsx
+Resource request: http://localhost:3000/src/components/wisdom/DynamicVectorGraph.tsx
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-JPDVXOIT.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-BLHDTPZV.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/chunk-6ZMM2PAV.js?v=d9be9253
+Resource request: http://localhost:3000/src/stores/authStore.ts
+Resource request: http://localhost:3000/node_modules/.vite/deps/@radix-ui_react-slider.js?v=d9be9253
+Resource request: http://localhost:3000/src/components/ui/switch.tsx
+Resource request: http://localhost:3000/node_modules/.vite/deps/react-chartjs-2.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/@radix-ui_react-scroll-area.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/mapbox-gl.js?v=d9be9253
+Resource request: http://localhost:3000/node_modules/.vite/deps/proj4.js?v=d9be9253
+Resource request: http://localhost:3000/src/components/common/VisNetworkGraph.tsx
+Resource request: http://localhost:3000/node_modules/.vite/deps/vis-network.js?v=d9be9253
+Renderer console [1]: %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold
+  at line 21609 in http://localhost:3000/node_modules/.vite/deps/chunk-KDCVS43I.js?v=d9be9253
+Renderer console [1]: Mapbox token loaded: pk.eyJ1Ijo...
+  at line 36 in http://localhost:3000/src/components/hydraulic/WNTRMapViewer.tsx
+DOM is ready
+ℹ️ [2026-01-19T15:31:05.552Z] [INFO] [Application] DOM is ready 
+ℹ️ [2026-01-19T15:31:05.553Z] [INFO] [Application] Window ready to show 
+Renderer console [1]: ✅ Database ready (managed by Prisma)
+  at line 262 in http://localhost:3000/src/services/database/index.ts
+Renderer console [1]: Initializing Microsoft Clarity in Electron environment
+  at line 26 in http://localhost:3000/src/services/clarity.ts
+Resource request: https://www.clarity.ms/tag/tya4bfiwah
+Renderer console [1]: ✅ Database ready (managed by Prisma)
+  at line 262 in http://localhost:3000/src/services/database/index.ts
+Renderer console [1]: Initializing Microsoft Clarity in Electron environment
+  at line 26 in http://localhost:3000/src/services/clarity.ts
+🐛 [2026-01-19T15:31:05.693Z] [DEBUG] [DatabaseHandler] IPC: Getting settings { category: 'general' }
+🐛 [2026-01-19T15:31:05.693Z] [DEBUG] [DatabaseHandler] IPC: Getting settings { category: 'general' }
+Resource request: devtools://devtools/bundled/devtools_app.html?remoteBase=https://chrome-devtools-frontend.appspot.com/serve_file/@c09201d99d9135eda06eca2bac32142f7ba61295/&can_dock=true&toolbarColor=rgba(223,223,223,1)&textColor=rgba(0,0,0,1)&experiments=true
+prisma:query SELECT `main`.`app_settings`.`id`, `main`.`app_settings`.`key`, `main`.`app_settings`.`value`, `main`.`app_settings`.`category`, `main`.`app_settings`.`createdAt`, `main`.`app_settings`.`updatedAt` FROM `main`.`app_settings` WHERE `main`.`app_settings`.`category` = ? LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`app_settings`.`id`, `main`.`app_settings`.`key`, `main`.`app_settings`.`value`, `main`.`app_settings`.`category`, `main`.`app_settings`.`createdAt`, `main`.`app_settings`.`updatedAt` FROM `main`.`app_settings` WHERE `main`.`app_settings`.`category` = ? LIMIT ? OFFSET ?
+✅ [2026-01-19T15:31:05.695Z] [SUCCESS] [DatabaseHandler] IPC: Retrieved 3 settings { category: 'general' }
+✅ [2026-01-19T15:31:05.696Z] [SUCCESS] [DatabaseHandler] IPC: Retrieved 3 settings { category: 'general' }
+🐛 [2026-01-19T15:31:05.699Z] [DEBUG] [ConversationHandler] IPC: Getting conversations 
+🐛 [2026-01-19T15:31:05.699Z] [DEBUG] [ConversationService] Getting all conversations 
+🐛 [2026-01-19T15:31:05.700Z] [DEBUG] [ConversationHandler] IPC: Getting conversations 
+🐛 [2026-01-19T15:31:05.700Z] [DEBUG] [ConversationService] Getting all conversations 
+prisma:query SELECT `main`.`conversations`.`id`, `main`.`conversations`.`title`, `main`.`conversations`.`model`, `main`.`conversations`.`provider`, `main`.`conversations`.`projectId`, `main`.`conversations`.`createdAt`, `main`.`conversations`.`updatedAt` FROM `main`.`conversations` WHERE 1=1 ORDER BY `main`.`conversations`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`conversations`.`id`, `main`.`conversations`.`title`, `main`.`conversations`.`model`, `main`.`conversations`.`provider`, `main`.`conversations`.`projectId`, `main`.`conversations`.`createdAt`, `main`.`conversations`.`updatedAt` FROM `main`.`conversations` WHERE 1=1 ORDER BY `main`.`conversations`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`messages`.`id`, `main`.`messages`.`conversationId`, `main`.`messages`.`role`, `main`.`messages`.`content`, `main`.`messages`.`timestamp`, `main`.`messages`.`metadata`, `main`.`messages`.`createdAt` FROM `main`.`messages` WHERE `main`.`messages`.`conversationId` IN (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ORDER BY `main`.`messages`.`timestamp` ASC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`messages`.`id`, `main`.`messages`.`conversationId`, `main`.`messages`.`role`, `main`.`messages`.`content`, `main`.`messages`.`timestamp`, `main`.`messages`.`metadata`, `main`.`messages`.`createdAt` FROM `main`.`messages` WHERE `main`.`messages`.`conversationId` IN (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ORDER BY `main`.`messages`.`timestamp` ASC LIMIT ? OFFSET ?
+✅ [2026-01-19T15:31:05.718Z] [SUCCESS] [ConversationService] Retrieved 25 conversations 
+✅ [2026-01-19T15:31:05.718Z] [SUCCESS] [ConversationHandler] IPC: Retrieved 25 conversations 
+✅ [2026-01-19T15:31:05.719Z] [SUCCESS] [ConversationService] Retrieved 25 conversations 
+✅ [2026-01-19T15:31:05.719Z] [SUCCESS] [ConversationHandler] IPC: Retrieved 25 conversations 
+Renderer console [1]: Loaded conversations from database: 25
+  at line 263 in http://localhost:3000/src/stores/chatStore.ts
+Resource request: devtools://devtools/bundled/entrypoints/devtools_app/devtools_app.js
+Resource request: devtools://devtools/bundled/entrypoints/shell/shell.js
+Resource request: devtools://devtools/bundled/core/i18n/i18n.js
+Resource request: devtools://devtools/bundled/ui/legacy/legacy.js
+Resource request: devtools://devtools/bundled/core/common/common.js
+Resource request: devtools://devtools/bundled/core/root/root.js
+Resource request: devtools://devtools/bundled/core/sdk/sdk.js
+Resource request: devtools://devtools/bundled/ui/visual_logging/visual_logging.js
+Resource request: devtools://devtools/bundled/models/workspace/workspace.js
+Resource request: devtools://devtools/bundled/panels/network/forward/forward.js
+Resource request: devtools://devtools/bundled/panels/application/preloading/helper/helper.js
+Resource request: devtools://devtools/bundled/models/issues_manager/issues_manager.js
+Resource request: devtools://devtools/bundled/entrypoints/main/main.js
+ℹ️ [2026-01-19T15:31:05.741Z] [INFO] [Application] IPC: is-maximized called { maximized: false }
+Resource request: devtools://devtools/bundled/Images/Images.js
+Resource request: devtools://devtools/bundled/core/dom_extension/dom_extension.js
+Resource request: devtools://devtools/bundled/core/host/host.js
+Resource request: devtools://devtools/bundled/models/breakpoints/breakpoints.js
+Resource request: devtools://devtools/bundled/ui/legacy/components/object_ui/object_ui.js
+Resource request: devtools://devtools/bundled/ui/legacy/components/quick_open/quick_open.js
+Resource request: devtools://devtools/bundled/models/workspace_diff/workspace_diff.js
+Resource request: devtools://devtools/bundled/ui/legacy/components/utils/utils.js
+Resource request: devtools://devtools/bundled/third_party/i18n/i18n.js
+Resource request: devtools://devtools/bundled/core/platform/platform.js
+Resource request: devtools://devtools/bundled/ui/legacy/utils/utils.js
+Resource request: devtools://devtools/bundled/models/text_utils/text_utils.js
+Resource request: devtools://devtools/bundled/ui/components/icon_button/icon_button.js
+Resource request: devtools://devtools/bundled/ui/components/adorners/adorners.js
+Resource request: devtools://devtools/bundled/ui/components/settings/settings.js
+Resource request: devtools://devtools/bundled/ui/components/helpers/helpers.js
+Resource request: devtools://devtools/bundled/ui/legacy/theme_support/theme_support.js
+Resource request: devtools://devtools/bundled/ui/lit-html/lit-html.js
+Resource request: devtools://devtools/bundled/ui/components/render_coordinator/render_coordinator.js
+Resource request: devtools://devtools/bundled/models/cpu_profile/cpu_profile.js
+Resource request: devtools://devtools/bundled/core/protocol_client/protocol_client.js
+Resource request: devtools://devtools/bundled/third_party/marked/marked.js
+Resource request: devtools://devtools/bundled/models/bindings/bindings.js
+Resource request: devtools://devtools/bundled/models/extensions/extensions.js
+Resource request: devtools://devtools/bundled/models/logs/logs.js
+Resource request: devtools://devtools/bundled/models/persistence/persistence.js
+Resource request: devtools://devtools/bundled/panels/snippets/snippets.js
+Resource request: devtools://devtools/bundled/panels/timeline/timeline.js
+Resource request: devtools://devtools/bundled/ui/legacy/components/perf_ui/perf_ui.js
+Resource request: devtools://devtools/bundled/models/formatter/formatter.js
+Resource request: devtools://devtools/bundled/models/source_map_scopes/source_map_scopes.js
+Resource request: devtools://devtools/bundled/ui/components/linear_memory_inspector/linear_memory_inspector.js
+Resource request: devtools://devtools/bundled/models/javascript_metadata/javascript_metadata.js
+Resource request: devtools://devtools/bundled/ui/components/text_editor/text_editor.js
+Resource request: devtools://devtools/bundled/third_party/diff/diff.js
+Resource request: devtools://devtools/bundled/ui/components/text_prompt/text_prompt.js
+Resource request: devtools://devtools/bundled/third_party/intl-messageformat/intl-messageformat.js
+Resource request: devtools://devtools/bundled/third_party/codemirror.next/codemirror.next.js
+Resource request: devtools://devtools/bundled/ui/components/input/input.js
+ℹ️ [2026-01-19T15:31:05.779Z] [INFO] [Application] IPC: is-maximized called { maximized: false }
+Resource request: devtools://devtools/bundled/third_party/lit/lit.js
+Resource request: devtools://devtools/bundled/models/har/har.js
+Resource request: devtools://devtools/bundled/models/trace/trace.js
+Resource request: devtools://devtools/bundled/panels/timeline/components/components.js
+Resource request: devtools://devtools/bundled/models/timeline_model/timeline_model.js
+Resource request: devtools://devtools/bundled/services/trace_bounds/trace_bounds.js
+Resource request: devtools://devtools/bundled/ui/components/panel_feedback/panel_feedback.js
+Resource request: devtools://devtools/bundled/panels/mobile_throttling/mobile_throttling.js
+Resource request: devtools://devtools/bundled/models/trace/helpers/helpers.js
+Resource request: devtools://devtools/bundled/models/trace/types/types.js
+Resource request: devtools://devtools/bundled/ui/legacy/components/data_grid/data_grid.js
+Resource request: devtools://devtools/bundled/panels/layer_viewer/layer_viewer.js
+Resource request: devtools://devtools/bundled/ui/legacy/components/source_frame/source_frame.js
+Resource request: devtools://devtools/bundled/services/window_bounds/window_bounds.js
+Resource request: devtools://devtools/bundled/ui/components/code_highlighter/code_highlighter.js
+Resource request: devtools://devtools/bundled/third_party/codemirror.next/chunk/codemirror.js
+Resource request: devtools://devtools/bundled/models/trace/extras/extras.js
+Resource request: devtools://devtools/bundled/models/trace/handlers/handlers.js
+Resource request: http://localhost:3000/src/assets/boorie_icon_light.png
+Resource request: http://localhost:3000/src/assets/boorie_icon_dark.png
+Resource request: devtools://devtools/bundled/ui/components/buttons/buttons.js
+Renderer console [1]: Loaded conversations from database: 25
+  at line 263 in http://localhost:3000/src/stores/chatStore.ts
+Resource request: devtools://devtools/bundled/core/i18n/locales/en-US.json
+Resource request: devtools://devtools/bundled/panels/emulation/emulation.js
+Resource request: devtools://devtools/bundled/models/emulation/emulation.js
+Resource request: devtools://devtools/bundled/panels/emulation/components/components.js
+Resource request: devtools://devtools/bundled/Images/info.svg
+Resource request: devtools://devtools/bundled/Images/cross.svg
+Resource request: devtools://devtools/bundled/Images/dots-vertical.svg
+Resource request: devtools://devtools/bundled/panels/console/console.js
+Resource request: devtools://devtools/bundled/entrypoints/inspector_main/inspector_main.js
+Resource request: devtools://devtools/bundled/Images/chevron-double-right.svg
+Renderer console [3]: Uncaught TypeError: a[c] is not a function
+  at line 1 in https://www.clarity.ms/tag/tya4bfiwah
+Renderer console [1]: Microsoft Clarity initialized successfully
+  at line 33 in http://localhost:3000/src/services/clarity.ts
+Renderer console [1]: Clarity session tag set: app_type electron
+  at line 136 in http://localhost:3000/src/services/clarity.ts
+Renderer console [1]: Clarity session tag set: app_name boorie
+  at line 136 in http://localhost:3000/src/services/clarity.ts
+Renderer console [1]: Clarity session tag set: platform MacIntel
+  at line 136 in http://localhost:3000/src/services/clarity.ts
+Renderer console [1]: Clarity event tracked: app_started [object Object]
+  at line 106 in http://localhost:3000/src/services/clarity.ts
+Renderer console [3]: Refused to load the script 'https://scripts.clarity.ms/0.8.49/clarity.js' because it violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.clarity.ms". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback.
+
+  at line 1 in https://www.clarity.ms/tag/tya4bfiwah
+Renderer console [1]: Microsoft Clarity initialized successfully
+  at line 33 in http://localhost:3000/src/services/clarity.ts
+Renderer console [1]: Clarity session tag set: app_type electron
+  at line 136 in http://localhost:3000/src/services/clarity.ts
+Resource request: devtools://devtools/bundled/ui/components/issue_counter/issue_counter.js
+Renderer console [1]: Clarity session tag set: app_name boorie
+  at line 136 in http://localhost:3000/src/services/clarity.ts
+Renderer console [1]: Clarity session tag set: platform MacIntel
+  at line 136 in http://localhost:3000/src/services/clarity.ts
+Renderer console [1]: Clarity event tracked: app_started [object Object]
+  at line 106 in http://localhost:3000/src/services/clarity.ts
+Renderer console [1]: Clarity event tracked: view_changed [object Object]
+  at line 106 in http://localhost:3000/src/services/clarity.ts
+ℹ️ [2026-01-19T15:31:05.960Z] [INFO] [Application] Web contents finished loading 
+Web contents finished loading successfully
+Stopped loading web contents
+ℹ️ [2026-01-19T15:31:05.960Z] [INFO] [Application] Stopped loading web contents 
+Resource request: devtools://devtools/bundled/ui/components/request_link_icon/request_link_icon.js
+Resource request: devtools://devtools/bundled/panels/console_counters/console_counters.js
+Resource request: devtools://devtools/bundled/Images/select-element.svg
+Resource request: devtools://devtools/bundled/Images/devices.svg
+Renderer console [2]: %cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+  at line 2 in node:electron/js2c/renderer_init
+Resource request: devtools://devtools/bundled/Images/left-panel-open.svg
+Resource request: devtools://devtools/bundled/Images/clear.svg
+Resource request: devtools://devtools/bundled/Images/triangle-down.svg
+Resource request: devtools://devtools/bundled/Images/eye.svg
+Resource request: devtools://devtools/bundled/Images/gear.svg
+Resource request: devtools://devtools/bundled/Images/chevron-left-dot.svg
+Resource request: devtools://devtools/bundled/Images/chevron-right.svg
+Resource request: http://localhost:3000/
+Resource request: devtools://devtools/bundled/Images/issue-exclamation-filled.svg
+Resource request: devtools://devtools/bundled/Images/triangle-right.svg
+Resource request: devtools://devtools/bundled/Images/cross-circle-filled.svg
+Resource request: devtools://devtools/bundled/Images/warning-filled.svg
+Resource request: devtools://devtools/bundled/Images/issue-cross-filled.svg
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`knowledge_chunks`.`id` FROM `main`.`knowledge_chunks` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+[HybridSearchService] Checking sync status... Milvus: 3327, Prisma: 3327
+Renderer console [1]: === Debug Info ===
+  at line 2 in 
+Renderer console [1]: Document title: Boorie
+  at line 3 in 
+Renderer console [1]: Root element: [object HTMLDivElement]
+  at line 4 in 
+Renderer console [1]: Root innerHTML length: 15003
+  at line 5 in 
+Renderer console [1]: Body innerHTML length: 15089
+  at line 6 in 
+Renderer console [1]: All script tags: 6
+  at line 7 in 
+Renderer console [1]: All link tags: 1
+  at line 8 in 
+Renderer console [1]: React app mounted: true
+  at line 9 in 
+React app root content length: 15003
+Resource request: devtools://devtools/bundled/panels/elements/elements.js
+Resource request: devtools://devtools/bundled/ui/components/tree_outline/tree_outline.js
+Resource request: devtools://devtools/bundled/panels/elements/components/components.js
+Resource request: devtools://devtools/bundled/ui/legacy/components/color_picker/color_picker.js
+Resource request: devtools://devtools/bundled/ui/legacy/components/inline_editor/inline_editor.js
+Resource request: devtools://devtools/bundled/panels/utils/utils.js
+Resource request: devtools://devtools/bundled/ui/components/diff_view/diff_view.js
+Resource request: devtools://devtools/bundled/ui/components/markdown_view/markdown_view.js
+Resource request: devtools://devtools/bundled/panels/issues/components/components.js
+Resource request: devtools://devtools/bundled/panels/event_listeners/event_listeners.js
+Resource request: devtools://devtools/bundled/ui/components/srgb_overlay/srgb_overlay.js
+Resource request: devtools://devtools/bundled/panels/css_overview/css_overview.js
+Resource request: devtools://devtools/bundled/ui/components/node_text/node_text.js
+Resource request: devtools://devtools/bundled/ui/components/legacy_wrapper/legacy_wrapper.js
+Resource request: devtools://devtools/bundled/panels/css_overview/components/components.js
+Resource request: devtools://devtools/bundled/ui/components/panel_introduction_steps/panel_introduction_steps.js
+ℹ️ [2026-01-19T15:31:08.476Z] [INFO] [Application] Application shutting down 
+ℹ️ [2026-01-19T15:31:08.476Z] [INFO] [HandlersManager] Cleaning up IPC handlers 
+ℹ️ [2026-01-19T15:31:08.476Z] [INFO] [ConversationHandler] Conversation IPC handlers unregistered 
+ℹ️ [2026-01-19T15:31:08.476Z] [INFO] [AIProviderHandler] AI Provider IPC handlers unregistered 
+ℹ️ [2026-01-19T15:31:08.476Z] [INFO] [DatabaseHandler] Database IPC handlers unregistered 
+ℹ️ [2026-01-19T15:31:08.476Z] [INFO] [ChatHandler] Chat IPC handlers unregistered 
+ℹ️ [2026-01-19T15:31:08.476Z] [INFO] [Application] Hydraulic handler cleanup completed 
+✅ [2026-01-19T15:31:08.476Z] [SUCCESS] [HandlersManager] IPC handlers cleaned up successfully 
+ℹ️ [2026-01-19T15:31:08.476Z] [INFO] [Application] Cleaning up services 
+/Users/islacreativa/repositorio/boorie_cliente/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron exited with signal SIGTERM
+[36m[Electron][0m Process exited with code 1

@@ -42,7 +42,7 @@ export function Sidebar() {
       loadProjects()
     }
   }, [currentView])
-  
+
   const loadProjects = async () => {
     try {
       const projectList = await hydraulicService.listProjects()
@@ -51,7 +51,7 @@ export function Sidebar() {
       console.error('Failed to load projects:', error)
     }
   }
-  
+
   // Group conversations by project
   const conversationsByProject = conversations.reduce((acc, conv) => {
     const projectId = conv.projectId || 'general'
@@ -61,7 +61,7 @@ export function Sidebar() {
     acc[projectId].push(conv)
     return acc
   }, {} as Record<string, typeof conversations>)
-  
+
   const toggleProject = (projectId: string) => {
     setProjectsOpen(prev => ({ ...prev, [projectId]: !prev[projectId] }))
   }
@@ -80,12 +80,12 @@ export function Sidebar() {
       <div
         className={cn(
           "fixed left-0 top-0 h-full bg-card border-r border-border/50 transition-all duration-300 z-10",
-          "backdrop-blur-xl bg-card/95",
+          "backdrop-blur-xl bg-card/95 flex flex-col",
           sidebarCollapsed ? 'w-16' : 'w-64'
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border/50">
+        <div className="flex items-center justify-between p-4 border-b border-border/50 flex-shrink-0">
           {!sidebarCollapsed && (
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center">
@@ -127,7 +127,7 @@ export function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <div className="p-3 space-y-1">
+        <div className="p-3 space-y-1 flex-shrink-0">
           {menuItems.map((item) => {
             const isActive = currentView === item.view
             return (
@@ -160,11 +160,11 @@ export function Sidebar() {
 
         {/* Chat History (only show when chat is active and sidebar is expanded) */}
         {currentView === 'chat' && !sidebarCollapsed && (
-          <div className="flex-1 flex flex-col p-3">
+          <div className="flex-1 flex flex-col p-3 overflow-hidden">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-3 mb-3 flex-shrink-0">
               {t('sidebar.recentChats')}
             </h3>
-            <div className="flex-1 overflow-y-auto max-h-[calc(100vh-400px)] pr-1">
+            <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-border">
               <div className="space-y-2">
                 {/* General conversations (no project) */}
                 {conversationsByProject.general && conversationsByProject.general.length > 0 && (
@@ -209,9 +209,9 @@ export function Sidebar() {
                 {projects.map((project) => {
                   const projectConversations = conversationsByProject[project.id] || []
                   if (projectConversations.length === 0) return null
-                  
+
                   const isOpen = projectsOpen[project.id] ?? false
-                  
+
                   return (
                     <Collapsible.Root
                       key={project.id}
@@ -273,6 +273,28 @@ export function Sidebar() {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Footer / Credits */}
+        {!sidebarCollapsed && (
+          <div className="mt-auto p-4 border-t border-border/40 bg-accent/5">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 block mb-2">
+                Created By
+              </span>
+              <div className="space-y-1">
+                <p className="text-[11px] font-medium text-muted-foreground/80 hover:text-foreground transition-colors cursor-default">
+                  Dr. PHP Luis Mora
+                </p>
+                <p className="text-[11px] font-medium text-muted-foreground/80 hover:text-foreground transition-colors cursor-default">
+                  Javier Molina
+                </p>
+                <p className="text-[11px] font-medium text-muted-foreground/80 hover:text-foreground transition-colors cursor-default">
+                  Cristina Cruz
+                </p>
               </div>
             </div>
           </div>

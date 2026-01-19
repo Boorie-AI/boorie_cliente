@@ -1,6 +1,6 @@
 {
   "name": "boorie",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Boorie - Advanced AI Desktop Client with comprehensive productivity features",
   "main": "dist/electron/main.js",
   "scripts": {
