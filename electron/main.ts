@@ -1,8 +1,19 @@
-// Load environment variables FIRST
 try {
   require('dotenv').config()
 } catch (e) {
   console.log('dotenv not loaded:', e)
+}
+
+// polyfill crypto for Node.js environments that expect global.crypto (Node 19+)
+if (typeof global !== 'undefined' && !global.crypto) {
+  try {
+    const crypto = require('crypto');
+    // @ts-ignore
+    global.crypto = crypto.webcrypto || crypto;
+    console.log('Global crypto polyfill applied successfully');
+  } catch (err) {
+    console.error('Failed to polyfill global.crypto:', err);
+  }
 }
 
 // Configure Prisma environment BEFORE any imports

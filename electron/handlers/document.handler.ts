@@ -693,7 +693,7 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
       // Try to get Ollama models directly since emit doesn't return values
       try {
         const axios = require('axios')
-        const response = await axios.get('http://localhost:11434/api/tags', {
+        const response = await axios.get('http://127.0.0.1:11434/api/tags', {
           timeout: 3000,
           headers: { 'Content-Type': 'application/json' }
         })
@@ -784,7 +784,7 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
       // Get dynamic Ollama providers if available
       try {
         const axios = require('axios')
-        const response = await axios.get('http://localhost:11434/api/tags', {
+        const response = await axios.get('http://127.0.0.1:11434/api/tags', {
           timeout: 3000,
           headers: { 'Content-Type': 'application/json' }
         })

@@ -3,7 +3,6 @@ import { PrismaClient } from '@prisma/client';
 // Simple database service wrapper for legacy code
 export class DatabaseService {
     public prisma: PrismaClient;
-    [x: string]: any; // Allow dynamic methods to satisfy TypeScript for missing implementations
 
     constructor(prismaClient?: PrismaClient) {
         // Use provided client or create new one
@@ -484,6 +483,78 @@ export class DatabaseService {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error'
             };
+        }
+    }
+
+    // User Profile Methods
+    async getActiveUserProfiles() {
+        try {
+            const profiles = await this.prisma.userProfile.findMany({
+                where: { isActive: true }
+            });
+            return {
+                success: true,
+                data: profiles.map(p => ({
+                    ...p,
+                    metadata: p.metadata ? JSON.parse(p.metadata) : null
+                }))
+            };
+        } catch (error) {
+            console.error('Error getting active user profiles:', error);
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    }
+
+    async storeUserProfile(data: any) {
+        try {
+            const profile = await this.prisma.userProfile.upsert({
+                where: {
+                    provider_providerId: {
+                        provider: data.provider,
+                        providerId: data.providerId
+                    }
+                },
+                update: {
+                    email: data.email,
+                    name: data.name,
+                    pictureUrl: data.pictureUrl,
+                    isActive: data.isActive ?? true,
+                    metadata: data.metadata ? JSON.stringify(data.metadata) : null
+                },
+                create: {
+                    provider: data.provider,
+                    providerId: data.providerId,
+                    email: data.email,
+                    name: data.name,
+                    pictureUrl: data.pictureUrl,
+                    isActive: data.isActive ?? true,
+                    metadata: data.metadata ? JSON.stringify(data.metadata) : null
+                }
+            });
+            return { success: true, data: profile };
+        } catch (error) {
+            console.error('Error storing user profile:', error);
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    }
+
+    async deactivateUserProfile(provider: string, providerId: string) {
+        try {
+            await this.prisma.userProfile.update({
+                where: {
+                    provider_providerId: {
+                        provider,
+                        providerId
+                    }
+                },
+                data: {
+                    isActive: false
+                }
+            });
+            return { success: true };
+        } catch (error) {
+            console.error('Error deactivating user profile:', error);
+            return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     }
 }

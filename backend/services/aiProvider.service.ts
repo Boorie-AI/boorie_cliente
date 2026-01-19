@@ -43,7 +43,7 @@ export class AIProviderService {
         {
           name: 'ollama',
           type: 'local',
-          config: { baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434' }
+          config: { baseUrl: process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434' }
         },
         {
           name: 'nvidia',
@@ -468,7 +468,7 @@ export class AIProviderService {
     try {
       this.logger.debug('Ensuring Ollama model exists', { modelName })
 
-      let ollamaUrl = 'http://localhost:11434'
+      let ollamaUrl = 'http://127.0.0.1:11434'
 
       // If provider ID is given, try to get URL from config
       if (providerId) {
@@ -566,7 +566,7 @@ export class AIProviderService {
   private async testLocalProvider(provider: IAIProvider): Promise<boolean> {
     try {
       // Test Ollama connection
-      const ollamaUrl = provider.config?.baseUrl || 'http://localhost:11434'
+      const ollamaUrl = provider.config?.baseUrl || 'http://127.0.0.1:11434'
       const response = await fetch(`${ollamaUrl}/api/tags`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
@@ -709,7 +709,7 @@ export class AIProviderService {
 
   private async fetchLocalModels(provider: IAIProvider): Promise<any[]> {
     try {
-      const ollamaUrl = provider.config?.baseUrl || 'http://localhost:11434'
+      const ollamaUrl = provider.config?.baseUrl || 'http://127.0.0.1:11434'
       const response = await fetch(`${ollamaUrl}/api/tags`)
 
       if (!response.ok) {

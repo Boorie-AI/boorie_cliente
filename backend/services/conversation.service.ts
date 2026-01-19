@@ -13,6 +13,7 @@ import { conversationLogger } from '../utils/logger'
 import { validateString, validateArray, validateRequired } from '../utils/validation'
 import { EmbeddingService } from './embedding.service'
 import { MilvusService } from './milvus.service'
+import * as crypto from 'crypto'
 
 export class ConversationService {
   private databaseService: DatabaseService
@@ -24,7 +25,7 @@ export class ConversationService {
   constructor(databaseService: DatabaseService) {
     this.databaseService = databaseService
     this.logger.info('Conversation service initialized')
-    this.embeddingService = new EmbeddingService()
+    this.embeddingService = new EmbeddingService(this.databaseService.prisma)
     this.milvusService = MilvusService.getInstance()
   }
 
