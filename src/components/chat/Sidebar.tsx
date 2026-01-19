@@ -287,7 +287,7 @@ export function Sidebar() {
               </span>
               <div className="space-y-1">
                 <p className="text-[11px] font-medium text-muted-foreground/80 hover:text-foreground transition-colors cursor-default">
-                  Dr. PHP Luis Mora
+                  Phd Luis Mora
                 </p>
                 <p className="text-[11px] font-medium text-muted-foreground/80 hover:text-foreground transition-colors cursor-default">
                   Javier Molina

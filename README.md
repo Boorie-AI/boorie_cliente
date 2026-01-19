@@ -49,7 +49,7 @@
 
 ### ✨ Credits
 Created and developed by:
-- **Dr. PHP Luis Mora**
+- **Phd Luis Mora**
 - **Javier Molina**
 - **Cristina Cruz**
 
