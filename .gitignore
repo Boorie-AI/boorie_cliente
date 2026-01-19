@@ -73,3 +73,4 @@ coverage/
 # Database files
 *.db
 rag-knowledge/
+/data
