@@ -7,7 +7,7 @@ export { ChatHandler } from './chat.handler'
 export { AuthHandler } from './auth.handler'
 export { HydraulicHandler } from './hydraulic.handler'
 export { setupWNTRHandlers } from './wntr.handler'
-export { registerWisdomHandlers, registerVectorGraphHandlers } from './document.handler'
+export { registerWisdomHandlers, registerVectorGraphHandlers, registerWisdomExtendedHandlers } from './document.handler'
 export { NetworkRepositoryHandler } from './networkRepository.handler'
 export { registerAgenticRAGHandlers } from './agenticRAG.handler'
 
@@ -19,7 +19,7 @@ import { ChatHandler } from './chat.handler'
 import { AuthHandler } from './auth.handler'
 import { HydraulicHandler } from './hydraulic.handler'
 import { setupWNTRHandlers } from './wntr.handler'
-import { registerWisdomHandlers, registerVectorGraphHandlers } from './document.handler'
+import { registerWisdomHandlers, registerVectorGraphHandlers, registerWisdomExtendedHandlers } from './document.handler'
 import { NetworkRepositoryHandler } from './networkRepository.handler'
 import { registerAgenticRAGHandlers } from './agenticRAG.handler'
 import { registerMilvusHandlers } from './milvus.handler'
@@ -55,6 +55,7 @@ export class HandlersManager {
     try {
       registerWisdomHandlers(services.database.prisma)
       registerVectorGraphHandlers(services.database.prisma)
+      registerWisdomExtendedHandlers(services.database.prisma)
     } catch (error) {
       logger.warn('Wisdom handlers registration failed, continuing without RAG support', error as Error)
     }

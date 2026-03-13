@@ -1584,6 +1584,9 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
   })
 }
 
+export function registerWisdomExtendedHandlers(prisma?: PrismaClient) {
+  const prismaClient = prisma || new PrismaClient()
+
   // ============================================================
   // TECH-3: Export masivo de documentos
   // ============================================================
