@@ -44,8 +44,9 @@ export class WNTRReportService {
   private reportsDirectory: string;
 
   constructor(reportsDirectory?: string) {
-    // Get Python path from environment or use default
-    this.pythonPath = process.env.PYTHON_PATH || 'python3';
+    // Use shared Python detection utility
+    const { findPythonPath } = require('./pythonDetector');
+    this.pythonPath = findPythonPath();
     this.servicePath = path.join(__dirname, 'wntr_report_generator.py');
     this.reportsDirectory = reportsDirectory || path.join(process.cwd(), 'reports');
   }

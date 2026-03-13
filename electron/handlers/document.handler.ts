@@ -1584,6 +1584,289 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
   })
 }
 
+  // ============================================================
+  // TECH-3: Export masivo de documentos
+  // ============================================================
+  ipcMain.handle('wisdom:exportDocuments', async (_event, options: {
+    documentIds?: string[]
+    format?: 'json' | 'csv'
+    includeContent?: boolean
+  }) => {
+    try {
+      const { format = 'json', includeContent = false, documentIds } = options || {}
+
+      // Query documents
+      let documents: any[]
+      if (documentIds && documentIds.length > 0) {
+        documents = await prismaClient.hydraulicKnowledge.findMany({
+          where: { id: { in: documentIds } },
+          include: { chunks: includeContent },
+        })
+      } else {
+        documents = await prismaClient.hydraulicKnowledge.findMany({
+          include: { chunks: includeContent },
+        })
+      }
+
+      // Ask user where to save
+      const saveResult = await dialog.showSaveDialog({
+        title: 'Export Documents',
+        defaultPath: `boorie-wisdom-export-${Date.now()}.${format}`,
+        filters: format === 'json'
+          ? [{ name: 'JSON Files', extensions: ['json'] }]
+          : [{ name: 'CSV Files', extensions: ['csv'] }],
+      })
+
+      if (saveResult.canceled || !saveResult.filePath) {
+        return { success: false, message: 'Export cancelled' }
+      }
+
+      let fileContent: string
+
+      if (format === 'csv') {
+        // CSV export
+        const headers = ['id', 'title', 'category', 'subcategory', 'region', 'language', 'version', 'status', 'keywords', 'createdAt']
+        const rows = documents.map(doc => [
+          doc.id,
+          `"${(doc.title || '').replace(/"/g, '""')}"`,
+          doc.category,
+          doc.subcategory,
+          doc.region,
+          doc.language,
+          doc.version,
+          doc.status,
+          doc.keywords,
+          doc.createdAt?.toISOString() || '',
+        ])
+        fileContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+      } else {
+        // JSON export
+        const exportData = documents.map(doc => ({
+          id: doc.id,
+          title: doc.title,
+          category: doc.category,
+          subcategory: doc.subcategory,
+          region: doc.region,
+          secondaryCategories: doc.secondaryCategories,
+          language: doc.language,
+          version: doc.version,
+          status: doc.status,
+          keywords: doc.keywords,
+          metadata: doc.metadata,
+          createdAt: doc.createdAt,
+          updatedAt: doc.updatedAt,
+          ...(includeContent ? { content: doc.content, chunksCount: doc.chunks?.length || 0 } : {}),
+        }))
+        fileContent = JSON.stringify(exportData, null, 2)
+      }
+
+      await fs.writeFile(saveResult.filePath, fileContent, 'utf-8')
+
+      return {
+        success: true,
+        message: `Exported ${documents.length} documents to ${saveResult.filePath}`,
+        exportedCount: documents.length,
+        filePath: saveResult.filePath,
+      }
+    } catch (error: any) {
+      console.error('Export error:', error)
+      return { success: false, message: error.message || 'Export failed' }
+    }
+  })
+
+  // ============================================================
+  // TECH-3: Historial de busquedas
+  // ============================================================
+  ipcMain.handle('wisdom:saveSearchHistory', async (_event, entry: {
+    query: string
+    resultsCount: number
+    searchType: 'simple' | 'rag'
+    filters?: any
+  }) => {
+    try {
+      await prismaClient.appSetting.create({
+        data: {
+          key: `search_history_${Date.now()}`,
+          value: JSON.stringify({
+            query: entry.query,
+            resultsCount: entry.resultsCount,
+            searchType: entry.searchType,
+            filters: entry.filters,
+            timestamp: new Date().toISOString(),
+          }),
+          category: 'search_history',
+        },
+      })
+      return { success: true }
+    } catch (error: any) {
+      console.error('Save search history error:', error)
+      return { success: false, message: error.message }
+    }
+  })
+
+  ipcMain.handle('wisdom:getSearchHistory', async (_event, options?: { limit?: number }) => {
+    try {
+      const limit = options?.limit || 20
+      const entries = await prismaClient.appSetting.findMany({
+        where: { category: 'search_history' },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      })
+
+      const history = entries.map(entry => {
+        try {
+          return JSON.parse(entry.value)
+        } catch {
+          return null
+        }
+      }).filter(Boolean)
+
+      return { success: true, history }
+    } catch (error: any) {
+      console.error('Get search history error:', error)
+      return { success: false, history: [], message: error.message }
+    }
+  })
+
+  ipcMain.handle('wisdom:clearSearchHistory', async () => {
+    try {
+      await prismaClient.appSetting.deleteMany({
+        where: { category: 'search_history' },
+      })
+      return { success: true }
+    } catch (error: any) {
+      console.error('Clear search history error:', error)
+      return { success: false, message: error.message }
+    }
+  })
+
+  // ============================================================
+  // TECH-3: Tags personalizados (usa secondaryCategories)
+  // ============================================================
+  ipcMain.handle('wisdom:updateTags', async (_event, documentId: string, tags: string[]) => {
+    try {
+      await prismaClient.hydraulicKnowledge.update({
+        where: { id: documentId },
+        data: { secondaryCategories: JSON.stringify(tags) },
+      })
+      return { success: true }
+    } catch (error: any) {
+      console.error('Update tags error:', error)
+      return { success: false, message: error.message }
+    }
+  })
+
+  ipcMain.handle('wisdom:getAllTags', async () => {
+    try {
+      const docs = await prismaClient.hydraulicKnowledge.findMany({
+        select: { secondaryCategories: true },
+      })
+
+      const tagSet = new Set<string>()
+      docs.forEach(doc => {
+        if (doc.secondaryCategories) {
+          try {
+            const tags = JSON.parse(doc.secondaryCategories)
+            if (Array.isArray(tags)) {
+              tags.forEach((t: string) => tagSet.add(t))
+            }
+          } catch { /* ignore parse errors */ }
+        }
+      })
+
+      return { success: true, tags: Array.from(tagSet).sort() }
+    } catch (error: any) {
+      console.error('Get all tags error:', error)
+      return { success: false, tags: [], message: error.message }
+    }
+  })
+
+  // ============================================================
+  // TECH-3: Paginacion / Lazy loading
+  // ============================================================
+  ipcMain.handle('wisdom:listPaginated', async (_event, options: {
+    offset?: number
+    limit?: number
+    category?: string
+    region?: string
+    search?: string
+    sortBy?: 'title' | 'createdAt' | 'category'
+    sortOrder?: 'asc' | 'desc'
+  }) => {
+    try {
+      const { offset = 0, limit = 50, category, region, search, sortBy = 'createdAt', sortOrder = 'desc' } = options || {}
+
+      const where: any = {}
+      if (category && category !== 'all') {
+        where.category = category
+      }
+      if (region) {
+        where.region = { contains: region }
+      }
+      if (search) {
+        where.OR = [
+          { title: { contains: search } },
+          { content: { contains: search } },
+          { keywords: { contains: search } },
+        ]
+      }
+
+      const [documents, totalCount] = await Promise.all([
+        prismaClient.hydraulicKnowledge.findMany({
+          where,
+          orderBy: { [sortBy]: sortOrder },
+          skip: offset,
+          take: limit,
+          include: {
+            chunks: {
+              select: { id: true, embedding: true },
+            },
+          },
+        }),
+        prismaClient.hydraulicKnowledge.count({ where }),
+      ])
+
+      const formattedDocs = documents.map((doc: any) => ({
+        id: doc.id,
+        title: doc.title,
+        category: doc.category,
+        subcategory: doc.subcategory,
+        region: doc.region,
+        language: doc.language,
+        version: doc.version,
+        status: doc.status,
+        tags: doc.secondaryCategories ? (() => { try { return JSON.parse(doc.secondaryCategories) } catch { return [] } })() : [],
+        updatedAt: doc.updatedAt?.toISOString(),
+        createdAt: doc.createdAt?.toISOString(),
+        type: 'uploaded' as const,
+        indexing: {
+          totalChunks: doc.chunks?.length || 0,
+          chunksWithEmbeddings: doc.chunks?.filter((c: any) => c.embedding && c.embedding !== '[]' && c.embedding !== 'null').length || 0,
+          isIndexed: doc.chunks?.length > 0,
+          hasEmbeddings: doc.chunks?.some((c: any) => c.embedding && c.embedding !== '[]' && c.embedding !== 'null') || false,
+          indexingComplete: doc.chunks?.length > 0 && doc.chunks?.every((c: any) => c.embedding && c.embedding !== '[]' && c.embedding !== 'null'),
+          status: doc.chunks?.length === 0 ? 'not_indexed' :
+            doc.chunks?.every((c: any) => c.embedding && c.embedding !== '[]' && c.embedding !== 'null') ? 'completed' : 'partial',
+        },
+      }))
+
+      return {
+        success: true,
+        documents: formattedDocs,
+        pagination: {
+          offset,
+          limit,
+          totalCount,
+          hasMore: offset + limit < totalCount,
+        },
+      }
+    } catch (error: any) {
+      console.error('List paginated error:', error)
+      return { success: false, documents: [], pagination: { offset: 0, limit: 50, totalCount: 0, hasMore: false }, message: error.message }
+    }
+  })
+}
+
 // Helper functions
 function getColorForCategory(category: string): string {
   const colors = {

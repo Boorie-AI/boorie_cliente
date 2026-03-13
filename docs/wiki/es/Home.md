@@ -11,14 +11,14 @@ Bienvenido a la documentación completa de **Boorie**, el cliente de escritorio 
 - [Solución de Problemas](Solucion-Problemas.md) - Problemas comunes y soluciones
 
 ### Características Principales
-- [Integración AI](Integracion-AI.md) - Configuración y uso de AI multiproveedores
+- [Integración AI](Integracion-IA.md) - Configuración y uso de AI multiproveedores
 - [Herramientas Hidráulicas](Herramientas-Hidraulicas.md) - Herramientas de cálculo de ingeniería
 - [Integración WNTR](Integracion-WNTR.md) - Análisis de redes de agua
 - [Gestión de Proyectos](Gestion-Proyectos.md) - Gestión de proyectos hidráulicos
 - [Integración de Analíticas](Integracion-Analiticas.md) - Configuración Microsoft Clarity
 
 ### Documentación Técnica
-- [Visión General de Arquitectura](Vision-Arquitectura.md) - Arquitectura y diseño del sistema
+- [Visión General de Arquitectura](Arquitectura-General.md) - Arquitectura y diseño del sistema
 - [Documentación API](Documentacion-API.md) - APIs IPC e interfaces
 - [Esquema de Base de Datos](Esquema-Base-Datos.md) - Modelos Prisma y relaciones
 - [Componentes Frontend](Componentes-Frontend.md) - Biblioteca de componentes React
@@ -58,7 +58,7 @@ Bienvenido a la documentación completa de **Boorie**, el cliente de escritorio 
 
 ### Para Desarrolladores
 1. [Configuración de Desarrollo](Configuracion-Desarrollo.md) - Configuración del entorno
-2. [Visión General de Arquitectura](Vision-Arquitectura.md) - Diseño del sistema
+2. [Visión General de Arquitectura](Arquitectura-General.md) - Diseño del sistema
 3. [Documentación API](Documentacion-API.md) - APIs técnicas
 
 ### Para Ingenieros
@@ -107,4 +107,4 @@ Boorie está licenciado bajo la Licencia MIT. Ver [LICENSE](../LICENSE) para det
 
 ---
 
-*Última actualización: Octubre 2025*
+*Última actualización: Marzo 2026*

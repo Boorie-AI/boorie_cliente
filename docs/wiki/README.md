@@ -12,10 +12,30 @@ Welcome to the comprehensive documentation for **Boorie**, the advanced AI deskt
 
 ### 🇪🇸 Documentación en Español
 - [🏠 Inicio](es/Home.md)
+- [⚡ Inicio Rápido](es/Inicio-Rapido.md)
+- [📦 Guía de Instalación](es/Guia-Instalacion.md)
+- [⚙️ Configuración](es/Configuracion.md)
+- [🔧 Solución de Problemas](es/Solucion-Problemas.md)
+- [🤖 Integración AI](es/Integracion-IA.md)
+- [🌊 Integración WNTR](es/Integracion-WNTR.md)
+- [📋 Gestión de Proyectos](es/Gestion-Proyectos.md)
+- [🧮 Cálculos de Ingeniería](es/Calculos-Ingenieria.md)
+- [📏 Estándares Regionales](es/Estandares-Regionales.md)
+- [🏗️ Arquitectura General](es/Arquitectura-General.md)
 - [⚡ Integración de Analíticas](es/Integracion-Analiticas.md)
 
 ### 🏴󠁥󠁳󠁣󠁴󠁿 Documentació en Català
 - [🏠 Inici](ca/Home.md)
+- [⚡ Inici Ràpid](ca/Inici-Rapid.md)
+- [📦 Guia d'Instal·lació](ca/Guia-Installacio.md)
+- [⚙️ Configuració](ca/Configuracio.md)
+- [🔧 Solució de Problemes](ca/Solucio-Problemes.md)
+- [🤖 Integració AI](ca/Integracio-IA.md)
+- [🌊 Integració WNTR](ca/Integracio-WNTR.md)
+- [📋 Gestió de Projectes](ca/Gestio-Projectes.md)
+- [🧮 Càlculs d'Enginyeria](ca/Calculs-Enginyeria.md)
+- [📏 Estàndards Regionals](ca/Estandards-Regionals.md)
+- [🏗️ Arquitectura General](ca/Arquitectura-General.md)
 - [⚡ Integració d'Analítiques](ca/Integracio-Analitiques.md)
 
 ## 📚 Language-Specific READMEs
@@ -51,11 +71,11 @@ Descripció completa del projecte i instruccions de configuració en català.
 
 ## 🔄 Documentation Status
 
-| Language | Home | Analytics | WNTR | Architecture | Status |
-|----------|------|-----------|------|--------------|--------|
-| 🇺🇸 English | ✅ | ✅ | ✅ | ✅ | Complete |
-| 🇪🇸 Español | ✅ | ✅ | 🚧 | 🚧 | In Progress |
-| 🏴󠁥󠁳󠁣󠁴󠁿 Català | ✅ | ✅ | 🚧 | 🚧 | In Progress |
+| Language | Home | Quick Start | Installation | Configuration | Troubleshooting | AI | WNTR | Projects | Calculations | Standards | Architecture | Analytics | Status |
+|----------|------|-------------|-------------|---------------|-----------------|-----|------|----------|-------------|-----------|-------------|-----------|--------|
+| 🇺🇸 English | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Complete |
+| 🇪🇸 Español | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Complete |
+| 🏴󠁥󠁳󠁣󠁴󠁿 Català | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Complete |
 
 Legend:
 - ✅ Complete

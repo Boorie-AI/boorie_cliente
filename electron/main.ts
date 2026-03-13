@@ -132,6 +132,316 @@ function configurePrismaForPackagedApp() {
 }
 
 /**
+ * Ensure all required tables exist in production database.
+ * Uses CREATE TABLE IF NOT EXISTS so it's safe to run on every startup.
+ * This solves the issue where packaged apps ship with an outdated or empty DB.
+ */
+async function ensureProductionSchema(prismaClient: any): Promise<void> {
+  const statements = [
+    // Conversations
+    `CREATE TABLE IF NOT EXISTS "conversations" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "title" TEXT NOT NULL,
+      "model" TEXT NOT NULL,
+      "provider" TEXT NOT NULL,
+      "projectId" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL,
+      CONSTRAINT "conversations_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "hydraulic_projects" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    )`,
+    // Messages
+    `CREATE TABLE IF NOT EXISTS "messages" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "conversationId" TEXT NOT NULL,
+      "role" TEXT NOT NULL,
+      "content" TEXT NOT NULL,
+      "timestamp" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "metadata" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "messages_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "conversations" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    )`,
+    // AI Providers
+    `CREATE TABLE IF NOT EXISTS "ai_providers" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "name" TEXT NOT NULL,
+      "type" TEXT NOT NULL,
+      "apiKey" TEXT,
+      "isActive" INTEGER NOT NULL DEFAULT 0,
+      "isConnected" INTEGER NOT NULL DEFAULT 0,
+      "lastTestResult" TEXT,
+      "lastTestMessage" TEXT,
+      "config" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL
+    )`,
+    // AI Models
+    `CREATE TABLE IF NOT EXISTS "ai_models" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "providerId" TEXT NOT NULL,
+      "modelName" TEXT NOT NULL,
+      "modelId" TEXT NOT NULL,
+      "isDefault" INTEGER NOT NULL DEFAULT 0,
+      "isAvailable" INTEGER NOT NULL DEFAULT 1,
+      "isSelected" INTEGER NOT NULL DEFAULT 0,
+      "description" TEXT,
+      "metadata" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL,
+      CONSTRAINT "ai_models_providerId_fkey" FOREIGN KEY ("providerId") REFERENCES "ai_providers" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    )`,
+    // App Settings
+    `CREATE TABLE IF NOT EXISTS "app_settings" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "key" TEXT NOT NULL,
+      "value" TEXT NOT NULL,
+      "category" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL
+    )`,
+    // Documents
+    `CREATE TABLE IF NOT EXISTS "documents" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "filename" TEXT NOT NULL,
+      "filepath" TEXT NOT NULL,
+      "content" TEXT NOT NULL,
+      "metadata" TEXT,
+      "embeddings" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL
+    )`,
+    // Document Chunks
+    `CREATE TABLE IF NOT EXISTS "document_chunks" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "documentId" TEXT NOT NULL,
+      "content" TEXT NOT NULL,
+      "embedding" TEXT,
+      "metadata" TEXT,
+      "startPos" INTEGER,
+      "endPos" INTEGER,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "document_chunks_documentId_fkey" FOREIGN KEY ("documentId") REFERENCES "documents" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    )`,
+    // Auth Tokens
+    `CREATE TABLE IF NOT EXISTS "auth_tokens" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "provider" TEXT NOT NULL,
+      "tokenType" TEXT NOT NULL,
+      "accessToken" TEXT NOT NULL,
+      "refreshToken" TEXT,
+      "expiresAt" DATETIME,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL
+    )`,
+    // Email Messages
+    `CREATE TABLE IF NOT EXISTS "email_messages" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "provider" TEXT NOT NULL,
+      "messageId" TEXT NOT NULL,
+      "subject" TEXT NOT NULL,
+      "from" TEXT NOT NULL,
+      "to" TEXT NOT NULL,
+      "cc" TEXT,
+      "bcc" TEXT,
+      "body" TEXT NOT NULL,
+      "htmlBody" TEXT,
+      "attachments" TEXT,
+      "isRead" INTEGER NOT NULL DEFAULT 0,
+      "isImportant" INTEGER NOT NULL DEFAULT 0,
+      "receivedAt" DATETIME NOT NULL,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL
+    )`,
+    // Calendar Events
+    `CREATE TABLE IF NOT EXISTS "calendar_events" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "provider" TEXT NOT NULL,
+      "eventId" TEXT NOT NULL,
+      "title" TEXT NOT NULL,
+      "description" TEXT,
+      "location" TEXT,
+      "startTime" DATETIME NOT NULL,
+      "endTime" DATETIME NOT NULL,
+      "isAllDay" INTEGER NOT NULL DEFAULT 0,
+      "attendees" TEXT,
+      "organizer" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL
+    )`,
+    // User Profiles
+    `CREATE TABLE IF NOT EXISTS "user_profiles" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "provider" TEXT NOT NULL,
+      "providerId" TEXT NOT NULL,
+      "email" TEXT NOT NULL,
+      "name" TEXT,
+      "pictureUrl" TEXT,
+      "isActive" INTEGER NOT NULL DEFAULT 1,
+      "metadata" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL
+    )`,
+    // Hydraulic Projects
+    `CREATE TABLE IF NOT EXISTS "hydraulic_projects" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "name" TEXT NOT NULL,
+      "description" TEXT,
+      "type" TEXT NOT NULL,
+      "networkType" TEXT NOT NULL,
+      "location" TEXT NOT NULL,
+      "status" TEXT NOT NULL,
+      "regulations" TEXT NOT NULL,
+      "wntrModel" TEXT,
+      "metadata" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL
+    )`,
+    // Hydraulic Calculations
+    `CREATE TABLE IF NOT EXISTS "hydraulic_calculations" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "projectId" TEXT NOT NULL,
+      "type" TEXT NOT NULL,
+      "name" TEXT NOT NULL,
+      "inputs" TEXT NOT NULL,
+      "results" TEXT NOT NULL,
+      "formulas" TEXT NOT NULL,
+      "verified" INTEGER NOT NULL DEFAULT 0,
+      "verifiedBy" TEXT,
+      "notes" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL,
+      CONSTRAINT "hydraulic_calculations_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "hydraulic_projects" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    )`,
+    // Project Documents
+    `CREATE TABLE IF NOT EXISTS "project_documents" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "projectId" TEXT NOT NULL,
+      "type" TEXT NOT NULL,
+      "title" TEXT NOT NULL,
+      "content" TEXT NOT NULL,
+      "metadata" TEXT NOT NULL,
+      "attachments" TEXT,
+      "version" TEXT NOT NULL DEFAULT '1.0',
+      "status" TEXT NOT NULL DEFAULT 'draft',
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL,
+      CONSTRAINT "project_documents_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "hydraulic_projects" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    )`,
+    // Project Team Members
+    `CREATE TABLE IF NOT EXISTS "project_team_members" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "projectId" TEXT NOT NULL,
+      "userId" TEXT NOT NULL,
+      "role" TEXT NOT NULL,
+      "permissions" TEXT NOT NULL,
+      "joinedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "project_team_members_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "hydraulic_projects" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    )`,
+    // Hydraulic Knowledge (the main table causing BUG-1)
+    `CREATE TABLE IF NOT EXISTS "hydraulic_knowledge" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "category" TEXT NOT NULL,
+      "subcategory" TEXT NOT NULL,
+      "region" TEXT NOT NULL,
+      "secondaryCategories" TEXT,
+      "title" TEXT NOT NULL,
+      "content" TEXT NOT NULL,
+      "metadata" TEXT NOT NULL,
+      "keywords" TEXT NOT NULL,
+      "language" TEXT NOT NULL DEFAULT 'es',
+      "version" TEXT NOT NULL DEFAULT '1.0',
+      "status" TEXT NOT NULL DEFAULT 'active',
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL
+    )`,
+    // Knowledge Chunks
+    `CREATE TABLE IF NOT EXISTS "knowledge_chunks" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "knowledgeId" TEXT NOT NULL,
+      "content" TEXT NOT NULL,
+      "embedding" TEXT NOT NULL,
+      "metadata" TEXT,
+      "chunkIndex" INTEGER NOT NULL,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "knowledge_chunks_knowledgeId_fkey" FOREIGN KEY ("knowledgeId") REFERENCES "hydraulic_knowledge" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    )`,
+    // Hydraulic Components
+    `CREATE TABLE IF NOT EXISTS "hydraulic_components" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "type" TEXT NOT NULL,
+      "manufacturer" TEXT,
+      "model" TEXT,
+      "specifications" TEXT NOT NULL,
+      "priceInfo" TEXT,
+      "availability" TEXT,
+      "documentation" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL
+    )`,
+    // Hydraulic Networks
+    `CREATE TABLE IF NOT EXISTS "hydraulic_networks" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "projectId" TEXT NOT NULL,
+      "name" TEXT NOT NULL,
+      "description" TEXT,
+      "filename" TEXT NOT NULL,
+      "fileContent" TEXT NOT NULL,
+      "networkData" TEXT NOT NULL,
+      "coordinateSystem" TEXT,
+      "summary" TEXT NOT NULL,
+      "simulationResults" TEXT,
+      "version" TEXT NOT NULL DEFAULT '1.0',
+      "isActive" INTEGER NOT NULL DEFAULT 1,
+      "lastLoaded" DATETIME,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL,
+      CONSTRAINT "hydraulic_networks_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "hydraulic_projects" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    )`,
+    // Feedback
+    `CREATE TABLE IF NOT EXISTS "feedback" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "query" TEXT NOT NULL,
+      "response" TEXT NOT NULL,
+      "rating" INTEGER NOT NULL,
+      "correction" TEXT,
+      "context" TEXT,
+      "modelUsed" TEXT,
+      "category" TEXT,
+      "userId" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+    // Long Term Memory
+    `CREATE TABLE IF NOT EXISTS "long_term_memory" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "key" TEXT NOT NULL,
+      "value" TEXT NOT NULL,
+      "category" TEXT,
+      "confidence" REAL NOT NULL DEFAULT 1.0,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL
+    )`,
+    // Unique indexes
+    `CREATE UNIQUE INDEX IF NOT EXISTS "ai_providers_name_key" ON "ai_providers"("name")`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "ai_models_providerId_modelId_key" ON "ai_models"("providerId", "modelId")`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "app_settings_key_key" ON "app_settings"("key")`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "auth_tokens_provider_tokenType_key" ON "auth_tokens"("provider", "tokenType")`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "email_messages_provider_messageId_key" ON "email_messages"("provider", "messageId")`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "calendar_events_provider_eventId_key" ON "calendar_events"("provider", "eventId")`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "user_profiles_provider_providerId_key" ON "user_profiles"("provider", "providerId")`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "project_team_members_projectId_userId_key" ON "project_team_members"("projectId", "userId")`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "hydraulic_networks_projectId_name_key" ON "hydraulic_networks"("projectId", "name")`
+  ]
+
+  for (const sql of statements) {
+    try {
+      await prismaClient.$executeRawUnsafe(sql)
+    } catch (error) {
+      // Log but don't fail - table may already exist with slightly different schema
+      console.warn('Schema statement warning:', (error as Error).message?.substring(0, 100))
+    }
+  }
+}
+
+/**
  * Initialize database path and ensure it exists
  */
 function initializeDatabasePath(): string {
@@ -646,6 +956,15 @@ async function initDatabase(): Promise<void> {
         execSync('npx prisma db push', { stdio: 'inherit' })
       } catch (error) {
         appLogger.warn('Failed to push database schema, assuming it exists', error as Error)
+      }
+    } else {
+      // Production: ensure all tables exist using CREATE TABLE IF NOT EXISTS
+      // This handles the case where the packaged DB is outdated or empty
+      try {
+        await ensureProductionSchema(prisma)
+        appLogger.info('Production database schema verified/updated')
+      } catch (error) {
+        appLogger.error('Failed to ensure production schema', error as Error)
       }
     }
 

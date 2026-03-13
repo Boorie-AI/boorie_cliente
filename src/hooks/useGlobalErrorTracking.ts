@@ -5,12 +5,21 @@
 
 import { useEffect } from 'react';
 import { clarityService } from '@/services/clarity';
+import { errorAlertService } from '@/services/errorAlertService';
 
 export function useGlobalErrorTracking() {
 
   useEffect(() => {
     // Track JavaScript errors
     const handleError = (event: ErrorEvent) => {
+      // Track in error alert service for pattern detection
+      errorAlertService.trackError(
+        'javascript',
+        event.message,
+        event.filename || 'unknown',
+        'error'
+      );
+
       if (clarityService.isReady()) {
         clarityService.trackEvent('error_occurred', {
           error_type: 'javascript',
@@ -39,6 +48,14 @@ export function useGlobalErrorTracking() {
       } else {
         errorMessage = 'Unknown rejection reason';
       }
+
+      // Track in error alert service for pattern detection
+      errorAlertService.trackError(
+        'unhandled_rejection',
+        errorMessage,
+        'promise',
+        'error'
+      );
 
       if (clarityService.isReady()) {
         clarityService.trackEvent('error_occurred', {

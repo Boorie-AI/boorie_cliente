@@ -294,6 +294,24 @@ const electronAPI = {
     // Ollama connection check via main process (bypasses CORS)
     checkOllamaConnection: () => ipcRenderer.invoke('wisdom:checkOllamaConnection'),
 
+    // Export
+    exportDocuments: (options?: { documentIds?: string[]; format?: 'json' | 'csv'; includeContent?: boolean }) =>
+      ipcRenderer.invoke('wisdom:exportDocuments', options),
+
+    // Search history
+    saveSearchHistory: (entry: { query: string; resultsCount: number; searchType: 'simple' | 'rag'; filters?: any }) =>
+      ipcRenderer.invoke('wisdom:saveSearchHistory', entry),
+    getSearchHistory: (options?: { limit?: number }) => ipcRenderer.invoke('wisdom:getSearchHistory', options),
+    clearSearchHistory: () => ipcRenderer.invoke('wisdom:clearSearchHistory'),
+
+    // Tags
+    updateTags: (documentId: string, tags: string[]) => ipcRenderer.invoke('wisdom:updateTags', documentId, tags),
+    getAllTags: () => ipcRenderer.invoke('wisdom:getAllTags'),
+
+    // Paginated list
+    listPaginated: (options?: { offset?: number; limit?: number; category?: string; region?: string; search?: string; sortBy?: string; sortOrder?: string }) =>
+      ipcRenderer.invoke('wisdom:listPaginated', options),
+
     // Progress listener
     onUploadProgress: (callback: (data: { current: number; total: number; message: string; filename: string }) => void) => {
       const wrappedCallback = (_event: any, data: any) => callback(data)

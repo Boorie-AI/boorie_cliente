@@ -7,9 +7,9 @@ export class HydraulicCalculatorWrapper {
   private scriptPath: string
 
   constructor() {
-    // Use the same Python path detection as WNTR
-    // First try the environment variable, then use system python3
-    this.pythonPath = process.env.PYTHON_PATH || 'python3'
+    // Use shared Python detection utility
+    const { findPythonPath } = require('./pythonDetector')
+    this.pythonPath = findPythonPath()
     this.scriptPath = path.join(__dirname, 'hydraulicCalculator.py')
     console.log('HydraulicCalculatorWrapper initialized with:', {
       pythonPath: this.pythonPath,

@@ -100,8 +100,9 @@ export class WNTRAnalysisService {
   private servicePath: string;
 
   constructor() {
-    // Get Python path from environment or use default
-    this.pythonPath = process.env.PYTHON_PATH || 'python3';
+    // Use shared Python detection utility
+    const { findPythonPath } = require('./pythonDetector');
+    this.pythonPath = findPythonPath();
     this.servicePath = path.join(__dirname, 'wntr_analysis_service.py');
   }
 

@@ -73,61 +73,10 @@ class WNTRWrapper {
   private scriptPath: string
 
   constructor() {
-    // Determine the best Python path to avoid code signing issues
-    this.pythonPath = this.findBestPythonPath()
+    // Use shared Python detection utility (supports macOS, Windows, Linux)
+    const { findPythonPath } = require('./pythonDetector')
+    this.pythonPath = findPythonPath()
     this.scriptPath = path.join(__dirname, 'wntrService.py')
-  }
-
-  private findBestPythonPath(): string {
-    // Use environment variable if set
-    if (process.env.PYTHON_PATH) {
-      console.log(`Using Python from PYTHON_PATH: ${process.env.PYTHON_PATH}`)
-      return process.env.PYTHON_PATH
-    }
-
-    // On macOS, prefer non-system Python to avoid code signing issues
-    if (process.platform === 'darwin') {
-      const possiblePaths = [
-        // Check for venv in common locations first
-        `${process.env.HOME}/repositorio/uruguay_wihisper/venv/bin/python3`,
-        `${process.env.HOME}/venv/bin/python3`,
-        `${process.env.HOME}/.venv/bin/python3`,
-        './venv/bin/python3',
-        '../venv/bin/python3',
-        // Then check for system-wide installations
-        '/opt/homebrew/bin/python3',              // Homebrew on Apple Silicon
-        '/usr/local/bin/python3',                  // Homebrew on Intel
-        `${process.env.HOME}/.pyenv/shims/python3`, // pyenv
-        '/opt/miniconda3/bin/python3',            // Miniconda
-        '/opt/anaconda3/bin/python3',             // Anaconda
-        `${process.env.HOME}/miniconda3/bin/python3`,
-        `${process.env.HOME}/anaconda3/bin/python3`
-        // Explicitly avoid system Python to prevent code signing issues
-      ]
-      
-      const fs = require('fs')
-      for (const pythonPath of possiblePaths) {
-        if (fs.existsSync(pythonPath)) {
-          console.log(`Found Python at: ${pythonPath}`)
-          // Check if this Python has the required packages
-          try {
-            const { execSync } = require('child_process')
-            execSync(`${pythonPath} -c "import wntr; import numpy"`, { stdio: 'pipe' })
-            console.log(`Using Python with WNTR installed: ${pythonPath}`)
-            return pythonPath
-          } catch (e) {
-            console.log(`Python at ${pythonPath} doesn't have required packages, trying next...`)
-          }
-        }
-      }
-      
-      // If no suitable Python found, warn the user
-      console.error('WARNING: No Python installation with WNTR found. This may cause issues.')
-      console.error('Please install WNTR in a virtual environment and set PYTHON_PATH environment variable.')
-    }
-
-    // Default fallback
-    return process.platform === 'win32' ? 'python' : 'python3'
   }
 
   private async runPythonScript(command: string, args: string[]): Promise<any> {

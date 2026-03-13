@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 
 import {
   Upload, Search, FileText, Trash2, RefreshCw, Settings,
-  Grid, List, FolderOpen, Archive, Plus, Network, CheckSquare, Square
+  Grid, List, FolderOpen, Archive, Plus, Network, CheckSquare, Square,
+  Download, History, Tag, X
 } from 'lucide-react'
 import { VectorGraphViewer } from './VectorGraphViewer'
 import { BulkUploadDialog } from './BulkUploadDialog'
@@ -99,6 +100,15 @@ export function UnifiedWisdomPanel() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [selectedRegion, setSelectedRegion] = useState<string>('')
+
+  // Search history
+  const [searchHistory, setSearchHistory] = useState<Array<{ query: string; timestamp: string; resultsCount: number; searchType: string }>>([])
+  const [showSearchHistory, setShowSearchHistory] = useState(false)
+
+  // Tags
+  const [allTags, setAllTags] = useState<string[]>([])
+  const [editingTagsDocId, setEditingTagsDocId] = useState<string | null>(null)
+  const [tagInput, setTagInput] = useState('')
 
   // Catalog specific
 
@@ -594,6 +604,99 @@ export function UnifiedWisdomPanel() {
     }
   }
 
+  // ---- TECH-3: Export masivo ----
+  const handleExport = async (format: 'json' | 'csv' = 'json') => {
+    if (!window.electronAPI?.wisdom?.exportDocuments) return
+    setLoading(true)
+    try {
+      const documentIds = isSelectMode && selectedDocuments.size > 0
+        ? Array.from(selectedDocuments)
+        : undefined
+      const result = await window.electronAPI.wisdom.exportDocuments({
+        documentIds,
+        format,
+        includeContent: false,
+      })
+      if (result.success) {
+        alert(`Exported ${result.exportedCount} documents successfully.`)
+      } else {
+        alert(`Export failed: ${result.message}`)
+      }
+    } catch (error) {
+      console.error('Export error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ---- TECH-3: Search history ----
+  const loadSearchHistory = async () => {
+    if (!window.electronAPI?.wisdom?.getSearchHistory) return
+    try {
+      const result = await window.electronAPI.wisdom.getSearchHistory({ limit: 10 })
+      if (result.success) {
+        setSearchHistory(result.history)
+      }
+    } catch (error) {
+      console.error('Error loading search history:', error)
+    }
+  }
+
+  const handleSearchWithHistory = async (query: string) => {
+    setSearchQuery(query)
+    if (query.trim() && window.electronAPI?.wisdom?.saveSearchHistory) {
+      await window.electronAPI.wisdom.saveSearchHistory({
+        query: query.trim(),
+        resultsCount: allDocuments.length,
+        searchType: 'simple',
+      })
+      loadSearchHistory()
+    }
+  }
+
+  // ---- TECH-3: Tags ----
+  const handleAddTag = async (documentId: string, newTag: string) => {
+    if (!newTag.trim() || !window.electronAPI?.wisdom?.updateTags) return
+    const doc = allDocuments.find(d => d.id === documentId)
+    if (!doc) return
+    const currentTags: string[] = (doc as any).tags || []
+    if (currentTags.includes(newTag.trim())) return
+    const updatedTags = [...currentTags, newTag.trim()]
+    await window.electronAPI.wisdom.updateTags(documentId, updatedTags)
+    setTagInput('')
+    await loadWisdomDocuments()
+    loadAllTags()
+  }
+
+  const handleRemoveTag = async (documentId: string, tagToRemove: string) => {
+    if (!window.electronAPI?.wisdom?.updateTags) return
+    const doc = allDocuments.find(d => d.id === documentId)
+    if (!doc) return
+    const currentTags: string[] = (doc as any).tags || []
+    const updatedTags = currentTags.filter(t => t !== tagToRemove)
+    await window.electronAPI.wisdom.updateTags(documentId, updatedTags)
+    await loadWisdomDocuments()
+    loadAllTags()
+  }
+
+  const loadAllTags = async () => {
+    if (!window.electronAPI?.wisdom?.getAllTags) return
+    try {
+      const result = await window.electronAPI.wisdom.getAllTags()
+      if (result.success) setAllTags(result.tags)
+    } catch (error) {
+      console.error('Error loading tags:', error)
+    }
+  }
+
+  // Load search history and tags on mount
+  useEffect(() => {
+    if (apiAvailable) {
+      loadSearchHistory()
+      loadAllTags()
+    }
+  }, [apiAvailable])
+
   const handleForceIndex = async (documentId: string) => {
     if (!confirm('Force reindexing will delete existing chunks and recreate them. Continue?')) return
 
@@ -790,23 +893,66 @@ export function UnifiedWisdomPanel() {
               />
 
               {/* Search Bar */}
-              <div className="flex gap-2 flex-1 min-w-[300px]">
-                <input
-                  type="text"
-                  placeholder="Search documents, topics, or descriptions..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      if (e.shiftKey) {
-                        handleSemanticSearch()
-                      } else {
-                        combineDocuments()
+              <div className="relative flex gap-2 flex-1 min-w-[300px]">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search documents, topics, or descriptions..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => searchHistory.length > 0 && setShowSearchHistory(true)}
+                    onBlur={() => setTimeout(() => setShowSearchHistory(false), 200)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        setShowSearchHistory(false)
+                        if (e.shiftKey) {
+                          handleSemanticSearch()
+                        } else {
+                          handleSearchWithHistory(searchQuery)
+                          combineDocuments()
+                        }
                       }
-                    }
-                  }}
-                  className="flex-1 px-4 py-2 bg-background border border-border rounded-lg text-foreground"
-                />
+                    }}
+                    className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground"
+                  />
+                  {/* Search History Dropdown */}
+                  {showSearchHistory && searchHistory.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto">
+                      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                        <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                          <History className="w-3 h-3" /> Recent Searches
+                        </span>
+                        <button
+                          onClick={async () => {
+                            if (window.electronAPI?.wisdom?.clearSearchHistory) {
+                              await window.electronAPI.wisdom.clearSearchHistory()
+                              setSearchHistory([])
+                            }
+                          }}
+                          className="text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                      {searchHistory.map((entry, i) => (
+                        <button
+                          key={i}
+                          onMouseDown={() => {
+                            setSearchQuery(entry.query)
+                            setShowSearchHistory(false)
+                            combineDocuments()
+                          }}
+                          className="w-full text-left px-3 py-2 hover:bg-accent/50 text-sm text-foreground flex items-center justify-between"
+                        >
+                          <span className="truncate">{entry.query}</span>
+                          <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                            {entry.resultsCount} results
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={handleSemanticSearch}
                   disabled={loading || !searchQuery.trim()}
@@ -882,6 +1028,16 @@ export function UnifiedWisdomPanel() {
               >
                 <Network className="w-4 h-4" />
                 Vector Graph
+              </button>
+
+              <button
+                onClick={() => handleExport('json')}
+                disabled={loading || allDocuments.length === 0}
+                className="flex items-center gap-2 px-3 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors disabled:opacity-50 whitespace-nowrap text-sm"
+                title={isSelectMode && selectedDocuments.size > 0 ? `Export ${selectedDocuments.size} selected` : 'Export all documents'}
+              >
+                <Download className="w-4 h-4" />
+                Export
               </button>
 
               <button

@@ -11,14 +11,14 @@ Benvingut a la documentació completa de **Boorie**, el client d'escriptori AI a
 - [Solució de Problemes](Solucio-Problemes.md) - Problemes comuns i solucions
 
 ### Característiques Principals
-- [Integració AI](Integracio-AI.md) - Configuració i ús d'AI multiproveïdors
+- [Integració AI](Integracio-IA.md) - Configuració i ús d'AI multiproveïdors
 - [Eines Hidràuliques](Eines-Hidrauliques.md) - Eines de càlcul d'enginyeria
 - [Integració WNTR](Integracio-WNTR.md) - Anàlisi de xarxes d'aigua
 - [Gestió de Projectes](Gestio-Projectes.md) - Gestió de projectes hidràulics
 - [Integració d'Analítiques](Integracio-Analitiques.md) - Configuració Microsoft Clarity
 
 ### Documentació Tècnica
-- [Visió General d'Arquitectura](Visio-Arquitectura.md) - Arquitectura i disseny del sistema
+- [Visió General d'Arquitectura](Arquitectura-General.md) - Arquitectura i disseny del sistema
 - [Documentació API](Documentacio-API.md) - APIs IPC i interfícies
 - [Esquema de Base de Dades](Esquema-Base-Dades.md) - Models Prisma i relacions
 - [Components Frontend](Components-Frontend.md) - Biblioteca de components React
@@ -58,7 +58,7 @@ Benvingut a la documentació completa de **Boorie**, el client d'escriptori AI a
 
 ### Per a Desenvolupadors
 1. [Configuració de Desenvolupament](Configuracio-Desenvolupament.md) - Configuració de l'entorn
-2. [Visió General d'Arquitectura](Visio-Arquitectura.md) - Disseny del sistema
+2. [Visió General d'Arquitectura](Arquitectura-General.md) - Disseny del sistema
 3. [Documentació API](Documentacio-API.md) - APIs tècniques
 
 ### Per a Enginyers
@@ -107,4 +107,4 @@ Boorie està llicenciat sota la Llicència MIT. Veure [LICENSE](../LICENSE) per 
 
 ---
 
-*Última actualització: Octubre 2025*
+*Última actualització: Març 2026*
