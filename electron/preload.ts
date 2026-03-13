@@ -187,6 +187,9 @@ const electronAPI = {
 
   // WNTR operations
   wntr: {
+    // Python/WNTR status check
+    checkPython: () => ipcRenderer.invoke('wntr:check-python'),
+
     // File operations
     loadINPFile: () => ipcRenderer.invoke('wntr:load-inp-file'),
     loadINPFromPath: (filePath: string) => ipcRenderer.invoke('wntr:load-inp-from-path', filePath),

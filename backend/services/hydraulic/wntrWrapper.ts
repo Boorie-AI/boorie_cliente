@@ -160,11 +160,41 @@ class WNTRWrapper {
             reject(new Error(`Failed to parse Python output: ${stdout}`))
           }
         } else if (code === -9) {
-          reject(new Error('Python process was killed (SIGKILL). This is likely due to macOS code signing issues with system Python. Please use a virtual environment.'))
+          reject(new Error(
+            'Python was terminated by the system (macOS code signing issue).\n\n' +
+            'Solution: Install Python via Homebrew:\n' +
+            '  brew install python@3.11\n' +
+            '  pip3 install wntr\n\n' +
+            'Then set PYTHON_PATH in Settings or restart Boorie.'
+          ))
+        } else if (code === 9009) {
+          // Windows-specific: MS Store alias redirect
+          reject(new Error(
+            'Python is not installed or is blocked by Windows.\n\n' +
+            'To fix this:\n' +
+            '1. Install Python from python.org/downloads\n' +
+            '2. During installation, check "Add Python to PATH"\n' +
+            '3. After installing, run: pip install wntr\n' +
+            '4. Disable the Windows app alias: Settings > Apps > Advanced app settings > App execution aliases > turn off "python.exe"\n' +
+            '5. Restart Boorie'
+          ))
         } else {
           console.error(`Python process exited with code ${code}`)
           console.error('stderr:', stderr)
-          reject(new Error(`Python script error (code ${code}): ${stderr}`))
+          // Extract the most relevant error line from stderr
+          const stderrLines = stderr.trim().split('\n')
+          const relevantError = stderrLines.find((l: string) => l.includes('Error') || l.includes('ModuleNotFoundError')) || stderrLines[stderrLines.length - 1]
+
+          if (stderr.includes('ModuleNotFoundError') && stderr.includes('wntr')) {
+            reject(new Error(
+              'Python is installed but WNTR is not available.\n\n' +
+              'To fix this, run in your terminal:\n' +
+              '  pip install wntr\n\n' +
+              'Then restart Boorie.'
+            ))
+          } else {
+            reject(new Error(`Python error: ${relevantError || `Exit code ${code}`}`))
+          }
         }
       })
 
@@ -173,13 +203,19 @@ class WNTRWrapper {
         console.error('Python path:', pythonCommand)
         console.error('Script path:', this.scriptPath)
         console.error('Working directory:', process.cwd())
-        
+
         if (error.code === 'ENOENT') {
-          reject(new Error(`Python executable not found at: ${pythonCommand}. Please install Python or check your PYTHON_PATH environment variable.`))
+          reject(new Error(
+            'Python was not found on this computer.\n\n' +
+            'To use hydraulic features, please install Python:\n' +
+            (process.platform === 'win32'
+              ? '  1. Download from python.org/downloads\n  2. Check "Add Python to PATH" during installation\n  3. Run: pip install wntr\n  4. Restart Boorie'
+              : '  1. Install: brew install python@3.11 (macOS) or apt install python3 (Linux)\n  2. Run: pip3 install wntr\n  3. Restart Boorie')
+          ))
         } else if (error.code === 'EACCES') {
-          reject(new Error(`Permission denied accessing Python at: ${pythonCommand}`))
+          reject(new Error(`Permission denied running Python at: ${pythonCommand}. Try running: chmod +x ${pythonCommand}`))
         } else {
-          reject(new Error(`Failed to run Python script: ${error.message || error}`))
+          reject(new Error(`Failed to run Python: ${error.message || error}`))
         }
       })
     })

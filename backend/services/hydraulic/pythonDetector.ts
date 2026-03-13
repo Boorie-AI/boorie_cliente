@@ -195,3 +195,50 @@ function testPythonHasWntr(pythonPath: string): boolean {
 export function resetPythonPathCache(): void {
   cachedPythonPath = null
 }
+
+/**
+ * Get a detailed status report of the Python/WNTR environment.
+ * Used by the UI to show dependency status and guide the user.
+ */
+export function getPythonStatus(): {
+  pythonFound: boolean
+  pythonPath: string
+  wntrAvailable: boolean
+  pythonVersion: string | null
+  platform: string
+  instructions: string | null
+} {
+  const pythonPath = findPythonPath()
+  const isReal = testPythonIsReal(pythonPath)
+  const hasWntr = isReal ? testPythonHasWntr(pythonPath) : false
+
+  let pythonVersion: string | null = null
+  if (isReal) {
+    try {
+      const result = execSync(`"${pythonPath}" --version`, { stdio: 'pipe', timeout: 5000, windowsHide: true })
+      pythonVersion = result.toString().trim()
+    } catch { /* ignore */ }
+  }
+
+  let instructions: string | null = null
+  if (!isReal) {
+    if (process.platform === 'win32') {
+      instructions = 'Python is not installed. Download it from python.org/downloads and check "Add Python to PATH" during installation. Then run: pip install wntr'
+    } else if (process.platform === 'darwin') {
+      instructions = 'Python is not installed. Run: brew install python@3.11 && pip3 install wntr'
+    } else {
+      instructions = 'Python is not installed. Run: sudo apt install python3 python3-pip && pip3 install wntr'
+    }
+  } else if (!hasWntr) {
+    instructions = 'Python is installed but WNTR is missing. Run: pip install wntr'
+  }
+
+  return {
+    pythonFound: isReal,
+    pythonPath,
+    wntrAvailable: hasWntr,
+    pythonVersion,
+    platform: process.platform,
+    instructions,
+  }
+}

@@ -5,6 +5,7 @@ import { wntrWrapper } from '../../backend/services/hydraulic/wntrWrapper'
 import { WNTRSimulationService } from '../../backend/services/hydraulic/simulationService'
 import { WNTRAnalysisService } from '../../backend/services/hydraulic/analysisService'
 import { WNTRReportService } from '../../backend/services/hydraulic/reportService'
+import { getPythonStatus } from '../../backend/services/hydraulic/pythonDetector'
 
 // Create service instances
 const simulationService = new WNTRSimulationService()
@@ -12,9 +13,42 @@ const analysisService = new WNTRAnalysisService()
 const reportService = new WNTRReportService()
 
 export function setupWNTRHandlers() {
+  // Check Python/WNTR availability
+  ipcMain.handle('wntr:check-python', async () => {
+    try {
+      return { success: true, ...getPythonStatus() }
+    } catch (error) {
+      return {
+        success: false,
+        pythonFound: false,
+        wntrAvailable: false,
+        pythonVersion: null,
+        platform: process.platform,
+        instructions: 'Could not check Python status. Please install Python and WNTR manually.',
+      }
+    }
+  })
+
   // Load EPANET file
   ipcMain.handle('wntr:load-inp-file', async () => {
     try {
+      // Pre-validate Python/WNTR before opening file dialog
+      const pythonStatus = getPythonStatus()
+      if (!pythonStatus.pythonFound) {
+        return {
+          success: false,
+          error: 'Python is not installed on this computer.\n\n' +
+            (pythonStatus.instructions || 'Please install Python and WNTR to use hydraulic features.')
+        }
+      }
+      if (!pythonStatus.wntrAvailable) {
+        return {
+          success: false,
+          error: 'WNTR is not installed.\n\n' +
+            (pythonStatus.instructions || 'Run: pip install wntr')
+        }
+      }
+
       // Show file dialog
       const result = await dialog.showOpenDialog({
         title: 'Select EPANET Input File',
@@ -30,7 +64,7 @@ export function setupWNTRHandlers() {
       }
 
       const filePath = result.filePaths[0]
-      
+
       // Load the file using WNTR
       const loadResult = await wntrWrapper.loadINPFile(filePath)
       
@@ -52,6 +86,23 @@ export function setupWNTRHandlers() {
   // Load EPANET file from path
   ipcMain.handle('wntr:load-inp-from-path', async (event, filePath: string) => {
     try {
+      // Pre-validate Python/WNTR
+      const pythonStatus = getPythonStatus()
+      if (!pythonStatus.pythonFound) {
+        return {
+          success: false,
+          error: 'Python is not installed on this computer.\n\n' +
+            (pythonStatus.instructions || 'Please install Python and WNTR to use hydraulic features.')
+        }
+      }
+      if (!pythonStatus.wntrAvailable) {
+        return {
+          success: false,
+          error: 'WNTR is not installed.\n\n' +
+            (pythonStatus.instructions || 'Run: pip install wntr')
+        }
+      }
+
       const loadResult = await wntrWrapper.loadINPFile(filePath)
       
       if (loadResult.success) {

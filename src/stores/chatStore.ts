@@ -322,9 +322,33 @@ export const useChatStore = create<ChatState>()(
         } catch (error) {
           console.error('Failed to get AI response:', error)
           get().clearStreamingMessage()
+
+          // Show specific error message instead of generic one
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          let userFacingMessage: string
+
+          if (errorMessage.includes('Cannot connect to Ollama') || errorMessage.includes('ECONNREFUSED')) {
+            userFacingMessage = '**Cannot connect to Ollama.** Please make sure Ollama is running on your computer.\n\n' +
+              '1. Open a terminal and run: `ollama serve`\n' +
+              '2. Verify it is running at http://127.0.0.1:11434\n' +
+              '3. Try sending your message again.'
+          } else if (errorMessage.includes('not found') && errorMessage.includes('ollama pull')) {
+            userFacingMessage = `**Model not available.** ${errorMessage}\n\nOpen a terminal and pull the model before trying again.`
+          } else if (errorMessage.includes('timed out')) {
+            userFacingMessage = '**Request timed out.** The model is taking too long to respond. This may happen with large models or on slower hardware. Please try again or switch to a smaller model.'
+          } else if (errorMessage.includes('API key') || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+            userFacingMessage = '**Authentication error.** Please check that your API key is correct in Settings > AI Providers.'
+          } else if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+            userFacingMessage = '**Rate limit exceeded.** Please wait a moment and try again.'
+          } else if (errorMessage.includes('hydraulic_knowledge') || errorMessage.includes('does not exist in the current database')) {
+            userFacingMessage = '**Database error.** Some tables are missing. Please restart the application to auto-repair the database.'
+          } else {
+            userFacingMessage = `**Error processing your request:** ${errorMessage}`
+          }
+
           await get().addMessageToConversation(conversationId, {
             role: 'assistant',
-            content: 'Sorry, I encountered an error while processing your request. Please try again.'
+            content: userFacingMessage
           })
         } finally {
           // Ensure streaming is cleared and loading is stopped
