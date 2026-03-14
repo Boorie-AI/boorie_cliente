@@ -1,6 +1,7 @@
 export interface NetworkAsset {
     id: string;
     name: string; // e.g., "Magnetic Island.inp"
+    filePath?: string; // Absolute path to the .inp file on disk
     uploadDate: string;
     nodeCount: number;
     linkCount: number;

@@ -152,12 +152,13 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     }
   }, [currentProject]);
 
-  const handleSaveNetworkToProject = useCallback((data: NetworkData) => {
+  const handleSaveNetworkToProject = useCallback((data: NetworkData, filePath?: string) => {
     if (!currentProject) return;
 
     const networkAsset: NetworkAsset = {
       id: `net_${Date.now()}`,
       name: data.name,
+      filePath: filePath,
       uploadDate: new Date().toISOString(),
       nodeCount: data.summary?.junctions || 0,
       linkCount: data.summary?.pipes || 0,
@@ -258,8 +259,8 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       if (result.success && result.data) {
         setNetworkData(result.data);
 
-        // Save to current project
-        handleSaveNetworkToProject(result.data);
+        // Save to current project (include filePath for later re-loading)
+        handleSaveNetworkToProject(result.data, result.filePath);
 
         // Track successful file load
         if (clarityReady) {
@@ -299,13 +300,15 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       setAnalysisProgress(0);
       setError(null);
 
-      // First ensure the INP file is loaded in the backend
-      console.log('Loading INP file before analysis:', networkData.name);
-      const loadResult = await window.electronAPI.wntr.loadINPFromPath(`data/${networkData.name}`);
-      console.log('Load result:', loadResult);
-
-      if (!loadResult.success) {
-        throw new Error(`Failed to load INP file: ${loadResult.error}`);
+      // Ensure the INP file is loaded in the backend
+      // Find the filePath from saved networks, or skip if already loaded
+      const savedNet = currentProject?.networks.find(n => n.name === networkData.name);
+      if (savedNet?.filePath) {
+        console.log('Loading INP file before analysis:', savedNet.filePath);
+        const loadResult = await window.electronAPI.wntr.loadINPFromPath(savedNet.filePath);
+        if (!loadResult.success) {
+          throw new Error(`Failed to load INP file: ${loadResult.error}`);
+        }
       }
 
       // 1. Topology
@@ -359,16 +362,13 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       // Reset current results
       setSimulationResults({ hydraulic: null, quality: null, scenario: null });
 
-      // First ensure the INP file is loaded in the backend
-      console.log('Loading INP file before simulation:', networkData.name);
-      const loadResult = await window.electronAPI.wntr.loadINPFromPath(`data/${networkData.name}`);
-
-      if (!loadResult.success) {
-        // Attempt to load without path prefix if data/ fails (fallback)
-        console.warn('Failed to load from data/, trying direct name:', loadResult.error);
-        // This is a safety check/fallback if needed, but for now we'll stick to the pattern
-        if (loadResult.error?.includes('No such file')) {
-          throw new Error(`INP file not found in data/ directory: ${networkData.name}`);
+      // Ensure the INP file is loaded in the backend
+      const savedNet = currentProject?.networks.find(n => n.name === networkData.name);
+      if (savedNet?.filePath) {
+        console.log('Loading INP file before simulation:', savedNet.filePath);
+        const loadResult = await window.electronAPI.wntr.loadINPFromPath(savedNet.filePath);
+        if (!loadResult.success) {
+          throw new Error(`Failed to load INP file: ${loadResult.error}`);
         }
       }
 
@@ -525,7 +525,17 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           variant="outline"
                           size="sm"
                           className="w-full justify-start text-xs"
-                          onClick={() => setNetworkData(net.data)}
+                          onClick={async () => {
+                            setNetworkData(net.data);
+                            // Reload the .inp file in the backend so simulations/analyses work
+                            if (net.filePath) {
+                              try {
+                                await window.electronAPI.wntr.loadINPFromPath(net.filePath);
+                              } catch (err) {
+                                console.warn('Could not reload INP file:', err);
+                              }
+                            }
+                          }}
                         >
                           <Database className="h-3 w-3 mr-2" />
                           {net.name}

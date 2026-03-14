@@ -221,7 +221,7 @@ class WNTRWrapper {
     })
   }
 
-  async loadINPFile(filePath: string): Promise<{ success: boolean; data?: WNTRNetworkInfo; error?: string }> {
+  async loadINPFile(filePath: string): Promise<{ success: boolean; data?: WNTRNetworkInfo; error?: string; filePath?: string }> {
     try {
       // Check if file exists
       await fs.access(filePath)

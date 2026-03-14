@@ -67,12 +67,14 @@ export function setupWNTRHandlers() {
 
       // Load the file using WNTR
       const loadResult = await wntrWrapper.loadINPFile(filePath)
-      
+
       if (loadResult.success) {
         // Store the file path for future operations
         global.currentWNTRFile = filePath
+        // Include filePath in the result so the frontend can store it
+        loadResult.filePath = filePath
       }
-      
+
       return loadResult
     } catch (error) {
       console.error('Error loading INP file:', error)
@@ -104,12 +106,13 @@ export function setupWNTRHandlers() {
       }
 
       const loadResult = await wntrWrapper.loadINPFile(filePath)
-      
+
       if (loadResult.success) {
         // Store the file path for future operations
         global.currentWNTRFile = filePath
+        loadResult.filePath = filePath
       }
-      
+
       return loadResult
     } catch (error) {
       console.error('Error loading INP file:', error)
