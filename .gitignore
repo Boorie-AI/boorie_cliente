@@ -74,3 +74,12 @@ coverage/
 *.db
 rag-knowledge/
 /data
+
+# Temporary files
+*.tmp
+temp.inp
+app_log.txt
+
+# Bug reports
+bug/
+volumes/
