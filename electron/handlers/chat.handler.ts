@@ -190,7 +190,7 @@ export class ChatHandler {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(30000) // 30 second timeout
+      signal: AbortSignal.timeout(90000) // 90 second timeout (allows for RAG-enhanced prompts)
     })
 
     if (!response.ok) {
@@ -293,7 +293,7 @@ export class ChatHandler {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(30000) // 30 second timeout
+      signal: AbortSignal.timeout(90000) // 90 second timeout (allows for RAG-enhanced prompts)
     })
 
     if (!response.ok) {
@@ -359,7 +359,7 @@ export class ChatHandler {
         'x-goog-api-key': apiKey,
       },
       body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(30000) // 30 second timeout
+      signal: AbortSignal.timeout(90000) // 90 second timeout (allows for RAG-enhanced prompts)
     })
 
     if (!response.ok) {
@@ -449,7 +449,7 @@ export class ChatHandler {
         'X-Title': 'Boorie', // Required by OpenRouter
       },
       body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(30000) // 30 second timeout
+      signal: AbortSignal.timeout(90000) // 90 second timeout (allows for RAG-enhanced prompts)
     })
 
     if (!response.ok) {
@@ -519,7 +519,7 @@ export class ChatHandler {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(60000) // 60 second timeout for local models
+        signal: AbortSignal.timeout(120000) // 120 second timeout for local models
       })
 
       if (!response.ok) {
@@ -593,7 +593,7 @@ export class ChatHandler {
         'Accept': 'application/json'
       },
       body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(60000) // 60 second timeout
+      signal: AbortSignal.timeout(120000) // 120 second timeout for Nvidia
     })
 
     if (!response.ok) {

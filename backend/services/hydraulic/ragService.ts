@@ -134,14 +134,14 @@ export class HydraulicRAGService {
     try {
       // Generate chunks from content
       const chunks = this.chunkDocument(document.content, {
-        maxChunkSize: 500, // Reduced to safer limit for Ollama context
-        overlap: 100
+        maxChunkSize: 1000, // Larger chunks = fewer embeddings = faster indexing
+        overlap: 150
       })
 
       console.log(`[RAG Service] Chunked document into ${chunks.length} parts`)
 
       // Helper for timeout
-      const generateWithTimeout = async (text: string, timeoutMs: number = 30000) => {
+      const generateWithTimeout = async (text: string, timeoutMs: number = 60000) => {
         return Promise.race([
           this.embeddingService.generateEmbedding(text),
           new Promise<number[]>((_, reject) =>
@@ -150,48 +150,71 @@ export class HydraulicRAGService {
         ])
       }
 
-      // Generate embeddings for each chunk sequentially to avoid overwhelming the provider
-      const chunkEmbeddings: number[][] = []
+      // Process embeddings in concurrent batches for much faster indexing
+      const CONCURRENCY = 3 // Process 3 chunks at a time
+      const chunkEmbeddings: (number[] | null)[] = new Array(chunks.length).fill(null)
+      const chunkTimings: number[] = []
+      let completedCount = 0
 
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
-        const chunkStart = Date.now();
+      for (let batchStart = 0; batchStart < chunks.length; batchStart += CONCURRENCY) {
+        const batchEnd = Math.min(batchStart + CONCURRENCY, chunks.length)
+        const batchIndices = Array.from({ length: batchEnd - batchStart }, (_, k) => batchStart + k)
 
+        const batchPromises = batchIndices.map(async (i) => {
+          const chunk = chunks[i]
+          const chunkStart = Date.now()
+
+          try {
+            const embedding = await generateWithTimeout(chunk, 60000)
+            chunkEmbeddings[i] = embedding
+
+            const duration = Date.now() - chunkStart
+            chunkTimings.push(duration)
+
+            if (duration > 5000) {
+              console.warn(`[RAG Service] Slow embedding for chunk ${i + 1}: ${duration}ms`)
+            }
+          } catch (err: any) {
+            console.error(`[RAG Service] Failed embedding for chunk ${i + 1}:`, err.message)
+            chunkEmbeddings[i] = null
+          }
+        })
+
+        await Promise.all(batchPromises)
+        completedCount = batchEnd
+
+        // Report progress with ETA
         if (onProgress) {
+          const avgTime = chunkTimings.length > 0
+            ? chunkTimings.reduce((a, b) => a + b, 0) / chunkTimings.length
+            : 0
+          const remainingChunks = chunks.length - completedCount
+          const etaSeconds = Math.round((avgTime * remainingChunks / CONCURRENCY) / 1000)
+          const etaText = etaSeconds > 0 ? ` (~${etaSeconds}s restantes)` : ''
+
           onProgress({
-            current: i + 1,
+            current: completedCount,
             total: chunks.length,
-            message: `Chunk ${i + 1}/${chunks.length}: Generating embedding...`
+            message: `Chunk ${completedCount}/${chunks.length}: Generando embeddings...${etaText}`
           })
         }
 
-        if (i === 0 || i % 5 === 0 || i === chunks.length - 1) {
-          console.log(`[RAG Service] Processing chunk ${i + 1}/${chunks.length} (Length: ${chunk.length})...`)
-        }
-
-        try {
-          // 180s timeout per chunk
-          const embedding = await generateWithTimeout(chunk, 180000)
-          chunkEmbeddings.push(embedding)
-
-          const duration = Date.now() - chunkStart;
-          if (duration > 5000) {
-            console.warn(`[RAG Service] Slow embedding generation for chunk ${i + 1}: ${duration}ms`);
-          }
-        } catch (err: any) {
-          console.error(`[RAG Service] Failed to generate embedding for chunk ${i}:`, err.message)
-          // Instead of failing the whole document, we skip this chunk by pushing a placeholder or handling logic downstream
-          // For now, we'll try to push a zero-vector or just NOT push to chunkEmbeddings
-          // But strict index alignment is needed. 
-          // Let's modify behavior: if embedding fails, we just don't create this chunk. 
-          // However, the current logic assumes `chunks` and `chunkEmbeddings` arrays are parallel. 
-          // FIX: We need to filter out failed chunks BEFORE creating the DB entries.
-
-          // To do this cleanly without breaking the loop structure immediately:
-          // We will push `null` and filter later.
-          chunkEmbeddings.push(null as any)
+        if (batchStart === 0 || completedCount % 10 === 0 || completedCount === chunks.length) {
+          console.log(`[RAG Service] Progress: ${completedCount}/${chunks.length} chunks processed`)
         }
       }
+
+      // Filter out chunks with failed embeddings
+      const successfulChunks = chunks
+        .map((chunk, index) => ({ content: chunk, embedding: chunkEmbeddings[index], chunkIndex: index }))
+        .filter(item => item.embedding !== null)
+
+      const failedCount = chunks.length - successfulChunks.length
+      if (failedCount > 0) {
+        console.warn(`[RAG Service] ${failedCount}/${chunks.length} chunks failed embedding generation`)
+      }
+
+      console.log(`[RAG Service] Creating document with ${successfulChunks.length} indexed chunks`)
 
       // Create document in database
       const created = await this.prisma.hydraulicKnowledge.create({
@@ -213,18 +236,11 @@ export class HydraulicRAGService {
           language: document.metadata.language,
           version: document.version,
           chunks: {
-            create: chunks
-              .map((chunk, index) => ({
-                content: chunk,
-                embedding: chunkEmbeddings[index], // Raw value (array or null)
-                chunkIndex: index
-              }))
-              .filter(item => item.embedding !== null) // Filter out failed embeddings
-              .map(item => ({
-                content: item.content,
-                embedding: JSON.stringify(item.embedding),
-                chunkIndex: item.chunkIndex
-              }))
+            create: successfulChunks.map(item => ({
+              content: item.content,
+              embedding: JSON.stringify(item.embedding),
+              chunkIndex: item.chunkIndex
+            }))
           }
         },
         include: {
@@ -278,12 +294,52 @@ export class HydraulicRAGService {
         // Regenerate chunks if content changed
         const chunks = this.chunkDocument(updates.content, {
           maxChunkSize: 1000,
-          overlap: 200
+          overlap: 150
         })
 
-        const chunkEmbeddings = await Promise.all(
-          chunks.map(chunk => this.embeddingService.generateEmbedding(chunk))
-        )
+        // Helper for timeout
+        const generateWithTimeout = async (text: string, timeoutMs: number = 60000) => {
+          return Promise.race([
+            this.embeddingService.generateEmbedding(text),
+            new Promise<number[]>((_, reject) =>
+              setTimeout(() => reject(new Error('Embedding generation timed out')), timeoutMs)
+            )
+          ])
+        }
+
+        // Process embeddings in concurrent batches (same pattern as addDocument)
+        const CONCURRENCY = 3
+        const chunkEmbeddings: (number[] | null)[] = new Array(chunks.length).fill(null)
+
+        for (let batchStart = 0; batchStart < chunks.length; batchStart += CONCURRENCY) {
+          const batchEnd = Math.min(batchStart + CONCURRENCY, chunks.length)
+          const batchIndices = Array.from({ length: batchEnd - batchStart }, (_, k) => batchStart + k)
+
+          const batchPromises = batchIndices.map(async (i) => {
+            try {
+              chunkEmbeddings[i] = await generateWithTimeout(chunks[i], 60000)
+            } catch (err: any) {
+              console.error(`[RAG Service] Failed embedding for chunk ${i + 1} during update:`, err.message)
+              chunkEmbeddings[i] = null
+            }
+          })
+
+          await Promise.all(batchPromises)
+
+          if (batchStart === 0 || batchEnd % 10 === 0 || batchEnd === chunks.length) {
+            console.log(`[RAG Service] Update progress: ${batchEnd}/${chunks.length} chunks processed`)
+          }
+        }
+
+        // Filter successful embeddings
+        const successfulChunks = chunks
+          .map((chunk, index) => ({ content: chunk, embedding: chunkEmbeddings[index], chunkIndex: index }))
+          .filter(item => item.embedding !== null)
+
+        const failedCount = chunks.length - successfulChunks.length
+        if (failedCount > 0) {
+          console.warn(`[RAG Service] ${failedCount}/${chunks.length} chunks failed during update`)
+        }
 
         // Delete old chunks
         await this.prisma.knowledgeChunk.deleteMany({
@@ -292,11 +348,11 @@ export class HydraulicRAGService {
 
         // Create new chunks
         await this.prisma.knowledgeChunk.createMany({
-          data: chunks.map((chunk, index) => ({
+          data: successfulChunks.map(item => ({
             knowledgeId: id,
-            content: chunk,
-            embedding: JSON.stringify(chunkEmbeddings[index]),
-            chunkIndex: index
+            content: item.content,
+            embedding: JSON.stringify(item.embedding),
+            chunkIndex: item.chunkIndex
           }))
         })
 

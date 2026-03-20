@@ -5,6 +5,8 @@ import { PrismaClient } from "@prisma/client";
 export class EmbeddingService {
     private prisma: PrismaClient;
     private _activeProvider: any = null;
+    private _cachedEmbeddingsInstance: any = null;
+    private _cachedProviderId: string | null = null;
 
     constructor(prisma?: PrismaClient) {
         this.prisma = prisma || new PrismaClient();
@@ -53,6 +55,19 @@ export class EmbeddingService {
         }
     }
 
+    /**
+     * Get or create a cached embeddings instance for the current provider.
+     * Avoids re-instantiating the provider on every call, which is critical for batch operations.
+     */
+    private getOrCreateEmbeddingsInstance(providerId: string, factory: () => any): any {
+        if (this._cachedEmbeddingsInstance && this._cachedProviderId === providerId) {
+            return this._cachedEmbeddingsInstance;
+        }
+        this._cachedEmbeddingsInstance = factory();
+        this._cachedProviderId = providerId;
+        return this._cachedEmbeddingsInstance;
+    }
+
     async generateEmbedding(text: string): Promise<number[]> {
         // Helper to wrap embed call with timeout
         const embedWithTimeout = async (embeddings: any, text: string, timeoutMs: number = 30000) => {
@@ -62,7 +77,7 @@ export class EmbeddingService {
             return Promise.race([embeddings.embedQuery(text), timeoutPromise]) as Promise<number[]>;
         };
 
-        // 1. Try Active Provider if set
+        // 1. Try Active Provider if set (with instance caching)
         if (this._activeProvider) {
             try {
                 const pid = this._activeProvider.id;
@@ -73,25 +88,28 @@ export class EmbeddingService {
                     if (!apiKey) {
                         console.warn("[EmbeddingService] Active provider is OpenAI but no key found. Falling back to auto-discovery.");
                     } else {
-                        const embeddings = new OpenAIEmbeddings({
+                        const embeddings = this.getOrCreateEmbeddingsInstance(pid, () => new OpenAIEmbeddings({
                             openAIApiKey: apiKey,
                             modelName: this._activeProvider.model
-                        });
+                        }));
                         return await embedWithTimeout(embeddings, text);
                     }
                 }
 
                 // Ollama
                 else if (pid.includes('ollama')) {
-                    const embeddings = new OllamaEmbeddings({
+                    const embeddings = this.getOrCreateEmbeddingsInstance(pid, () => new OllamaEmbeddings({
                         baseUrl: "http://127.0.0.1:11434", // Force IPv4
                         model: this._activeProvider.model
-                    });
+                    }));
                     return await embedWithTimeout(embeddings, text, 60000); // 60s for local model
                 }
             } catch (e) {
                 console.error(`[EmbeddingService] Error using active provider ${this._activeProvider.name}:`, e);
                 console.log("[EmbeddingService] Falling back to auto-discovery...");
+                // Invalidate cache on error
+                this._cachedEmbeddingsInstance = null;
+                this._cachedProviderId = null;
             }
         }
 
@@ -108,10 +126,10 @@ export class EmbeddingService {
         if (openaiProvider && (openaiProvider.apiKey || process.env.OPENAI_API_KEY)) {
             try {
                 console.log("[EmbeddingService] Auto-discovered OpenAI from DB");
-                const embeddings = new OpenAIEmbeddings({
+                const embeddings = this.getOrCreateEmbeddingsInstance('openai-db', () => new OpenAIEmbeddings({
                     openAIApiKey: openaiProvider.apiKey || process.env.OPENAI_API_KEY,
                     modelName: "text-embedding-3-small"
-                });
+                }));
                 const result = await embedWithTimeout(embeddings, text);
 
                 this._activeProvider = {
@@ -139,14 +157,15 @@ export class EmbeddingService {
                 console.log("[EmbeddingService] Auto-discovered Ollama from DB");
                 const config = ollamaProvider.config ? JSON.parse(ollamaProvider.config) : {};
                 const model = "nomic-embed-text";
-                const embeddings = new OllamaEmbeddings({
-                    baseUrl: config.baseUrl || "http://127.0.0.1:11434",
+                const baseUrl = config.baseUrl || "http://127.0.0.1:11434";
+                const embeddings = this.getOrCreateEmbeddingsInstance('ollama-db', () => new OllamaEmbeddings({
+                    baseUrl: baseUrl,
                     model: model
-                });
+                }));
 
                 // Validate if Ollama is reachable first
                 try {
-                    return await embedWithTimeout(embeddings, text, 180000); // Increased to 3 mins for slower machines
+                    return await embedWithTimeout(embeddings, text, 60000); // 60s timeout per embedding
                 } catch (ollamaErr: any) {
                     if (ollamaErr.cause && (ollamaErr.cause.code === 'ECONNREFUSED' || ollamaErr.cause.code === 'ETIMEDOUT')) {
                         throw new Error(`Ollama connection failed at ${config.baseUrl || "http://127.0.0.1:11434"}. Is Ollama running?`);
@@ -169,10 +188,10 @@ export class EmbeddingService {
         if (process.env.OPENAI_API_KEY) {
             try {
                 console.log("[EmbeddingService] Auto-discovered OpenAI from ENV");
-                const embeddings = new OpenAIEmbeddings({
+                const embeddings = this.getOrCreateEmbeddingsInstance('openai-env', () => new OpenAIEmbeddings({
                     openAIApiKey: process.env.OPENAI_API_KEY,
                     modelName: "text-embedding-3-small"
-                });
+                }));
                 const result = await embedWithTimeout(embeddings, text);
 
                 this._activeProvider = {
@@ -190,10 +209,10 @@ export class EmbeddingService {
         // D. Last Resort: Try default Ollama local
         try {
             console.log("[EmbeddingService] Attempting default local Ollama (nomic-embed-text)");
-            const embeddings = new OllamaEmbeddings({
+            const embeddings = this.getOrCreateEmbeddingsInstance('ollama-local', () => new OllamaEmbeddings({
                 baseUrl: "http://127.0.0.1:11434",
                 model: "nomic-embed-text"
-            });
+            }));
             const result = await embedWithTimeout(embeddings, text, 180000);
 
             this._activeProvider = {
