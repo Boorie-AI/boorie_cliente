@@ -57,7 +57,6 @@ export const useAIConfigStore = create<AIConfigState>()(
       loadProviders: async () => {
         try {
           set({ isLoading: true })
-          console.log('🔄 Loading AI providers from database...')
 
           const savedProviders = await databaseService.getAIProviders()
           const savedModels = await databaseService.getAIModels()
@@ -89,9 +88,8 @@ export const useAIConfigStore = create<AIConfigState>()(
           })
 
           set({ providers: uiProviders })
-          console.log(`✅ Loaded ${uiProviders.length} providers from database`)
         } catch (error) {
-          console.error('❌ Failed to load providers from database:', error)
+          console.error('Failed to load providers from database:', error)
         } finally {
           set({ isLoading: false })
         }
@@ -99,14 +97,11 @@ export const useAIConfigStore = create<AIConfigState>()(
 
       saveProvider: async (providerData) => {
         try {
-          console.log('💾 Saving provider to database:', providerData.name)
-
           // Check if provider already exists
           const existingProviders = await databaseService.getAIProviders()
           const existingProvider = existingProviders.find(p => p.name === providerData.name)
 
           if (existingProvider) {
-            console.log('⚠️ Provider already exists, skipping creation:', providerData.name)
             return
           }
 
@@ -139,24 +134,19 @@ export const useAIConfigStore = create<AIConfigState>()(
             set((state) => ({
               providers: [...state.providers, newProvider]
             }))
-
-            console.log('✅ Provider saved successfully')
           }
         } catch (error) {
-          console.error('❌ Failed to save provider:', error)
+          console.error('Failed to save provider:', error)
         }
       },
 
       updateProvider: async (providerId, updates) => {
         try {
-          console.log('🔄 Updating provider:', providerId, updates)
-
           // Find the actual provider database ID from the UI ID
           const providers = get().providers
           const provider = providers.find(p => p.id === providerId)
 
           if (!provider) {
-            console.error('❌ Provider not found:', providerId)
             return
           }
 
@@ -165,7 +155,6 @@ export const useAIConfigStore = create<AIConfigState>()(
           const dbProvider = dbProviders.find(p => p.name === provider.name)
 
           if (!dbProvider) {
-            console.error('❌ Database provider not found:', provider.name)
             return
           }
 
@@ -193,10 +182,9 @@ export const useAIConfigStore = create<AIConfigState>()(
                 p.id === providerId ? { ...p, ...updates } : p
               )
             }))
-            console.log('✅ Provider updated successfully')
           }
         } catch (error) {
-          console.error('❌ Failed to update provider:', error)
+          console.error('Failed to update provider:', error)
         }
       },
 
@@ -223,8 +211,6 @@ export const useAIConfigStore = create<AIConfigState>()(
 
       testProviderConnection: async (providerId) => {
         try {
-          console.log('🔄 Testing provider connection:', providerId)
-
           // Find the actual provider database ID from the UI ID
           const providers = get().providers
           const provider = providers.find(p => p.id === providerId)
@@ -252,15 +238,13 @@ export const useAIConfigStore = create<AIConfigState>()(
           if (result?.success) {
             // Fetch models after successful connection
             await get().refreshProviderModels(providerId)
-            console.log('✅ Provider connection test successful')
             return true
           } else {
             get().updateProviderConnection(providerId, false, 'error', result?.message || 'Connection failed')
-            console.log('❌ Provider connection test failed')
             return false
           }
         } catch (error) {
-          console.error('❌ Provider connection test error:', error)
+          console.error('Provider connection test error:', error)
           get().updateProviderConnection(providerId, false, 'error', 'Connection test failed')
           return false
         }
@@ -268,14 +252,11 @@ export const useAIConfigStore = create<AIConfigState>()(
 
       refreshProviderModels: async (providerId) => {
         try {
-          console.log('🔄 Refreshing models for provider:', providerId)
-
           // Find the actual provider database ID from the UI ID
           const providers = get().providers
           const provider = providers.find(p => p.id === providerId)
 
           if (!provider) {
-            console.error('❌ Provider not found:', providerId)
             return
           }
 
@@ -284,7 +265,6 @@ export const useAIConfigStore = create<AIConfigState>()(
           const dbProvider = dbProviders.find(p => p.name === provider.name)
 
           if (!dbProvider) {
-            console.error('❌ Database provider not found:', provider.name)
             return
           }
 
@@ -300,13 +280,11 @@ export const useAIConfigStore = create<AIConfigState>()(
             }))
 
             get().updateProviderConnection(providerId, true, 'success', 'Connected successfully', providerModels)
-            console.log(`✅ Refreshed ${result.data.length} models for provider`)
           } else {
-            console.warn('⚠️ No models received or invalid response structure:', result)
             get().updateProviderConnection(providerId, true, 'success', 'Connected successfully', [])
           }
         } catch (error) {
-          console.error('❌ Failed to refresh models:', error)
+          console.error('Failed to refresh models:', error)
           get().updateProviderConnection(providerId, false, 'error', 'Failed to fetch models')
         }
       },
@@ -332,14 +310,11 @@ export const useAIConfigStore = create<AIConfigState>()(
 
       toggleModelSelection: async (providerId, modelId, isSelected) => {
         try {
-          console.log('🔄 Toggling model selection:', { providerId, modelId, isSelected })
-
           // Find the actual provider database ID from the UI ID
           const providers = get().providers
           const provider = providers.find(p => p.id === providerId)
 
           if (!provider) {
-            console.error('❌ Provider not found:', providerId)
             return
           }
 
@@ -348,7 +323,6 @@ export const useAIConfigStore = create<AIConfigState>()(
           const dbProvider = dbProviders.find(p => p.name === provider.name)
 
           if (!dbProvider) {
-            console.error('❌ Database provider not found:', provider.name)
             return
           }
 
@@ -376,24 +350,19 @@ export const useAIConfigStore = create<AIConfigState>()(
                   : p
               )
             }))
-
-            console.log('✅ Model selection updated successfully')
           }
         } catch (error) {
-          console.error('❌ Failed to toggle model selection:', error)
+          console.error('Failed to toggle model selection:', error)
         }
       },
 
       addCustomModel: async (providerId, model) => {
         try {
-          console.log('➕ Adding custom model:', { providerId, model })
-
           // Find the actual provider database ID from the UI ID
           const providers = get().providers
           const provider = providers.find(p => p.id === providerId)
 
           if (!provider) {
-            console.error('❌ Provider not found:', providerId)
             return
           }
 
@@ -402,7 +371,6 @@ export const useAIConfigStore = create<AIConfigState>()(
           const dbProvider = dbProviders.find(p => p.name === provider.name)
 
           if (!dbProvider) {
-            console.error('❌ Database provider not found:', provider.name)
             return
           }
 
@@ -427,17 +395,14 @@ export const useAIConfigStore = create<AIConfigState>()(
                   : p
               )
             }))
-            console.log('✅ Custom model added successfully')
           }
         } catch (error) {
-          console.error('❌ Failed to add custom model:', error)
+          console.error('Failed to add custom model:', error)
         }
       },
 
       removeCustomModel: async (providerId, modelId) => {
         try {
-          console.log('🗑️ Removing custom model:', { providerId, modelId })
-
           // In a real implementation, you'd want to delete from database
           // For now, just update local state
           set((state) => ({
@@ -450,10 +415,8 @@ export const useAIConfigStore = create<AIConfigState>()(
                 : p
             )
           }))
-
-          console.log('✅ Custom model removed successfully')
         } catch (error) {
-          console.error('❌ Failed to remove custom model:', error)
+          console.error('Failed to remove custom model:', error)
         }
       },
 

@@ -35,17 +35,28 @@ export function setupWNTRHandlers() {
       // Pre-validate Python/WNTR before opening file dialog
       const pythonStatus = getPythonStatus()
       if (!pythonStatus.pythonFound) {
+        const platformInstructions = process.platform === 'win32'
+          ? '1. Descargue Python desde python.org/downloads\n2. Durante la instalación, marque "Add Python to PATH"\n3. Abra una terminal y ejecute: pip install wntr\n4. Reinicie Boorie'
+          : process.platform === 'darwin'
+          ? '1. Ejecute en terminal: ./setup-python-wntr.sh\n   (o manualmente: brew install python@3.11 && pip3 install wntr)\n2. Reinicie Boorie'
+          : '1. Ejecute: sudo apt install python3 python3-pip && pip3 install wntr\n2. Reinicie Boorie'
         return {
           success: false,
-          error: 'Python is not installed on this computer.\n\n' +
-            (pythonStatus.instructions || 'Please install Python and WNTR to use hydraulic features.')
+          error: 'Python no está instalado en este equipo.\n\n' +
+            'Python es necesario para cargar y analizar redes hidráulicas (archivos .inp).\n\n' +
+            'Pasos para instalar:\n' + platformInstructions
         }
       }
       if (!pythonStatus.wntrAvailable) {
         return {
           success: false,
-          error: 'WNTR is not installed.\n\n' +
-            (pythonStatus.instructions || 'Run: pip install wntr')
+          error: 'WNTR no está instalado.\n\n' +
+            'WNTR es la librería de Python necesaria para el análisis de redes hidráulicas.\n\n' +
+            'Para instalarlo, ejecute en una terminal:\n' +
+            (process.platform === 'darwin'
+              ? './setup-python-wntr.sh\n(o manualmente: pip3 install wntr)'
+              : 'pip install wntr') +
+            '\n\nLuego reinicie Boorie.'
         }
       }
 
@@ -91,17 +102,28 @@ export function setupWNTRHandlers() {
       // Pre-validate Python/WNTR
       const pythonStatus = getPythonStatus()
       if (!pythonStatus.pythonFound) {
+        const platformInstructions = process.platform === 'win32'
+          ? '1. Descargue Python desde python.org/downloads\n2. Durante la instalación, marque "Add Python to PATH"\n3. Abra una terminal y ejecute: pip install wntr\n4. Reinicie Boorie'
+          : process.platform === 'darwin'
+          ? '1. Ejecute en terminal: ./setup-python-wntr.sh\n   (o manualmente: brew install python@3.11 && pip3 install wntr)\n2. Reinicie Boorie'
+          : '1. Ejecute: sudo apt install python3 python3-pip && pip3 install wntr\n2. Reinicie Boorie'
         return {
           success: false,
-          error: 'Python is not installed on this computer.\n\n' +
-            (pythonStatus.instructions || 'Please install Python and WNTR to use hydraulic features.')
+          error: 'Python no está instalado en este equipo.\n\n' +
+            'Python es necesario para cargar y analizar redes hidráulicas (archivos .inp).\n\n' +
+            'Pasos para instalar:\n' + platformInstructions
         }
       }
       if (!pythonStatus.wntrAvailable) {
         return {
           success: false,
-          error: 'WNTR is not installed.\n\n' +
-            (pythonStatus.instructions || 'Run: pip install wntr')
+          error: 'WNTR no está instalado.\n\n' +
+            'WNTR es la librería de Python necesaria para el análisis de redes hidráulicas.\n\n' +
+            'Para instalarlo, ejecute en una terminal:\n' +
+            (process.platform === 'darwin'
+              ? './setup-python-wntr.sh\n(o manualmente: pip3 install wntr)'
+              : 'pip install wntr') +
+            '\n\nLuego reinicie Boorie.'
         }
       }
 
@@ -249,15 +271,11 @@ export function setupWNTRHandlers() {
   // Analyze component criticality
   ipcMain.handle('wntr:analyze-component-criticality', async (event, options: any) => {
     try {
-      console.log('wntr:analyze-component-criticality called with options:', options);
-      console.log('Current WNTR file:', global.currentWNTRFile);
-      
       if (!global.currentWNTRFile) {
         return { success: false, error: 'No EPANET file loaded' }
       }
 
       const result = await analysisService.analyzeComponentCriticality(global.currentWNTRFile, options)
-      console.log('Criticality analysis result:', result);
       return result // Return the result directly, it already has the correct structure
     } catch (error) {
       console.error('Error analyzing component criticality:', error)
@@ -271,15 +289,11 @@ export function setupWNTRHandlers() {
   // Calculate resilience metrics
   ipcMain.handle('wntr:calculate-resilience-metrics', async (event, options: any) => {
     try {
-      console.log('wntr:calculate-resilience-metrics called with options:', options);
-      console.log('Current WNTR file:', global.currentWNTRFile);
-      
       if (!global.currentWNTRFile) {
         return { success: false, error: 'No EPANET file loaded' }
       }
 
       const result = await analysisService.calculateResilienceMetrics(global.currentWNTRFile, options)
-      console.log('Resilience metrics result:', result);
       return result // Return the result directly, it already has the correct structure
     } catch (error) {
       console.error('Error calculating resilience metrics:', error)

@@ -61,21 +61,17 @@ export const useProjectStore = create<ProjectState>()(
         set({ isLoadingProjects: true, error: null })
 
         try {
-          console.log('📂 [Project Store] Loading projects...')
-
           const result = await window.electronAPI.hydraulic.listProjects()
 
           if (result.success && result.data) {
             set({ projects: result.data })
-            console.log('✅ [Project Store] Projects loaded:', result.data.length)
           } else {
             set({ error: result.error || 'Failed to load projects' })
-            console.error('❌ [Project Store] Failed to load projects:', result.error)
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           set({ error: errorMessage })
-          console.error('❌ [Project Store] Error loading projects:', error)
+          console.error('Error loading projects:', error)
         } finally {
           set({ isLoadingProjects: false })
         }
@@ -85,8 +81,6 @@ export const useProjectStore = create<ProjectState>()(
         set({ isLoading: true, error: null })
 
         try {
-          console.log('🎯 [Project Store] Selecting project:', projectId)
-
           const result = await window.electronAPI.hydraulic.getProject(projectId)
 
           if (result.success && result.data) {
@@ -95,17 +89,15 @@ export const useProjectStore = create<ProjectState>()(
             // Trigger cross-section synchronization
             await get().syncAllSections(projectId)
 
-            console.log('✅ [Project Store] Project selected:', result.data.name)
             return true
           } else {
             set({ error: result.error || 'Failed to load project' })
-            console.error('❌ [Project Store] Failed to select project:', result.error)
             return false
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           set({ error: errorMessage })
-          console.error('❌ [Project Store] Error selecting project:', error)
+          console.error('Error selecting project:', error)
           return false
         } finally {
           set({ isLoading: false })
@@ -116,25 +108,21 @@ export const useProjectStore = create<ProjectState>()(
         set({ isLoading: true, error: null })
 
         try {
-          console.log('🆕 [Project Store] Creating project:', projectData.name)
-
           const result = await window.electronAPI.hydraulic.createProject(projectData)
 
           if (result.success && result.data) {
             // Reload projects to include the new one
             await get().loadProjects()
 
-            console.log('✅ [Project Store] Project created:', result.data.id)
             return result.data.id
           } else {
             set({ error: result.error || 'Failed to create project' })
-            console.error('❌ [Project Store] Failed to create project:', result.error)
             return null
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           set({ error: errorMessage })
-          console.error('❌ [Project Store] Error creating project:', error)
+          console.error('Error creating project:', error)
           return null
         } finally {
           set({ isLoading: false })
@@ -145,8 +133,6 @@ export const useProjectStore = create<ProjectState>()(
         set({ isLoading: true, error: null })
 
         try {
-          console.log('✏️ [Project Store] Updating project:', projectId)
-
           const result = await window.electronAPI.hydraulic.updateProject(projectId, updates)
 
           if (result.success) {
@@ -159,17 +145,15 @@ export const useProjectStore = create<ProjectState>()(
             // Reload projects to get updated data
             await get().loadProjects()
 
-            console.log('✅ [Project Store] Project updated')
             return true
           } else {
             set({ error: result.error || 'Failed to update project' })
-            console.error('❌ [Project Store] Failed to update project:', result.error)
             return false
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           set({ error: errorMessage })
-          console.error('❌ [Project Store] Error updating project:', error)
+          console.error('Error updating project:', error)
           return false
         } finally {
           set({ isLoading: false })
@@ -180,8 +164,6 @@ export const useProjectStore = create<ProjectState>()(
         set({ isLoading: true, error: null })
 
         try {
-          console.log('🗑️ [Project Store] Deleting project:', projectId)
-
           const result = await window.electronAPI.hydraulic.deleteProject(projectId)
 
           if (result.success) {
@@ -196,17 +178,15 @@ export const useProjectStore = create<ProjectState>()(
               projects: state.projects.filter(p => p.id !== projectId)
             }))
 
-            console.log('✅ [Project Store] Project deleted')
             return true
           } else {
             set({ error: result.error || 'Failed to delete project' })
-            console.error('❌ [Project Store] Failed to delete project:', result.error)
             return false
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           set({ error: errorMessage })
-          console.error('❌ [Project Store] Error deleting project:', error)
+          console.error('Error deleting project:', error)
           return false
         } finally {
           set({ isLoading: false })
@@ -215,13 +195,10 @@ export const useProjectStore = create<ProjectState>()(
 
       clearProject: () => {
         set({ currentProject: null, error: null })
-        console.log('🧹 [Project Store] Project cleared')
       },
 
       syncAllSections: async (projectId: string) => {
         try {
-          console.log('🔄 [Project Store] Syncing all sections for project:', projectId)
-
           // Import stores dynamically to avoid circular dependencies
           const { useWNTRStore } = await import('./wntrStore')
           // const { useChatStore } = await import('./chatStore')
@@ -235,10 +212,8 @@ export const useProjectStore = create<ProjectState>()(
 
           // Sync chat conversations (filter by project if needed)
           // This could be enhanced to load project-specific conversations
-
-          console.log('✅ [Project Store] All sections synced')
         } catch (error) {
-          console.error('❌ [Project Store] Error syncing sections:', error)
+          console.error('Error syncing sections:', error)
         }
       },
 
@@ -246,7 +221,6 @@ export const useProjectStore = create<ProjectState>()(
         const { currentProject } = get()
 
         if (!currentProject) {
-          console.error('❌ [Project Store] No current project to save network to')
           return false
         }
 
@@ -258,13 +232,9 @@ export const useProjectStore = create<ProjectState>()(
             description
           )
 
-          if (success) {
-            console.log('💾 [Project Store] Network saved to current project')
-          }
-
           return success
         } catch (error) {
-          console.error('❌ [Project Store] Error saving network to project:', error)
+          console.error('Error saving network to project:', error)
           return false
         }
       },
@@ -273,7 +243,6 @@ export const useProjectStore = create<ProjectState>()(
         const { currentProject } = get()
 
         if (!currentProject) {
-          console.error('❌ [Project Store] No current project to load network from')
           return false
         }
 
@@ -281,13 +250,9 @@ export const useProjectStore = create<ProjectState>()(
           const { useWNTRStore } = await import('./wntrStore')
           const success = await useWNTRStore.getState().loadNetworkFromProject(currentProject.id)
 
-          if (success) {
-            console.log('📂 [Project Store] Network loaded from current project')
-          }
-
           return success
         } catch (error) {
-          console.error('❌ [Project Store] Error loading network from project:', error)
+          console.error('Error loading network from project:', error)
           return false
         }
       }

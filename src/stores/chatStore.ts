@@ -148,7 +148,6 @@ export const useChatStore = create<ChatState>()(
             content: message.content,
             metadata: message.metadata
           })
-          console.log('Message saved to database successfully')
         } catch (error) {
           console.error('Failed to save message to database:', error)
         }
@@ -202,7 +201,6 @@ export const useChatStore = create<ChatState>()(
         // Delete from database
         try {
           await databaseService.deleteConversation(id)
-          console.log('Conversation deleted:', id)
         } catch (error) {
           console.error('Failed to delete conversation:', error)
         }
@@ -230,95 +228,132 @@ export const useChatStore = create<ChatState>()(
 
         set({ isLoading: true })
 
-        // Enhance prompt with RAG if enabled
-        let enhancedPrompt = content
-        let ragSources: any[] = []
-        try {
-          const ragResult = await get().enhancePromptWithRAG(content)
-          enhancedPrompt = ragResult.enhancedPrompt
-          ragSources = ragResult.sources || []
-        } catch (error) {
-          console.warn('Failed to enhance prompt with RAG, using original:', error)
-        }
+        // Global timeout for the entire flow (RAG + AI response): 120 seconds
+        const GLOBAL_TIMEOUT_MS = 120000
+        const globalTimeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('GLOBAL_TIMEOUT')), GLOBAL_TIMEOUT_MS)
+        )
 
         try {
-          const conversation = get().conversations.find(c => c.id === conversationId)
-          if (!conversation) throw new Error('Conversation not found')
+          // Wrap the entire pipeline in a global timeout
+          await Promise.race([globalTimeout, (async () => {
+            // Enhance prompt with RAG if enabled
+            let enhancedPrompt = content
+            let ragSources: any[] = []
+            try {
+              // RAG enhancement with its own timeout (30s)
+              const ragTimeout = new Promise<{ enhancedPrompt: string; sources?: any[] }>((resolve) =>
+                setTimeout(() => {
+                  console.warn('RAG enhancement timed out, using original prompt')
+                  resolve({ enhancedPrompt: content })
+                }, 30000)
+              )
+              const ragResult = await Promise.race([
+                get().enhancePromptWithRAG(content),
+                ragTimeout
+              ])
+              enhancedPrompt = ragResult.enhancedPrompt
+              ragSources = ragResult.sources || []
+            } catch (error) {
+              console.warn('Failed to enhance prompt with RAG, using original:', error)
+            }
 
-          console.log('Sending message with conversation:', {
-            model: conversation.model,
-            provider: conversation.provider,
-            message: content,
-            enhancedWithRAG: enhancedPrompt !== content
-          })
+            const conversation = get().conversations.find(c => c.id === conversationId)
+            if (!conversation) throw new Error('Conversation not found')
 
-          // Clear any previous streaming message
-          get().clearStreamingMessage()
+            // Clear any previous streaming message
+            get().clearStreamingMessage()
 
-          // Get API key for the provider
-          const aiConfigStore = useAIConfigStore.getState()
-          const providerConfig = aiConfigStore.providers.find(p => p.name === conversation.provider)
-          const apiKey = providerConfig?.apiKey || ''
+            // Get API key for the provider
+            const aiConfigStore = useAIConfigStore.getState()
+            const providerConfig = aiConfigStore.providers.find(p => p.name === conversation.provider)
+            const apiKey = providerConfig?.apiKey || ''
 
-          // Prepare messages for chat handler (includes system prompt automatically)
-          const messages: ChatMessage[] = conversation.messages.map(msg => ({
-            role: msg.role,
-            content: msg.content
-          }))
+            // Prepare messages for chat handler (includes system prompt automatically)
+            const messages: ChatMessage[] = conversation.messages.map(msg => ({
+              role: msg.role,
+              content: msg.content
+            }))
 
-          // Add the current user message (use enhanced prompt if RAG is enabled)
-          messages.push({
-            role: 'user',
-            content: enhancedPrompt
-          })
-
-          // Use the chat handler which automatically includes system prompt
-          const result = await window.electronAPI.chat.sendMessage({
-            provider: conversation.provider,
-            model: conversation.model,
-            messages: messages,
-            apiKey: apiKey
-          })
-
-          if (!result.success) {
-            throw new Error(result.error || 'Failed to send message')
-          }
-
-          const response = result.data?.response || ''
-          const metadata = result.data?.metadata || {
-            model: conversation.model,
-            provider: conversation.provider,
-            tokens: 0
-          }
-
-          // Clear streaming message before adding final message
-          get().clearStreamingMessage()
-
-          // Add RAG sources to metadata if available
-          if (enhancedPrompt !== content) {
-            // RAG was used, add RAG info to metadata
-            console.log('🧠 Adding RAG metadata to message:', {
-              sourcesCount: ragSources.length,
-              sourceTitles: ragSources.map((s: any) => s.title || s.name || 'Sin título'),
-              ragEnabled: true
+            // Add the current user message (use enhanced prompt if RAG is enabled)
+            messages.push({
+              role: 'user',
+              content: enhancedPrompt
             })
-            metadata.ragEnabled = true
-            metadata.originalQuery = content
-            metadata.enhancedQuery = enhancedPrompt !== content
-            metadata.sources = ragSources
-            metadata.ragAttempted = true
-          } else {
-            console.log('⚠️ RAG not used - enhanced prompt equals original')
-            metadata.ragAttempted = true
-            metadata.ragEnabled = state.wisdomConfig?.enabled
-          }
 
-          // Add assistant message
-          await get().addMessageToConversation(conversationId, {
-            role: 'assistant',
-            content: response,
-            metadata
-          })
+            // Send with retry logic (1 retry for transient errors)
+            const MAX_RETRIES = 1
+            let lastError: Error | null = null
+
+            for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+              try {
+                if (attempt > 0) {
+                  await new Promise(resolve => setTimeout(resolve, 2000 * attempt))
+                }
+
+                const result = await window.electronAPI.chat.sendMessage({
+                  provider: conversation.provider,
+                  model: conversation.model,
+                  messages: messages,
+                  apiKey: apiKey
+                })
+
+                if (!result.success) {
+                  const err = new Error(result.error || 'Failed to send message')
+                  // Only retry on transient server errors
+                  if (attempt < MAX_RETRIES && result.error &&
+                      (result.error.includes('temporarily unavailable') ||
+                       result.error.includes('502') || result.error.includes('503') ||
+                       result.error.includes('504'))) {
+                    lastError = err
+                    continue
+                  }
+                  throw err
+                }
+
+                const response = result.data?.response || ''
+                const metadata = result.data?.metadata || {
+                  model: conversation.model,
+                  provider: conversation.provider,
+                  tokens: 0
+                }
+
+                // Clear streaming message before adding final message
+                get().clearStreamingMessage()
+
+                // Add RAG sources to metadata if available
+                if (enhancedPrompt !== content) {
+                  metadata.ragEnabled = true
+                  metadata.originalQuery = content
+                  metadata.enhancedQuery = enhancedPrompt !== content
+                  metadata.sources = ragSources
+                  metadata.ragAttempted = true
+                } else {
+                  metadata.ragAttempted = true
+                  metadata.ragEnabled = state.wisdomConfig?.enabled
+                }
+
+                // Add assistant message
+                await get().addMessageToConversation(conversationId, {
+                  role: 'assistant',
+                  content: response,
+                  metadata
+                })
+
+                return // Success, exit the retry loop and async function
+              } catch (retryError) {
+                lastError = retryError instanceof Error ? retryError : new Error(String(retryError))
+                if (attempt >= MAX_RETRIES) throw lastError
+                // Check if error is retryable
+                const msg = lastError.message
+                if (!(msg.includes('temporarily unavailable') ||
+                      msg.includes('502') || msg.includes('503') || msg.includes('504') ||
+                      msg.includes('timed out'))) {
+                  throw lastError // Non-retryable error
+                }
+              }
+            }
+          })()])
         } catch (error) {
           console.error('Failed to get AI response:', error)
           get().clearStreamingMessage()
@@ -327,23 +362,37 @@ export const useChatStore = create<ChatState>()(
           const errorMessage = error instanceof Error ? error.message : String(error)
           let userFacingMessage: string
 
-          if (errorMessage.includes('Cannot connect to Ollama') || errorMessage.includes('ECONNREFUSED')) {
-            userFacingMessage = '**Cannot connect to Ollama.** Please make sure Ollama is running on your computer.\n\n' +
-              '1. Open a terminal and run: `ollama serve`\n' +
-              '2. Verify it is running at http://127.0.0.1:11434\n' +
-              '3. Try sending your message again.'
+          if (errorMessage === 'GLOBAL_TIMEOUT') {
+            userFacingMessage = '**La solicitud tardó demasiado.** El sistema no pudo completar la operación en el tiempo límite (2 minutos).\n\n' +
+              'Posibles causas:\n' +
+              '- El modelo de IA está sobrecargado o es demasiado grande\n' +
+              '- La búsqueda en la base de conocimiento (RAG) está tardando mucho\n' +
+              '- Problemas de conexión con el proveedor de IA\n\n' +
+              'Sugerencias:\n' +
+              '1. Intente enviar su mensaje nuevamente\n' +
+              '2. Pruebe con un modelo más pequeño o rápido\n' +
+              '3. Desactive temporalmente el Wisdom Center si está habilitado'
+          } else if (errorMessage.includes('Cannot connect to Ollama') || errorMessage.includes('ECONNREFUSED')) {
+            userFacingMessage = '**No se puede conectar con Ollama.** Asegúrese de que Ollama esté ejecutándose.\n\n' +
+              '1. Abra una terminal y ejecute: `ollama serve`\n' +
+              '2. Verifique que esté activo en http://127.0.0.1:11434\n' +
+              '3. Intente enviar su mensaje nuevamente.'
           } else if (errorMessage.includes('not found') && errorMessage.includes('ollama pull')) {
-            userFacingMessage = `**Model not available.** ${errorMessage}\n\nOpen a terminal and pull the model before trying again.`
+            userFacingMessage = `**Modelo no disponible.** ${errorMessage}\n\nAbra una terminal y descargue el modelo antes de intentar nuevamente.`
           } else if (errorMessage.includes('timed out')) {
-            userFacingMessage = '**Request timed out.** The model is taking too long to respond. This may happen with large models or on slower hardware. Please try again or switch to a smaller model.'
+            userFacingMessage = '**Tiempo de espera agotado.** El modelo está tardando demasiado en responder.\n\n' +
+              'Esto puede ocurrir con modelos grandes o en equipos con recursos limitados.\n' +
+              'Intente nuevamente o cambie a un modelo más pequeño.'
           } else if (errorMessage.includes('API key') || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-            userFacingMessage = '**Authentication error.** Please check that your API key is correct in Settings > AI Providers.'
+            userFacingMessage = '**Error de autenticación.** Verifique que su clave API sea correcta en Ajustes > Proveedores de IA.'
           } else if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
-            userFacingMessage = '**Rate limit exceeded.** Please wait a moment and try again.'
+            userFacingMessage = '**Límite de solicitudes excedido.** Espere un momento e intente nuevamente.'
+          } else if (errorMessage.includes('credit') || errorMessage.includes('billing') || errorMessage.includes('balance') || errorMessage.includes('quota')) {
+            userFacingMessage = '**Créditos insuficientes.** Verifique el saldo de su cuenta con el proveedor de IA.'
           } else if (errorMessage.includes('hydraulic_knowledge') || errorMessage.includes('does not exist in the current database')) {
-            userFacingMessage = '**Database error.** Some tables are missing. Please restart the application to auto-repair the database.'
+            userFacingMessage = '**Error de base de datos.** Algunas tablas no se encuentran. Reinicie la aplicación para reparar la base de datos automáticamente.'
           } else {
-            userFacingMessage = `**Error processing your request:** ${errorMessage}`
+            userFacingMessage = `**Error al procesar su solicitud:** ${errorMessage}`
           }
 
           await get().addMessageToConversation(conversationId, {
@@ -396,7 +445,6 @@ export const useChatStore = create<ChatState>()(
             })
           }
 
-          console.log('Conversation saved to database:', conversation.title)
         } catch (error) {
           console.error('Failed to save conversation to database:', error)
         }
@@ -426,7 +474,6 @@ export const useChatStore = create<ChatState>()(
           conversations.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
 
           set({ conversations })
-          console.log(`Loaded conversations from database${projectId ? ` for project ${projectId}` : ''}:`, conversations.length)
         } catch (error) {
           console.error('Failed to load conversations from database:', error)
         }
@@ -451,16 +498,11 @@ export const useChatStore = create<ChatState>()(
           // Add current prompt
           messages.push({ role: 'user', content: prompt })
 
-          console.log(`Calling Ollama API with model: ${cleanModelName}`)
-          console.log('Messages to send:', messages)
-
           const requestBody = {
             model: cleanModelName,
             messages: messages,
             stream: true
           }
-
-          console.log('Request body:', requestBody)
 
           const response = await fetch('http://localhost:11434/api/chat', {
             method: 'POST',
@@ -493,11 +535,9 @@ export const useChatStore = create<ChatState>()(
                 for (const line of lines) {
                   try {
                     const data = JSON.parse(line)
-                    console.log('Streaming data:', data) // Debug log
 
                     if (data.message?.content) {
                       fullResponse += data.message.content
-                      console.log('Updated fullResponse:', fullResponse) // Debug log
                       // Update streaming message immediately
                       get().setStreamingMessage(fullResponse)
                     }
@@ -552,9 +592,6 @@ export const useChatStore = create<ChatState>()(
           // Add current prompt
           chatMessages.push({ role: 'user', content: prompt })
 
-          console.log(`Calling ${provider} API with model: ${model} via IPC`)
-          console.log('Messages to send:', chatMessages)
-
           // Call through IPC instead of direct API call
           const result = await window.electronAPI.chat.sendMessage({
             provider,
@@ -582,52 +619,27 @@ export const useChatStore = create<ChatState>()(
       // Wisdom/RAG methods
       setWisdomConfig: (config: WisdomConfiguration | undefined) => {
         set({ wisdomConfig: config })
-        console.log('🧠 Wisdom configuration updated:', config)
       },
 
       enhancePromptWithRAG: async (originalPrompt: string): Promise<{ enhancedPrompt: string; sources?: any[] }> => {
         const state = get()
 
-        console.log('🧠 RAG Enhancement Check:', {
-          wisdomEnabled: state.wisdomConfig?.enabled,
-          categories: state.wisdomConfig?.categories,
-          searchMethod: state.wisdomConfig?.searchMethod,
-          topK: state.wisdomConfig?.searchTopK
-        })
-
         if (!state.wisdomConfig?.enabled) {
-          console.log('⚠️ RAG disabled, using original prompt')
           return { enhancedPrompt: originalPrompt }
         }
 
         try {
-          console.log('🔍 Enhancing prompt with RAG:', originalPrompt)
-
           // Get system prompt from database
           const systemPrompt = await databaseService.getSetting('system_prompt')
 
           // Query RAG system using agentic RAG
-          console.log('📡 Querying agentic RAG with options:', {
-            categories: state.wisdomConfig.categories.length > 0 ? state.wisdomConfig.categories : undefined,
-            searchTopK: state.wisdomConfig.searchTopK,
-            technicalLevel: 'intermediate'
-          })
-
           const ragResult = await window.electronAPI.agenticRAG.query(originalPrompt, {
             categories: state.wisdomConfig.categories.length > 0 ? state.wisdomConfig.categories : undefined,
             searchTopK: state.wisdomConfig.searchTopK,
             technicalLevel: 'intermediate'
           })
 
-          console.log('📋 RAG Result:', {
-            success: ragResult.success,
-            hasData: !!ragResult.data,
-            sourcesCount: ragResult.data?.sources?.length || 0,
-            error: ragResult.error
-          })
-
           if (!ragResult.success || !ragResult.data) {
-            console.warn('❌ RAG query failed, using original prompt:', ragResult.error || 'No data')
             return { enhancedPrompt: originalPrompt }
           }
 
@@ -654,7 +666,6 @@ export const useChatStore = create<ChatState>()(
 
           enhancedPrompt += originalPrompt
 
-          console.log('✅ Prompt enhanced with RAG context')
           return { enhancedPrompt: enhancedPrompt, sources: ragResult.data.sources }
 
         } catch (error) {

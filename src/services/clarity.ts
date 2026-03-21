@@ -38,27 +38,22 @@ class ClarityService {
    */
   async initialize(): Promise<void> {
     if (!this.config.enabled || !this.config.projectId) {
-      console.log('Microsoft Clarity disabled or no project ID provided');
       return;
     }
 
     if (this.isInitialized) {
-      console.log('Microsoft Clarity already initialized');
       return;
     }
 
     try {
       // Special handling for Electron environment
       if (this.isElectron) {
-        console.log('Initializing Microsoft Clarity in Electron environment');
         await this.initializeInElectron();
       } else {
-        console.log('Initializing Microsoft Clarity in web environment');
         await this.initializeInWeb();
       }
 
       this.isInitialized = true;
-      console.log('Microsoft Clarity initialized successfully');
     } catch (error) {
       console.error('Failed to initialize Microsoft Clarity:', error);
     }
@@ -146,7 +141,6 @@ class ClarityService {
 
     try {
       window.clarity("event", eventName, properties);
-      console.log('Clarity event tracked:', eventName, properties);
     } catch (error) {
       console.error('Failed to track Clarity event:', error);
     }
@@ -163,7 +157,6 @@ class ClarityService {
 
     try {
       window.clarity("identify", userId);
-      console.log('Clarity user ID set:', userId);
     } catch (error) {
       console.error('Failed to set Clarity user ID:', error);
     }
@@ -180,7 +173,6 @@ class ClarityService {
 
     try {
       window.clarity("set", key, value);
-      console.log('Clarity session tag set:', key, value);
     } catch (error) {
       console.error('Failed to set Clarity session tag:', error);
     }
