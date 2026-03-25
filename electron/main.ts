@@ -821,21 +821,7 @@ function createWindow(): void {
     appLogger.info('Stopped loading web contents')
   })
 
-  mainWindow.webContents.on('crashed', (event, killed) => {
-    appLogger.error('Web contents crashed', new Error(`Process killed: ${killed}`))
-
-    // Attempt to recover from crash
-    if (!killed) {
-      appLogger.info('Attempting to reload after crash...')
-      setTimeout(() => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.reload()
-        }
-      }, 1000)
-    }
-  })
-
-  mainWindow.webContents.on('render-process-gone', (event, details) => {
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
     appLogger.error('Render process gone: ' + details.reason, new Error(`Exit code: ${details.exitCode}`))
 
     // Handle different exit codes
@@ -1035,7 +1021,7 @@ app.whenReady().then(async () => {
     appLogger.success('Application ready and running')
 
     // Add periodic status logging to debug window closing
-    let statusCounter = 0
+    // let statusCounter = 0
     // const statusInterval = setInterval(() => {
     //   statusCounter++
     //   if (mainWindow && !mainWindow.isDestroyed()) {
