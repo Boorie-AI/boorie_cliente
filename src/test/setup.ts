@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom'
+import { vi } from 'vitest'
 
 // Mock window.electronAPI for tests that use IPC
 const mockElectronAPI = {
