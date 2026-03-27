@@ -92,6 +92,28 @@ try {
         }
       }
 
+      // Intercept .prisma/client requests (required internally by @prisma/client/index.js)
+      if (request.startsWith('.prisma/client')) {
+        let prismaPath: string
+
+        if (request === '.prisma/client/default' || request === '.prisma/client/default.js') {
+          prismaPath = path.join(resourcesPath, '.prisma/client/default.js')
+        } else if (request === '.prisma/client' || request === '.prisma/client/index.js') {
+          prismaPath = path.join(resourcesPath, '.prisma/client/index.js')
+        } else {
+          const relativePath = request.substring('.prisma/client/'.length)
+          prismaPath = path.join(resourcesPath, '.prisma/client', relativePath)
+        }
+
+        if (fs.existsSync(prismaPath)) {
+          console.log(`Prisma module redirect: ${request} -> ${prismaPath}`)
+          return prismaPath
+        } else {
+          console.error(`Prisma generated client not found: ${prismaPath}`)
+          return originalResolveFilename.call(this, request, parent, isMain, options)
+        }
+      }
+
       return originalResolveFilename.call(this, request, parent, isMain, options)
     }
 
