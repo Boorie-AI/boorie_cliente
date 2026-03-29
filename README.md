@@ -39,20 +39,21 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.3.2
+### 🚀 Latest Release - v1.3.8
 
 | Platform | Architecture | Download | Size |
 |----------|-------------|----------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.3.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.2/Boorie-1.3.2-arm64.dmg) | ~227 MB |
-| 🪟 **Windows** | x64 | [Boorie.Setup.1.3.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.2/Boorie.Setup.1.3.2.exe) | ~170 MB |
-| 🐧 **Linux** | x64 | [Coming Soon](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.3.2) | ~TBD |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.3.8-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.8/Boorie-1.3.8-arm64.dmg) | ~286 MB |
+| 🪟 **Windows** | x64 | [Boorie Setup 1.3.8.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.8/Boorie.Setup.1.3.8.exe) | ~213 MB |
+| 🐧 **Linux** | x64 | [Coming Soon](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.3.8) | ~TBD |
 
-### 📝 What's New in v1.3.2
-- **First Launch Experience**: Added a professional onboarding guide for new users.
-- **Improved UI**: Default theme set to light mode and removed creator credits from sidebar.
-- **Development Enhancements**: Developer Tools disabled by default in production for a cleaner experience.
-- **RAG & Search Upgrade**: Robust file processing for PDFs/DOCX.
-- **Conversation Vectorization**: All chat messages are now automatically vectorized and stored in Milvus.
+### 📝 What's New in v1.3.8
+- **fix(windows):** Resolved Prisma module resolution error that caused app crash on startup in Windows.
+
+### Recent Changes
+- **v1.3.7**: Remove deprecated 'crashed' event, update @langchain/core, resolve npm audit vulnerabilities, clean up production code.
+- **v1.3.6**: Performance improvements and bug fixes.
+- **v1.3.2**: First Launch Experience, improved UI, RAG & search upgrade, conversation vectorization.
 
 
 ### Installation Instructions
@@ -69,9 +70,9 @@
 3. Run: `./boorie`
 
 #### Windows
-1. Download the Windows package from the release page
-2. Extract the ZIP file
-3. Run `Boorie.exe`
+1. Download `Boorie Setup 1.3.8.exe` from the link above
+2. Run the installer and follow the setup wizard
+3. Launch Boorie from the Start Menu or Desktop shortcut
 
 ### 🔗 All Releases
 View all available releases: [**GitHub Releases**](https://github.com/Boorie-AI/boorie_cliente/releases)
