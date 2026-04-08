@@ -85,8 +85,23 @@ class WNTRWrapper {
       // In packaged app, Python scripts are in resources directory
       this.scriptPath = path.join(process.resourcesPath, 'backend', 'services', 'hydraulic', 'wntrService.py')
     } else {
-      // In development, use __dirname
-      this.scriptPath = path.join(__dirname, 'wntrService.py')
+      // In development: try multiple possible locations
+      const candidates = [
+        path.join(__dirname, 'wntrService.py'),
+        path.join(process.cwd(), 'backend', 'services', 'hydraulic', 'wntrService.py'),
+        path.join(__dirname, '..', '..', '..', 'backend', 'services', 'hydraulic', 'wntrService.py'),
+        path.join(app?.getAppPath?.() || process.cwd(), 'backend', 'services', 'hydraulic', 'wntrService.py'),
+      ];
+      // Use first path that looks valid (will be validated at runtime)
+      this.scriptPath = candidates[0];
+      // Try to find existing script
+      const fs_sync = require('fs');
+      for (const candidate of candidates) {
+        if (fs_sync.existsSync(candidate)) {
+          this.scriptPath = candidate;
+          break;
+        }
+      }
     }
   }
 

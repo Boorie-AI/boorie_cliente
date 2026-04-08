@@ -1,3 +1,4 @@
+import { getOllamaBaseUrl } from '@/config/ollama';
 import { useState, useEffect } from 'react'
 import { useAppStore } from '@/stores/appStore'
 import { useChatStore } from '@/stores/chatStore'
@@ -65,7 +66,7 @@ export function ModelSelector() {
 
     try {
       // Check Ollama status
-      const response = await fetch('http://localhost:11434/api/tags', {
+      const response = await fetch(`${getOllamaBaseUrl()}/api/tags`, {
         method: 'GET',
       })
 

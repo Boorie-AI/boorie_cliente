@@ -1,3 +1,4 @@
+import { getOllamaBaseUrl, setOllamaBaseUrl } from '@/config/ollama';
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -153,7 +154,7 @@ export function AIConfigurationPanel() {
 
   const checkOllamaInstallation = async () => {
     try {
-      const response = await fetch('http://localhost:11434/api/tags', {
+      const response = await fetch('${getOllamaBaseUrl()}/api/tags', {
         method: 'GET',
       })
 
@@ -181,7 +182,7 @@ export function AIConfigurationPanel() {
 
     try {
       // Make a POST request to Ollama API to pull the model
-      const response = await fetch('http://localhost:11434/api/pull', {
+      const response = await fetch(`${getOllamaBaseUrl()}/api/pull`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -286,7 +287,7 @@ export function AIConfigurationPanel() {
 
     try {
       // Make a DELETE request to Ollama API to remove the model
-      const response = await fetch('http://localhost:11434/api/delete', {
+      const response = await fetch(`${getOllamaBaseUrl()}/api/delete`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

@@ -504,7 +504,9 @@ export const useChatStore = create<ChatState>()(
             stream: true
           }
 
-          const response = await fetch('http://localhost:11434/api/chat', {
+          import { getOllamaBaseUrl } from '@/config/ollama';
+          const ollamaUrl = getOllamaBaseUrl();
+          const response = await fetch(`${ollamaUrl}/api/chat`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

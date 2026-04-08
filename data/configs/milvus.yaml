@@ -234,7 +234,7 @@ proxy:
   # can specify ip for example
   # ip: 127.0.0.1
   ip: 127.0.0.1 # if not specify address, will use the first unicastable address as local ip
-  port: 19530
+  port: 19531
   internalPort: 19529
   grpc:
     serverMaxSendSize: 268435456
@@ -264,7 +264,7 @@ queryCoord:
   # can specify ip for example
   # ip: 127.0.0.1
   ip: 127.0.0.1 # if not specify address, will use the first unicastable address as local ip
-  port: 19531
+  port: 19532
   grpc:
     serverMaxSendSize: 536870912
     serverMaxRecvSize: 268435456

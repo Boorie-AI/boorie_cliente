@@ -144,6 +144,11 @@ export class EmbeddingService {
             }
         }
 
+        // BUG FIX #9: OpenAI embeddings (1536 dims) son INCOMPATIBLES con Ollama embeddings (768 dims)
+        // Si se mezclan en la BD, la búsqueda semántica falla silenciosamente
+        // Solución: Usar SIEMPRE el mismo modelo. Ollama/nomic-embed-text es el default.
+        // Si ya hay embeddings en la BD con otras dims, se deben reindexar.
+        
         // B. Check Database for Ollama
         const ollamaProvider = await this.prisma.aIProvider.findFirst({
             where: {
@@ -233,4 +238,16 @@ export class EmbeddingService {
 
         throw new Error("No active embedding provider found. Please configure OpenAI or ensure Ollama is running with 'nomic-embed-text'.");
     }
+}
+
+/**
+ * BOORIE BUG FIX #9: Validate embedding dimension consistency
+ * All embeddings in the DB must have the same dimension.
+ * Default: 768 (nomic-embed-text via Ollama)
+ * If OpenAI embeddings (1536 dims) are mixed in, search will fail.
+ */
+export const EXPECTED_EMBEDDING_DIM = 768;
+
+export function validateEmbeddingDimension(embedding: number[]): boolean {
+  return Array.isArray(embedding) && embedding.length === EXPECTED_EMBEDDING_DIM;
 }
