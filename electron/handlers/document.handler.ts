@@ -200,7 +200,10 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
         success: true,
         documents: documents.map((doc: any) => {
           const totalChunks = doc.chunks.length
-          const chunksWithEmbeddings = doc.chunks.filter((chunk: any) => chunk.embedding !== null).length
+          const chunksWithEmbeddings = doc.chunks.filter((chunk: any) => {
+            // Check for valid embedding: not null, not empty string, not empty array
+            return chunk.embedding && chunk.embedding !== '' && chunk.embedding !== '[]' && chunk.embedding !== 'null'
+          }).length
           const isIndexed = totalChunks > 0
           const hasEmbeddings = chunksWithEmbeddings > 0
           const indexingComplete = totalChunks > 0 && chunksWithEmbeddings === totalChunks

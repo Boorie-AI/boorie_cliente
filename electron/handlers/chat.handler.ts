@@ -563,7 +563,11 @@ export class ChatHandler {
         if ((cause && (cause.code === 'ECONNREFUSED' || cause.code === 'ETIMEDOUT')) ||
           error.message.includes('fetch failed') ||
           error.message.includes('ECONNREFUSED')) {
-          throw new Error(`Cannot connect to Ollama at ${baseUrl}. Please ensure Ollama is installed and running (ollama serve).`)
+          throw new Error(`Cannot connect to Ollama at ${baseUrl}. Please verify:
+1. Ollama is running on the server (ollama serve)
+2. The URL ${baseUrl} is accessible
+3. Check firewall settings if using a remote Ollama server
+4. Verify the model "${model}" is available (ollama pull ${model})`)
         }
       }
 

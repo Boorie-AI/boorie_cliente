@@ -99,7 +99,7 @@ export class EmbeddingService {
                 // Ollama
                 else if (pid.includes('ollama')) {
                     const embeddings = this.getOrCreateEmbeddingsInstance(pid, () => new OllamaEmbeddings({
-                        baseUrl: "http://127.0.0.1:11434", // Force IPv4
+                        baseUrl: process.env.OLLAMA_BASE_URL || "http://192.168.1.13:11434", // Configurable via env var
                         model: this._activeProvider.model
                     }));
                     return await embedWithTimeout(embeddings, text, 60000); // 60s for local model
@@ -157,7 +157,7 @@ export class EmbeddingService {
                 console.log("[EmbeddingService] Auto-discovered Ollama from DB");
                 const config = ollamaProvider.config ? JSON.parse(ollamaProvider.config) : {};
                 const model = "nomic-embed-text";
-                const baseUrl = config.baseUrl || "http://127.0.0.1:11434";
+                const baseUrl = config.baseUrl || process.env.OLLAMA_BASE_URL || "http://192.168.1.13:11434";
                 const embeddings = this.getOrCreateEmbeddingsInstance('ollama-db', () => new OllamaEmbeddings({
                     baseUrl: baseUrl,
                     model: model
@@ -168,7 +168,7 @@ export class EmbeddingService {
                     return await embedWithTimeout(embeddings, text, 60000); // 60s timeout per embedding
                 } catch (ollamaErr: any) {
                     if (ollamaErr.cause && (ollamaErr.cause.code === 'ECONNREFUSED' || ollamaErr.cause.code === 'ETIMEDOUT')) {
-                        throw new Error(`Ollama connection failed at ${config.baseUrl || "http://127.0.0.1:11434"}. Is Ollama running?`);
+                        throw new Error(`Ollama connection failed at ${baseUrl}. Is Ollama running on the server?`);
                     }
                     throw ollamaErr;
                 }
@@ -206,11 +206,12 @@ export class EmbeddingService {
             }
         }
 
-        // D. Last Resort: Try default Ollama local
+        // D. Last Resort: Try default Ollama
         try {
-            console.log("[EmbeddingService] Attempting default local Ollama (nomic-embed-text)");
+            const defaultOllamaUrl = process.env.OLLAMA_BASE_URL || "http://192.168.1.13:11434";
+            console.log(`[EmbeddingService] Attempting default Ollama at ${defaultOllamaUrl} (nomic-embed-text)`);
             const embeddings = this.getOrCreateEmbeddingsInstance('ollama-local', () => new OllamaEmbeddings({
-                baseUrl: "http://127.0.0.1:11434",
+                baseUrl: defaultOllamaUrl,
                 model: "nomic-embed-text"
             }));
             const result = await embedWithTimeout(embeddings, text, 180000);

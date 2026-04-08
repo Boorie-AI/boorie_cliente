@@ -43,7 +43,7 @@ export class AIProviderService {
         {
           name: 'ollama',
           type: 'local',
-          config: { baseUrl: process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434' }
+          config: { baseUrl: process.env.OLLAMA_BASE_URL || 'http://192.168.1.13:11434' }
         },
         {
           name: 'nvidia',

@@ -76,7 +76,18 @@ class WNTRWrapper {
     // Use shared Python detection utility (supports macOS, Windows, Linux)
     const { findPythonPath } = require('./pythonDetector')
     this.pythonPath = findPythonPath()
-    this.scriptPath = path.join(__dirname, 'wntrService.py')
+
+    // Fix for packaged app: Use process.resourcesPath when packaged, __dirname in dev
+    const { app } = require('electron')
+    const isPackaged = app ? app.isPackaged : (!process.defaultApp && (process.resourcesPath && !process.resourcesPath.includes('node_modules')))
+
+    if (isPackaged && process.resourcesPath) {
+      // In packaged app, Python scripts are in resources directory
+      this.scriptPath = path.join(process.resourcesPath, 'backend', 'services', 'hydraulic', 'wntrService.py')
+    } else {
+      // In development, use __dirname
+      this.scriptPath = path.join(__dirname, 'wntrService.py')
+    }
   }
 
   private async runPythonScript(command: string, args: string[]): Promise<any> {
