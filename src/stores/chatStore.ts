@@ -3,6 +3,7 @@ import { devtools } from 'zustand/middleware'
 import { type ChatMessage } from '@/services/chat'
 import { useAIConfigStore } from './aiConfigStore'
 import { databaseService } from '@/services/database'
+import { getOllamaBaseUrl } from '@/config/ollama'
 
 export interface WisdomConfiguration {
   enabled: boolean
@@ -504,8 +505,7 @@ export const useChatStore = create<ChatState>()(
             stream: true
           }
 
-          import { getOllamaBaseUrl } from '@/config/ollama';
-          const ollamaUrl = getOllamaBaseUrl();
+          const ollamaUrl = getOllamaBaseUrl()
           const response = await fetch(`${ollamaUrl}/api/chat`, {
             method: 'POST',
             headers: {
