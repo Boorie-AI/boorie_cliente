@@ -154,7 +154,7 @@ export function AIConfigurationPanel() {
 
   const checkOllamaInstallation = async () => {
     try {
-      const response = await fetch('${getOllamaBaseUrl()}/api/tags', {
+      const response = await fetch(`${getOllamaBaseUrl()}/api/tags`, {
         method: 'GET',
       })
 
