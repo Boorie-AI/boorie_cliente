@@ -10,7 +10,8 @@ export class HydraulicCalculatorWrapper {
     // Use shared Python detection utility
     const { findPythonPath } = require('./pythonDetector')
     this.pythonPath = findPythonPath()
-    this.scriptPath = path.join(__dirname, 'hydraulicCalculator.py')
+    const { resolvePythonScriptPath } = require('./pythonScriptPath')
+    this.scriptPath = resolvePythonScriptPath('hydraulicCalculator.py')
     console.log('HydraulicCalculatorWrapper initialized with:', {
       pythonPath: this.pythonPath,
       scriptPath: this.scriptPath

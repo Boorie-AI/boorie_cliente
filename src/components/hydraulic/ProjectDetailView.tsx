@@ -11,12 +11,15 @@ import {
   Trash2,
   Plus,
   Download,
-  Clock
+  Clock,
+  MessageSquare
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { hydraulicService } from '@/services/hydraulic/hydraulicService'
 import { HydraulicProject, ProjectStatus } from '@/types/hydraulic'
 import * as Tabs from '@radix-ui/react-tabs'
+import { useChatStore } from '@/stores/chatStore'
+import { useAppStore } from '@/stores/appStore'
 
 interface ProjectDetailViewProps {
   projectId: string
@@ -28,6 +31,19 @@ export function ProjectDetailView({ projectId, onBack }: ProjectDetailViewProps)
   const [project, setProject] = useState<HydraulicProject | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
+  const conversations = useChatStore(state => state.conversations)
+  const createNewConversation = useChatStore(state => state.createNewConversation)
+  const setActiveConversation = useChatStore(state => state.setActiveConversation)
+  const setCurrentView = useAppStore(state => state.setCurrentView)
+  const projectConversations = conversations.filter(c => c.projectId === projectId)
+  const openConversation = (conversationId: string) => {
+    setActiveConversation(conversationId)
+    setCurrentView('chat')
+  }
+  const startProjectChat = () => {
+    createNewConversation(projectId)
+    setCurrentView('chat')
+  }
   
   useEffect(() => {
     loadProject()
@@ -180,6 +196,19 @@ export function ProjectDetailView({ projectId, onBack }: ProjectDetailViewProps)
                 <Users className="w-4 h-4" />
                 Team ({project.team.length})
               </Tabs.Trigger>
+              <Tabs.Trigger
+                value="chat"
+                className={cn(
+                  "px-4 py-2 text-sm font-medium transition-colors",
+                  "border-b-2 border-transparent flex items-center gap-2",
+                  activeTab === 'chat'
+                    ? "text-primary border-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <MessageSquare className="w-4 h-4" />
+                Chat ({projectConversations.length})
+              </Tabs.Trigger>
             </Tabs.List>
           </Tabs.Root>
         </div>
@@ -328,6 +357,60 @@ export function ProjectDetailView({ projectId, onBack }: ProjectDetailViewProps)
           </div>
         )}
         
+        {activeTab === 'chat' && (
+          <div className="max-w-4xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Project Chat (LLM)</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Ask questions about this hydraulic project. Conversations are linked to the project context.
+                </p>
+              </div>
+              <button
+                onClick={startProjectChat}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-lg",
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+                  "transition-colors"
+                )}
+              >
+                <Plus className="w-4 h-4" />
+                New Chat
+              </button>
+            </div>
+
+            {projectConversations.length > 0 ? (
+              <div className="space-y-3">
+                {projectConversations.map((conv) => (
+                  <button
+                    key={conv.id}
+                    onClick={() => openConversation(conv.id)}
+                    className="w-full text-left bg-card rounded-lg border border-border p-4 hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          <h4 className="font-medium text-foreground truncate">{conv.title}</h4>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {conv.messages.length} messages • Updated {new Date(conv.updatedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No conversations yet for this project</p>
+                <p className="text-xs mt-1">Click "New Chat" to start asking the LLM about this project</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'team' && (
           <div className="max-w-4xl">
             <div className="flex items-center justify-between mb-4">

@@ -77,32 +77,8 @@ class WNTRWrapper {
     const { findPythonPath } = require('./pythonDetector')
     this.pythonPath = findPythonPath()
 
-    // Fix for packaged app: Use process.resourcesPath when packaged, __dirname in dev
-    const { app } = require('electron')
-    const isPackaged = app ? app.isPackaged : (!process.defaultApp && (process.resourcesPath && !process.resourcesPath.includes('node_modules')))
-
-    if (isPackaged && process.resourcesPath) {
-      // In packaged app, Python scripts are in resources directory
-      this.scriptPath = path.join(process.resourcesPath, 'backend', 'services', 'hydraulic', 'wntrService.py')
-    } else {
-      // In development: try multiple possible locations
-      const candidates = [
-        path.join(__dirname, 'wntrService.py'),
-        path.join(process.cwd(), 'backend', 'services', 'hydraulic', 'wntrService.py'),
-        path.join(__dirname, '..', '..', '..', 'backend', 'services', 'hydraulic', 'wntrService.py'),
-        path.join(app?.getAppPath?.() || process.cwd(), 'backend', 'services', 'hydraulic', 'wntrService.py'),
-      ];
-      // Use first path that looks valid (will be validated at runtime)
-      this.scriptPath = candidates[0];
-      // Try to find existing script
-      const fs_sync = require('fs');
-      for (const candidate of candidates) {
-        if (fs_sync.existsSync(candidate)) {
-          this.scriptPath = candidate;
-          break;
-        }
-      }
-    }
+    const { resolvePythonScriptPath } = require('./pythonScriptPath')
+    this.scriptPath = resolvePythonScriptPath('wntrService.py')
   }
 
   private async runPythonScript(command: string, args: string[]): Promise<any> {

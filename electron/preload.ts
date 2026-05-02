@@ -283,6 +283,7 @@ const electronAPI = {
       categories?: string[]
     }) => ipcRenderer.invoke('wisdom:massiveReindex', options),
     cleanDatabase: () => ipcRenderer.invoke('wisdom:cleanDatabase'),
+    syncMilvus: (documentId?: string) => ipcRenderer.invoke('wisdom:syncMilvus', documentId),
 
     // Additional wisdom-specific methods
     selectFolder: () => ipcRenderer.invoke('wisdom:selectFolder'),

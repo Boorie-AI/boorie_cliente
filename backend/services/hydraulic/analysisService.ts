@@ -4,7 +4,6 @@
  */
 
 import { spawn } from 'child_process';
-import path from 'path';
 import fs from 'fs/promises';
 import { createLogger } from '../../utils/logger';
 
@@ -103,7 +102,8 @@ export class WNTRAnalysisService {
     // Use shared Python detection utility
     const { findPythonPath } = require('./pythonDetector');
     this.pythonPath = findPythonPath();
-    this.servicePath = path.join(__dirname, 'wntr_analysis_service.py');
+    const { resolvePythonScriptPath } = require('./pythonScriptPath');
+    this.servicePath = resolvePythonScriptPath('wntr_analysis_service.py');
   }
 
   /**

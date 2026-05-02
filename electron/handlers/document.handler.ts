@@ -680,6 +680,82 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
     }
   })
 
+  // Sync DB chunks to Milvus (Bug #9: recover from silent Milvus insert failures)
+  ipcMain.handle('wisdom:syncMilvus', async (_event, documentId?: string) => {
+    try {
+      const milvusService = (await import('../../backend/services/milvus.service')).MilvusService.getInstance()
+      await milvusService.ensureConnection()
+
+      const where: any = documentId ? { id: documentId } : {}
+      const documents = await prismaClient.hydraulicKnowledge.findMany({
+        where,
+        include: { chunks: true }
+      })
+
+      let totalSynced = 0
+      let totalSkipped = 0
+      const errors: string[] = []
+
+      for (const doc of documents) {
+        const validChunks = doc.chunks.filter(c => {
+          if (!c.embedding || c.embedding === '' || c.embedding === '[]' || c.embedding === 'null') return false
+          try {
+            const v = JSON.parse(c.embedding)
+            return Array.isArray(v) && v.length > 0 && v.every(n => typeof n === 'number' && !isNaN(n))
+          } catch {
+            return false
+          }
+        })
+
+        if (validChunks.length === 0) {
+          totalSkipped++
+          continue
+        }
+
+        try {
+          const milvusRows = validChunks.map(c => ({
+            id: c.id,
+            vector: JSON.parse(c.embedding!),
+            content: c.content,
+            metadata: {
+              chunkId: c.id,
+              docId: doc.id,
+              title: doc.title,
+              category: doc.category
+            },
+            timestamp: doc.createdAt.getTime()
+          }))
+
+          // Delete existing entries for these IDs to avoid duplicates
+          try {
+            await milvusService.delete('hydraulic_knowledge', validChunks.map(c => c.id))
+          } catch {
+            // ignore - may not exist yet
+          }
+
+          await milvusService.insert('hydraulic_knowledge', milvusRows)
+          totalSynced += milvusRows.length
+        } catch (e: any) {
+          errors.push(`${doc.title}: ${e.message}`)
+        }
+      }
+
+      return {
+        success: true,
+        totalSynced,
+        totalSkipped,
+        documentsProcessed: documents.length,
+        errors
+      }
+    } catch (error: any) {
+      console.error('Milvus sync error:', error)
+      return {
+        success: false,
+        message: error.message || 'Failed to sync to Milvus'
+      }
+    }
+  })
+
   // Get available embedding providers (static + dynamic Ollama)
   ipcMain.handle('wisdom:getEmbeddingProviders', async () => {
     try {
