@@ -6,6 +6,8 @@ export class MilvusService {
     private static instance: MilvusService;
     private client: MilvusClient;
     private connected: boolean = false;
+    private connectionAttempted: boolean = false;
+    private unavailable: boolean = false;
 
     // Collection Names
     public static COLLECTIONS = {
@@ -34,20 +36,26 @@ export class MilvusService {
 
     public async ensureConnection() {
         if (this.connected) return;
+        if (this.unavailable) {
+            // Already known to be down: short-circuit so callers don't spam retries.
+            throw new Error('Milvus unavailable (cached)');
+        }
+        if (this.connectionAttempted) {
+            // Re-entry while a previous attempt failed; bail fast.
+            throw new Error('Milvus unavailable');
+        }
+        this.connectionAttempted = true;
         try {
-            // Wait for connection? Milvus Node SDK is lazy/async.
-            // We can try to list collections to verify connectivity.
-            // Retry loop might be needed if Python script is still starting.
-            let retries = 10;
+            let retries = 3; // Reduced from 10 — if it isn't up quickly we give up.
             while (retries > 0) {
                 try {
                     await this.client.listCollections();
                     this.connected = true;
                     console.log('[MilvusService] Connected successfully');
                     break;
-                } catch (e) {
+                } catch {
                     console.log(`[MilvusService] Waiting for Milvus server... (${retries})`);
-                    await new Promise(r => setTimeout(r, 2000));
+                    await new Promise(r => setTimeout(r, 1500));
                     retries--;
                 }
             }
@@ -55,10 +63,15 @@ export class MilvusService {
             if (this.connected) {
                 await this.initCollections();
             } else {
-                console.error('[MilvusService] Could not connect to Milvus server after retries');
+                this.unavailable = true;
+                console.warn('[MilvusService] Milvus unavailable — RAG will fall back to in-DB chunks. (Logged once.)');
+                throw new Error('Milvus unavailable');
             }
         } catch (error) {
-            console.error('[MilvusService] Connection failed:', error);
+            this.unavailable = true;
+            // Only log on the first failure — subsequent callers will short-circuit above.
+            console.warn('[MilvusService] Connection failed (logged once):', (error as Error).message);
+            throw error;
         }
     }
 
@@ -141,8 +154,17 @@ export class MilvusService {
         await this.client.loadCollection({ collection_name: name });
     }
 
+    public isAvailable(): boolean {
+        return this.connected && !this.unavailable;
+    }
+
     public async search(collection: string, vector: number[], limit: number = 10, filter?: string, consistency: boolean = true) {
-        await this.ensureConnection();
+        try {
+            await this.ensureConnection();
+        } catch {
+            // Fail-soft: return empty results so RAG can fall back to in-DB chunks.
+            return { results: [] } as any;
+        }
         return this.client.search({
             collection_name: collection,
             data: vector,
@@ -154,7 +176,12 @@ export class MilvusService {
     }
 
     public async insert(collection: string, rows: any[]) {
-        await this.ensureConnection();
+        try {
+            await this.ensureConnection();
+        } catch {
+            // Skip silently — chunks remain in DB and can be synced later via wisdom:syncMilvus.
+            return { insert_cnt: 0, skipped: true } as any;
+        }
         return this.client.insert({
             collection_name: collection,
             data: rows
