@@ -561,9 +561,23 @@ export const useChatStore = create<ChatState>()(
                   try {
                     const data = JSON.parse(line)
 
-                    if (data.message?.content) {
-                      fullResponse += data.message.content
-                      // Update streaming message immediately
+                    // Reasoning models (e.g. nemotron-3-nano) emit `thinking`
+                    // chunks with an empty `content`. Surface them so the user
+                    // sees progress instead of a blank screen during CoT.
+                    const thinkingChunk = data.message?.thinking as string | undefined
+                    const contentChunk = data.message?.content as string | undefined
+
+                    if (thinkingChunk) {
+                      // Visually mark thinking text so we can hide it later if desired.
+                      // We accumulate it as part of the streaming buffer; it disappears
+                      // once the final assistant message is committed.
+                      get().setStreamingMessage(
+                        (fullResponse ? fullResponse + '\n\n' : '') +
+                          '_💭 ' + thinkingChunk.replace(/\n+/g, ' ').trim() + '_'
+                      )
+                    }
+                    if (contentChunk) {
+                      fullResponse += contentChunk
                       get().setStreamingMessage(fullResponse)
                     }
                     if (data.eval_count) {
