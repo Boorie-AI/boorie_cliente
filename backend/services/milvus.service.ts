@@ -125,20 +125,31 @@ export class MilvusService {
     private async ensureCollection(name: string, dimension: number) {
         const has = await this.client.hasCollection({ collection_name: name });
         if (has.value) {
-            // Check dimension match
-            const desc = await this.client.describeCollection({ collection_name: name });
-            const vectorField = desc.schema.fields.find((f: any) => f.name === 'vector');
-            const currentDim = vectorField && (vectorField as any).params ? parseInt((vectorField as any).params.find((p: any) => p.key === 'dim')?.value || '0') : 0;
+            // Defensive describe — milvus-lite sometimes returns schema=null for
+            // legacy collections; in that case we drop and recreate cleanly.
+            let currentDim = 0;
+            let canDescribe = true;
+            try {
+                const desc = await this.client.describeCollection({ collection_name: name });
+                const fields = desc?.schema?.fields ?? null;
+                if (!fields) {
+                    canDescribe = false;
+                } else {
+                    const vectorField = fields.find((f: any) => f.name === 'vector');
+                    currentDim = vectorField && (vectorField as any).params
+                        ? parseInt((vectorField as any).params.find((p: any) => p.key === 'dim')?.value || '0')
+                        : 0;
+                }
+            } catch (e) {
+                canDescribe = false;
+                console.warn(`[MilvusService] describeCollection(${name}) failed, will recreate:`, (e as Error).message);
+            }
 
-            // If we can't find params (SDK variance), we might inspect differently, but let's assume standard response structure
-            // If the SDK structure is different (fields as array of objects), we rely on that.
-            // Note: Zilliz SDK describeCollection returns { status, schema: { name, description, fields: [...] }, ... }
-
-            if (currentDim !== dimension && currentDim !== 0) {
-                console.warn(`[MilvusService] Collection ${name} dimension mismatch (Current: ${currentDim}, Required: ${dimension}). Recreating...`);
-                await this.client.dropCollection({ collection_name: name });
+            if (!canDescribe || (currentDim !== dimension && currentDim !== 0)) {
+                console.warn(`[MilvusService] Recreating collection ${name} (currentDim=${currentDim}, required=${dimension}, describable=${canDescribe})`);
+                try { await this.client.dropCollection({ collection_name: name }); } catch { /* ignore */ }
             } else {
-                await this.client.loadCollection({ collection_name: name });
+                try { await this.client.loadCollection({ collection_name: name }); } catch { /* ignore */ }
                 return;
             }
         }
