@@ -3,6 +3,7 @@ import { AIConfigurationPanel } from './AIConfigurationPanel'
 import { SystemPromptPanel } from './SystemPromptPanel'
 import { GeneralTab, AccountsTab } from './tabs'
 import { MilvusInspector } from './MilvusInspector'
+import { GuardrailsPanel } from './GuardrailsPanel'
 import { cn } from '@/utils/cn'
 import * as Tabs from '@radix-ui/react-tabs'
 import { useAppStore } from '@/stores/appStore'
@@ -79,6 +80,16 @@ export function SettingsPanel() {
               >
                 Milvus Inspector
               </Tabs.Trigger>
+              <Tabs.Trigger
+                value="guardrails"
+                className={cn(
+                  "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+                  "data-[state=inactive]:text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Guardrails
+              </Tabs.Trigger>
             </Tabs.List>
 
             {/* Tab Content */}
@@ -100,6 +111,10 @@ export function SettingsPanel() {
 
             <Tabs.Content value="milvus" className="flex-1 overflow-hidden">
               <MilvusInspector />
+            </Tabs.Content>
+
+            <Tabs.Content value="guardrails" className="flex-1 overflow-hidden">
+              <GuardrailsPanel />
             </Tabs.Content>
           </Tabs.Root>
         </div>

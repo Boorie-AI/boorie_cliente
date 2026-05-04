@@ -6,6 +6,7 @@ import { WNTRSimulationService } from '../../backend/services/hydraulic/simulati
 import { WNTRAnalysisService } from '../../backend/services/hydraulic/analysisService'
 import { WNTRReportService } from '../../backend/services/hydraulic/reportService'
 import { getPythonStatus } from '../../backend/services/hydraulic/pythonDetector'
+import { guardrailsWrapper } from '../../backend/services/guardrails/guardrailsWrapper'
 
 // Create service instances
 const simulationService = new WNTRSimulationService()
@@ -153,8 +154,23 @@ export function setupWNTRHandlers() {
       }
 
       const simulationType = options?.simulationType || 'single'
+
+      // Guardrail: execution rail — sanity-check parameters before launching
+      // a potentially long Python simulation.
+      const verdict = await guardrailsWrapper.validateExecution('wntr.runSimulation', {
+        file: global.currentWNTRFile,
+        simulationType,
+      })
+      if (!verdict.allow) {
+        return {
+          success: false,
+          blockedBy: 'guardrail:execution',
+          error: `Simulación rechazada por guardrail: ${verdict.reason}`,
+        }
+      }
+
       const result = await wntrWrapper.runSimulation(global.currentWNTRFile, simulationType)
-      
+
       return result
     } catch (error) {
       console.error('Error running simulation:', error)

@@ -10,6 +10,7 @@ export { setupWNTRHandlers } from './wntr.handler'
 export { registerWisdomHandlers, registerVectorGraphHandlers, registerWisdomExtendedHandlers } from './document.handler'
 export { NetworkRepositoryHandler } from './networkRepository.handler'
 export { registerAgenticRAGHandlers } from './agenticRAG.handler'
+export { registerGuardrailsHandlers } from './guardrails.handler'
 
 import { ServiceContainer } from '../../backend/services'
 import { ConversationHandler } from './conversation.handler'
@@ -22,6 +23,7 @@ import { setupWNTRHandlers } from './wntr.handler'
 import { registerWisdomHandlers, registerVectorGraphHandlers, registerWisdomExtendedHandlers } from './document.handler'
 import { NetworkRepositoryHandler } from './networkRepository.handler'
 import { registerAgenticRAGHandlers } from './agenticRAG.handler'
+import { registerGuardrailsHandlers } from './guardrails.handler'
 import { registerMilvusHandlers } from './milvus.handler'
 import { createLogger } from '../../backend/utils/logger'
 
@@ -76,6 +78,14 @@ export class HandlersManager {
       logger.info('Milvus handlers registered')
     } catch (error) {
       logger.warn('Milvus handlers registration failed', error as Error)
+    }
+
+    // Setup Guardrails (NeMo) handlers
+    try {
+      registerGuardrailsHandlers(services.database.prisma)
+      logger.success('Guardrails handlers registered')
+    } catch (error) {
+      logger.warn('Guardrails handlers registration failed (continuing fail-open)', error as Error)
     }
 
     this.isInitialized = true

@@ -353,7 +353,24 @@ const electronAPI = {
     describeCollection: (collectionName: string) => ipcRenderer.invoke('milvus:describeCollection', collectionName),
     inspect: (options: { collectionName: string, limit: number, offset: number, filter?: string }) =>
       ipcRenderer.invoke('milvus:inspect', options),
-  }
+  },
+
+  // NVIDIA NeMo Guardrails
+  guardrails: {
+    getSettings: () => ipcRenderer.invoke('guardrails:getSettings'),
+    setSettings: (settings: any) => ipcRenderer.invoke('guardrails:setSettings', settings),
+    ping: () => ipcRenderer.invoke('guardrails:ping'),
+    validateInput: (args: { text: string; conversationId?: string; messageId?: string }) =>
+      ipcRenderer.invoke('guardrails:validateInput', args),
+    validateRetrieval: (args: { query: string; chunks: string[]; conversationId?: string }) =>
+      ipcRenderer.invoke('guardrails:validateRetrieval', args),
+    validateOutput: (args: { user: string; answer: string; context: string; conversationId?: string; messageId?: string }) =>
+      ipcRenderer.invoke('guardrails:validateOutput', args),
+    validateExecution: (args: { tool: string; params: any; conversationId?: string }) =>
+      ipcRenderer.invoke('guardrails:validateExecution', args),
+    listViolations: (options?: { limit?: number; rail?: 'input' | 'retrieval' | 'output' | 'execution'; conversationId?: string }) =>
+      ipcRenderer.invoke('guardrails:listViolations', options),
+  },
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

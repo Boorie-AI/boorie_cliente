@@ -1,0 +1,30 @@
+# Output rail — fact-check the assistant's answer against the RAG
+# context before it is shown to the engineer.
+
+define flow boorie output rail
+  user said something
+  $verdict = execute boorie_judge_output(user_message=$last_user_message)
+  bot $verdict
+
+define subflow boorie_judge_output
+  """Hallucination / fact-check the answer.
+
+  Block:
+    - Numerical claims (formulas, design parameters, regulation codes)
+      that are NOT supported by the provided CONTEXT.
+    - Invented regulations, made-up standard numbers.
+    - Confident answers about regions or codes the context does not
+      mention.
+  Warn:
+    - Answer goes slightly beyond the context but stays plausible.
+  Allow:
+    - Answer is grounded in the context or is generic engineering
+      knowledge that does not need citation.
+  """
+  $resp = await $main_llm.complete(
+    "You are the output rail judge for hydraulic engineering answers. "
+    "The user message contains USER_QUESTION, CONTEXT (retrieved "
+    "knowledge), and ANSWER. Reply ONLY with ALLOW, "
+    "WARN: <reason>, or BLOCK: <reason>.\n\n" + $last_user_message
+  )
+  return $resp

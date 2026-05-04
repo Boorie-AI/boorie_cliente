@@ -1,0 +1,29 @@
+# Execution rail — sanity-check tool/WNTR parameters before invoking
+# expensive or potentially destructive operations.
+
+define flow boorie execution rail
+  user said something
+  $verdict = execute boorie_judge_execution(user_message=$last_user_message)
+  bot $verdict
+
+define subflow boorie_judge_execution
+  """Validate parameters about to be passed to a tool.
+
+  Block:
+    - Negative or absurd physical values (negative diameters, pressures
+      far outside engineering ranges, time horizons measured in years).
+    - File paths outside the project directory or with shell injection
+      characters.
+    - Calls that would obviously crash WNTR (empty network, invalid
+      simulator name).
+  Warn:
+    - Values at the edge of normal ranges but technically valid.
+  Allow:
+    - Reasonable engineering parameters.
+  """
+  $resp = await $main_llm.complete(
+    "You are the execution rail judge. The user message contains TOOL "
+    "and PARAMS. Reply ONLY with ALLOW, WARN: <reason>, or BLOCK: <reason>"
+    ".\n\n" + $last_user_message
+  )
+  return $resp

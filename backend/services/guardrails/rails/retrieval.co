@@ -1,0 +1,23 @@
+# Retrieval rail — judge whether the chunks fetched by the RAG pipeline
+# are actually relevant to the query before injecting them into the
+# main LLM prompt. Reduces hallucinations from off-topic chunks.
+
+define flow boorie retrieval rail
+  user said something
+  $verdict = execute boorie_judge_retrieval(user_message=$last_user_message)
+  bot $verdict
+
+define subflow boorie_judge_retrieval
+  """Ask whether the retrieved chunks are useful for the query.
+
+  Block: chunks completely off-topic (e.g. user asks about pipe sizing
+    and chunks are about wastewater regulations).
+  Warn: chunks are loosely related — keep them but flag.
+  Allow: chunks are clearly relevant.
+  """
+  $resp = await $main_llm.complete(
+    "You are the retrieval rail judge. The user message contains a QUERY "
+    "and the retrieved CHUNKS. Reply ONLY with ALLOW, "
+    "WARN: <reason>, or BLOCK: <reason>.\n\n" + $last_user_message
+  )
+  return $resp

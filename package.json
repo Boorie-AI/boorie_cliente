@@ -1,6 +1,6 @@
 {
   "name": "boorie",
-  "version": "1.3.10",
+  "version": "1.4.0",
   "description": "Boorie - Advanced AI Desktop Client with comprehensive productivity features",
   "main": "dist/electron/main.js",
   "scripts": {
@@ -162,13 +162,23 @@
         "filter": [
           "*.py"
         ]
+      },
+      {
+        "from": "backend/services/guardrails",
+        "to": "backend/services/guardrails",
+        "filter": [
+          "**/*.py",
+          "**/*.co",
+          "**/*.yml"
+        ]
       }
     ],
     "asarUnpack": [
       "node_modules/@prisma/**/*",
       "node_modules/.prisma/**/*",
       "node_modules/axios/**/*",
-      "dist/backend/services/hydraulic/*.py"
+      "dist/backend/services/hydraulic/*.py",
+      "dist/backend/services/guardrails/**/*"
     ],
     "mac": {
       "target": "dmg",

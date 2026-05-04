@@ -1,8 +1,31 @@
 import { ipcMain } from 'electron'
 import { PrismaClient } from '@prisma/client'
 import { createAgenticRAGService } from '../../backend/services/hydraulic/agentic/agenticRAGService'
+import { guardrailsWrapper } from '../../backend/services/guardrails/guardrailsWrapper'
 
 let ragService: any = null
+
+async function auditViolation(
+  prismaClient: PrismaClient,
+  rail: 'input' | 'retrieval' | 'output',
+  verdict: { allow: boolean; reason: string; severity: string; judge_model: string; judge_provider: string },
+  payload: any,
+) {
+  if (verdict.allow && !verdict.reason.startsWith('[advisory]')) return
+  try {
+    await prismaClient.guardrailViolation.create({
+      data: {
+        rail,
+        severity: verdict.severity,
+        reason: verdict.reason,
+        blocked: !verdict.allow,
+        judgeModel: verdict.judge_model,
+        judgeProvider: verdict.judge_provider,
+        payload: payload ? JSON.stringify(payload).slice(0, 4000) : null,
+      },
+    })
+  } catch { /* ignore audit errors */ }
+}
 
 export function registerAgenticRAGHandlers(prismaClient: PrismaClient) {
   console.log('[AgenticRAG Handler] Starting registration...')
@@ -34,7 +57,52 @@ export function registerAgenticRAGHandlers(prismaClient: PrismaClient) {
       console.log('[AgenticRAG Handler] Processing query:', question)
       console.log('[AgenticRAG Handler] Options received:', options)
 
+      // Guardrail: input rail
+      const inputVerdict = await guardrailsWrapper.validateInput(question)
+      await auditViolation(prismaClient, 'input', inputVerdict, { text: question })
+      if (!inputVerdict.allow) {
+        return {
+          success: false,
+          blockedBy: 'guardrail:input',
+          severity: inputVerdict.severity,
+          error: `Pregunta rechazada por guardrail (input): ${inputVerdict.reason}`,
+        }
+      }
+
       const result = await ragService.query(question, options)
+
+      // Guardrail: retrieval rail (only if we have RAG sources)
+      const sourceTexts: string[] = (result?.sources ?? [])
+        .map((s: any) => s?.content ?? s?.text ?? '')
+        .filter(Boolean)
+      if (sourceTexts.length > 0) {
+        const retrievalVerdict = await guardrailsWrapper.validateRetrieval(question, sourceTexts.slice(0, 8))
+        await auditViolation(prismaClient, 'retrieval', retrievalVerdict, { query: question, chunkCount: sourceTexts.length })
+        if (!retrievalVerdict.allow) {
+          // For retrieval we don't block the whole answer; we attach a flag
+          ;(result as any).retrievalBlocked = true
+          ;(result as any).retrievalReason = retrievalVerdict.reason
+        }
+      }
+
+      // Guardrail: output rail (fact-check vs RAG context)
+      const answerText = String((result as any)?.answer ?? (result as any)?.response ?? '')
+      if (answerText) {
+        const contextText = sourceTexts.join('\n---\n').slice(0, 4000)
+        const outputVerdict = await guardrailsWrapper.validateOutput(question, answerText, contextText)
+        await auditViolation(prismaClient, 'output', outputVerdict, { user: question, answer: answerText.slice(0, 1500) })
+        if (!outputVerdict.allow) {
+          return {
+            success: false,
+            blockedBy: 'guardrail:output',
+            severity: outputVerdict.severity,
+            error: `Respuesta rechazada por guardrail (output): ${outputVerdict.reason}`,
+            // include the unredacted answer so frontend can show it as
+            // "flagged but available on request" if desired
+            redactedAnswer: answerText.slice(0, 200),
+          }
+        }
+      }
 
       return {
         success: true,

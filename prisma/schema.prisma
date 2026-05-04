@@ -364,3 +364,21 @@ model LongTermMemory {
 
   @@map("long_term_memory")
 }
+
+model GuardrailViolation {
+  id             String   @id @default(cuid())
+  conversationId String?  // Optional link to conversation
+  messageId      String?  // Optional link to message that triggered the rail
+  rail           String   // 'input' | 'retrieval' | 'output' | 'execution'
+  severity       String   // 'low' | 'medium' | 'high' | 'critical'
+  reason         String   // Human-readable reason from the rail
+  blocked        Boolean  @default(true)  // false when in advisory/warn mode
+  judgeModel     String?  // Model used to evaluate (e.g. 'nemotron-mini', 'nemoguard')
+  judgeProvider  String?  // 'ollama' | 'nvidia-api'
+  payload        String?  // JSON: input snippet, retrieved chunks, output snippet
+  createdAt      DateTime @default(now())
+
+  @@index([conversationId])
+  @@index([rail, createdAt])
+  @@map("guardrail_violations")
+}
