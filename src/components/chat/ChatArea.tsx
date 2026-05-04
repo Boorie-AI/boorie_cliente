@@ -77,8 +77,8 @@ export function ChatArea() {
 
   return (
     <div className="h-full flex bg-background">
-      {/* Main chat area - centered with max width */}
-      <div className="flex-1 flex flex-col min-h-0 max-w-7xl mx-auto">
+      {/* Main chat area - centered, full width to let thinking text breathe */}
+      <div className="flex-1 flex flex-col min-h-0 w-full mx-auto">
         {/* Header with conversation info and model selector */}
         <div className="flex-shrink-0 border-b border-border/50 bg-card z-10">
           <ChatHeader conversation={activeConversation} />
@@ -86,7 +86,7 @@ export function ChatArea() {
 
         {/* Messages area with proper scrolling */}
         <div className="flex-1 overflow-y-auto min-h-0">
-          <div className="p-4 max-w-5xl mx-auto">
+          <div className="p-4 max-w-7xl mx-auto w-full">
             <MessageList
               messages={activeConversation.messages}
               isLoading={isLoading}
@@ -98,7 +98,7 @@ export function ChatArea() {
 
         {/* Input area */}
         <div className="flex-shrink-0 border-t border-border/50 bg-card/30">
-          <div className="max-w-5xl mx-auto">
+          <div className="max-w-7xl mx-auto w-full">
             <MessageInput />
           </div>
         </div>
