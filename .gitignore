@@ -83,3 +83,6 @@ app_log.txt
 # Bug reports
 bug/
 volumes/
+
+data/boorie-milvus/
+data/data/
