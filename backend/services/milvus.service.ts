@@ -9,18 +9,44 @@ export class MilvusService {
     private connectionAttempted: boolean = false;
     private unavailable: boolean = false;
 
-    // Collection Names
+    // Collection Names — Milvus Lite embebido es la BD vectorial única
+    // para RAG, memoria de agentes, conversaciones y guardrails.
     public static COLLECTIONS = {
         KNOWLEDGE: 'hydraulic_knowledge',
-        CONVERSATIONS: 'conversations'
+        CONVERSATIONS: 'conversations',
+        AGENT_MEMORY: 'agent_memory',
+        GUARDRAIL_VIOLATIONS: 'guardrail_violations_vec',
     };
 
     private constructor() {
-        // Connect to local server provided by Python script
-        // Default Milvus port is 19530
-        const address = '127.0.0.1:19530';
-        console.log('[MilvusService] Connecting to Milvus Server at', address);
+        // Read the effective port chosen by scripts/start_milvus.py.
+        // The file lives in data/boorie-milvus/port and is rewritten on
+        // each cold start. Falls back to 19530 if not present.
+        const address = MilvusService.resolveAddress();
+        console.log('[MilvusService] Connecting to Milvus Lite at', address);
         this.client = new MilvusClient({ address });
+    }
+
+    private static resolveAddress(): string {
+        try {
+            const candidates = [
+                path.join(process.cwd(), 'data', 'boorie-milvus', 'port'),
+                path.join(__dirname, '..', '..', 'data', 'boorie-milvus', 'port'),
+            ];
+            const resourcesPath = (process as any).resourcesPath as string | undefined;
+            if (resourcesPath) {
+                candidates.push(path.join(resourcesPath, 'data', 'boorie-milvus', 'port'));
+            }
+            for (const candidate of candidates) {
+                if (fs.existsSync(candidate)) {
+                    const port = fs.readFileSync(candidate, 'utf-8').trim();
+                    if (/^\d+$/.test(port)) return `127.0.0.1:${port}`;
+                }
+            }
+        } catch {
+            // ignore — fall through to default
+        }
+        return '127.0.0.1:19530';
     }
 
     public static getInstance(): MilvusService {
@@ -83,11 +109,17 @@ export class MilvusService {
         // For this specific fix, we'll try to check the active provider or default to 768.
         const dimension = process.env.EMBEDDING_DIMENSION ? parseInt(process.env.EMBEDDING_DIMENSION) : 768;
 
-        // 1. Knowledge Collection
+        // 1. Knowledge Collection (RAG)
         await this.ensureCollection(MilvusService.COLLECTIONS.KNOWLEDGE, dimension);
 
-        // 2. Conversations Collection
+        // 2. Conversations Collection (red agéntica — embeddings de turnos)
         await this.ensureCollection(MilvusService.COLLECTIONS.CONVERSATIONS, dimension);
+
+        // 3. Agent persistent memory (resúmenes de sesión / hechos retenidos)
+        await this.ensureCollection(MilvusService.COLLECTIONS.AGENT_MEMORY, dimension);
+
+        // 4. Guardrail violations (búsqueda por similitud sobre violaciones pasadas)
+        await this.ensureCollection(MilvusService.COLLECTIONS.GUARDRAIL_VIOLATIONS, dimension);
     }
 
     private async ensureCollection(name: string, dimension: number) {

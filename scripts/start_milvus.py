@@ -1,46 +1,102 @@
 #!/usr/bin/env python3
-"""Stub para `npm run dev`.
+"""
+Boorie embedded Milvus Lite — la base vectorial está dentro de la app.
 
-El proyecto antes lanzaba un servidor Milvus Lite local desde aquí, pero
-ahora la app se conecta a un Milvus externo (127.0.0.1:19530) o cae a
-fail-open si no está disponible. Este script existe únicamente para que
-`scripts/dev-runner.js` no escupa un error de "file not found".
+Sin Docker. Arranca milvus-lite en gRPC TCP en el primer puerto libre a
+partir de 19530, persiste a `data/boorie-milvus/boorie.db` y escribe el
+puerto efectivo en `data/boorie-milvus/port` para que el cliente
+TypeScript (`backend/services/milvus.service.ts`) sepa dónde conectar.
 
-Si necesitas Milvus en local: `docker compose up -d` con el `data/`
-existente, o instala milvus-lite y ajusta este script.
+Esta misma instancia es la BD vectorial compartida para:
+  - RAG (colección hydraulic_knowledge)
+  - Memoria persistente de agentes (colección agent_memory)
+  - Red agéntica / conversaciones (colección conversations)
+  - Guardrails (colección guardrail_violations_vec, opcional)
 """
 from __future__ import annotations
 
+import os
+import signal
+import socket
 import sys
 import time
+from pathlib import Path
+
+
+def find_free_port(start: int = 19530, end: int = 19550) -> int:
+    for port in range(start, end + 1):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(("127.0.0.1", port))
+                return port
+            except OSError:
+                continue
+    raise RuntimeError(f"No free port in range {start}-{end}")
 
 
 def main() -> int:
     try:
-        # Intento opcional: si milvus-lite está instalado, lo arrancamos.
-        from milvus import default_server  # type: ignore
-
-        default_server.start()
-        print(f"Milvus Lite running on port {default_server.listen_port}", flush=True)
-        try:
-            while True:
-                time.sleep(60)
-        except KeyboardInterrupt:
-            pass
-        finally:
-            default_server.stop()
-        return 0
-    except Exception:
-        # No hay milvus-lite — quedamos en idle para que dev-runner no
-        # marque el proceso como caído. La app conectará al Milvus
-        # externo o usará fail-open.
-        print("[milvus-stub] milvus-lite no instalado; usando Milvus externo o fail-open.", flush=True)
+        from milvus_lite.server_manager import Server
+    except Exception as e:
+        print(f"[milvus] milvus-lite no instalado: {e}", flush=True)
+        print("[milvus] ejecuta:  ./venv-wntr/bin/pip install milvus-lite", flush=True)
+        # Quedamos en idle — la app cae a fail-soft (search devuelve [] sin spam).
         try:
             while True:
                 time.sleep(3600)
         except KeyboardInterrupt:
             return 0
         return 0
+
+    project_root = Path(__file__).resolve().parent.parent
+    db_dir = project_root / "data" / "boorie-milvus"
+    db_dir.mkdir(parents=True, exist_ok=True)
+    db_file = db_dir / "boorie.db"
+    port_file = db_dir / "port"
+
+    port = find_free_port(19530, 19550)
+    address = f"127.0.0.1:{port}"
+
+    print(f"[milvus] DB:      {db_file}", flush=True)
+    print(f"[milvus] Address: {address}", flush=True)
+
+    server = Server(db_file=str(db_file), address=address)
+    if not server.init():
+        print("[milvus] Server.init() falló", flush=True)
+        return 1
+    if not server.start():
+        print("[milvus] Server.start() falló", flush=True)
+        return 1
+
+    # Publicar el puerto efectivo para que MilvusService lo lea.
+    port_file.write_text(str(port), encoding="utf-8")
+
+    print(f"[milvus] Milvus Lite listo en {address} (port file: {port_file})", flush=True)
+
+    # Esperar señales de terminación y parar limpiamente.
+    stop = {"flag": False}
+
+    def _signal(_sig, _frame):
+        stop["flag"] = True
+
+    signal.signal(signal.SIGINT, _signal)
+    signal.signal(signal.SIGTERM, _signal)
+
+    try:
+        while not stop["flag"]:
+            time.sleep(1)
+    finally:
+        try:
+            if port_file.exists():
+                port_file.unlink()
+        except Exception:
+            pass
+        try:
+            server._p and server._p.terminate()  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+    return 0
 
 
 if __name__ == "__main__":
