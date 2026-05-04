@@ -229,8 +229,11 @@ export const useChatStore = create<ChatState>()(
 
         set({ isLoading: true })
 
-        // Global timeout for the entire flow (RAG + AI response): 120 seconds
-        const GLOBAL_TIMEOUT_MS = 120000
+        // Global timeout for the entire flow (RAG + AI response): 5 minutes.
+        // Generous because small local models (nemotron-mini, llama3.2) can do
+        // chain-of-thought reasoning before the first visible token. The user
+        // still sees progress via setStreamingMessage on every chunk.
+        const GLOBAL_TIMEOUT_MS = 300000
         const globalTimeout = new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('GLOBAL_TIMEOUT')), GLOBAL_TIMEOUT_MS)
         )
@@ -286,18 +289,38 @@ export const useChatStore = create<ChatState>()(
             const MAX_RETRIES = 1
             let lastError: Error | null = null
 
+            const isOllama = conversation.provider.toLowerCase() === 'ollama'
+
             for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
               try {
                 if (attempt > 0) {
                   await new Promise(resolve => setTimeout(resolve, 2000 * attempt))
                 }
 
-                const result = await window.electronAPI.chat.sendMessage({
-                  provider: conversation.provider,
-                  model: conversation.model,
-                  messages: messages,
-                  apiKey: apiKey
-                })
+                let result: any
+
+                if (isOllama) {
+                  // Use direct streaming Ollama call so tokens appear in the
+                  // UI as they arrive (setStreamingMessage on each chunk).
+                  // Avoids the IPC chat handler's blocking 90s wait.
+                  try {
+                    const r = await get().callOllamaAPI(
+                      conversation.model,
+                      enhancedPrompt,
+                      conversation.messages, // history (without the user msg added below — it's already inside)
+                    )
+                    result = { success: true, data: { response: r.response, metadata: r.metadata } }
+                  } catch (e: any) {
+                    result = { success: false, error: e?.message || 'Ollama streaming failed' }
+                  }
+                } else {
+                  result = await window.electronAPI.chat.sendMessage({
+                    provider: conversation.provider,
+                    model: conversation.model,
+                    messages: messages,
+                    apiKey: apiKey
+                  })
+                }
 
                 if (!result.success) {
                   const err = new Error(result.error || 'Failed to send message')
