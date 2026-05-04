@@ -20,12 +20,13 @@ if [ ! -d "$VENV" ]; then
   exit 1
 fi
 
-echo "📦 Installing NeMo Guardrails into venv-wntr..."
+echo "📦 Installing NeMo Guardrails + Milvus Lite into venv-wntr..."
 "$VENV/bin/pip" install --upgrade pip
 "$VENV/bin/pip" install \
   "nemoguardrails>=0.10.0" \
   "langchain-ollama>=0.2.0" \
-  "langchain-nvidia-ai-endpoints>=0.3.0"
+  "langchain-nvidia-ai-endpoints>=0.3.0" \
+  "milvus-lite>=2.5.1"
 
 echo "✅ Python packages installed."
 
