@@ -929,6 +929,19 @@ async function initializeApplication(): Promise<void> {
     // Setup basic IPC handlers that don't belong to services
     setupBasicIPCHandlers()
 
+    // First-run / repair Python environment setup (guardrails, milvus, wntr)
+    try {
+      const { registerSetupHandlers } = await import('./handlers/setup.handler')
+      registerSetupHandlers(
+        () => mainWindow,
+        app.getPath('userData'),
+        app.getAppPath(),
+      )
+      appLogger.success('Setup handlers registered')
+    } catch (error) {
+      appLogger.warn('Setup handlers registration failed', error as Error)
+    }
+
     // Agentic RAG handlers are now registered via HandlersManager
     // See electron/handlers/agenticRAG.handler.ts and electron/handlers/index.ts
 

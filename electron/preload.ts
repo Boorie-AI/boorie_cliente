@@ -355,6 +355,17 @@ const electronAPI = {
       ipcRenderer.invoke('milvus:inspect', options),
   },
 
+  // First-run Python setup (guardrails / milvus / wntr deps)
+  setup: {
+    status: () => ipcRenderer.invoke('setup:status'),
+    install: () => ipcRenderer.invoke('setup:install'),
+    onProgress: (callback: (data: any) => void) => {
+      const wrapped = (_e: any, data: any) => callback(data)
+      ipcRenderer.on('setup:progress', wrapped)
+      return () => ipcRenderer.removeListener('setup:progress', wrapped)
+    },
+  },
+
   // NVIDIA NeMo Guardrails
   guardrails: {
     getSettings: () => ipcRenderer.invoke('guardrails:getSettings'),
