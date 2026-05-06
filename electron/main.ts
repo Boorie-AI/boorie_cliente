@@ -10,7 +10,6 @@ if (typeof global !== 'undefined' && !global.crypto) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const crypto = require('crypto');
-    // @ts-expect-error global.crypto types differ between Node versions
     global.crypto = crypto.webcrypto || crypto;
     console.log('Global crypto polyfill applied successfully');
   } catch (err) {
@@ -758,7 +757,6 @@ function createWindow(): void {
 
   mainWindow.on('closed', () => {
     appLogger.warn('Window closed event triggered')
-    // @ts-expect-error mainWindow needs to be null after closing
     mainWindow = null
   })
 
