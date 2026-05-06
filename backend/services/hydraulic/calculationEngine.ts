@@ -1,8 +1,7 @@
 import {
   HydraulicFormula,
   CalculationResult,
-  FormulaParameter,
-  UnitSystem
+  FormulaParameter
 } from '../../../src/types/hydraulic'
 
 export class HydraulicCalculationEngine {
@@ -379,17 +378,6 @@ export class HydraulicCalculationEngine {
   }
   
   private getStandardUnit(param: FormulaParameter): string {
-    // Map parameter types to standard SI units
-    const standardUnits: Record<string, string> = {
-      'length': 'm',
-      'diameter': 'm',
-      'flow': 'm³/s',
-      'velocity': 'm/s',
-      'pressure': 'Pa',
-      'density': 'kg/m³',
-      'dimensionless': 'dimensionless'
-    }
-    
     // Infer type from units
     if (param.units.includes('m') || param.units.includes('ft')) return 'm'
     if (param.units.includes('m³/s') || param.units.includes('L/s')) return 'm³/s'
@@ -611,7 +599,7 @@ export class HydraulicCalculationEngine {
     // Formula-specific warnings
     switch (formula.id) {
       case 'darcy-weisbach':
-      case 'hazen-williams':
+      case 'hazen-williams': {
         const velocity = inputs.V || (inputs.Q ? (inputs.Q * 4) / (Math.PI * inputs.D * inputs.D) : 0)
         if (velocity > 3) {
           warnings.push(`High velocity (${velocity.toFixed(2)} m/s). Consider increasing pipe diameter to reduce head loss and prevent erosion.`)
@@ -620,6 +608,7 @@ export class HydraulicCalculationEngine {
           warnings.push(`Low velocity (${velocity.toFixed(2)} m/s). Risk of sedimentation.`)
         }
         break
+      }
       
       case 'water-hammer':
         if (result.value > 1000) {
@@ -738,7 +727,7 @@ class UnitConverter {
     if (fromUnit === toUnit) return value
     
     // Find conversion category
-    for (const [category, factors] of this.conversionFactors) {
+    for (const [, factors] of this.conversionFactors) {
       if (factors.has(fromUnit) && factors.has(toUnit)) {
         const fromFactor = factors.get(fromUnit)!
         const toFactor = factors.get(toUnit)!

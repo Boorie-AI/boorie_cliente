@@ -1,4 +1,4 @@
-import { AgenticRAGState, NodeName, WorkflowConfig, NodeError } from './types'
+import { AgenticRAGState, NodeName, WorkflowConfig } from './types'
 
 export class StateManager {
   private state: AgenticRAGState

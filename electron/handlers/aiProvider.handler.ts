@@ -18,7 +18,7 @@ export class AIProviderHandler {
 
   private registerHandlers(): void {
     // Get all AI providers
-    ipcMain.handle('db-get-ai-providers', async (event: IpcMainInvokeEvent) => {
+    ipcMain.handle('db-get-ai-providers', async (_event: IpcMainInvokeEvent) => {
       try {
         logger.debug('IPC: Getting AI providers')
         const result = await this.aiProviderService.getAllProviders()

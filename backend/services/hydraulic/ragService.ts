@@ -92,7 +92,9 @@ export class HydraulicRAGService {
         let metadata: any = {}
         try {
           metadata = JSON.parse(doc.metadata)
-        } catch (e) { }
+        } catch {
+          // metadata stays empty
+        }
 
         results.push({
           document: {

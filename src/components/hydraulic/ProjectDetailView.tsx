@@ -1,14 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
 import {
   ArrowLeft,
   FileText,
   Calculator,
   Users,
-  Calendar,
   MapPin,
-  Edit,
-  Trash2,
   Plus,
   Download,
   Clock,
@@ -27,7 +23,6 @@ interface ProjectDetailViewProps {
 }
 
 export function ProjectDetailView({ projectId, onBack }: ProjectDetailViewProps) {
-  const { t } = useTranslation()
   const [project, setProject] = useState<HydraulicProject | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')

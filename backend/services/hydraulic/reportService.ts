@@ -45,6 +45,7 @@ export class WNTRReportService {
 
   constructor(reportsDirectory?: string) {
     // Use shared Python detection utility
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { findPythonPath } = require('./pythonDetector');
     this.pythonPath = findPythonPath();
     this.servicePath = path.join(__dirname, 'wntr_report_generator.py');

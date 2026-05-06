@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
+import { useState } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import * as Dialog from '@radix-ui/react-dialog'
-import { HydraulicProject, ProjectType, NetworkType, ProjectStatus } from '@/types/hydraulic'
+import { HydraulicProject, ProjectType, ProjectStatus } from '@/types/hydraulic'
 import { hydraulicService } from '@/services/hydraulic/hydraulicService'
 
 interface EditProjectDialogProps {
@@ -13,7 +12,6 @@ interface EditProjectDialogProps {
 }
 
 export function EditProjectDialog({ project, onClose, onProjectUpdated }: EditProjectDialogProps) {
-  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: project.name,

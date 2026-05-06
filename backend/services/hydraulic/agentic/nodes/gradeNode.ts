@@ -169,10 +169,6 @@ Ejemplo:
   private parseGradingResponse(response: string): { relevant: boolean; score: number; reason: string } {
     console.log('[GradeNode] Parsing raw response:', response)
     try {
-      // Extract JSON from response
-      // Handle potential markdown code blocks
-      const cleanedResponse = response.replace(/```json\s*|\s*```/g, '').trim()
-
       // Extract JSON from response robustly
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       let parsed;

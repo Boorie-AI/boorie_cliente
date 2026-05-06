@@ -614,7 +614,7 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
             await prismaClient.knowledgeChunk.delete({ where: { id: chunk.id } })
             cleanupResults.emptyEmbeddings++
           }
-        } catch (error) {
+        } catch {
           await prismaClient.knowledgeChunk.delete({ where: { id: chunk.id } })
           cleanupResults.corruptedEmbeddings++
         }
@@ -766,11 +766,12 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
       console.log(`[Document Handler] Static providers: ${staticProviders.length}`)
 
       // Get dynamic Ollama providers
-      const ollamaResult = await ipcMain.emit('wisdom:checkOllamaConnection')
+      await ipcMain.emit('wisdom:checkOllamaConnection')
       let dynamicProviders = []
 
       // Try to get Ollama models directly since emit doesn't return values
       try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const axios = require('axios')
         const response = await axios.get('http://127.0.0.1:11434/api/tags', {
           timeout: 3000,
@@ -862,6 +863,7 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
 
       // Get dynamic Ollama providers if available
       try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const axios = require('axios')
         const response = await axios.get('http://127.0.0.1:11434/api/tags', {
           timeout: 3000,
@@ -1068,6 +1070,7 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
           if (fileExtension === '.pdf') {
             try {
               const pdfBuffer = await fs.readFile(filePath)
+              // eslint-disable-next-line @typescript-eslint/no-require-imports
               const pdfParse = require('pdf-parse')
               const data = await pdfParse(pdfBuffer)
               fileContent = data.text
@@ -1082,6 +1085,7 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
             }
           } else if (fileExtension === '.docx') {
             try {
+              // eslint-disable-next-line @typescript-eslint/no-require-imports
               const mammoth = require('mammoth')
               const result = await mammoth.extractRawText({ path: filePath })
               fileContent = result.value
@@ -1222,6 +1226,7 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
     try {
       console.log('[Document Handler] Checking Ollama connection from main process...')
 
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const axios = require('axios')
 
       const response = await axios.get('http://localhost:11434/api/tags', {
@@ -1348,7 +1353,7 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
   const prismaClient = prisma || new PrismaClient()
 
   // Get Vector Graph data for visualization
-  ipcMain.handle('wisdom:getVectorGraph', async (event, options?: any) => {
+  ipcMain.handle('wisdom:getVectorGraph', async (_event, _options?: any) => {
     try {
       // Get all documents with their chunks and embeddings
       const documents = await prismaClient.hydraulicKnowledge.findMany({
@@ -1378,7 +1383,7 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
             if (Array.isArray(secondary)) {
               categories.push(...secondary)
             }
-          } catch (e) {
+          } catch {
             // Ignore parse errors
           }
         }
@@ -1584,7 +1589,7 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
   })
 
   // Get vector clusters analysis
-  ipcMain.handle('wisdom:getVectorClusters', async (event, options?: any) => {
+  ipcMain.handle('wisdom:getVectorClusters', async (_event, _options?: any) => {
     try {
       // Clustering based on categories and similarity
       const documents = await prismaClient.hydraulicKnowledge.findMany({
@@ -1969,12 +1974,3 @@ function getColorForCategory(category: string): string {
   return colors[category as keyof typeof colors] || '#6b7280'
 }
 
-function calculateHealthScore(totalDocs: number, totalChunks: number, chunksWithEmbeddings: number): number {
-  if (totalDocs === 0) return 0
-
-  const docScore = Math.min(totalDocs / 10, 1) * 30 // Up to 30 points for document count
-  const chunkScore = totalChunks > 0 ? Math.min(totalChunks / 100, 1) * 30 : 0 // Up to 30 points for chunk count
-  const embeddingScore = totalChunks > 0 ? (chunksWithEmbeddings / totalChunks) * 40 : 0 // Up to 40 points for embedding coverage
-
-  return Math.round(docScore + chunkScore + embeddingScore)
-}

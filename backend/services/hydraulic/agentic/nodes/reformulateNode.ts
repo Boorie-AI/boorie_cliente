@@ -127,7 +127,7 @@ Reformulaciones:`
       .split('\n')
       .map(line => line.trim())
       .filter(line => line.length > 10) // Filter out short lines
-      .filter(line => !line.match(/^\d+[\.\)]\s*/)) // Remove numbered items
+      .filter(line => !line.match(/^\d+[.)]\s*/)) // Remove numbered items
       .map(line => line.replace(/^[-•*]\s*/, '')) // Remove bullets
       .filter(line => !line.toLowerCase().includes('reformulación')) // Remove meta text
 
@@ -195,7 +195,6 @@ Reformulaciones:`
 
   private generateSimpleReformulations(state: AgenticRAGState): string[] {
     const reformulations: string[] = []
-    const originalWords = state.originalQuestion.split(/\s+/)
 
     // Strategy 1: Add technical context
     if (state.engineeringDomain !== 'general') {

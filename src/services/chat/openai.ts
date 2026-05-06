@@ -74,7 +74,7 @@ async function handleStreamingResponse(
 
   if (reader) {
     try {
-      while (true) {
+      for (;;) {
         const { done, value } = await reader.read()
         if (done) break
 
@@ -106,7 +106,7 @@ async function handleStreamingResponse(
               if (parsed.usage) {
                 totalTokens = parsed.usage.total_tokens
               }
-            } catch (e) {
+            } catch {
               console.warn('Failed to parse OpenAI streaming chunk:', data)
             }
           }

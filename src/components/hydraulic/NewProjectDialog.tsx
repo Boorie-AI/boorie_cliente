@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, MapPin, FileText } from 'lucide-react'
 import { cn } from '@/utils/cn'
@@ -12,7 +11,6 @@ interface NewProjectDialogProps {
 }
 
 export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialogProps) {
-  const { t } = useTranslation()
   const [formData, setFormData] = useState({
     name: '',
     description: '',

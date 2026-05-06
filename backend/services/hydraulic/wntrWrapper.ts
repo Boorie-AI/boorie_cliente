@@ -74,9 +74,11 @@ class WNTRWrapper {
 
   constructor() {
     // Use shared Python detection utility (supports macOS, Windows, Linux)
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { findPythonPath } = require('./pythonDetector')
     this.pythonPath = findPythonPath()
 
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { resolvePythonScriptPath } = require('./pythonScriptPath')
     this.scriptPath = resolvePythonScriptPath('wntrService.py')
   }
@@ -157,7 +159,7 @@ class WNTRWrapper {
           try {
             const result = JSON.parse(stdout)
             resolve(result)
-          } catch (error) {
+          } catch {
             console.error('Failed to parse output:', stdout)
             reject(new Error(`Failed to parse Python output: ${stdout}`))
           }

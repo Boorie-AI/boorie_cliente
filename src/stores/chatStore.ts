@@ -91,7 +91,7 @@ export const useChatStore = create<ChatState>()(
           if (stored) {
             selectedModel = JSON.parse(stored)
           }
-        } catch (error) {
+        } catch {
           console.warn('Failed to load selected model from localStorage')
         }
 
@@ -550,7 +550,7 @@ export const useChatStore = create<ChatState>()(
 
           if (reader) {
             try {
-              while (true) {
+              for (;;) {
                 const { done, value } = await reader.read()
                 if (done) break
 

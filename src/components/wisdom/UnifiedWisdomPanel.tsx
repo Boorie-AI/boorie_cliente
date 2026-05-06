@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import {
   Upload, Search, FileText, Trash2, RefreshCw, Settings,
   Grid, List, FolderOpen, Archive, Plus, Network, CheckSquare, Square,
-  Download, History, Tag, X
+  Download, History
 } from 'lucide-react'
 import { VectorGraphViewer } from './VectorGraphViewer'
 import { BulkUploadDialog } from './BulkUploadDialog'
@@ -105,10 +105,11 @@ export function UnifiedWisdomPanel() {
   const [searchHistory, setSearchHistory] = useState<Array<{ query: string; timestamp: string; resultsCount: number; searchType: string }>>([])
   const [showSearchHistory, setShowSearchHistory] = useState(false)
 
-  // Tags
-  const [allTags, setAllTags] = useState<string[]>([])
-  const [editingTagsDocId, setEditingTagsDocId] = useState<string | null>(null)
-  const [tagInput, setTagInput] = useState('')
+  // Tags — the catalogue of available tags is loaded on mount via
+  // `loadAllTags` for future UI surfaces (tag editor, autocomplete, etc.).
+  // The current value isn't rendered yet, so we only keep the setter to
+  // exercise the load path and avoid silently dropping the API call.
+  const [, setAllTags] = useState<string[]>([])
 
   // Catalog specific
 
@@ -372,7 +373,7 @@ export function UnifiedWisdomPanel() {
           } else {
             setOllamaStatus('unavailable')
           }
-        } catch (testError) {
+        } catch {
           setOllamaStatus('unavailable')
           console.log('⚠️ Ollama status test failed - setting to unavailable')
         }
@@ -655,29 +656,10 @@ export function UnifiedWisdomPanel() {
   }
 
   // ---- TECH-3: Tags ----
-  const handleAddTag = async (documentId: string, newTag: string) => {
-    if (!newTag.trim() || !window.electronAPI?.wisdom?.updateTags) return
-    const doc = allDocuments.find(d => d.id === documentId)
-    if (!doc) return
-    const currentTags: string[] = (doc as any).tags || []
-    if (currentTags.includes(newTag.trim())) return
-    const updatedTags = [...currentTags, newTag.trim()]
-    await window.electronAPI.wisdom.updateTags(documentId, updatedTags)
-    setTagInput('')
-    await loadWisdomDocuments()
-    loadAllTags()
-  }
-
-  const handleRemoveTag = async (documentId: string, tagToRemove: string) => {
-    if (!window.electronAPI?.wisdom?.updateTags) return
-    const doc = allDocuments.find(d => d.id === documentId)
-    if (!doc) return
-    const currentTags: string[] = (doc as any).tags || []
-    const updatedTags = currentTags.filter(t => t !== tagToRemove)
-    await window.electronAPI.wisdom.updateTags(documentId, updatedTags)
-    await loadWisdomDocuments()
-    loadAllTags()
-  }
+  // `handleAddTag` / `handleRemoveTag` were stubbed for a tag-editing UI that
+  // hasn't been wired up; they were removed from this file because keeping
+  // dead state setters violated `noUnusedLocals`. Re-add them alongside the
+  // editor surface that actually invokes `wisdom.updateTags`.
 
   const loadAllTags = async () => {
     if (!window.electronAPI?.wisdom?.getAllTags) return

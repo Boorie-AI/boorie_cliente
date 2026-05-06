@@ -1,15 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Map, Network, Layers, Settings, Play, Pause, SkipForward, 
-  SkipBack, Maximize2, Download, Eye, EyeOff, Zap, Target,
-  Activity, Droplets, Gauge, TrendingUp, BarChart3
+import {
+  Network, Layers, Settings, Play, Pause, SkipForward,
+  SkipBack, Maximize2, Download
 } from 'lucide-react';
 
 interface WNTRNetworkVisualizationProps {
@@ -43,7 +39,7 @@ interface VisualizationSettings {
 export const WNTRNetworkVisualization: React.FC<WNTRNetworkVisualizationProps> = ({
   networkData,
   simulationResults,
-  analysisResults,
+  analysisResults: _analysisResults,
   onVisualizationChange
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -110,44 +106,6 @@ export const WNTRNetworkVisualization: React.FC<WNTRNetworkVisualizationProps> =
     });
   }, [onVisualizationChange]);
 
-  // Get color for an element based on current coloring scheme
-  const getElementColor = useCallback((element: any, type: 'node' | 'link') => {
-    const { colorBy } = viewSettings;
-    
-    if (colorBy === 'type') {
-      return colorSchemes.type[element.type as keyof typeof colorSchemes.type] || '#6B7280';
-    }
-    
-    if (colorBy === 'pressure' && simulationResults?.node_results?.[element.id] && type === 'node') {
-      const pressure = simulationResults.node_results[element.id].pressure;
-      if (pressure < 20) return colorSchemes.pressure.low;
-      if (pressure > 80) return colorSchemes.pressure.high;
-      return colorSchemes.pressure.normal;
-    }
-    
-    if (colorBy === 'flow' && simulationResults?.link_results?.[element.id] && type === 'link') {
-      const flow = Math.abs(simulationResults.link_results[element.id].flowrate || 0);
-      if (flow < 0.1) return colorSchemes.flow.none;
-      if (flow < 1.0) return colorSchemes.flow.low;
-      if (flow < 5.0) return colorSchemes.flow.medium;
-      return colorSchemes.flow.high;
-    }
-    
-    if (colorBy === 'criticality' && analysisResults?.criticality) {
-      const criticality = type === 'node' 
-        ? analysisResults.criticality.node_criticality?.[element.id] 
-        : analysisResults.criticality.pipe_criticality?.[element.id];
-      
-      if (criticality !== undefined) {
-        if (criticality < 0.3) return colorSchemes.criticality.low;
-        if (criticality < 0.7) return colorSchemes.criticality.medium;
-        return colorSchemes.criticality.high;
-      }
-    }
-    
-    return colorSchemes.type[element.type as keyof typeof colorSchemes.type] || '#6B7280';
-  }, [viewSettings, simulationResults, analysisResults]);
-
   // Network rendering effect
   useEffect(() => {
     if (!canvasRef.current || !networkData) return;
@@ -211,8 +169,10 @@ export const WNTRNetworkVisualization: React.FC<WNTRNetworkVisualizationProps> =
     });
     
     // Draw links first (so they appear under nodes)
+    type LayerKey = keyof VisualizationSettings['layerVisibility'];
     links.forEach((link: any) => {
-      if (!viewSettings.layerVisibility[link.type + 's']) return;
+      const layerKey = (link.type + 's') as LayerKey;
+      if (!viewSettings.layerVisibility[layerKey]) return;
       
       const fromNode = nodes.find((n: any) => n.id === link.from);
       const toNode = nodes.find((n: any) => n.id === link.to);
@@ -270,7 +230,8 @@ export const WNTRNetworkVisualization: React.FC<WNTRNetworkVisualizationProps> =
     
     // Draw nodes
     nodes.forEach((node: any) => {
-      if (!viewSettings.layerVisibility[node.type + 's']) return;
+      const nodeLayerKey = (node.type + 's') as LayerKey;
+      if (!viewSettings.layerVisibility[nodeLayerKey]) return;
       
       const pos = transform(node.x, node.y);
       
@@ -357,15 +318,16 @@ export const WNTRNetworkVisualization: React.FC<WNTRNetworkVisualizationProps> =
     
     try {
       switch (format) {
-        case 'png':
+        case 'png': {
           const canvas = canvasRef.current;
           const link = document.createElement('a');
           link.download = `${networkData.name}_visualization.png`;
           link.href = canvas.toDataURL();
           link.click();
           break;
-          
-        case 'json':
+        }
+
+        case 'json': {
           const visualizationData = {
             network: networkData,
             settings: viewSettings,
@@ -377,9 +339,9 @@ export const WNTRNetworkVisualization: React.FC<WNTRNetworkVisualizationProps> =
               link_results: simulationResults.link_results
             } : null
           };
-          
-          const blob = new Blob([JSON.stringify(visualizationData, null, 2)], { 
-            type: 'application/json' 
+
+          const blob = new Blob([JSON.stringify(visualizationData, null, 2)], {
+            type: 'application/json'
           });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -388,6 +350,7 @@ export const WNTRNetworkVisualization: React.FC<WNTRNetworkVisualizationProps> =
           a.click();
           URL.revokeObjectURL(url);
           break;
+        }
       }
     } catch (error) {
       console.error('Export failed:', error);

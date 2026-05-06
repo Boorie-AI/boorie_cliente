@@ -57,10 +57,9 @@ export class HybridSearchService {
         // Ideally we would only fetch missing ones, but we don't track that easily yet.
         // We iterate through all chunks.
 
-        let cursorEncoded: string | undefined = undefined;
         let lastId = undefined;
 
-        while (true) {
+        for (;;) {
           const params: any = {
             take: BATCH_SIZE,
             include: { knowledge: true },
@@ -90,7 +89,9 @@ export class HybridSearchService {
               if (chunk.embedding) {
                 vector = JSON.parse(chunk.embedding);
               }
-            } catch (e) { }
+            } catch {
+              // ignore JSON parse failures; vector stays empty
+            }
 
             // Check dimension mismatch
             if (vector.length !== targetDimension) {

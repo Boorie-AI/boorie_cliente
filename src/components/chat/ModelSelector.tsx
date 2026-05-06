@@ -36,7 +36,7 @@ export function ModelSelector() {
         const storedModel = JSON.parse(stored)
         setSelectedModel(storedModel.id)
       }
-    } catch (error) {
+    } catch {
       console.warn('Failed to load selected model from localStorage')
     }
   }, [])
@@ -85,7 +85,7 @@ export function ModelSelector() {
       } else {
         setOllamaStatus('unavailable')
       }
-    } catch (error) {
+    } catch {
       setOllamaStatus('unavailable')
     }
 

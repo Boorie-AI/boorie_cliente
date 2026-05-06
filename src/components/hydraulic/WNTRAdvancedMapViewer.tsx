@@ -72,8 +72,8 @@ interface WNTRAdvancedMapViewerProps {
 export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
   networkData: externalNetworkData,
   simulationResults: externalSimulationResults,
-  onDataLoaded,
-  onSimulationCompleted
+  onDataLoaded: _onDataLoaded,
+  onSimulationCompleted: _onSimulationCompleted
 }) => {
   const [networkData, setNetworkData] = useState<NetworkData | null>(externalNetworkData || null);
   const [simulationResults, setSimulationResults] = useState<SimulationResults | null>(externalSimulationResults || null);
@@ -88,7 +88,8 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
   });
 
   const [currentTime, setCurrentTime] = useState(new Date('2025-10-09T05:42:00'));
-  const [coordinates, setCoordinates] = useState({ lat: -19.15995, lon: 146.88143 });
+  // Default coordinates for the map; not currently mutated at runtime.
+  const [coordinates] = useState({ lat: -19.15995, lon: 146.88143 });
   const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Handle external data changes

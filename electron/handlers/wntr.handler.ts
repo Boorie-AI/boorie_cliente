@@ -1,5 +1,4 @@
 import { ipcMain, dialog } from 'electron'
-import * as path from 'path'
 import * as fs from 'fs/promises'
 import { wntrWrapper } from '../../backend/services/hydraulic/wntrWrapper'
 import { WNTRSimulationService } from '../../backend/services/hydraulic/simulationService'
@@ -18,7 +17,7 @@ export function setupWNTRHandlers() {
   ipcMain.handle('wntr:check-python', async () => {
     try {
       return { success: true, ...getPythonStatus() }
-    } catch (error) {
+    } catch {
       return {
         success: false,
         pythonFound: false,
@@ -267,7 +266,7 @@ export function setupWNTRHandlers() {
   })
 
   // Analyze network topology
-  ipcMain.handle('wntr:analyze-network-topology', async (event, options: any) => {
+  ipcMain.handle('wntr:analyze-network-topology', async (_event, _options: any) => {
     try {
       if (!global.currentWNTRFile) {
         return { success: false, error: 'No EPANET file loaded' }
@@ -433,5 +432,6 @@ export function setupWNTRHandlers() {
 
 // Type declaration for global
 declare global {
+  // eslint-disable-next-line no-var
   var currentWNTRFile: string | undefined
 }

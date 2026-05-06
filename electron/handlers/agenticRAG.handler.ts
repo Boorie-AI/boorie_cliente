@@ -80,7 +80,7 @@ export function registerAgenticRAGHandlers(prismaClient: PrismaClient) {
         await auditViolation(prismaClient, 'retrieval', retrievalVerdict, { query: question, chunkCount: sourceTexts.length })
         if (!retrievalVerdict.allow) {
           // For retrieval we don't block the whole answer; we attach a flag
-          ;(result as any).retrievalBlocked = true
+          (result as any).retrievalBlocked = true
           ;(result as any).retrievalReason = retrievalVerdict.reason
         }
       }

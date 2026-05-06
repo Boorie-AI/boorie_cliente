@@ -122,7 +122,7 @@ export const anthropicProvider: ChatProvider = {
           default:
             throw new Error(`Anthropic API error (${response.status}): ${errorMessage}`)
         }
-      } catch (jsonError) {
+      } catch {
         // If we can't parse the error response
         if (response.status === 401) {
           throw new Error('Invalid Anthropic API key. Please check your API key in settings.')
@@ -204,7 +204,7 @@ async function handleStreamingResponse(
 
   if (reader) {
     try {
-      while (true) {
+      for (;;) {
         const { done, value } = await reader.read()
         if (done) break
 
@@ -235,7 +235,7 @@ async function handleStreamingResponse(
                 outputTokens = parsed.delta?.usage?.output_tokens || 0
                 stopReason = parsed.delta?.stop_reason || ''
               }
-            } catch (e) {
+            } catch {
               console.warn('Failed to parse Anthropic streaming chunk:', data)
             }
           }

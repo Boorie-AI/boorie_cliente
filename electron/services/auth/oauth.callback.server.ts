@@ -260,7 +260,7 @@ export class OAuthCallbackServer {
    */
   async cleanup(): Promise<void> {
     // Reject all pending callbacks
-    for (const [state, callback] of this.pendingCallbacks) {
+    for (const [, callback] of this.pendingCallbacks) {
       callback({
         success: false,
         error: 'server_shutdown',

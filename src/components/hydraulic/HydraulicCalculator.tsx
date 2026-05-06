@@ -1,21 +1,15 @@
 import { useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useClarity } from '@/components/ClarityProvider'
 import {
   Calculator,
-  Info,
   AlertCircle,
   CheckCircle,
   Copy,
-  Save,
-  FileText,
   Activity,
   Droplets,
   Gauge,
   Waves,
   Zap,
-  TrendingUp,
-  Network,
   RefreshCw,
   Code2,
   FlaskConical,
@@ -23,13 +17,9 @@ import {
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { hydraulicService } from '@/services/hydraulic/hydraulicService'
-import { HydraulicFormula, CalculationResult, FormulaParameter } from '@/types/hydraulic'
-import * as Tabs from '@radix-ui/react-tabs'
-import * as Tooltip from '@radix-ui/react-tooltip'
-import * as Progress from '@radix-ui/react-progress'
+import { HydraulicFormula, CalculationResult } from '@/types/hydraulic'
 
 export function HydraulicCalculator() {
-  const { t } = useTranslation()
   const { trackEvent, isReady: clarityReady } = useClarity()
   const [formulas, setFormulas] = useState<HydraulicFormula[]>([])
   const [selectedFormula, setSelectedFormula] = useState<HydraulicFormula | null>(null)

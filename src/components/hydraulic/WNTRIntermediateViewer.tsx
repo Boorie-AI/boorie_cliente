@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import {
   FileUp,
-  Play,
   BarChart3,
   Loader2,
   AlertCircle,
@@ -36,7 +34,6 @@ interface NetworkData {
 }
 
 export function WNTRIntermediateViewer() {
-  const { t } = useTranslation()
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   
@@ -46,7 +43,6 @@ export function WNTRIntermediateViewer() {
   const [error, setError] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
   const [simulationResults, setSimulationResults] = useState<any>(null)
-  const [selectedParameter, setSelectedParameter] = useState('pressure')
 
   // Initialize map
   useEffect(() => {
@@ -78,9 +74,9 @@ export function WNTRIntermediateViewer() {
     }
   }, [])
 
-  const convertCoords = useCallback((x: number, y: number) => {
+  const convertCoords = useCallback((x: number, y: number): [number, number] => {
     if (!networkData?.coordinate_system) return [x, y]
-    
+
     if (networkData.coordinate_system.type === 'projected' && networkData.coordinate_system.bounds) {
       const bounds = networkData.coordinate_system.bounds
       const baseLon = -96.13
@@ -89,10 +85,10 @@ export function WNTRIntermediateViewer() {
       const baseUTMY = (bounds.minY + bounds.maxY) / 2
       const metersPerDegreeLon = 92844.0
       const metersPerDegreeLat = 110946.0
-      
+
       const lon = baseLon + (x - baseUTMX) / metersPerDegreeLon
       const lat = baseLat + (y - baseUTMY) / metersPerDegreeLat
-      
+
       return [lon, lat]
     }
     return [x, y]

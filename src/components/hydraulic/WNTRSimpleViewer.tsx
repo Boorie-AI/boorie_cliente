@@ -26,7 +26,7 @@ export function WNTRSimpleViewer() {
         center: [0, 20],
         zoom: 2
       })
-    } catch (err) {
+    } catch {
       setError('Failed to initialize map')
     }
 
@@ -68,7 +68,7 @@ export function WNTRSimpleViewer() {
     })
 
     // Convert coordinates
-    const convertCoords = (x: number, y: number) => {
+    const convertCoords = (x: number, y: number): [number, number] => {
       if (data.coordinate_system?.type === 'projected' && data.coordinate_system.bounds) {
         const bounds = data.coordinate_system.bounds
         // UTM Zone 14N for Mexico
@@ -78,10 +78,10 @@ export function WNTRSimpleViewer() {
         const baseUTMY = (bounds.minY + bounds.maxY) / 2
         const metersPerDegreeLon = 92844.0
         const metersPerDegreeLat = 110946.0
-        
+
         const lon = baseLon + (x - baseUTMX) / metersPerDegreeLon
         const lat = baseLat + (y - baseUTMY) / metersPerDegreeLat
-        
+
         return [lon, lat]
       }
       return [x, y]
@@ -197,8 +197,8 @@ export function WNTRSimpleViewer() {
     if (styles[style]) {
       try {
         setLoading(true)
-        setError(null)
-        
+        setError(null);
+
         // Remove existing layers before changing style
         ['network-nodes', 'network-links'].forEach(id => {
           if (map.current?.getLayer(id)) {
@@ -286,17 +286,17 @@ export function WNTRSimpleViewer() {
             onClick={() => {
               if (map.current && networkData.coordinate_system?.bounds) {
                 const bounds = networkData.coordinate_system.bounds
-                const convertCoords = (x: number, y: number) => {
+                const convertCoords = (x: number, y: number): [number, number] => {
                   const baseLon = -96.13
                   const baseLat = 19.17
                   const baseUTMX = (bounds.minX + bounds.maxX) / 2
                   const baseUTMY = (bounds.minY + bounds.maxY) / 2
                   const metersPerDegreeLon = 92844.0
                   const metersPerDegreeLat = 110946.0
-                  
+
                   const lon = baseLon + (x - baseUTMX) / metersPerDegreeLon
                   const lat = baseLat + (y - baseUTMY) / metersPerDegreeLat
-                  
+
                   return [lon, lat]
                 }
                 

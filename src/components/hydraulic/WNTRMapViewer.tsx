@@ -1,28 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import proj4 from 'proj4'
 import {
   FileUp,
   Play,
-  BarChart3,
   Download,
   Map,
-  Network,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  Layers,
   Loader2,
   AlertCircle,
   MapPin,
   Settings2
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
-import * as Tabs from '@radix-ui/react-tabs'
 import * as Dialog from '@radix-ui/react-dialog'
-import * as Select from '@radix-ui/react-select'
 
 // Mapbox access token from environment variables
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || ''
@@ -97,14 +88,6 @@ interface MapSettings {
   }
 }
 
-interface TimeSeriesData {
-  timestamps: number[]
-  pressure: { [nodeId: string]: number[] }
-  flow: { [linkId: string]: number[] }
-  velocity: { [linkId: string]: number[] }
-  head: { [nodeId: string]: number[] }
-}
-
 interface WNTRMapViewerProps {
   networkData?: NetworkData | null
   simulationResults?: SimulationResults | null
@@ -116,7 +99,6 @@ export function WNTRMapViewer({
   simulationResults: propSimulationResults,
   activeTimeStep: propActiveTimeStep
 }: WNTRMapViewerProps) {
-  const { t } = useTranslation()
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   // Default to Mexico City coordinates (TK_Lomas appears to be from Mexico)
@@ -235,7 +217,7 @@ export function WNTRMapViewer({
 
   // Listen for crash recovery messages from main process
   useEffect(() => {
-    const cleanup = window.electronAPI?.onDisableSatelliteMode?.((data) => {
+    const cleanup = window.electronAPI?.onDisableSatelliteMode?.((data: { reason: string; message: string }) => {
       console.warn('Received satellite disable request:', data)
       setSatelliteDisabled(true)
       setError(`${data.message} - Modo satélite ha sido deshabilitado permanentemente.`)
@@ -254,12 +236,6 @@ export function WNTRMapViewer({
 
   // New states for advanced visualization
   const [currentTimeStep, setCurrentTimeStep] = useState(0)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [showTimeSeries, setShowTimeSeries] = useState(true)
-  const [selectedParameter, setSelectedParameter] = useState<'pressure' | 'flow' | 'velocity' | 'head'>('pressure')
-  const [colorScale, setColorScale] = useState({ min: 0, max: 100 })
-  const [selectedElements, setSelectedElements] = useState<string[]>([])
-  const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData | null>(null)
 
   // Initialize map
   useEffect(() => {
@@ -308,10 +284,17 @@ export function WNTRMapViewer({
       console.log('mapboxgl object:', mapboxgl)
       console.log('mapboxgl.accessToken:', mapboxgl.accessToken)
 
+      // Capture container in a local so TS narrowing survives the inner closure.
+      const container = mapContainer.current
+      if (!container) {
+        console.error('Map container ref became null before map creation')
+        return
+      }
+
       // Try to create map with fallback styles
       const createMap = (style: string) => {
         return new mapboxgl.Map({
-          container: mapContainer.current,
+          container,
           style: style,
           center: [lng, lat],
           zoom: zoom,
@@ -340,15 +323,19 @@ export function WNTRMapViewer({
 
       // Add error handler with style fallback
       map.current.on('error', (e) => {
+        // Mapbox attaches an HTTP `status` to the Error for AJAX failures via
+        // its internal AJAXError subclass; the public `Error` type doesn't
+        // expose it, so we read it through a structural type.
+        const mapboxError = e.error as (Error & { status?: number }) | undefined
         console.error('Mapbox error:', e)
         console.error('Error details:', {
-          status: e.error?.status,
-          message: e.error?.message,
+          status: mapboxError?.status,
+          message: mapboxError?.message,
           type: e.type,
           target: e.target
         })
 
-        if (e.error && e.error.status === 401) {
+        if (mapboxError && mapboxError.status === 401) {
           setError('Token de acceso Mapbox inválido. Verifique su token en el archivo .env.')
         } else if (mapSettings.baseMap === 'satellite' && e.error) {
           console.warn('Satellite style failed, falling back to streets')
@@ -389,8 +376,12 @@ export function WNTRMapViewer({
       console.error('Map initialization error:', err)
       if (err instanceof Error) {
         if (err.message.includes('WebGL')) {
-          setError('WebGL not available. The map requires hardware acceleration. You can still load networks and view them in the network viewer.')
-          setWarning('Try restarting the application or use the Network Graph view instead of Map view.')
+          // No `setWarning` exists in this component, so surface the hint via
+          // the same error channel used elsewhere.
+          setError(
+            'WebGL not available. The map requires hardware acceleration. You can still load networks and view them in the network viewer. ' +
+            'Try restarting the application or use the Network Graph view instead of Map view.'
+          )
         } else {
           setError(`Failed to initialize map: ${err.message}`)
         }
@@ -812,7 +803,7 @@ export function WNTRMapViewer({
         transform: (x: number, y: number) => {
           try {
             return proj4(sourceProjection, targetProjection, [x, y])
-          } catch (e) {
+          } catch {
             console.warn(`Failed to convert [${x}, ${y}], using fallback`)
             // Fallback to center of detected bounds
             return [coordSystem.centerApprox?.[0] || -75.5, coordSystem.centerApprox?.[1] || 10.4]
@@ -835,7 +826,7 @@ export function WNTRMapViewer({
           minLat: centerLat - 0.05,
           maxLat: centerLat + 0.05
         },
-        transform: (x: number, y: number) => [centerLon, centerLat],
+        transform: (_x: number, _y: number) => [centerLon, centerLat],
         coordinateSystem: coordSystem,
         error: `Coordinate conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       }

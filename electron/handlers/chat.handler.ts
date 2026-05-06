@@ -87,7 +87,7 @@ export class ChatHandler {
   }
 
   private async sendChatMessage(params: SendChatMessageParams): Promise<IPCChatResponse> {
-    const { provider, model, messages, apiKey, stream = false } = params
+    const { provider, model, messages, apiKey } = params
 
     try {
       // Get system prompt from database and add it to messages if not already present
@@ -490,7 +490,7 @@ export class ChatHandler {
     }
   }
 
-  private async sendOllamaMessage(model: string, messages: ChatMessage[], apiKey: string): Promise<ChatResponse> {
+  private async sendOllamaMessage(model: string, messages: ChatMessage[], _apiKey: string): Promise<ChatResponse> {
     // Get Ollama base URL from provider config
     const providers = await this.databaseService.prisma.aIProvider.findMany({
       where: { type: 'ollama', isActive: true }

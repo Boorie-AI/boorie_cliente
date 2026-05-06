@@ -81,7 +81,7 @@ export class HydraulicHandler {
           const fallbackResult = this.calculationEngine.calculate(formulaId, inputs)
           appLogger.warn('Using JavaScript calculator as fallback')
           return { success: true, data: fallbackResult }
-        } catch (fallbackError) {
+        } catch {
           return { success: false, error: (error as Error).message }
         }
       }

@@ -18,7 +18,7 @@ export class ConversationHandler {
 
   private registerHandlers(): void {
     // Get all conversations
-    ipcMain.handle('db-get-conversations', async (event: IpcMainInvokeEvent) => {
+    ipcMain.handle('db-get-conversations', async (_event: IpcMainInvokeEvent) => {
       try {
         logger.debug('IPC: Getting conversations')
         const result = await this.conversationService.getAllConversations()

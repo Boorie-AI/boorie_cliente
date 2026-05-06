@@ -121,7 +121,7 @@ export class DatabaseHandler {
     })
 
     // Database health check
-    ipcMain.handle('db-health-check', async (event: IpcMainInvokeEvent) => {
+    ipcMain.handle('db-health-check', async (_event: IpcMainInvokeEvent) => {
       try {
         logger.debug('IPC: Performing database health check')
         const result = await this.databaseService.healthCheck()
@@ -149,7 +149,7 @@ export class DatabaseHandler {
     })
 
     // Database statistics
-    ipcMain.handle('db-get-stats', async (event: IpcMainInvokeEvent) => {
+    ipcMain.handle('db-get-stats', async (_event: IpcMainInvokeEvent) => {
       try {
         logger.debug('IPC: Getting database statistics')
         

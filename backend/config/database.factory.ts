@@ -42,10 +42,11 @@ export function createPrismaClient() {
   
   try {
     // Check if we're in Electron
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const electron = require('electron')
     isElectron = true
     isPackaged = electron.app ? electron.app.isPackaged : false
-  } catch (error) {
+  } catch {
     // Not in Electron environment or no access to app
     isElectron = false
     isPackaged = false
@@ -80,8 +81,9 @@ export function createPrismaClient() {
           console.log('Found Prisma client directory at:', clientPath)
           
           try {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
             const client = require(clientPath)
-            
+
             if (client.PrismaClient) {
               console.log('Successfully loaded PrismaClient from:', clientPath)
               return client
@@ -110,6 +112,7 @@ export function createPrismaClient() {
     
     // Try .prisma/client first (most reliable in dev)
     try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const client = require('.prisma/client')
       if (client && client.PrismaClient && typeof client.PrismaClient === 'function') {
         console.log('Loaded Prisma client from .prisma/client')
@@ -123,6 +126,7 @@ export function createPrismaClient() {
     try {
       const clientPath = path.join(process.cwd(), 'node_modules', '.prisma', 'client')
       if (fs.existsSync(clientPath)) {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const client = require(clientPath)
         if (client && client.PrismaClient && typeof client.PrismaClient === 'function') {
           console.log('Loaded Prisma client from direct path')
@@ -135,6 +139,7 @@ export function createPrismaClient() {
     
     // Last resort: try @prisma/client
     try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const client = require('@prisma/client')
       if (client && client.PrismaClient && typeof client.PrismaClient === 'function') {
         console.log('Loaded Prisma client from @prisma/client')

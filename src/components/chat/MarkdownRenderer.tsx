@@ -91,7 +91,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
 
       // If no markdown found, add the current character
       if (!matched) {
-        const nextSpecialIndex = text.slice(currentIndex + 1).search(/[*_`~\[\]]/)
+        const nextSpecialIndex = text.slice(currentIndex + 1).search(/[*_`~[\]]/)
         const endIndex = nextSpecialIndex === -1 ? text.length : currentIndex + 1 + nextSpecialIndex
         const textSegment = text.slice(currentIndex, endIndex)
         if (textSegment) {

@@ -3,7 +3,6 @@ import { useClarity } from '@/components/ClarityProvider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -11,12 +10,11 @@ import { WNTRAdvancedMapViewer } from './WNTRAdvancedMapViewer';
 import { ProjectDashboard } from './ProjectDashboard';
 import { Project, NetworkAsset, CalculationAsset } from '../../types/project';
 import {
-  FileUp, Play, BarChart3, Map, Network,
-  Eye, RefreshCw, AlertCircle,
-  Activity, Gauge, TrendingUp, Database, FileText,
-  Zap, Target, FolderOpen, ChevronDown
+  FileUp, Play, Map, Network,
+  RefreshCw, AlertCircle,
+  Activity, Database,
+  Target, FolderOpen, ChevronDown
 } from 'lucide-react';
-import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -85,16 +83,9 @@ interface SimulationResults {
   }
 }
 
-interface WNTRViewSettings {
-  showMap: boolean;
-  showNetwork: boolean;
-  showAnalysis: boolean;
-  showSimulation: boolean;
-  activeVisualization: 'map' | 'advanced' | 'network' | 'results' | 'analysis';
-}
 
 export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
-  projectId,
+  projectId: _projectId,
   onAnalysisComplete,
   onSimulationComplete
 }) => {
@@ -227,15 +218,6 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   const [isSimulating, setIsSimulating] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [simulationProgress, setSimulationProgress] = useState(0);
-
-  // View settings
-  const [viewSettings, setViewSettings] = useState<WNTRViewSettings>({
-    showMap: true,
-    showNetwork: true,
-    showAnalysis: true,
-    showSimulation: true,
-    activeVisualization: 'map'
-  });
 
   // Current active operations
   const [highlightedComponents, setHighlightedComponents] = useState<string[]>([]);

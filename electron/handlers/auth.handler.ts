@@ -64,7 +64,7 @@ export class AuthHandler {
   /**
    * Handle Microsoft OAuth login initiation
    */
-  private async handleMicrosoftLogin(event: IpcMainInvokeEvent): Promise<any> {
+  private async handleMicrosoftLogin(_event: IpcMainInvokeEvent): Promise<any> {
     try {
       this.logger.info('Starting Microsoft OAuth login')
 
@@ -88,7 +88,7 @@ export class AuthHandler {
   /**
    * Handle Google OAuth login initiation
    */
-  private async handleGoogleLogin(event: IpcMainInvokeEvent): Promise<any> {
+  private async handleGoogleLogin(_event: IpcMainInvokeEvent): Promise<any> {
     try {
       this.logger.info('Starting Google OAuth login')
 
@@ -314,7 +314,7 @@ export class AuthHandler {
   /**
    * Handle retrieval of all active user profiles
    */
-  private async handleGetActiveProfiles(event: IpcMainInvokeEvent): Promise<any> {
+  private async handleGetActiveProfiles(_event: IpcMainInvokeEvent): Promise<any> {
     try {
       this.logger.debug('Getting all active user profiles')
 
@@ -333,7 +333,7 @@ export class AuthHandler {
   /**
    * Handle connection status check for providers
    */
-  private async handleGetConnectionStatus(event: IpcMainInvokeEvent): Promise<any> {
+  private async handleGetConnectionStatus(_event: IpcMainInvokeEvent): Promise<any> {
     try {
       this.logger.debug('Getting connection status for all providers')
 

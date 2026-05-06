@@ -1,4 +1,5 @@
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('dotenv').config()
 } catch (e) {
   console.log('dotenv not loaded:', e)
@@ -7,8 +8,9 @@ try {
 // polyfill crypto for Node.js environments that expect global.crypto (Node 19+)
 if (typeof global !== 'undefined' && !global.crypto) {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const crypto = require('crypto');
-    // @ts-ignore
+    // @ts-expect-error global.crypto types differ between Node versions
     global.crypto = crypto.webcrypto || crypto;
     console.log('Global crypto polyfill applied successfully');
   } catch (err) {
@@ -18,6 +20,7 @@ if (typeof global !== 'undefined' && !global.crypto) {
 
 // Configure Prisma environment BEFORE any imports
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const electronModule = require('electron');
   // Use multiple checks for packaged app detection
   const appInstance = electronModule.app;
@@ -29,7 +32,9 @@ try {
   } else {
     // Production mode - configure Prisma paths
     // Production mode - configure Prisma paths
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const path = require('path')
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require('fs')
     const resourcesPath = process.resourcesPath
 
@@ -60,6 +65,7 @@ try {
     // process.env.PRISMA_QUERY_ENGINE_BINARY = queryEnginePath
 
     // CRITICAL: Override module resolution BEFORE any imports
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Module = require('module')
     const originalResolveFilename = Module._resolveFilename
 
@@ -539,6 +545,7 @@ async function initializePrisma(): Promise<any> {
       for (const actualPrismaPath of possiblePaths) {
         console.log('Attempting to load PrismaClient from:', actualPrismaPath)
         if (fs.existsSync(actualPrismaPath)) {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           const actualPrismaModule = require(actualPrismaPath)
           PrismaClient = actualPrismaModule.PrismaClient || actualPrismaModule.default?.PrismaClient
           if (PrismaClient) {
@@ -553,6 +560,7 @@ async function initializePrisma(): Promise<any> {
         // Fallback to the problematic @prisma/client module
         console.log('Direct paths not found, trying @prisma/client module resolution')
         try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           const prismaModule = require('@prisma/client')
           console.log('@prisma/client exports:', Object.keys(prismaModule))
           PrismaClient = prismaModule.PrismaClient || prismaModule.default?.PrismaClient
@@ -642,13 +650,6 @@ async function initializePrisma(): Promise<any> {
 
     throw error
   }
-}
-
-/**
- * Get the existing Prisma client instance
- */
-function getPrismaClient(): any | null {
-  return globalPrismaClient
 }
 
 /**
@@ -747,7 +748,7 @@ function createWindow(): void {
 
   // Listen for window state changes
   // Add window lifecycle logging
-  mainWindow.on('close', (event) => {
+  mainWindow.on('close', (_event) => {
     appLogger.warn('Window close event triggered', {
       isDestroyed: mainWindow.isDestroyed(),
       isVisible: mainWindow.isVisible(),
@@ -757,7 +758,7 @@ function createWindow(): void {
 
   mainWindow.on('closed', () => {
     appLogger.warn('Window closed event triggered')
-    // @ts-ignore - mainWindow needs to be null after closing
+    // @ts-expect-error mainWindow needs to be null after closing
     mainWindow = null
   })
 
@@ -959,6 +960,7 @@ async function initDatabase(): Promise<void> {
     // In production, Prisma client should already be generated
     if (isDev) {
       // Generate Prisma client in development
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { execSync } = require('child_process')
       try {
         execSync('npx prisma generate', { stdio: 'inherit' })
@@ -972,6 +974,7 @@ async function initDatabase(): Promise<void> {
 
     // Use Prisma db push to create/update database schema automatically
     if (isDev) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { execSync } = require('child_process')
       try {
         execSync('npx prisma db push', { stdio: 'inherit' })

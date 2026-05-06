@@ -83,7 +83,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                                 `Proyecto "${projectName}" creado exitosamente.\n\n` +
                                 'Para cargar la red hidráulica, abra el proyecto y use el botón "Cargar Red Hidráulica" para seleccionar el archivo .inp.'
                             );
-                        } catch (err) {
+                        } catch {
                             alert(
                                 'Error al importar red hidráulica.\n\n' +
                                 'Verifique que Python y WNTR estén instalados correctamente.\n' +
@@ -102,7 +102,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                                 return;
                             }
                             onCreateProject(`${imported.name} (Importado)`, imported.description || '');
-                        } catch (err) {
+                        } catch {
                             alert('Error al importar proyecto: el archivo no es un JSON válido. Para archivos de red hidráulica (.inp), seleccione un archivo con extensión .inp.');
                         }
                     };

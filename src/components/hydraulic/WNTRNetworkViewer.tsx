@@ -1,25 +1,21 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
-import Graph from 'react-vis-network-graph'
+import { useState, useRef, useCallback } from 'react'
+// `react-vis-network-graph` isn't installed; use the local `VisNetworkGraph`
+// wrapper around `vis-network` which provides the same surface (graph,
+// options, events, forwarded ref).
+import VisNetworkGraph from '@/components/common/VisNetworkGraph'
 import {
   FileUp,
   Play,
   BarChart3,
   Download,
-  Settings,
   ZoomIn,
   ZoomOut,
   Maximize2,
-  Info,
   Loader2,
-  AlertCircle,
-  Map,
-  Network
+  AlertCircle
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import * as Tabs from '@radix-ui/react-tabs'
-import * as Dialog from '@radix-ui/react-dialog'
-import * as Tooltip from '@radix-ui/react-tooltip'
 
 interface NetworkData {
   name: string
@@ -58,7 +54,6 @@ interface NetworkAnalysis {
 }
 
 export function WNTRNetworkViewer() {
-  const { t } = useTranslation()
   const [networkData, setNetworkData] = useState<NetworkData | null>(null)
   const [simulationResults, setSimulationResults] = useState<SimulationResults | null>(null)
   const [networkAnalysis, setNetworkAnalysis] = useState<NetworkAnalysis | null>(null)
@@ -523,7 +518,7 @@ export function WNTRNetworkViewer() {
                 
                 {/* Network Visualization */}
                 <div className="w-full h-full">
-                  <Graph
+                  <VisNetworkGraph
                     ref={networkRef}
                     graph={graphData}
                     options={options}

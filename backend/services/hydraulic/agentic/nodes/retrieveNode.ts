@@ -103,7 +103,7 @@ export class RetrieveNode {
       })
 
       // Attempt 1: Strict search with explicit filters
-      let searchResults = await this.vectorService.hybridSearch(query, {
+      const searchResults = await this.vectorService.hybridSearch(query, {
         topK: this.config.topK * 2, // Get more for filtering
         minSemanticScore: this.config.minScore,
         // Disable strict category filtering based on inferred domain.
@@ -188,7 +188,7 @@ export class RetrieveNode {
         .slice(0, this.config.topK)
 
       // Remove temporary scoring fields
-      return fusedResults.map(({ scores, finalScore, ...doc }) => doc as Document)
+      return fusedResults.map(({ scores: _scores, finalScore: _finalScore, ...doc }) => doc as Document)
     } catch (error) {
       console.error('[RetrieveNode] Multi-query retrieval error:', error)
       throw error

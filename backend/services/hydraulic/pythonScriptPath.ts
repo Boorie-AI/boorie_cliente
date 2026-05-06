@@ -5,6 +5,7 @@ let cachedApp: any = null
 function getElectronApp(): any {
   if (cachedApp !== null) return cachedApp
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     cachedApp = require('electron').app || false
   } catch {
     cachedApp = false

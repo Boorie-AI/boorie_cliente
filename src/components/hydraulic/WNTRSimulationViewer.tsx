@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import proj4 from 'proj4'
 import * as Select from '@radix-ui/react-select'
 import * as Slider from '@radix-ui/react-slider'
-import * as Tooltip from '@radix-ui/react-tooltip'
 import { 
   Upload, 
   Play, 
@@ -73,7 +71,6 @@ interface SimulationData {
 }
 
 export function WNTRSimulationViewer() {
-  const { t } = useTranslation()
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const animationRef = useRef<number | null>(null)
@@ -94,7 +91,10 @@ export function WNTRSimulationViewer() {
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const [showLegend, setShowLegend] = useState(true)
   const [showStats, setShowStats] = useState(true)
-  const [showLocationConfig, setShowLocationConfig] = useState(false)
+  // The boolean is set when a projected coordinate system is detected; the
+  // UI consuming the value isn't wired up yet, but we keep the setter to
+  // surface the detection event.
+  const [, setShowLocationConfig] = useState(false)
   const [utmZone, setUtmZone] = useState<string>(localStorage.getItem('detectedUtmZone') || '')
   const [detectedCoordSystem, setDetectedCoordSystem] = useState<{type: string, suggested_zone?: string} | null>(null)
   
@@ -183,8 +183,10 @@ export function WNTRSimulationViewer() {
         // Trigger re-render after style loads
         if (networkData) {
           console.log('Style loaded, triggering re-render')
-          // Force a re-render by updating the network data
-          setNetworkData(prev => ({ ...prev }))
+          // Force a re-render by updating the network data; when `prev` is
+          // null we keep it null instead of materialising a partial object
+          // that would break the NetworkData shape.
+          setNetworkData(prev => (prev ? { ...prev } : prev))
         }
       })
     }
@@ -297,8 +299,11 @@ export function WNTRSimulationViewer() {
         
         console.log('Using projection:', epsg)
         
-        // Define the projection if not already defined
-        if (!proj4.defs[epsg]) {
+        // Define the projection if not already defined.
+        // `proj4.defs(name)` (single-arg) returns the existing definition or
+        // `undefined`; the previous `proj4.defs[epsg]` form treated the
+        // function as a dictionary, which is not part of its public API.
+        if (!proj4.defs(epsg)) {
           proj4.defs(epsg, `+proj=utm +zone=${zoneNum} ${hemisphere === 'S' ? '+south' : ''} +datum=WGS84 +units=m +no_defs`)
         }
         
@@ -645,11 +650,15 @@ export function WNTRSimulationViewer() {
     // Add click handlers
     map.current.on('click', 'network-nodes', (e) => {
       if (!e.features || e.features.length === 0) return
-      
+
       const feature = e.features[0]
       const coordinates = (feature.geometry as any).coordinates.slice()
       const props = feature.properties
-      
+      // Mapbox typings allow `properties` to be null when the feature was
+      // created without any. We always set them, but guard explicitly so
+      // dereferencing below is safe.
+      if (!props) return
+
       // Create popup content
       const html = `
         <div class="p-2">

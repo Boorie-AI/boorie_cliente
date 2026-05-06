@@ -53,6 +53,7 @@ class GuardrailsWrapper {
   }
 
   private getPythonPath(): string {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { findPythonPath } = require('../hydraulic/pythonDetector')
     return findPythonPath()
   }
@@ -60,7 +61,6 @@ class GuardrailsWrapper {
   private getScriptPath(): string {
     // The guardrails service follows the same packaging conventions as the
     // hydraulic Python services, so we re-use the resolver.
-    const { resolvePythonScriptPath } = require('../hydraulic/pythonScriptPath')
     // resolvePythonScriptPath looks under backend/services/hydraulic; for
     // guardrails we need backend/services/guardrails. Build the path
     // manually but use the same heuristic the resolver applies.
@@ -71,6 +71,7 @@ class GuardrailsWrapper {
     }
     candidates.push(path.join(__dirname, 'guardrailsService.py'))
     candidates.push(path.join(process.cwd(), 'backend', 'services', 'guardrails', 'guardrailsService.py'))
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require('fs')
     for (const c of candidates) {
       try { if (fs.existsSync(c)) return c } catch { /* ignore */ }

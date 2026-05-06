@@ -1,4 +1,4 @@
-import { getOllamaBaseUrl, setOllamaBaseUrl } from '@/config/ollama';
+import { getOllamaBaseUrl } from '@/config/ollama';
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -165,7 +165,7 @@ export function AIConfigurationPanel() {
       } else {
         setOllamaInstalled(false)
       }
-    } catch (error) {
+    } catch {
       setOllamaInstalled(false)
     }
   }
@@ -200,7 +200,7 @@ export function AIConfigurationPanel() {
       }
 
       let currentProgress = 0
-      while (true) {
+      for (;;) {
         const { done, value } = await reader.read()
         if (done) break
 
@@ -242,7 +242,7 @@ export function AIConfigurationPanel() {
               })
               break
             }
-          } catch (e) {
+          } catch {
             // Ignore JSON parse errors for incomplete chunks
           }
         }

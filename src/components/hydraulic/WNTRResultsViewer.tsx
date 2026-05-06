@@ -1,18 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { 
-  BarChart3, 
-  Download, 
-  FileText, 
-  Activity, 
-  Droplets, 
+import {
+  BarChart3,
+  Download,
+  FileText,
+  Activity,
+  Droplets,
   AlertTriangle,
-  TrendingUp,
-  MapPin
+  TrendingUp
 } from 'lucide-react';
 
 interface WNTRResultsViewerProps {
@@ -22,34 +20,10 @@ interface WNTRResultsViewerProps {
   onExport?: (format: 'json' | 'csv' | 'pdf') => void;
 }
 
-interface TimeSeriesData {
-  time: number[];
-  values: number[];
-  label: string;
-}
-
-interface NodeData {
-  id: string;
-  pressure?: number;
-  demand?: number;
-  head?: number;
-  quality?: number;
-  x?: number;
-  y?: number;
-}
-
-interface PipeData {
-  id: string;
-  flow?: number;
-  velocity?: number;
-  headloss?: number;
-  status?: string;
-}
-
 export const WNTRResultsViewer: React.FC<WNTRResultsViewerProps> = ({
   results,
   simulationType,
-  networkFile,
+  networkFile: _networkFile,
   onExport
 }) => {
   const [activeTab, setActiveTab] = useState('summary');
@@ -60,16 +34,6 @@ export const WNTRResultsViewer: React.FC<WNTRResultsViewerProps> = ({
   const formatValue = (value: number, decimals: number = 2): string => {
     if (typeof value !== 'number' || isNaN(value)) return 'N/A';
     return value.toFixed(decimals);
-  };
-
-  const getStatusColor = (status: string): string => {
-    switch (status?.toLowerCase()) {
-      case 'open': return 'text-green-600';
-      case 'closed': return 'text-red-600';
-      case 'active': return 'text-blue-600';
-      case 'inactive': return 'text-gray-600';
-      default: return 'text-gray-600';
-    }
   };
 
   const renderSummary = () => {
@@ -195,7 +159,7 @@ export const WNTRResultsViewer: React.FC<WNTRResultsViewerProps> = ({
               <input
                 type="range"
                 min="0"
-                max={Math.max(0, Object.values(nodes.pressure)[0]?.length - 1 || 0)}
+                max={Math.max(0, ((Object.values(nodes.pressure)[0] as number[] | undefined)?.length ?? 0) - 1)}
                 value={timeStep}
                 onChange={(e) => setTimeStep(parseInt(e.target.value))}
                 className="w-32"

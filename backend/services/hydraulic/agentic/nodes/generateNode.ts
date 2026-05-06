@@ -294,7 +294,7 @@ Contenido: ${doc.content}
     // Factor 3: Technical content (20%)
     const hasTechnicalContent =
       /\d+\.?\d*\s*(m³\/s|l\/s|GPM|psi|bar|kPa|m\.c\.a\.|hp|kW)/.test(generation) ||
-      /[A-Za-z]\s*=\s*[\d\w\s\+\-\*\/\^\(\)]+/.test(generation)
+      /[A-Za-z]\s*=\s*[\d\w\s+\-*/^()]+/.test(generation)
     confidence += hasTechnicalContent ? 0.2 : 0
 
     // Factor 4: Answer completeness (20%)
@@ -323,8 +323,8 @@ Contenido: ${doc.content}
   private detectCalculations(generation: string): boolean {
     // Look for calculation indicators
     const calculationPatterns = [
-      /\d+\.?\d*\s*[+\-×x\*\/÷]\s*\d+\.?\d*/,  // Basic arithmetic
-      /[A-Za-z]\s*=\s*[\d\w\s\+\-\*\/\^\(\)]+/, // Equations
+      /\d+\.?\d*\s*[+\-×x*/÷]\s*\d+\.?\d*/,  // Basic arithmetic
+      /[A-Za-z]\s*=\s*[\d\w\s+\-*/^()]+/, // Equations
       /√\d+/,                                     // Square roots
       /\d+\s*\^\s*\d+/,                          // Exponents
       /∑|∫|∆|Δ|π/,                               // Mathematical symbols

@@ -8,8 +8,10 @@ export class HydraulicCalculatorWrapper {
 
   constructor() {
     // Use shared Python detection utility
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { findPythonPath } = require('./pythonDetector')
     this.pythonPath = findPythonPath()
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { resolvePythonScriptPath } = require('./pythonScriptPath')
     this.scriptPath = resolvePythonScriptPath('hydraulicCalculator.py')
     console.log('HydraulicCalculatorWrapper initialized with:', {

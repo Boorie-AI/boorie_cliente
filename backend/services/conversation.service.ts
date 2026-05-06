@@ -10,7 +10,7 @@ import {
 } from '../models'
 import { DatabaseService } from './database.service'
 import { conversationLogger } from '../utils/logger'
-import { validateString, validateArray, validateRequired } from '../utils/validation'
+import { validateString, validateArray } from '../utils/validation'
 import { EmbeddingService } from './embedding.service'
 import { MilvusService } from './milvus.service'
 import * as crypto from 'crypto'

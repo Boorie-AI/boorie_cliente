@@ -94,7 +94,7 @@ export class LangChainRAGService {
         });
 
         // Save AI Response with metadata (sources)
-        const aiMsg = await this.prisma.message.create({
+        await this.prisma.message.create({
             data: {
                 conversationId,
                 role: 'assistant',

@@ -108,7 +108,7 @@ async function handleStreamingResponse(
 
   if (reader) {
     try {
-      while (true) {
+      for (;;) {
         const { done, value } = await reader.read()
         if (done) break
 
@@ -136,7 +136,7 @@ async function handleStreamingResponse(
               if (parsed.usageMetadata) {
                 totalTokens = parsed.usageMetadata.totalTokenCount
               }
-            } catch (e) {
+            } catch {
               console.warn('Failed to parse Google AI streaming chunk:', data)
             }
           }

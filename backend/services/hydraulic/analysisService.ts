@@ -100,8 +100,10 @@ export class WNTRAnalysisService {
 
   constructor() {
     // Use shared Python detection utility
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { findPythonPath } = require('./pythonDetector');
     this.pythonPath = findPythonPath();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { resolvePythonScriptPath } = require('./pythonScriptPath');
     this.servicePath = resolvePythonScriptPath('wntr_analysis_service.py');
   }

@@ -105,6 +105,7 @@ let sharedServiceContainer: ServiceContainer | null = null
 export function getDatabaseService() {
   if (!sharedServiceContainer) {
     // Create a basic database service for legacy support
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { PrismaClient } = require('@prisma/client')
     const prisma = new PrismaClient()
     sharedServiceContainer = new ServiceContainer(prisma)

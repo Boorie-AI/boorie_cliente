@@ -6,16 +6,11 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import {
   Activity,
-  Droplets,
   Gauge,
   Play,
   Pause,
   Square,
-  BarChart3,
-  TrendingUp,
-  Settings,
-  Eye,
-  EyeOff
+  TrendingUp
 } from 'lucide-react';
 import { Line } from 'react-chartjs-2';
 import {
@@ -32,7 +27,7 @@ import {
 // Custom plugin to draw vertical line at current time step
 const verticalLinePlugin = {
   id: 'verticalLine',
-  afterDraw: (chart: any, args: any, options: any) => {
+  afterDraw: (chart: any, _args: any, options: any) => {
     if (typeof options.index !== 'number') return;
     const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
     const xPos = x.getPixelForValue(options.index);
@@ -112,7 +107,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
   networkData,
   simulationResults,
   onSettingsChange,
-  coordinates
+  coordinates: _coordinates
 }) => {
   const [settings, setSettings] = useState<VisualizationSettings>({
     showPressureMap: true,
@@ -151,58 +146,6 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
     handleSettingChange('isPlaying', !settings.isPlaying);
   };
 
-  // Generate pressure color scale
-  const generatePressureColors = () => {
-    const colors = [
-      { value: 0, color: 'rgb(138, 43, 226)' },     // Purple - Low
-      { value: 10, color: 'rgb(75, 0, 130)' },      // Indigo
-      { value: 20, color: 'rgb(0, 0, 255)' },       // Blue
-      { value: 30, color: 'rgb(30, 144, 255)' },    // DodgerBlue
-      { value: 40, color: 'rgb(0, 191, 255)' },     // DeepSkyBlue
-      { value: 50, color: 'rgb(0, 255, 255)' },     // Cyan
-      { value: 60, color: 'rgb(173, 255, 47)' },    // GreenYellow
-    ];
-    return colors;
-  };
-
-  // Generate flow histogram data
-  const generateFlowHistogram = () => {
-    if (!simulationResults?.link_results) return [];
-
-    const flows = Object.values(simulationResults.link_results).map((link: any) =>
-      Math.abs(link.flowrate || 0)
-    );
-
-    // Create histogram bins
-    const bins = [
-      { range: '0-0.1', count: 0, percentage: 0 },
-      { range: '0.1-1', count: 0, percentage: 0 },
-      { range: '1-10', count: 0, percentage: 0 },
-      { range: '10-100', count: 0, percentage: 0 },
-      { range: '100-1000', count: 0, percentage: 0 },
-      { range: '1000+', count: 0, percentage: 0 }
-    ];
-
-    flows.forEach(flow => {
-      if (flow <= 0.1) bins[0].count++;
-      else if (flow <= 1) bins[1].count++;
-      else if (flow <= 10) bins[2].count++;
-      else if (flow <= 100) bins[3].count++;
-      else if (flow <= 1000) bins[4].count++;
-      else bins[5].count++;
-    });
-
-    const total = flows.length;
-    bins.forEach(bin => {
-      bin.percentage = total > 0 ? (bin.count / total) * 100 : 0;
-    });
-
-    return bins;
-  };
-
-  const flowHistogram = generateFlowHistogram();
-  const pressureColors = generatePressureColors();
-  const maxBinPercentage = Math.max(...flowHistogram.map(bin => bin.percentage), 1);
 
   return (
     <div className="w-80 h-full bg-slate-900 text-white p-4 space-y-4 overflow-y-auto">
@@ -391,7 +334,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                   animation: { duration: 0 },
                   plugins: {
                     legend: { display: false },
-                    // @ts-ignore - Custom plugin options
+                    // @ts-expect-error Custom plugin options
                     verticalLine: { index: settings.timeStep }
                   },
                   scales: {
@@ -438,7 +381,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                     animation: { duration: 0 },
                     plugins: {
                       legend: { position: 'top', labels: { boxWidth: 8, font: { size: 10 }, color: '#aaa' } },
-                      // @ts-ignore - Custom plugin options
+                      // @ts-expect-error Custom plugin options
                       verticalLine: { index: settings.timeStep }
                     },
                     scales: {

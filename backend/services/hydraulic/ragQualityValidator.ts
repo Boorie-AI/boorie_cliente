@@ -95,7 +95,7 @@ export class RAGQualityValidator {
     }
 
     // Ordenar por calidad
-    const sortedResults = validatedResults.sort((a, b) => {
+    const sortedResults = validatedResults.sort((_a, _b) => {
       const aQuality = qualityReport.find(q => q.overallQuality)?.overallQuality || 0
       const bQuality = qualityReport.find(q => q.overallQuality)?.overallQuality || 0
       return bQuality - aQuality
