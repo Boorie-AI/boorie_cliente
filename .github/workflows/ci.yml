@@ -122,8 +122,8 @@ jobs:
       run: npm run db:generate
       
     - name: Build application
-      run: npm run build
-      
+      run: npm run build:vite && npm run build:electron-ts
+
     - name: Build Electron (macOS)
       if: matrix.os == 'macos-latest'
       run: npx electron-builder --mac
