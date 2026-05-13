@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 // Microsoft Graph API Client - Frontend client for Microsoft Graph API calls
 
 export interface GraphUser {
@@ -74,7 +75,7 @@ export interface GraphCalendarEvent {
 
 export class MicrosoftGraphClient {
   constructor() {
-    console.log('Microsoft Graph Client initialized')
+    logger.debug('Microsoft Graph Client initialized')
   }
 
   /**
@@ -98,7 +99,7 @@ export class MicrosoftGraphClient {
       const response = await this.makeAuthenticatedRequest('/me')
       return response
     } catch (error) {
-      console.error('Failed to get current user:', error)
+      logger.error('Failed to get current user:', error)
       throw new Error(`Failed to get user profile: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -122,7 +123,7 @@ export class MicrosoftGraphClient {
         nextSkip: skip + top
       }
     } catch (error) {
-      console.error('Failed to get emails:', error)
+      logger.error('Failed to get emails:', error)
       throw new Error(`Failed to get emails: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -147,7 +148,7 @@ export class MicrosoftGraphClient {
       const response = await this.makeAuthenticatedRequest(endpoint)
       return response.value || []
     } catch (error) {
-      console.error('Failed to get calendar events:', error)
+      logger.error('Failed to get calendar events:', error)
       throw new Error(`Failed to get calendar events: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -200,7 +201,7 @@ export class MicrosoftGraphClient {
         body: JSON.stringify(message)
       })
     } catch (error) {
-      console.error('Failed to send email:', error)
+      logger.error('Failed to send email:', error)
       throw new Error(`Failed to send email: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -257,7 +258,7 @@ export class MicrosoftGraphClient {
 
       return response
     } catch (error) {
-      console.error('Failed to create calendar event:', error)
+      logger.error('Failed to create calendar event:', error)
       throw new Error(`Failed to create calendar event: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -273,7 +274,7 @@ export class MicrosoftGraphClient {
 
       return response.value || []
     } catch (error) {
-      console.error('Failed to get OneDrive files:', error)
+      logger.error('Failed to get OneDrive files:', error)
       throw new Error(`Failed to get OneDrive files: ${error instanceof Error ? error.message : String(error)}`)
     }
   }

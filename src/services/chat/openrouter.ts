@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { ChatMessage, ChatResponse, ChatProvider } from './types'
 
 export const openrouterProvider: ChatProvider = {
@@ -24,7 +25,7 @@ export const openrouterProvider: ChatProvider = {
       presence_penalty: 0,
     }
 
-    console.log('OpenRouter API Request:', { model, messagesCount: messages.length, stream: isStreaming })
+    logger.debug('OpenRouter API Request:', { model, messagesCount: messages.length, stream: isStreaming })
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -118,7 +119,7 @@ async function handleStreamingResponse(
                 actualModel = parsed.model
               }
             } catch {
-              console.warn('Failed to parse OpenRouter streaming chunk:', data)
+              logger.warn('Failed to parse OpenRouter streaming chunk:', data)
             }
           }
         }

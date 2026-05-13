@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 // Auth Store - Authentication state management with Zustand
 
 import { create } from 'zustand'
@@ -116,7 +117,7 @@ export const useAuthStore = create<AuthState>()(
 
           set({ lastUpdated: new Date() })
         } catch (error) {
-          console.error('Failed to initialize auth:', error)
+          logger.error('Failed to initialize auth:', error)
           get().setError('general', `Initialization failed: ${error instanceof Error ? error.message : String(error)}`)
         } finally {
           get().setLoading('general', false)
@@ -143,7 +144,7 @@ export const useAuthStore = create<AuthState>()(
             throw new Error(result.error || 'Failed to get connection status')
           }
         } catch (error) {
-          console.error('Failed to refresh connection status:', error)
+          logger.error('Failed to refresh connection status:', error)
           get().setError('general', `Failed to refresh status: ${error instanceof Error ? error.message : String(error)}`)
         }
       },
@@ -158,7 +159,7 @@ export const useAuthStore = create<AuthState>()(
           await get().refreshConnectionStatus()
 
         } catch (error) {
-          console.error(`Failed to refresh ${provider} status:`, error)
+          logger.error(`Failed to refresh ${provider} status:`, error)
           get().setError(provider, `Failed to refresh status: ${error instanceof Error ? error.message : String(error)}`)
         } finally {
           get().setLoading(provider, false)
@@ -190,7 +191,7 @@ export const useAuthStore = create<AuthState>()(
             throw new Error(result.error || 'Microsoft login failed')
           }
         } catch (error) {
-          console.error('Microsoft connection failed:', error)
+          logger.error('Microsoft connection failed:', error)
           get().setError('microsoft', `Connection failed: ${error instanceof Error ? error.message : String(error)}`)
           return false
         } finally {
@@ -223,7 +224,7 @@ export const useAuthStore = create<AuthState>()(
             throw new Error(result.error || 'Google login failed')
           }
         } catch (error) {
-          console.error('Google connection failed:', error)
+          logger.error('Google connection failed:', error)
           get().setError('google', `Connection failed: ${error instanceof Error ? error.message : String(error)}`)
           return false
         } finally {
@@ -256,7 +257,7 @@ export const useAuthStore = create<AuthState>()(
             throw new Error(result.error || 'Logout failed')
           }
         } catch (error) {
-          console.error(`${provider} disconnection failed:`, error)
+          logger.error(`${provider} disconnection failed:`, error)
           get().setError(provider, `Disconnection failed: ${error instanceof Error ? error.message : String(error)}`)
           return false
         } finally {
@@ -279,7 +280,7 @@ export const useAuthStore = create<AuthState>()(
             throw new Error(result.error || 'Failed to load user profiles')
           }
         } catch (error) {
-          console.error('Failed to load user profiles:', error)
+          logger.error('Failed to load user profiles:', error)
           get().setError('general', `Failed to load profiles: ${error instanceof Error ? error.message : String(error)}`)
         }
       },
@@ -310,7 +311,7 @@ export const useAuthStore = create<AuthState>()(
             throw new Error(result.error || 'Token refresh failed')
           }
         } catch (error) {
-          console.error(`${provider} token refresh failed:`, error)
+          logger.error(`${provider} token refresh failed:`, error)
           get().setError(provider, `Token refresh failed: ${error instanceof Error ? error.message : String(error)}`)
           return false
         } finally {
@@ -338,7 +339,7 @@ export const useAuthStore = create<AuthState>()(
             throw new Error(result.error || 'Connection test failed')
           }
         } catch (error) {
-          console.error(`${provider} connection test failed:`, error)
+          logger.error(`${provider} connection test failed:`, error)
           get().setError(provider, `Connection test failed: ${error instanceof Error ? error.message : String(error)}`)
           return false
         } finally {

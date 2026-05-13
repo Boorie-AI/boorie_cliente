@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState, useCallback } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, Folder, FolderOpen, Upload, CheckSquare, Square, ChevronRight, ChevronDown } from 'lucide-react'
@@ -78,7 +79,7 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
             rootNode.expanded = true // Always expand root
             setFolderStructure(rootNode)
           } else {
-            console.error('Root node is null or undefined')
+            logger.error('Root node is null or undefined')
             alert('Error: estructura de carpetas inválida')
           }
         } else {
@@ -86,7 +87,7 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
         }
       }
     } catch (error) {
-      console.error('Error selecting folder:', error)
+      logger.error('Error selecting folder:', error)
       alert('Error al seleccionar carpeta')
     }
   }
@@ -148,7 +149,7 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
 
   const handleUpload = async () => {
     const files = getSelectedFiles()
-    console.log('📁 Selected files for upload:', files)
+    logger.debug('📁 Selected files for upload:', files)
 
     if (files.length === 0) {
       alert('No hay archivos seleccionados para subir')
@@ -167,7 +168,7 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
         })
       })
 
-      console.log('🔄 Starting bulk upload with mode:', uploadMode)
+      logger.debug('🔄 Starting bulk upload with mode:', uploadMode)
 
       const result = await window.electronAPI.wisdom.bulkUploadDocuments({
         files,
@@ -177,7 +178,7 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
         language: 'es'
       })
 
-      console.log('📈 Upload result:', result)
+      logger.debug('📈 Upload result:', result)
 
       // Cleanup listener
       unsubscribe()
@@ -194,7 +195,7 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
         alert(result.error || result.message || 'Error al procesar documentos')
       }
     } catch (error) {
-      console.error('Upload error:', error)
+      logger.error('Upload error:', error)
       alert('Error al subir documentos')
     } finally {
       setIsUploading(false)

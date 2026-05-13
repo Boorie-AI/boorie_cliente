@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { getOllamaBaseUrl } from '@/config/ollama';
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -113,7 +114,7 @@ export function AIConfigurationPanel() {
   }
 
   const createDefaultProviders = async () => {
-    console.log('🆕 Creating default AI providers...')
+    logger.debug('🆕 Creating default AI providers...')
 
     const defaultProviders = [
       {
@@ -145,9 +146,9 @@ export function AIConfigurationPanel() {
     for (const providerData of defaultProviders) {
       try {
         await saveProvider(providerData)
-        console.log(`✅ Created default provider: ${providerData.name}`)
+        logger.debug(`✅ Created default provider: ${providerData.name}`)
       } catch (error) {
-        console.error(`❌ Failed to create provider ${providerData.name}:`, error)
+        logger.error(`❌ Failed to create provider ${providerData.name}:`, error)
       }
     }
   }
@@ -259,7 +260,7 @@ export function AIConfigurationPanel() {
       }, 2000)
 
     } catch (error) {
-      console.error('Failed to install model:', error)
+      logger.error('Failed to install model:', error)
       setInstallProgress({
         progress: 0,
         status: `Error: ${error instanceof Error ? error.message : 'Failed to install model'}`,
@@ -276,10 +277,10 @@ export function AIConfigurationPanel() {
   }
 
   const handleDeleteModelClick = (modelName: string) => {
-    console.log('Delete button clicked for model:', modelName)
+    logger.debug('Delete button clicked for model:', modelName)
     setModelToDelete(modelName)
     setShowDeleteDialog(true)
-    console.log('showDeleteDialog set to true')
+    logger.debug('showDeleteDialog set to true')
   }
 
   const confirmDeleteModel = async () => {
@@ -299,12 +300,12 @@ export function AIConfigurationPanel() {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      console.log(`Successfully removed model: ${modelToDelete}`)
+      logger.debug(`Successfully removed model: ${modelToDelete}`)
       await refreshOllamaModels()
       setShowDeleteDialog(false)
       setModelToDelete('')
     } catch (error) {
-      console.error('Failed to remove model:', error)
+      logger.error('Failed to remove model:', error)
       // Show error to user
       window.alert(`Failed to remove model ${modelToDelete}: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
@@ -317,11 +318,11 @@ export function AIConfigurationPanel() {
 
   const saveProviderToDatabase = async (provider: AIProvider) => {
     try {
-      console.log('🔄 Saving provider to database:', provider.id)
+      logger.debug('🔄 Saving provider to database:', provider.id)
 
       // Check if electronAPI is available
       if (!window.electronAPI) {
-        console.error('❌ window.electronAPI is not available')
+        logger.error('❌ window.electronAPI is not available')
         return
       }
 
@@ -363,33 +364,33 @@ export function AIConfigurationPanel() {
             isSelected: false
           })
         }
-        console.log('✅ Successfully saved provider and models to database')
+        logger.debug('✅ Successfully saved provider and models to database')
       } else {
-        console.error('❌ Could not find saved provider after creation/update')
+        logger.error('❌ Could not find saved provider after creation/update')
       }
     } catch (error) {
-      console.error('❌ Failed to save provider to database:', error)
+      logger.error('❌ Failed to save provider to database:', error)
     }
   }
 
 
   const handleModelToggle = async (providerId: string, modelId: string, isSelected: boolean) => {
-    console.log('Model toggle:', { providerId, modelId, isSelected })
+    logger.debug('Model toggle:', { providerId, modelId, isSelected })
     await toggleModelSelection(providerId, modelId, isSelected)
   }
 
   const handleAPIKeyUpdate = async (providerId: string, apiKey: string) => {
-    console.log('API key update:', { providerId })
+    logger.debug('API key update:', { providerId })
     await updateAPIKey(providerId, apiKey)
   }
 
   const handleProviderToggle = async (providerId: string, isActive: boolean) => {
-    console.log('Provider toggle:', { providerId, isActive })
+    logger.debug('Provider toggle:', { providerId, isActive })
     await toggleProvider(providerId, isActive)
   }
 
   const testAPIConnection = async (providerId: string) => {
-    console.log('Testing API connection:', providerId)
+    logger.debug('Testing API connection:', providerId)
     return await testProviderConnection(providerId)
   }
 

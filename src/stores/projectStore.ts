@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
@@ -71,7 +72,7 @@ export const useProjectStore = create<ProjectState>()(
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           set({ error: errorMessage })
-          console.error('Error loading projects:', error)
+          logger.error('Error loading projects:', error)
         } finally {
           set({ isLoadingProjects: false })
         }
@@ -97,7 +98,7 @@ export const useProjectStore = create<ProjectState>()(
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           set({ error: errorMessage })
-          console.error('Error selecting project:', error)
+          logger.error('Error selecting project:', error)
           return false
         } finally {
           set({ isLoading: false })
@@ -122,7 +123,7 @@ export const useProjectStore = create<ProjectState>()(
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           set({ error: errorMessage })
-          console.error('Error creating project:', error)
+          logger.error('Error creating project:', error)
           return null
         } finally {
           set({ isLoading: false })
@@ -153,7 +154,7 @@ export const useProjectStore = create<ProjectState>()(
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           set({ error: errorMessage })
-          console.error('Error updating project:', error)
+          logger.error('Error updating project:', error)
           return false
         } finally {
           set({ isLoading: false })
@@ -186,7 +187,7 @@ export const useProjectStore = create<ProjectState>()(
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           set({ error: errorMessage })
-          console.error('Error deleting project:', error)
+          logger.error('Error deleting project:', error)
           return false
         } finally {
           set({ isLoading: false })
@@ -213,7 +214,7 @@ export const useProjectStore = create<ProjectState>()(
           // Sync chat conversations (filter by project if needed)
           // This could be enhanced to load project-specific conversations
         } catch (error) {
-          console.error('Error syncing sections:', error)
+          logger.error('Error syncing sections:', error)
         }
       },
 
@@ -234,7 +235,7 @@ export const useProjectStore = create<ProjectState>()(
 
           return success
         } catch (error) {
-          console.error('Error saving network to project:', error)
+          logger.error('Error saving network to project:', error)
           return false
         }
       },
@@ -252,7 +253,7 @@ export const useProjectStore = create<ProjectState>()(
 
           return success
         } catch (error) {
-          console.error('Error loading network from project:', error)
+          logger.error('Error loading network from project:', error)
           return false
         }
       }

@@ -68,7 +68,7 @@ export function AgenticRAGSearch({
         setSystemConfig(config.data)
       }
     } catch (err) {
-      console.error('Failed to test agentic RAG config:', err)
+      logger.error('Failed to test agentic RAG config:', err)
     }
   }
   */

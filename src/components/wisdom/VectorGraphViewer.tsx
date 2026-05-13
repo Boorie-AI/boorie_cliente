@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import {
   Activity, Cpu, Database, RefreshCw,
@@ -41,7 +42,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
         loadClustersData()
       ])
     } catch (error) {
-      console.error('Error loading vector graph data:', error)
+      logger.error('Error loading vector graph data:', error)
     } finally {
       setLoading(false)
     }
@@ -54,7 +55,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
         setHealthData(result.health)
       }
     } catch (error) {
-      console.error('Error loading health data:', error)
+      logger.error('Error loading health data:', error)
     }
   }
 
@@ -65,7 +66,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
         setGraphData(result.graph)
       }
     } catch (error) {
-      console.error('Error loading graph data:', error)
+      logger.error('Error loading graph data:', error)
     }
   }
 
@@ -79,7 +80,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
         setClustersData(result)
       }
     } catch (error) {
-      console.error('Error loading clusters data:', error)
+      logger.error('Error loading clusters data:', error)
     }
   }
 
@@ -410,14 +411,14 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                         width={800}
                         height={600}
                         onNodeSelect={(node) => {
-                          console.log('Node selected:', node)
+                          logger.debug('Node selected:', node)
                         }}
                         onNodeDoubleClick={(node) => {
-                          console.log('Node double-clicked:', node)
+                          logger.debug('Node double-clicked:', node)
                           // Could open a detailed view or focus on related documents
                         }}
                         onEdgeSelect={(edge) => {
-                          console.log('Edge selected:', edge)
+                          logger.debug('Edge selected:', edge)
                         }}
                       />
                     </div>

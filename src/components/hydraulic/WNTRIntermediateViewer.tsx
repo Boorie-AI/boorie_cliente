@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -57,14 +58,14 @@ export function WNTRIntermediateViewer() {
       })
       
       map.current.on('error', (e) => {
-        console.error('Map error:', e)
+        logger.error('Map error:', e)
         setError('Map initialization failed')
       })
       
       map.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
       map.current.addControl(new mapboxgl.ScaleControl(), 'bottom-right')
     } catch (err) {
-      console.error('Failed to initialize map:', err)
+      logger.error('Failed to initialize map:', err)
       setError('Failed to initialize map')
     }
     
@@ -207,7 +208,7 @@ export function WNTRIntermediateViewer() {
               duration: 2000
             })
           } catch (e) {
-            console.warn('Could not fit bounds:', e)
+            logger.warn('Could not fit bounds:', e)
           }
         } else {
           // Retry after a short delay
@@ -264,7 +265,7 @@ export function WNTRIntermediateViewer() {
         // Check for warnings
         if (result.warning) {
           // Show warning to user
-          console.warn('Simulation warning:', result.warning)
+          logger.warn('Simulation warning:', result.warning)
           setWarning(`${result.warning.message}\n\n${result.warning.details}`)
         } else {
           setWarning(null)
@@ -312,7 +313,7 @@ export function WNTRIntermediateViewer() {
           }, 100)
         })
       } catch (e) {
-        console.warn('Style change warning:', e)
+        logger.warn('Style change warning:', e)
       }
     }
   }
@@ -321,7 +322,7 @@ export function WNTRIntermediateViewer() {
     if (!map.current || !networkData?.coordinate_system?.bounds) return
     
     if (!map.current.loaded()) {
-      console.warn('Map not fully loaded yet')
+      logger.warn('Map not fully loaded yet')
       return
     }
     
@@ -336,7 +337,7 @@ export function WNTRIntermediateViewer() {
         duration: 1500
       })
     } catch (e) {
-      console.warn('Could not center on network:', e)
+      logger.warn('Could not center on network:', e)
     }
   }
 

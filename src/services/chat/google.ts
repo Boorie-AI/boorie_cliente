@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { ChatMessage, ChatResponse, ChatProvider } from './types'
 
 export const googleProvider: ChatProvider = {
@@ -27,7 +28,7 @@ export const googleProvider: ChatProvider = {
     const streamParam = isStreaming ? '?alt=sse' : ''
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${isStreaming ? 'streamGenerateContent' : 'generateContent'}${streamParam}`
 
-    console.log('Google AI API Request:', { model, messagesCount: googleMessages.contents.length, stream: isStreaming })
+    logger.debug('Google AI API Request:', { model, messagesCount: googleMessages.contents.length, stream: isStreaming })
 
     const response = await fetch(url, {
       method: 'POST',
@@ -137,7 +138,7 @@ async function handleStreamingResponse(
                 totalTokens = parsed.usageMetadata.totalTokenCount
               }
             } catch {
-              console.warn('Failed to parse Google AI streaming chunk:', data)
+              logger.warn('Failed to parse Google AI streaming chunk:', data)
             }
           }
         }

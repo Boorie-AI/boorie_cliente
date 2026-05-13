@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -18,13 +19,13 @@ import * as Dialog from '@radix-ui/react-dialog'
 // Mapbox access token from environment variables
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || ''
 
-console.log('Mapbox token loaded:', MAPBOX_ACCESS_TOKEN ? `${MAPBOX_ACCESS_TOKEN.substring(0, 10)}...` : 'NO TOKEN')
+logger.debug('Mapbox token loaded:', MAPBOX_ACCESS_TOKEN ? `${MAPBOX_ACCESS_TOKEN.substring(0, 10)}...` : 'NO TOKEN')
 
 // Set the access token if available
 if (MAPBOX_ACCESS_TOKEN) {
   mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN
 } else {
-  console.error('No Mapbox access token found. Please set VITE_MAPBOX_ACCESS_TOKEN in your .env file.')
+  logger.error('No Mapbox access token found. Please set VITE_MAPBOX_ACCESS_TOKEN in your .env file.')
 }
 
 // Define coordinate systems for Latin America
@@ -140,7 +141,7 @@ export function WNTRMapViewer({
       const gl = (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null
 
       if (!gl) {
-        // console.warn('WebGL not available - disabling satellite mode')
+        // logger.warn('WebGL not available - disabling satellite mode')
         setSatelliteDisabled(true)
         return false
       }
@@ -149,8 +150,8 @@ export function WNTRMapViewer({
       const renderer = gl.getParameter(gl.RENDERER) || ''
       const vendor = gl.getParameter(gl.VENDOR) || ''
 
-      // console.log('WebGL Renderer:', renderer)
-      // console.log('WebGL Vendor:', vendor)
+      // logger.debug('WebGL Renderer:', renderer)
+      // logger.debug('WebGL Vendor:', vendor)
 
       // Known problematic configurations that cause crashes with satellite imagery
       const problematicPatterns = [
@@ -165,7 +166,7 @@ export function WNTRMapViewer({
       )
 
       if (isProblematic) {
-        // console.warn('Problematic WebGL renderer detected - disabling satellite mode')
+        // logger.warn('Problematic WebGL renderer detected - disabling satellite mode')
         setSatelliteDisabled(true)
         return false
       }
@@ -174,12 +175,12 @@ export function WNTRMapViewer({
       const ext = gl.getExtension('WEBGL_lose_context')
       if (ext) {
         // This is just a capability check, not actually losing context
-        console.log('WebGL context loss recovery available')
+        logger.debug('WebGL context loss recovery available')
       }
 
       return true
     } catch (error) {
-      console.error('Error checking WebGL compatibility:', error)
+      logger.error('Error checking WebGL compatibility:', error)
       setSatelliteDisabled(true)
       return false
     }
@@ -190,13 +191,13 @@ export function WNTRMapViewer({
     // Check if satellite was previously disabled due to crashes
     const satelliteDisabledBySystem = localStorage.getItem('satellite-disabled-by-system')
     if (satelliteDisabledBySystem === 'true') {
-      console.log('Satellite mode was previously disabled by system')
+      logger.debug('Satellite mode was previously disabled by system')
       setSatelliteDisabled(true)
       // setError('Modo satélite deshabilitado debido a incompatibilidad del sistema.')
     } else {
       // For now, disable satellite mode completely to prevent crashes
       // TODO: Remove this when satellite mode is stable
-      console.warn('Satellite mode disabled preventively due to known crash issues')
+      logger.warn('Satellite mode disabled preventively due to known crash issues')
       setSatelliteDisabled(true)
       localStorage.setItem('satellite-disabled-by-system', 'true')
       // setError('Modo satélite temporalmente deshabilitado para prevenir crashes del sistema.')
@@ -218,7 +219,7 @@ export function WNTRMapViewer({
   // Listen for crash recovery messages from main process
   useEffect(() => {
     const cleanup = window.electronAPI?.onDisableSatelliteMode?.((data: { reason: string; message: string }) => {
-      console.warn('Received satellite disable request:', data)
+      logger.warn('Received satellite disable request:', data)
       setSatelliteDisabled(true)
       setError(`${data.message} - Modo satélite ha sido deshabilitado permanentemente.`)
 
@@ -239,18 +240,18 @@ export function WNTRMapViewer({
 
   // Initialize map
   useEffect(() => {
-    console.log('Map initialization useEffect triggered')
-    console.log('mapContainer.current:', mapContainer.current)
-    console.log('MAPBOX_ACCESS_TOKEN exists:', !!MAPBOX_ACCESS_TOKEN)
+    logger.debug('Map initialization useEffect triggered')
+    logger.debug('mapContainer.current:', mapContainer.current)
+    logger.debug('MAPBOX_ACCESS_TOKEN exists:', !!MAPBOX_ACCESS_TOKEN)
 
     if (!mapContainer.current) {
-      console.error('Map container ref is null')
+      logger.error('Map container ref is null')
       return
     }
 
     // Check container dimensions
     const containerRect = mapContainer.current.getBoundingClientRect()
-    console.log('Container dimensions:', {
+    logger.debug('Container dimensions:', {
       width: containerRect.width,
       height: containerRect.height,
       top: containerRect.top,
@@ -258,7 +259,7 @@ export function WNTRMapViewer({
     })
 
     if (containerRect.width === 0 || containerRect.height === 0) {
-      console.error('Map container has zero dimensions:', containerRect)
+      logger.error('Map container has zero dimensions:', containerRect)
       setError('Map container has invalid dimensions. Please check the layout.')
       return
     }
@@ -276,18 +277,18 @@ export function WNTRMapViewer({
     }
 
     try {
-      console.log('Initializing Mapbox with token:', MAPBOX_ACCESS_TOKEN.substring(0, 10) + '...')
-      console.log('Map container element:', mapContainer.current)
-      console.log('Map settings:', { baseMap: mapSettings.baseMap, lng, lat, zoom })
+      logger.debug('Initializing Mapbox with token:', MAPBOX_ACCESS_TOKEN.substring(0, 10) + '...')
+      logger.debug('Map container element:', mapContainer.current)
+      logger.debug('Map settings:', { baseMap: mapSettings.baseMap, lng, lat, zoom })
 
       // Verify mapboxgl is properly loaded
-      console.log('mapboxgl object:', mapboxgl)
-      console.log('mapboxgl.accessToken:', mapboxgl.accessToken)
+      logger.debug('mapboxgl object:', mapboxgl)
+      logger.debug('mapboxgl.accessToken:', mapboxgl.accessToken)
 
       // Capture container in a local so TS narrowing survives the inner closure.
       const container = mapContainer.current
       if (!container) {
-        console.error('Map container ref became null before map creation')
+        logger.error('Map container ref became null before map creation')
         return
       }
 
@@ -302,7 +303,7 @@ export function WNTRMapViewer({
           preserveDrawingBuffer: true, // Help with WebGL issues in Electron
           antialias: false, // Disable antialiasing to reduce WebGL load
           transformRequest: (url, resourceType) => {
-            console.log('Transform request:', url, resourceType)
+            logger.debug('Transform request:', url, resourceType)
             return { url }
           }
         })
@@ -316,10 +317,10 @@ export function WNTRMapViewer({
         mapStyle = 'mapbox://styles/mapbox/satellite-streets-v12' // Try newer satellite style
       }
 
-      console.log('Creating map with style:', mapStyle)
+      logger.debug('Creating map with style:', mapStyle)
       map.current = createMap(mapStyle)
 
-      console.log('Map instance created:', map.current)
+      logger.debug('Map instance created:', map.current)
 
       // Add error handler with style fallback
       map.current.on('error', (e) => {
@@ -327,8 +328,8 @@ export function WNTRMapViewer({
         // its internal AJAXError subclass; the public `Error` type doesn't
         // expose it, so we read it through a structural type.
         const mapboxError = e.error as (Error & { status?: number }) | undefined
-        console.error('Mapbox error:', e)
-        console.error('Error details:', {
+        logger.error('Mapbox error:', e)
+        logger.error('Error details:', {
           status: mapboxError?.status,
           message: mapboxError?.message,
           type: e.type,
@@ -338,7 +339,7 @@ export function WNTRMapViewer({
         if (mapboxError && mapboxError.status === 401) {
           setError('Token de acceso Mapbox inválido. Verifique su token en el archivo .env.')
         } else if (mapSettings.baseMap === 'satellite' && e.error) {
-          console.warn('Satellite style failed, falling back to streets')
+          logger.warn('Satellite style failed, falling back to streets')
           try {
             // Prevent infinite error loops
             if (map.current) {
@@ -347,7 +348,7 @@ export function WNTRMapViewer({
               setError('Las imágenes satelitales fallaron. Se cambió a vista de calles automáticamente.')
             }
           } catch (fallbackError) {
-            console.error('Fallback error:', fallbackError)
+            logger.error('Fallback error:', fallbackError)
             setError(`Error del mapa: ${e.error?.message || 'Error desconocido'}. Intente recargar la página.`)
           }
         } else {
@@ -356,7 +357,7 @@ export function WNTRMapViewer({
       })
 
       map.current.on('load', () => {
-        console.log('Map loaded successfully')
+        logger.debug('Map loaded successfully')
       })
 
       map.current.on('move', () => {
@@ -373,7 +374,7 @@ export function WNTRMapViewer({
 
       // Click handlers will be added in separate useEffect
     } catch (err) {
-      console.error('Map initialization error:', err)
+      logger.error('Map initialization error:', err)
       if (err instanceof Error) {
         if (err.message.includes('WebGL')) {
           // No `setWarning` exists in this component, so surface the hint via
@@ -406,9 +407,9 @@ export function WNTRMapViewer({
 
     // Check if map is loaded before changing style
     if (!map.current.loaded()) {
-      console.log('Map not yet loaded, waiting...')
+      logger.debug('Map not yet loaded, waiting...')
       map.current.once('load', () => {
-        console.log('Map loaded, proceeding with style change')
+        logger.debug('Map loaded, proceeding with style change')
         // Trigger this effect again by updating a dummy state
         setTimeout(() => {
           if (map.current && !styleChanging) {
@@ -422,7 +423,7 @@ export function WNTRMapViewer({
     // Check satellite compatibility before switching
     if (mapSettings.baseMap === 'satellite') {
       if (satelliteDisabled || !checkSatelliteCompatibility()) {
-        console.warn('Satellite mode not compatible with current system')
+        logger.warn('Satellite mode not compatible with current system')
         setError('Modo satélite no compatible con su sistema. Use otro estilo de mapa.')
         setMapSettings(prev => ({ ...prev, baseMap: 'streets' }))
         return
@@ -438,21 +439,21 @@ export function WNTRMapViewer({
       // Use updated satellite style
       if (mapSettings.baseMap === 'satellite') {
         newStyle = 'mapbox://styles/mapbox/satellite-streets-v12'
-        console.log('Switching to satellite mode...')
+        logger.debug('Switching to satellite mode...')
       }
 
-      console.log('Changing map style to:', newStyle)
+      logger.debug('Changing map style to:', newStyle)
 
       // Clear any previous errors
       setError(null)
 
       // Set up one-time error handler for style change
       const handleStyleError = (e: any) => {
-        console.error('Style change error:', e)
+        logger.error('Style change error:', e)
         setStyleChanging(false)
 
         if (mapSettings.baseMap === 'satellite') {
-          console.warn('Satellite style failed during change, reverting to streets')
+          logger.warn('Satellite style failed during change, reverting to streets')
           try {
             if (map.current && !map.current.isStyleLoaded()) {
               // If style is not loaded, set a timeout to prevent crashes
@@ -468,7 +469,7 @@ export function WNTRMapViewer({
             }
             setError('Error al cargar imágenes satelitales. Se cambió a vista de calles.')
           } catch (revertError) {
-            console.error('Failed to revert to streets style:', revertError)
+            logger.error('Failed to revert to streets style:', revertError)
             setError('Error crítico al cambiar vista del mapa. Recargue la página.')
           }
         } else {
@@ -486,7 +487,7 @@ export function WNTRMapViewer({
 
       // Safety timeout to reset state even if style.load doesn't fire
       const timeoutId = setTimeout(() => {
-        console.warn('Style change timeout, resetting state')
+        logger.warn('Style change timeout, resetting state')
         setStyleChanging(false)
         setError('Tiempo de espera agotado al cambiar estilo. Intente de nuevo.')
         map.current?.off('error', handleStyleError)
@@ -494,14 +495,14 @@ export function WNTRMapViewer({
 
       // Remove error handler and reset state after successful style load
       map.current.once('style.load', () => {
-        console.log('Style loaded successfully:', newStyle)
+        logger.debug('Style loaded successfully:', newStyle)
         setStyleChanging(false)
         clearTimeout(timeoutId)
         map.current?.off('error', handleStyleError)
       })
 
     } catch (error) {
-      console.error('Critical error changing map style:', error)
+      logger.error('Critical error changing map style:', error)
       setStyleChanging(false)
       setError(`Error crítico al cambiar estilo del mapa: ${error instanceof Error ? error.message : 'Error desconocido'}`)
 
@@ -551,18 +552,18 @@ export function WNTRMapViewer({
     // Get file name for detection
     const fileName = networkData.name?.toLowerCase() || ''
 
-    console.log('=== COORDINATE ANALYSIS ===')
-    console.log('File name:', fileName)
-    console.log('Coordinate bounds:', { minX, maxX, minY, maxY })
-    console.log('Coordinate ranges:', { rangeX: maxX - minX, rangeY: maxY - minY })
-    console.log('First 5 node coordinates:', networkData.nodes.slice(0, 5).map(n => ({ id: n.id, x: n.x, y: n.y })))
-    console.log('Network coordinate_system from backend:', networkData.coordinate_system)
-    console.log('Sample coordinate values:', {
+    logger.debug('=== COORDINATE ANALYSIS ===')
+    logger.debug('File name:', fileName)
+    logger.debug('Coordinate bounds:', { minX, maxX, minY, maxY })
+    logger.debug('Coordinate ranges:', { rangeX: maxX - minX, rangeY: maxY - minY })
+    logger.debug('First 5 node coordinates:', networkData.nodes.slice(0, 5).map(n => ({ id: n.id, x: n.x, y: n.y })))
+    logger.debug('Network coordinate_system from backend:', networkData.coordinate_system)
+    logger.debug('Sample coordinate values:', {
       sampleX: [minX, (minX + maxX) / 2, maxX],
       sampleY: [minY, (minY + maxY) / 2, maxY]
     })
-    console.log('TK-Lomas detected:', fileName.includes('tk-lomas'))
-    console.log('Cartagena detected:', fileName.includes('cartagena'))
+    logger.debug('TK-Lomas detected:', fileName.includes('tk-lomas'))
+    logger.debug('Cartagena detected:', fileName.includes('cartagena'))
 
     // Check if already geographic
     if (minX >= -180 && maxX <= 180 && minY >= -90 && maxY <= 90 &&
@@ -579,7 +580,7 @@ export function WNTRMapViewer({
 
       // Special handling for TK-Lomas Cartagena file (highest priority)
       if (fileName.includes('tk-lomas') || fileName.includes('cartagena')) {
-        console.log('🎯 Detected TK-Lomas/Cartagena file')
+        logger.debug('🎯 Detected TK-Lomas/Cartagena file')
 
         // Test different coordinate systems for these specific coordinates
         // Current coordinates: ~842913, 1641804
@@ -587,7 +588,7 @@ export function WNTRMapViewer({
 
         // Try MAGNA-SIRGAS Colombia Bogotá zone (EPSG:3116)
         if (minX > 800000 && minX < 1200000 && minY > 1600000 && minY < 1700000) {
-          console.log('Using MAGNA-SIRGAS Bogotá zone for TK-Lomas')
+          logger.debug('Using MAGNA-SIRGAS Bogotá zone for TK-Lomas')
           return {
             isGeographic: false,
             epsgCode: 'EPSG:3116',
@@ -598,7 +599,7 @@ export function WNTRMapViewer({
 
         // Try UTM Zone 17N (western Colombia)
         if (minX > 800000 && minX < 900000) {
-          console.log('Using UTM Zone 17N for TK-Lomas (western coordinates)')
+          logger.debug('Using UTM Zone 17N for TK-Lomas (western coordinates)')
           return {
             isGeographic: false,
             epsgCode: 'EPSG:32617',
@@ -608,7 +609,7 @@ export function WNTRMapViewer({
         }
 
         // Fallback to UTM Zone 18N
-        console.log('Using UTM Zone 18N for TK-Lomas (fallback)')
+        logger.debug('Using UTM Zone 18N for TK-Lomas (fallback)')
         return {
           isGeographic: false,
           epsgCode: 'EPSG:32618',
@@ -730,7 +731,7 @@ export function WNTRMapViewer({
   const convertToGeoCoordinates = useCallback((networkData: NetworkData) => {
     const coordSystem = detectCoordinateSystem(networkData)
 
-    console.log('Detected coordinate system:', coordSystem)
+    logger.debug('Detected coordinate system:', coordSystem)
 
     // If already geographic, no conversion needed
     if (coordSystem.isGeographic) {
@@ -754,7 +755,7 @@ export function WNTRMapViewer({
       const sourceProjection = coordSystem.epsgCode
       const targetProjection = 'EPSG:4326' // WGS84
 
-      console.log(`Converting from ${sourceProjection} to ${targetProjection}`)
+      logger.debug(`Converting from ${sourceProjection} to ${targetProjection}`)
 
       // Get sample coordinates to establish bounds
       const sampleCoords = networkData.nodes.slice(0, Math.min(100, networkData.nodes.length))
@@ -766,7 +767,7 @@ export function WNTRMapViewer({
             const [lon, lat] = proj4(sourceProjection, targetProjection, [x, y])
             return { lon, lat, valid: true }
           } catch (e) {
-            console.warn(`Failed to convert coordinate [${x}, ${y}]:`, e)
+            logger.warn(`Failed to convert coordinate [${x}, ${y}]:`, e)
             return { lon: 0, lat: 0, valid: false }
           }
         })
@@ -787,15 +788,15 @@ export function WNTRMapViewer({
         maxLat: Math.max(...lats)
       }
 
-      console.log('=== COORDINATE CONVERSION RESULTS ===')
-      console.log('Source projection:', sourceProjection)
-      console.log('Target projection:', targetProjection)
-      console.log('Geographic bounds after conversion:', bounds)
-      console.log('Sample original -> converted coordinates:')
+      logger.debug('=== COORDINATE CONVERSION RESULTS ===')
+      logger.debug('Source projection:', sourceProjection)
+      logger.debug('Target projection:', targetProjection)
+      logger.debug('Geographic bounds after conversion:', bounds)
+      logger.debug('Sample original -> converted coordinates:')
       networkData.nodes.slice(0, 3).forEach((node, i) => {
         const original = [node.x || 0, node.y || 0]
         const converted = sampleCoords[i]
-        console.log(`  Node ${node.id}: [${original[0]}, ${original[1]}] -> [${converted?.lon}, ${converted?.lat}]`)
+        logger.debug(`  Node ${node.id}: [${original[0]}, ${original[1]}] -> [${converted?.lon}, ${converted?.lat}]`)
       })
 
       return {
@@ -804,7 +805,7 @@ export function WNTRMapViewer({
           try {
             return proj4(sourceProjection, targetProjection, [x, y])
           } catch {
-            console.warn(`Failed to convert [${x}, ${y}], using fallback`)
+            logger.warn(`Failed to convert [${x}, ${y}], using fallback`)
             // Fallback to center of detected bounds
             return [coordSystem.centerApprox?.[0] || -75.5, coordSystem.centerApprox?.[1] || 10.4]
           }
@@ -813,7 +814,7 @@ export function WNTRMapViewer({
       }
 
     } catch (error) {
-      console.error('Coordinate conversion failed:', error)
+      logger.error('Coordinate conversion failed:', error)
 
       // Fallback to approximate conversion
       const centerLon = coordSystem.centerApprox?.[0] || -75.5
@@ -837,7 +838,7 @@ export function WNTRMapViewer({
   const addNetworkToMap = useCallback(() => {
     if (!map.current || !networkData) return
 
-    console.log('Adding network to map:', {
+    logger.debug('Adding network to map:', {
       nodesCount: networkData.nodes.length,
       linksCount: networkData.links.length,
       firstNode: networkData.nodes[0],
@@ -860,7 +861,7 @@ export function WNTRMapViewer({
     })
 
     const geoConversion = convertToGeoCoordinates(networkData)
-    console.log('GeoConversion result:', geoConversion)
+    logger.debug('GeoConversion result:', geoConversion)
 
     // Create GeoJSON for nodes
     const nodesGeoJSON: GeoJSON.FeatureCollection = {
@@ -873,7 +874,7 @@ export function WNTRMapViewer({
 
         // Debug first few nodes
         if (networkData.nodes.indexOf(node) < 3) {
-          console.log(`Node ${node.id}: Original (${node.x}, ${node.y}) -> Transformed (${coords[0]}, ${coords[1]})`)
+          logger.debug(`Node ${node.id}: Original (${node.x}, ${node.y}) -> Transformed (${coords[0]}, ${coords[1]})`)
         }
 
         let color = '#3B82F6' // Default junction color
@@ -994,7 +995,7 @@ export function WNTRMapViewer({
         })
       }
     } catch (e) {
-      console.error('Error adding/updating links source:', e)
+      logger.error('Error adding/updating links source:', e)
     }
 
     try {
@@ -1007,7 +1008,7 @@ export function WNTRMapViewer({
         })
       }
     } catch (e) {
-      console.error('Error adding/updating nodes source:', e)
+      logger.error('Error adding/updating nodes source:', e)
     }
 
     // Add layers if they don't exist
@@ -1100,7 +1101,7 @@ export function WNTRMapViewer({
         boundsCount++
       }
     })
-    console.log(`Extended bounds with ${boundsCount} points`)
+    logger.debug(`Extended bounds with ${boundsCount} points`)
 
     // Only fit bounds if we have valid bounds
     try {
@@ -1109,7 +1110,7 @@ export function WNTRMapViewer({
 
       // Check if bounds are valid (not infinite or NaN)
       if (isFinite(sw.lat) && isFinite(sw.lng) && isFinite(ne.lat) && isFinite(ne.lng)) {
-        console.log('Fitting to bounds:', {
+        logger.debug('Fitting to bounds:', {
           sw: { lat: sw.lat, lng: sw.lng },
           ne: { lat: ne.lat, lng: ne.lng }
         })
@@ -1118,10 +1119,10 @@ export function WNTRMapViewer({
           maxZoom: 16
         })
       } else {
-        console.warn('Invalid bounds:', { sw, ne })
+        logger.warn('Invalid bounds:', { sw, ne })
       }
     } catch (e) {
-      console.warn('Could not fit bounds:', e)
+      logger.warn('Could not fit bounds:', e)
     }
 
   }, [networkData, simulationResults, mapSettings, convertToGeoCoordinates])
@@ -1150,7 +1151,7 @@ export function WNTRMapViewer({
       const result = await window.electronAPI.wntr.loadINPFile()
 
       if (result.success && result.data) {
-        console.log('Network loaded:', result.data)
+        logger.debug('Network loaded:', result.data)
         setNetworkData(result.data)
         // Network overlay is always visible
       } else {
@@ -1192,7 +1193,7 @@ export function WNTRMapViewer({
     if (!networkData) return
 
     const geoConversion = convertToGeoCoordinates(networkData)
-    console.log('GeoConversion result:', geoConversion)
+    logger.debug('GeoConversion result:', geoConversion)
 
     const exportData = {
       type: 'FeatureCollection',
@@ -1321,10 +1322,10 @@ export function WNTRMapViewer({
 
                       // Get the first few nodes to check their coordinates
                       const firstNodes = networkData.nodes.slice(0, 5)
-                      console.log('Checking first nodes:')
+                      logger.debug('Checking first nodes:')
                       firstNodes.forEach(node => {
                         const coords = geoConversion.transform(node.x, node.y)
-                        console.log(`${node.id}: [${coords[0]}, ${coords[1]}]`)
+                        logger.debug(`${node.id}: [${coords[0]}, ${coords[1]}]`)
                       })
 
                       // Try to fit bounds again
@@ -1377,14 +1378,14 @@ export function WNTRMapViewer({
                     if (networkData) {
                       const coordSystem = detectCoordinateSystem(networkData)
                       const geoConversion = convertToGeoCoordinates(networkData)
-                      console.log('=== DEBUG COORDINATE INFO ===')
-                      console.log('Network name:', networkData.name)
-                      console.log('Detected system:', coordSystem)
-                      console.log('Conversion result:', geoConversion)
-                      console.log('First 3 nodes with coordinates:')
+                      logger.debug('=== DEBUG COORDINATE INFO ===')
+                      logger.debug('Network name:', networkData.name)
+                      logger.debug('Detected system:', coordSystem)
+                      logger.debug('Conversion result:', geoConversion)
+                      logger.debug('First 3 nodes with coordinates:')
                       networkData.nodes.slice(0, 3).forEach(node => {
                         const converted = geoConversion.transform(node.x || 0, node.y || 0)
-                        console.log(`${node.id}: [${node.x}, ${node.y}] -> [${converted[0]}, ${converted[1]}]`)
+                        logger.debug(`${node.id}: [${node.x}, ${node.y}] -> [${converted[0]}, ${converted[1]}]`)
                       })
                       alert(`Debug info logged to console. Check F12 > Console for details.\n\nDetected: ${coordSystem.region}`)
                     }
@@ -1510,7 +1511,7 @@ export function WNTRMapViewer({
               <div className="absolute inset-0 pointer-events-auto flex items-center justify-center">
                 <div className="bg-background/90 backdrop-blur-sm rounded-lg p-4 border border-border cursor-pointer hover:bg-background/95 transition-colors"
                   onClick={() => {
-                    console.log('User cancelled style change')
+                    logger.debug('User cancelled style change')
                     setStyleChanging(false)
                     setError('Cambio de estilo cancelado por el usuario.')
                   }}>

@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { ChatMessage, ChatResponse, ChatProvider } from './types'
 
 export const openaiProvider: ChatProvider = {
@@ -20,7 +21,7 @@ export const openaiProvider: ChatProvider = {
       temperature: 0.7,
     }
 
-    console.log('OpenAI API Request:', { model, messagesCount: messages.length, stream: isStreaming })
+    logger.debug('OpenAI API Request:', { model, messagesCount: messages.length, stream: isStreaming })
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -107,7 +108,7 @@ async function handleStreamingResponse(
                 totalTokens = parsed.usage.total_tokens
               }
             } catch {
-              console.warn('Failed to parse OpenAI streaming chunk:', data)
+              logger.warn('Failed to parse OpenAI streaming chunk:', data)
             }
           }
         }

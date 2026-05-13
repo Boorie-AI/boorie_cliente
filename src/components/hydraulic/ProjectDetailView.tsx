@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import {
   ArrowLeft,
@@ -50,7 +51,7 @@ export function ProjectDetailView({ projectId, onBack }: ProjectDetailViewProps)
       const projectData = await hydraulicService.getProject(projectId)
       setProject(projectData)
     } catch (error) {
-      console.error('Failed to load project:', error)
+      logger.error('Failed to load project:', error)
       alert('Failed to load project: ' + (error as Error).message)
     } finally {
       setLoading(false)

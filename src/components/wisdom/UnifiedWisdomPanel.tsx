@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 
 import {
@@ -147,7 +148,7 @@ export function UnifiedWisdomPanel() {
   // Load data on mount
   useEffect(() => {
     // Clear any potential cached data first
-    console.log('🔄 Clearing all document state on mount')
+    logger.debug('🔄 Clearing all document state on mount')
     setWisdomDocuments([])
     setAllDocuments([])
     setWisdomDocuments([])
@@ -161,7 +162,7 @@ export function UnifiedWisdomPanel() {
       loadEmbeddingProviders()
     } else {
       setApiAvailable(false)
-      console.warn('Electron API not available, retrying in 2 seconds...')
+      logger.warn('Electron API not available, retrying in 2 seconds...')
       // Retry after a short delay in case the preload is still loading
       const timer = setTimeout(() => {
         if (window.electronAPI && window.electronAPI.wisdom) {
@@ -169,7 +170,7 @@ export function UnifiedWisdomPanel() {
           loadAllData()
           loadEmbeddingProviders()
         } else {
-          console.error('Electron API still not available after retry')
+          logger.error('Electron API still not available after retry')
           setApiAvailable(false)
         }
       }, 2000)
@@ -185,9 +186,9 @@ export function UnifiedWisdomPanel() {
 
   // Debug: Log when embedding providers change
   useEffect(() => {
-    console.log(`🔄 [React] Embedding providers state updated: ${embeddingProviders.length} providers`)
-    console.log('🔍 [React] Current providers:', embeddingProviders.map(p => ({ id: p.id, name: p.name })))
-    console.log('🎯 [React] Selected provider ID:', selectedProviderId)
+    logger.debug(`🔄 [React] Embedding providers state updated: ${embeddingProviders.length} providers`)
+    logger.debug('🔍 [React] Current providers:', embeddingProviders.map(p => ({ id: p.id, name: p.name })))
+    logger.debug('🎯 [React] Selected provider ID:', selectedProviderId)
   }, [embeddingProviders, selectedProviderId])
 
   const loadAllData = async () => {
@@ -196,7 +197,7 @@ export function UnifiedWisdomPanel() {
       // Only load user uploaded documents, no predefined catalog
       await loadWisdomDocuments()
     } catch (error) {
-      console.error('Error loading data:', error)
+      logger.error('Error loading data:', error)
     } finally {
       setLoading(false)
     }
@@ -206,7 +207,7 @@ export function UnifiedWisdomPanel() {
     try {
       // Check if electronAPI is available
       if (!window.electronAPI || !window.electronAPI.wisdom) {
-        console.error('Electron API not available')
+        logger.error('Electron API not available')
         return
       }
 
@@ -214,14 +215,14 @@ export function UnifiedWisdomPanel() {
       if (selectedCategory !== 'all') filters.category = selectedCategory
       if (selectedRegion) filters.region = selectedRegion
 
-      console.log('🔄 Frontend: Calling wisdom.list with filters:', filters)
+      logger.debug('🔄 Frontend: Calling wisdom.list with filters:', filters)
 
       let result
       try {
         result = await window.electronAPI.wisdom.list(filters)
-        console.log('📄 Frontend: Raw result from IPC:', result)
+        logger.debug('📄 Frontend: Raw result from IPC:', result)
       } catch (ipcError: any) {
-        console.error('❌ Frontend: IPC call error:', ipcError)
+        logger.error('❌ Frontend: IPC call error:', ipcError)
         // Create a proper error response
         result = {
           success: false,
@@ -230,21 +231,21 @@ export function UnifiedWisdomPanel() {
         }
       }
 
-      console.log('📄 Frontend: Processed result:', { success: result.success, documentsCount: result.documents?.length || 0 })
+      logger.debug('📄 Frontend: Processed result:', { success: result.success, documentsCount: result.documents?.length || 0 })
 
       if (result.success) {
         const docs = (result.documents || []).map((doc: any) => ({
           ...doc,
           type: 'uploaded' as const
         }))
-        console.log('✅ Frontend: Setting wisdom documents:', docs.length)
+        logger.debug('✅ Frontend: Setting wisdom documents:', docs.length)
         setWisdomDocuments(docs)
       } else {
-        console.error('❌ Frontend: API call failed:', result)
+        logger.error('❌ Frontend: API call failed:', result)
         setWisdomDocuments([])
       }
     } catch (error) {
-      console.error('Error loading wisdom documents:', error)
+      logger.error('Error loading wisdom documents:', error)
       setWisdomDocuments([])
     }
   }
@@ -278,26 +279,26 @@ export function UnifiedWisdomPanel() {
 
   const loadEmbeddingProviders = async () => {
     try {
-      console.log('🔄 Loading embedding providers...')
+      logger.debug('🔄 Loading embedding providers...')
 
       // Check if electronAPI is available
       if (!window.electronAPI || !window.electronAPI.wisdom) {
-        console.error('❌ Electron API not available')
+        logger.error('❌ Electron API not available')
         setEmbeddingProviders([])
         return
       }
 
       // Get all providers from backend (includes dynamic Ollama detection)
-      console.log('🔄 Calling wisdom.getEmbeddingProviders...')
-      console.log('🔍 Available wisdom methods:', Object.keys(window.electronAPI.wisdom))
+      logger.debug('🔄 Calling wisdom.getEmbeddingProviders...')
+      logger.debug('🔍 Available wisdom methods:', Object.keys(window.electronAPI.wisdom))
 
       let result
       try {
         result = await window.electronAPI.wisdom.getEmbeddingProviders()
-        console.log('📦 Backend providers result:', result)
-        console.log('📦 Result type:', typeof result, 'Success:', result?.success, 'Providers count:', result?.providers?.length)
+        logger.debug('📦 Backend providers result:', result)
+        logger.debug('📦 Result type:', typeof result, 'Success:', result?.success, 'Providers count:', result?.providers?.length)
       } catch (ipcError: any) {
-        console.error('❌ IPC call failed:', ipcError)
+        logger.error('❌ IPC call failed:', ipcError)
         // Create fallback response
         result = {
           success: false,
@@ -308,31 +309,31 @@ export function UnifiedWisdomPanel() {
 
       if (result.success && result.providers) {
         const providers = result.providers
-        console.log(`📦 Total providers from backend: ${providers.length}`)
-        console.log(`📊 Static providers: ${result.staticCount || 'unknown'}, Dynamic (Ollama): ${result.dynamicCount || 'unknown'}`)
-        console.log('📋 All providers:', providers.map((p: any) => ({ id: p.id, name: p.name })))
+        logger.debug(`📦 Total providers from backend: ${providers.length}`)
+        logger.debug(`📊 Static providers: ${result.staticCount || 'unknown'}, Dynamic (Ollama): ${result.dynamicCount || 'unknown'}`)
+        logger.debug('📋 All providers:', providers.map((p: any) => ({ id: p.id, name: p.name })))
 
-        console.log('🔄 [React] About to call setEmbeddingProviders with:', providers.map((p: any) => p.name))
+        logger.debug('🔄 [React] About to call setEmbeddingProviders with:', providers.map((p: any) => p.name))
         setEmbeddingProviders(providers)
-        console.log('✅ [React] setEmbeddingProviders called successfully')
+        logger.debug('✅ [React] setEmbeddingProviders called successfully')
 
         // Set selected provider
         const currentProviderId = result.currentProviderId || providers[0]?.id || ''
-        console.log('🎯 Setting current provider:', currentProviderId)
+        logger.debug('🎯 Setting current provider:', currentProviderId)
         setSelectedProviderId(currentProviderId)
-        console.log('✅ [React] setSelectedProviderId called successfully')
+        logger.debug('✅ [React] setSelectedProviderId called successfully')
 
         // Update Ollama status based on dynamic providers
         if (result.dynamicCount > 0) {
-          console.log(`✅ Ollama available with ${result.dynamicCount} models`)
+          logger.debug(`✅ Ollama available with ${result.dynamicCount} models`)
           setOllamaStatus('available')
         } else {
-          console.log('⚠️ No dynamic Ollama providers found')
+          logger.debug('⚠️ No dynamic Ollama providers found')
           setOllamaStatus('unavailable')
         }
       } else {
-        console.error('❌ Failed to get providers from backend:', result)
-        console.log('🔄 Trying fallback approach - creating minimal providers')
+        logger.error('❌ Failed to get providers from backend:', result)
+        logger.debug('🔄 Trying fallback approach - creating minimal providers')
 
         // FALLBACK: Create basic Ollama providers as minimum
         const fallbackProviders = [
@@ -350,12 +351,12 @@ export function UnifiedWisdomPanel() {
           }
         ]
 
-        console.log('📦 Using fallback providers:', fallbackProviders.length)
+        logger.debug('📦 Using fallback providers:', fallbackProviders.length)
         setEmbeddingProviders(fallbackProviders)
         setSelectedProviderId(fallbackProviders[0].id)
 
         // Test Ollama connection separately to set correct status
-        console.log('🔄 Testing Ollama status for UI display...')
+        logger.debug('🔄 Testing Ollama status for UI display...')
         try {
           const controller = new AbortController()
           const timeoutId = setTimeout(() => controller.abort(), 3000)
@@ -369,52 +370,52 @@ export function UnifiedWisdomPanel() {
 
           if (response.ok) {
             setOllamaStatus('available')
-            console.log('✅ Ollama is actually available - setting status to available')
+            logger.debug('✅ Ollama is actually available - setting status to available')
           } else {
             setOllamaStatus('unavailable')
           }
         } catch {
           setOllamaStatus('unavailable')
-          console.log('⚠️ Ollama status test failed - setting to unavailable')
+          logger.debug('⚠️ Ollama status test failed - setting to unavailable')
         }
 
-        console.log('⚠️ Using fallback providers due to IPC failure')
+        logger.debug('⚠️ Using fallback providers due to IPC failure')
       }
     } catch (error) {
-      console.error('❌ Error loading embedding providers:', error)
+      logger.error('❌ Error loading embedding providers:', error)
       setEmbeddingProviders([])
     }
   }
 
   const checkOllamaConnection = async () => {
     setOllamaStatus('checking')
-    console.log('🔄 Testing Ollama connection...')
+    logger.debug('🔄 Testing Ollama connection...')
 
     try {
       // First try to use IPC method if available (main process can bypass CORS)
       if (window.electronAPI?.wisdom?.checkOllamaConnection) {
-        console.log('🔄 Using IPC method for Ollama connection...')
+        logger.debug('🔄 Using IPC method for Ollama connection...')
         const result = await window.electronAPI.wisdom.checkOllamaConnection()
-        console.log('📋 IPC result:', result)
+        logger.debug('📋 IPC result:', result)
 
         if (result.success) {
           if (result.available) {
-            console.log(`✅ IPC: Ollama is available with ${result.totalModels} total models`)
-            console.log(`🎯 IPC: Found ${result.models?.length || 0} embedding models`)
+            logger.debug(`✅ IPC: Ollama is available with ${result.totalModels} total models`)
+            logger.debug(`🎯 IPC: Found ${result.models?.length || 0} embedding models`)
             setOllamaStatus('available')
           } else {
-            console.log('❌ IPC: Ollama not available:', result.message)
+            logger.debug('❌ IPC: Ollama not available:', result.message)
             setOllamaStatus('unavailable')
           }
           return result
         } else {
-          console.log('❌ IPC method failed:', result.message)
+          logger.debug('❌ IPC method failed:', result.message)
           // Fall through to fallback method
         }
       }
 
       // Fallback: direct fetch from renderer (may fail due to CORS)
-      console.log('⚠️ Using fallback direct fetch method...')
+      logger.debug('⚠️ Using fallback direct fetch method...')
       try {
         // Create AbortController manually for better browser compatibility
         const controller = new AbortController()
@@ -445,8 +446,8 @@ export function UnifiedWisdomPanel() {
             )
           })
 
-          console.log(`✅ Direct fetch: Ollama is available with ${models.length} total models`)
-          console.log(`🎯 Direct fetch: Found ${embeddingModels.length} embedding models`)
+          logger.debug(`✅ Direct fetch: Ollama is available with ${models.length} total models`)
+          logger.debug(`🎯 Direct fetch: Found ${embeddingModels.length} embedding models`)
           setOllamaStatus('available')
           return {
             success: true,
@@ -459,7 +460,7 @@ export function UnifiedWisdomPanel() {
           throw new Error(`HTTP ${response.status}`)
         }
       } catch (fetchError: any) {
-        console.log('❌ Direct fetch failed:', fetchError.message)
+        logger.debug('❌ Direct fetch failed:', fetchError.message)
         setOllamaStatus('unavailable')
         return {
           success: true,
@@ -470,7 +471,7 @@ export function UnifiedWisdomPanel() {
         }
       }
     } catch (error: any) {
-      console.error('❌ Failed to check Ollama connection:', error)
+      logger.error('❌ Failed to check Ollama connection:', error)
       setOllamaStatus('unavailable')
       return { success: false, message: error.message }
     }
@@ -504,7 +505,7 @@ export function UnifiedWisdomPanel() {
         alert(result.message)
       }
     } catch (error) {
-      console.error('Error changing embedding provider:', error)
+      logger.error('Error changing embedding provider:', error)
       alert('Error changing embedding provider')
     } finally {
       setLoading(false)
@@ -550,7 +551,7 @@ export function UnifiedWisdomPanel() {
         alert(result.message)
       }
     } catch (error) {
-      console.error('Error uploading documents:', error)
+      logger.error('Error uploading documents:', error)
       alert('Error uploading documents. Please check the console for details.')
     } finally {
       setLoading(false)
@@ -582,7 +583,7 @@ export function UnifiedWisdomPanel() {
         alert(`Found ${result.results?.length || 0} relevant documents using semantic search`)
       }
     } catch (error) {
-      console.error('Error searching documents:', error)
+      logger.error('Error searching documents:', error)
       alert('Error performing semantic search. Please try again.')
     } finally {
       setLoading(false)
@@ -599,7 +600,7 @@ export function UnifiedWisdomPanel() {
         await loadWisdomDocuments()
       }
     } catch (error) {
-      console.error('Error deleting document:', error)
+      logger.error('Error deleting document:', error)
     } finally {
       setLoading(false)
     }
@@ -624,7 +625,7 @@ export function UnifiedWisdomPanel() {
         alert(`Export failed: ${result.message}`)
       }
     } catch (error) {
-      console.error('Export error:', error)
+      logger.error('Export error:', error)
     } finally {
       setLoading(false)
     }
@@ -639,7 +640,7 @@ export function UnifiedWisdomPanel() {
         setSearchHistory(result.history)
       }
     } catch (error) {
-      console.error('Error loading search history:', error)
+      logger.error('Error loading search history:', error)
     }
   }
 
@@ -667,7 +668,7 @@ export function UnifiedWisdomPanel() {
       const result = await window.electronAPI.wisdom.getAllTags()
       if (result.success) setAllTags(result.tags)
     } catch (error) {
-      console.error('Error loading tags:', error)
+      logger.error('Error loading tags:', error)
     }
   }
 
@@ -684,33 +685,33 @@ export function UnifiedWisdomPanel() {
 
     setLoading(true)
     try {
-      console.log('🔄 Force indexing document:', documentId)
+      logger.debug('🔄 Force indexing document:', documentId)
 
       // Check if we have a reindex handler, if not use update
       if (window.electronAPI.wisdom.reindex) {
         const result = await window.electronAPI.wisdom.reindex(documentId)
         if (result.success) {
-          console.log('✅ Document reindexed successfully')
+          logger.debug('✅ Document reindexed successfully')
           await loadWisdomDocuments() // Refresh the list
           alert('Document reindexed successfully!')
         } else {
-          console.error('❌ Reindexing failed:', result.message)
+          logger.error('❌ Reindexing failed:', result.message)
           alert(`Reindexing failed: ${result.message}`)
         }
       } else {
         // Fallback: use update to trigger reprocessing
         const result = await window.electronAPI.wisdom.update(documentId, { forceReindex: true })
         if (result.success) {
-          console.log('✅ Document updated/reindexed successfully')
+          logger.debug('✅ Document updated/reindexed successfully')
           await loadWisdomDocuments()
           alert('Document reindexed successfully!')
         } else {
-          console.error('❌ Reindexing failed:', result.message)
+          logger.error('❌ Reindexing failed:', result.message)
           alert(`Reindexing failed: ${result.message}`)
         }
       }
     } catch (error) {
-      console.error('Error reindexing document:', error)
+      logger.error('Error reindexing document:', error)
       alert('Error reindexing document. Check console for details.')
     } finally {
       setLoading(false)
@@ -742,7 +743,7 @@ export function UnifiedWisdomPanel() {
             errors++
           }
         } catch (error) {
-          console.error('Error deleting document:', documentId, error)
+          logger.error('Error deleting document:', documentId, error)
           errors++
         }
       }
@@ -758,7 +759,7 @@ export function UnifiedWisdomPanel() {
         alert(`Deleted ${deleted} documents with ${errors} errors`)
       }
     } catch (error) {
-      console.error('Error in bulk delete:', error)
+      logger.error('Error in bulk delete:', error)
       alert('Error during bulk delete operation')
     } finally {
       setLoading(false)
@@ -1043,7 +1044,7 @@ export function UnifiedWisdomPanel() {
 
               <button
                 onClick={async () => {
-                  console.log('🔄 Manual refresh triggered by user')
+                  logger.debug('🔄 Manual refresh triggered by user')
                   // Clear current state first
                   setWisdomDocuments([])
                   // setCatalogEntries([])
@@ -1075,13 +1076,13 @@ export function UnifiedWisdomPanel() {
                       <h3 className="font-semibold text-foreground">Embedding Settings</h3>
                       <button
                         onClick={async () => {
-                          console.log('🔄 Manual refresh of embedding providers triggered')
+                          logger.debug('🔄 Manual refresh of embedding providers triggered')
                           setLoading(true)
                           try {
                             await loadEmbeddingProviders()
-                            console.log('✅ Embedding providers refreshed')
+                            logger.debug('✅ Embedding providers refreshed')
                           } catch (error) {
-                            console.error('❌ Failed to refresh providers:', error)
+                            logger.error('❌ Failed to refresh providers:', error)
                           } finally {
                             setLoading(false)
                           }
@@ -1235,7 +1236,7 @@ export function UnifiedWisdomPanel() {
                           <div className="mt-2 pt-2 border-t border-border">
                             <button
                               onClick={async () => {
-                                console.log('🧪 Testing Ollama connection manually...')
+                                logger.debug('🧪 Testing Ollama connection manually...')
 
                                 try {
                                   const result = await checkOllamaConnection()
@@ -1247,7 +1248,7 @@ export function UnifiedWisdomPanel() {
                                     alert(`Ollama connection failed: ${result.message || 'Unknown error'}`)
                                   }
                                 } catch (error: any) {
-                                  console.error('❌ Error checking connection:', error)
+                                  logger.error('❌ Error checking connection:', error)
                                   alert(`Connection check failed: ${error.message}`)
                                 }
                               }}

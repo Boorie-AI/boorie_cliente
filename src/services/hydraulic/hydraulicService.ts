@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { 
   HydraulicContext,
   HydraulicProject,
@@ -39,17 +40,17 @@ export class HydraulicService {
     formulaId: string,
     inputs: Record<string, { value: number; unit: string }>
   ): Promise<CalculationResult> {
-    console.log('HydraulicService.calculate called with:', { formulaId, inputs })
+    logger.debug('HydraulicService.calculate called with:', { formulaId, inputs })
     const result = await window.electronAPI.hydraulic.calculate(formulaId, inputs)
-    console.log('HydraulicService.calculate result:', result)
+    logger.debug('HydraulicService.calculate result:', result)
     
     if (!result.success) {
-      console.error('Calculation failed:', result.error)
+      logger.error('Calculation failed:', result.error)
       throw new Error(result.error || 'Calculation failed')
     }
     
     if (!result.data) {
-      console.error('No data in result:', result)
+      logger.error('No data in result:', result)
       throw new Error('No data returned from calculation')
     }
     

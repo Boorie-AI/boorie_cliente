@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { Message } from '@/stores/chatStore'
 import { Copy, User, Bot } from 'lucide-react'
 import { useState } from 'react'
@@ -18,7 +19,7 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (error) {
-      console.error('Failed to copy text:', error)
+      logger.error('Failed to copy text:', error)
     }
   }
 

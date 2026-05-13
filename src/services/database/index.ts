@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 // Database service for electron renderer process
 // This interfaces with the main process via IPC
 
@@ -53,7 +54,7 @@ class DatabaseService {
   // AI Providers
   async getAIProviders(): Promise<AIProvider[]> {
     if (!window.electronAPI) {
-      console.error('❌ window.electronAPI not available in getAIProviders')
+      logger.error('❌ window.electronAPI not available in getAIProviders')
       return []
     }
     
@@ -73,14 +74,14 @@ class DatabaseService {
         updatedAt: new Date(provider.updatedAt)
       }))
     } catch (error) {
-      console.error('❌ Failed to get AI providers:', error)
+      logger.error('❌ Failed to get AI providers:', error)
       return []
     }
   }
 
   async saveAIProvider(provider: Omit<AIProvider, 'id' | 'createdAt' | 'updatedAt'>): Promise<AIProvider | null> {
     if (!window.electronAPI) {
-      console.error('❌ window.electronAPI not available in saveAIProvider')
+      logger.error('❌ window.electronAPI not available in saveAIProvider')
       return null
     }
     
@@ -95,7 +96,7 @@ class DatabaseService {
       })
       
       if (result) {
-        console.log('✅ Provider saved successfully:', provider.name)
+        logger.debug('✅ Provider saved successfully:', provider.name)
         return {
           id: result.id,
           ...provider,
@@ -106,14 +107,14 @@ class DatabaseService {
       
       return null
     } catch (error) {
-      console.error('❌ Failed to save AI provider:', error)
+      logger.error('❌ Failed to save AI provider:', error)
       return null
     }
   }
 
   async updateAIProvider(id: string, updates: Partial<AIProvider>): Promise<boolean> {
     if (!window.electronAPI) {
-      console.error('❌ window.electronAPI not available in updateAIProvider')
+      logger.error('❌ window.electronAPI not available in updateAIProvider')
       return false
     }
     
@@ -121,13 +122,13 @@ class DatabaseService {
       const result = await window.electronAPI.database.updateAIProvider(id, updates)
       
       if (result) {
-        console.log('✅ Provider updated successfully')
+        logger.debug('✅ Provider updated successfully')
         return true
       }
       
       return false
     } catch (error) {
-      console.error('❌ Failed to update AI provider:', error)
+      logger.error('❌ Failed to update AI provider:', error)
       return false
     }
   }
@@ -152,7 +153,7 @@ class DatabaseService {
         updatedAt: new Date(model.updatedAt)
       }))
     } catch (error) {
-      console.error('Failed to get AI models:', error)
+      logger.error('Failed to get AI models:', error)
       return []
     }
   }
@@ -190,7 +191,7 @@ class DatabaseService {
       
       return null
     } catch (error) {
-      console.error('Failed to save AI model:', error)
+      logger.error('Failed to save AI model:', error)
       return null
     }
   }
@@ -199,22 +200,22 @@ class DatabaseService {
     if (!window.electronAPI) return { success: false, error: 'ElectronAPI not available' }
     
     try {
-      console.log('🔄 [DatabaseService] Refreshing AI models for provider:', providerId)
+      logger.debug('🔄 [DatabaseService] Refreshing AI models for provider:', providerId)
       const result = await window.electronAPI.database.refreshAIModels(providerId)
       
       // The IPC handler returns the models directly, wrap it in the expected structure
       if (Array.isArray(result)) {
-        console.log('✅ [DatabaseService] AI models refreshed:', result.length, 'models')
+        logger.debug('✅ [DatabaseService] AI models refreshed:', result.length, 'models')
         return { success: true, data: result }
       } else if (result && typeof result === 'object' && 'success' in result) {
-        console.log('✅ [DatabaseService] AI models refreshed:', result)
+        logger.debug('✅ [DatabaseService] AI models refreshed:', result)
         return result
       } else {
-        console.log('✅ [DatabaseService] AI models refreshed (empty):', result)
+        logger.debug('✅ [DatabaseService] AI models refreshed (empty):', result)
         return { success: true, data: [] }
       }
     } catch (error) {
-      console.error('❌ [DatabaseService] Failed to refresh AI models:', error)
+      logger.error('❌ [DatabaseService] Failed to refresh AI models:', error)
       return { success: false, error: 'Failed to refresh models' }
     }
   }
@@ -227,7 +228,7 @@ class DatabaseService {
       const result = await window.electronAPI.database.getSetting(key)
       return result
     } catch (error) {
-      console.error('Failed to get setting:', error)
+      logger.error('Failed to get setting:', error)
       return null
     }
   }
@@ -239,7 +240,7 @@ class DatabaseService {
       const result = await window.electronAPI.database.setSetting(key, value, category)
       return !!result
     } catch (error) {
-      console.error('Failed to set setting:', error)
+      logger.error('Failed to set setting:', error)
       return false
     }
   }
@@ -251,7 +252,7 @@ class DatabaseService {
       const results = await window.electronAPI.database.getSettings(category)
       return results || []
     } catch (error) {
-      console.error('Failed to get settings:', error)
+      logger.error('Failed to get settings:', error)
       return []
     }
   }
@@ -259,7 +260,7 @@ class DatabaseService {
   // Conversations
   async getConversations(): Promise<Conversation[]> {
     if (!window.electronAPI) {
-      console.error('❌ window.electronAPI not available in getConversations')
+      logger.error('❌ window.electronAPI not available in getConversations')
       return []
     }
     
@@ -267,14 +268,14 @@ class DatabaseService {
       const conversations = await window.electronAPI.database.getConversations()
       return conversations || []
     } catch (error) {
-      console.error('❌ Failed to get conversations:', error)
+      logger.error('❌ Failed to get conversations:', error)
       return []
     }
   }
 
   async saveConversation(conversation: Omit<Conversation, 'createdAt' | 'updatedAt'>): Promise<Conversation | null> {
     if (!window.electronAPI) {
-      console.error('❌ window.electronAPI not available in saveConversation')
+      logger.error('❌ window.electronAPI not available in saveConversation')
       return null
     }
     
@@ -282,14 +283,14 @@ class DatabaseService {
       const result = await window.electronAPI.database.saveConversation(conversation)
       return result
     } catch (error) {
-      console.error('❌ Failed to save conversation:', error)
+      logger.error('❌ Failed to save conversation:', error)
       return null
     }
   }
 
   async updateConversation(id: string, updates: Partial<Conversation>): Promise<boolean> {
     if (!window.electronAPI) {
-      console.error('❌ window.electronAPI not available in updateConversation')
+      logger.error('❌ window.electronAPI not available in updateConversation')
       return false
     }
     
@@ -297,20 +298,20 @@ class DatabaseService {
       const result = await window.electronAPI.database.updateConversation(id, updates)
       
       if (result) {
-        console.log('✅ Conversation updated successfully')
+        logger.debug('✅ Conversation updated successfully')
         return true
       }
       
       return false
     } catch (error) {
-      console.error('❌ Failed to update conversation:', error)
+      logger.error('❌ Failed to update conversation:', error)
       return false
     }
   }
 
   async deleteConversation(id: string): Promise<boolean> {
     if (!window.electronAPI) {
-      console.error('❌ window.electronAPI not available in deleteConversation')
+      logger.error('❌ window.electronAPI not available in deleteConversation')
       return false
     }
     
@@ -318,20 +319,20 @@ class DatabaseService {
       const result = await window.electronAPI.database.deleteConversation(id)
       
       if (result) {
-        console.log('✅ Conversation deleted successfully')
+        logger.debug('✅ Conversation deleted successfully')
         return true
       }
       
       return false
     } catch (error) {
-      console.error('❌ Failed to delete conversation:', error)
+      logger.error('❌ Failed to delete conversation:', error)
       return false
     }
   }
 
   async addMessageToConversation(conversationId: string, message: any): Promise<Conversation | null> {
     if (!window.electronAPI) {
-      console.error('❌ window.electronAPI not available in addMessageToConversation')
+      logger.error('❌ window.electronAPI not available in addMessageToConversation')
       return null
     }
     
@@ -339,13 +340,13 @@ class DatabaseService {
       const result = await window.electronAPI.database.addMessageToConversation(conversationId, message)
       
       if (result) {
-        console.log('✅ Message added to conversation successfully')
+        logger.debug('✅ Message added to conversation successfully')
         return result
       }
       
       return null
     } catch (error) {
-      console.error('❌ Failed to add message to conversation:', error)
+      logger.error('❌ Failed to add message to conversation:', error)
       return null
     }
   }
@@ -354,7 +355,7 @@ class DatabaseService {
   async initialize(): Promise<boolean> {
     // With Prisma, the database schema is automatically managed
     // We just need to ensure the Prisma client is ready
-    console.log('✅ Database ready (managed by Prisma)')
+    logger.debug('✅ Database ready (managed by Prisma)')
     return true
   }
 

@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 /**
  * Microsoft Clarity Provider Component
  * Integrates Microsoft Clarity analytics with the React application
@@ -42,7 +43,7 @@ export function ClarityProvider({ children }: ClarityProviderProps) {
           });
         }
       } catch (error) {
-        console.error('Failed to initialize Clarity provider:', error);
+        logger.error('Failed to initialize Clarity provider:', error);
       }
     };
 

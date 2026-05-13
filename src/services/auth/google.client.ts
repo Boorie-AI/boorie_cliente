@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 // Google APIs Client - Frontend client for Google APIs calls
 
 export interface GoogleUser {
@@ -75,7 +76,7 @@ export class GoogleApisClient {
 
 
   constructor() {
-    console.log('Google APIs Client initialized')
+    logger.debug('Google APIs Client initialized')
   }
 
   /**
@@ -110,7 +111,7 @@ export class GoogleApisClient {
       const response = await this.makeAuthenticatedRequest('/oauth2/v1/userinfo')
       return response
     } catch (error) {
-      console.error('Failed to get current user:', error)
+      logger.error('Failed to get current user:', error)
       throw new Error(`Failed to get user profile: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -153,7 +154,7 @@ export class GoogleApisClient {
         resultSizeEstimate: response.resultSizeEstimate
       }
     } catch (error) {
-      console.error('Failed to get Gmail messages:', error)
+      logger.error('Failed to get Gmail messages:', error)
       throw new Error(`Failed to get Gmail messages: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -194,7 +195,7 @@ export class GoogleApisClient {
         })
       })
     } catch (error) {
-      console.error('Failed to send Gmail message:', error)
+      logger.error('Failed to send Gmail message:', error)
       throw new Error(`Failed to send Gmail message: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -229,7 +230,7 @@ export class GoogleApisClient {
         nextPageToken: response.nextPageToken
       }
     } catch (error) {
-      console.error('Failed to get calendar events:', error)
+      logger.error('Failed to get calendar events:', error)
       throw new Error(`Failed to get calendar events: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -285,7 +286,7 @@ export class GoogleApisClient {
 
       return response
     } catch (error) {
-      console.error('Failed to create calendar event:', error)
+      logger.error('Failed to create calendar event:', error)
       throw new Error(`Failed to create calendar event: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -319,7 +320,7 @@ export class GoogleApisClient {
         nextPageToken: response.nextPageToken
       }
     } catch (error) {
-      console.error('Failed to get Drive files:', error)
+      logger.error('Failed to get Drive files:', error)
       throw new Error(`Failed to get Drive files: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
@@ -371,7 +372,7 @@ export class GoogleApisClient {
 
       return response
     } catch (error) {
-      console.error('Failed to upload Drive file:', error)
+      logger.error('Failed to upload Drive file:', error)
       throw new Error(`Failed to upload Drive file: ${error instanceof Error ? error.message : String(error)}`)
     }
   }

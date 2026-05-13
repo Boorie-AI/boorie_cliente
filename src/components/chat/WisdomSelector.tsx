@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState, useEffect, useRef } from 'react'
 import { Brain, ChevronDown, Search, Lightbulb, Check } from 'lucide-react'
 import { useOnClickOutside } from '@/hooks/useOnClickOutside'
@@ -39,7 +40,7 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
         setWisdomSources(result.documents || [])
       }
     } catch (error) {
-      console.error('Error loading wisdom sources:', error)
+      logger.error('Error loading wisdom sources:', error)
     } finally {
       setLoading(false)
     }
@@ -51,19 +52,19 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
   }
 
   const toggleWisdom = () => {
-    console.log('🧠 [DEBUG] WisdomSelector - Toggle clicked, current config:', selectedConfig)
+    logger.debug('🧠 [DEBUG] WisdomSelector - Toggle clicked, current config:', selectedConfig)
     if (selectedConfig?.enabled) {
-      console.log('🧠 [DEBUG] WisdomSelector - Disabling RAG')
+      logger.debug('🧠 [DEBUG] WisdomSelector - Disabling RAG')
       onConfigChange(undefined)
     } else {
-      console.log('🧠 [DEBUG] WisdomSelector - Enabling RAG with agentic method')
+      logger.debug('🧠 [DEBUG] WisdomSelector - Enabling RAG with agentic method')
       const newConfig = {
         enabled: true,
         searchTopK: 5,
         searchMethod: 'agentic' as const, // Usar RAG Agéntico por defecto
         categories: []
       }
-      console.log('🧠 [DEBUG] WisdomSelector - New config:', newConfig)
+      logger.debug('🧠 [DEBUG] WisdomSelector - New config:', newConfig)
       onConfigChange(newConfig)
     }
   }

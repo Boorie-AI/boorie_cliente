@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { ChatProvider, ChatMessage, ChatResponse } from './types'
 import { openaiProvider } from './openai'
 import { anthropicProvider } from './anthropic'
@@ -47,7 +48,7 @@ export async function sendChatMessage(
   try {
     return await provider.sendMessage(model, messages, apiKey, onStream)
   } catch (error) {
-    console.error(`Chat error with ${providerName}:`, error)
+    logger.error(`Chat error with ${providerName}:`, error)
     throw error
   }
 }

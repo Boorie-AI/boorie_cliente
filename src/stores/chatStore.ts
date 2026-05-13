@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { type ChatMessage } from '@/services/chat'
@@ -92,7 +93,7 @@ export const useChatStore = create<ChatState>()(
             selectedModel = JSON.parse(stored)
           }
         } catch {
-          console.warn('Failed to load selected model from localStorage')
+          logger.warn('Failed to load selected model from localStorage')
         }
 
         const newConversation: Conversation = {
@@ -150,7 +151,7 @@ export const useChatStore = create<ChatState>()(
             metadata: message.metadata
           })
         } catch (error) {
-          console.error('Failed to save message to database:', error)
+          logger.error('Failed to save message to database:', error)
         }
       },
 
@@ -203,7 +204,7 @@ export const useChatStore = create<ChatState>()(
         try {
           await databaseService.deleteConversation(id)
         } catch (error) {
-          console.error('Failed to delete conversation:', error)
+          logger.error('Failed to delete conversation:', error)
         }
       },
 
@@ -248,7 +249,7 @@ export const useChatStore = create<ChatState>()(
               // RAG enhancement with its own timeout (30s)
               const ragTimeout = new Promise<{ enhancedPrompt: string; sources?: any[] }>((resolve) =>
                 setTimeout(() => {
-                  console.warn('RAG enhancement timed out, using original prompt')
+                  logger.warn('RAG enhancement timed out, using original prompt')
                   resolve({ enhancedPrompt: content })
                 }, 30000)
               )
@@ -259,7 +260,7 @@ export const useChatStore = create<ChatState>()(
               enhancedPrompt = ragResult.enhancedPrompt
               ragSources = ragResult.sources || []
             } catch (error) {
-              console.warn('Failed to enhance prompt with RAG, using original:', error)
+              logger.warn('Failed to enhance prompt with RAG, using original:', error)
             }
 
             const conversation = get().conversations.find(c => c.id === conversationId)
@@ -379,7 +380,7 @@ export const useChatStore = create<ChatState>()(
             }
           })()])
         } catch (error) {
-          console.error('Failed to get AI response:', error)
+          logger.error('Failed to get AI response:', error)
           get().clearStreamingMessage()
 
           // Show specific error message instead of generic one
@@ -470,7 +471,7 @@ export const useChatStore = create<ChatState>()(
           }
 
         } catch (error) {
-          console.error('Failed to save conversation to database:', error)
+          logger.error('Failed to save conversation to database:', error)
         }
       },
 
@@ -499,7 +500,7 @@ export const useChatStore = create<ChatState>()(
 
           set({ conversations })
         } catch (error) {
-          console.error('Failed to load conversations from database:', error)
+          logger.error('Failed to load conversations from database:', error)
         }
       },
 
@@ -584,7 +585,7 @@ export const useChatStore = create<ChatState>()(
                       totalTokens = data.eval_count
                     }
                   } catch (e) {
-                    console.warn('Failed to parse streaming line:', line, e)
+                    logger.warn('Failed to parse streaming line:', line, e)
                   }
                 }
               }
@@ -603,7 +604,7 @@ export const useChatStore = create<ChatState>()(
             }
           }
         } catch (error) {
-          console.error('Ollama API call failed:', error)
+          logger.error('Ollama API call failed:', error)
           throw new Error(`Failed to connect to Ollama: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }
       },
@@ -650,7 +651,7 @@ export const useChatStore = create<ChatState>()(
           }
 
         } catch (error) {
-          console.error(`${provider} API call failed:`, error)
+          logger.error(`${provider} API call failed:`, error)
           throw new Error(`Failed to connect to ${provider}: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }
       },
@@ -708,7 +709,7 @@ export const useChatStore = create<ChatState>()(
           return { enhancedPrompt: enhancedPrompt, sources: ragResult.data.sources }
 
         } catch (error) {
-          console.error('Failed to enhance prompt with RAG:', error)
+          logger.error('Failed to enhance prompt with RAG:', error)
           return { enhancedPrompt: originalPrompt }
         }
       }

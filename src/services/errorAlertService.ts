@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 /**
  * TECH-4: Critical Error Alert Service
  *
@@ -98,7 +99,7 @@ class ErrorAlertService {
    * Send a desktop notification for critical errors
    */
   private triggerCriticalAlert(type: string, source: string, count: number): void {
-    console.error(`[CRITICAL ALERT] ${count} "${type}" errors from "${source}" in the last minute`)
+    logger.error(`[CRITICAL ALERT] ${count} "${type}" errors from "${source}" in the last minute`)
 
     // Track critical alert in Clarity
     if (clarityService.isReady()) {

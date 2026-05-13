@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import { Minus, X, Maximize2, Minimize2 } from 'lucide-react'
 import boorieIcon from '@/assets/boorie_icon_light.png'
@@ -13,7 +14,7 @@ export function CustomTopBar() {
         const maximized = await window.electronAPI?.isMaximized?.()
         setIsMaximized(maximized || false)
       } catch (error) {
-        console.error('Failed to check window state:', error)
+        logger.error('Failed to check window state:', error)
       }
     }
     
@@ -33,43 +34,43 @@ export function CustomTopBar() {
 
   const handleMinimize = async () => {
     try {
-      console.log('Minimize button clicked')
+      logger.debug('Minimize button clicked')
       if (window.electronAPI && window.electronAPI.minimizeWindow) {
         await window.electronAPI.minimizeWindow()
-        console.log('Window minimized successfully')
+        logger.debug('Window minimized successfully')
       } else {
-        console.error('electronAPI.minimizeWindow not available')
+        logger.error('electronAPI.minimizeWindow not available')
       }
     } catch (error) {
-      console.error('Failed to minimize window:', error)
+      logger.error('Failed to minimize window:', error)
     }
   }
 
   const handleMaximize = async () => {
     try {
-      console.log('Maximize button clicked')
+      logger.debug('Maximize button clicked')
       if (window.electronAPI && window.electronAPI.maximizeWindow) {
         await window.electronAPI.maximizeWindow()
-        console.log('Window maximize toggled successfully')
+        logger.debug('Window maximize toggled successfully')
       } else {
-        console.error('electronAPI.maximizeWindow not available')
+        logger.error('electronAPI.maximizeWindow not available')
       }
     } catch (error) {
-      console.error('Failed to maximize window:', error)
+      logger.error('Failed to maximize window:', error)
     }
   }
 
   const handleClose = async () => {
     try {
-      console.log('Close button clicked')
+      logger.debug('Close button clicked')
       if (window.electronAPI && window.electronAPI.closeWindow) {
         await window.electronAPI.closeWindow()
-        console.log('Window close requested successfully')
+        logger.debug('Window close requested successfully')
       } else {
-        console.error('electronAPI.closeWindow not available')
+        logger.error('electronAPI.closeWindow not available')
       }
     } catch (error) {
-      console.error('Failed to close window:', error)
+      logger.error('Failed to close window:', error)
     }
   }
 
@@ -105,7 +106,7 @@ export function CustomTopBar() {
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
-            console.log('Minimize button click event fired')
+            logger.debug('Minimize button click event fired')
             handleMinimize()
           }}
           onMouseEnter={() => setIsHovered('minimize')}
@@ -128,7 +129,7 @@ export function CustomTopBar() {
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
-            console.log('Maximize button click event fired')
+            logger.debug('Maximize button click event fired')
             handleMaximize()
           }}
           onMouseEnter={() => setIsHovered('maximize')}
@@ -155,7 +156,7 @@ export function CustomTopBar() {
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
-            console.log('Close button click event fired')
+            logger.debug('Close button click event fired')
             handleClose()
           }}
           onMouseEnter={() => setIsHovered('close')}

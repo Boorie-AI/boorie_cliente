@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import { useChatStore } from '@/stores/chatStore'
 import { hydraulicService } from '@/services/hydraulic/hydraulicService'
@@ -30,7 +31,7 @@ export function ProjectSelector({ selectedProjectId, onProjectSelect, className 
       const projectList = await hydraulicService.listProjects()
       setProjects(projectList)
     } catch (error) {
-      console.error('Failed to load projects:', error)
+      logger.error('Failed to load projects:', error)
     } finally {
       setLoading(false)
     }

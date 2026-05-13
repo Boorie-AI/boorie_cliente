@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -353,7 +354,7 @@ export const WNTRNetworkVisualization: React.FC<WNTRNetworkVisualizationProps> =
         }
       }
     } catch (error) {
-      console.error('Export failed:', error);
+      logger.error('Export failed:', error);
     }
   }, [networkData, viewSettings, currentTimeStep, simulationResults]);
 

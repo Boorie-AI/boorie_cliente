@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import Graph from '@/components/common/VisNetworkGraph'
 import {
@@ -364,7 +365,7 @@ export function DynamicVectorGraph({
 
   const exportNetwork = () => {
     // This would require access to the canvas, which is more complex with react-vis-network-graph
-    console.log('Export functionality would need to be implemented differently with react-vis-network-graph')
+    logger.debug('Export functionality would need to be implemented differently with react-vis-network-graph')
   }
 
   return (

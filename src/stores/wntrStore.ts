@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
@@ -263,7 +264,7 @@ export const useWNTRStore = create<WNTRState>()(
         set({ isLoadingNetwork: true, error: null })
 
         try {
-          console.log('🌊 [WNTR Store] Loading network...', filePath ? `from ${filePath}` : 'via dialog')
+          logger.debug('🌊 [WNTR Store] Loading network...', filePath ? `from ${filePath}` : 'via dialog')
 
           let result
           if (filePath) {
@@ -275,17 +276,17 @@ export const useWNTRStore = create<WNTRState>()(
           if (result.success && result.data) {
             const fileName = filePath ? filePath.split('/').pop() || 'network.inp' : result.fileName || 'network.inp'
             get().setNetworkData(result.data, filePath || result.filePath, fileName)
-            console.log('✅ [WNTR Store] Network loaded successfully:', fileName)
+            logger.debug('✅ [WNTR Store] Network loaded successfully:', fileName)
             return true
           } else {
             set({ error: result.error || 'Failed to load network' })
-            console.error('❌ [WNTR Store] Failed to load network:', result.error)
+            logger.error('❌ [WNTR Store] Failed to load network:', result.error)
             return false
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           set({ error: errorMessage })
-          console.error('❌ [WNTR Store] Error loading network:', error)
+          logger.error('❌ [WNTR Store] Error loading network:', error)
           return false
         } finally {
           set({ isLoadingNetwork: false })
@@ -305,7 +306,7 @@ export const useWNTRStore = create<WNTRState>()(
           error: null
         }))
 
-        console.log('🌊 [WNTR Store] Network data set:', {
+        logger.debug('🌊 [WNTR Store] Network data set:', {
           nodes: data.nodes.length,
           links: data.links.length,
           fileName
@@ -327,7 +328,7 @@ export const useWNTRStore = create<WNTRState>()(
           maxTimeSteps: 0,
           error: null
         })
-        console.log('🧹 [WNTR Store] Network cleared')
+        logger.debug('🧹 [WNTR Store] Network cleared')
       },
 
       // Network repository operations
@@ -335,7 +336,7 @@ export const useWNTRStore = create<WNTRState>()(
         const { currentNetwork, networkFilePath, networkFileName } = get()
 
         if (!currentNetwork) {
-          console.error('❌ [WNTR Store] No network loaded to save')
+          logger.error('❌ [WNTR Store] No network loaded to save')
           return null
         }
 
@@ -366,7 +367,7 @@ export const useWNTRStore = create<WNTRState>()(
           recentNetworkIds: [networkId, ...state.recentNetworkIds.filter(id => id !== networkId)].slice(0, 10)
         }))
 
-        console.log('💾 [WNTR Store] Network saved to depot:', { id: networkId, name })
+        logger.debug('💾 [WNTR Store] Network saved to depot:', { id: networkId, name })
         return networkId
       },
 
@@ -375,7 +376,7 @@ export const useWNTRStore = create<WNTRState>()(
         const storedNetwork = storedNetworks.find(net => net.id === networkId)
 
         if (!storedNetwork) {
-          console.error('❌ [WNTR Store] Network not found in depot:', networkId)
+          logger.error('❌ [WNTR Store] Network not found in depot:', networkId)
           return false
         }
 
@@ -402,7 +403,7 @@ export const useWNTRStore = create<WNTRState>()(
           error: null
         }))
 
-        console.log('📂 [WNTR Store] Network loaded from depot:', { id: networkId, name: storedNetwork.name })
+        logger.debug('📂 [WNTR Store] Network loaded from depot:', { id: networkId, name: storedNetwork.name })
         return true
       },
 
@@ -411,7 +412,7 @@ export const useWNTRStore = create<WNTRState>()(
         const networkExists = storedNetworks.some(net => net.id === networkId)
 
         if (!networkExists) {
-          console.error('❌ [WNTR Store] Network not found for deletion:', networkId)
+          logger.error('❌ [WNTR Store] Network not found for deletion:', networkId)
           return false
         }
 
@@ -431,7 +432,7 @@ export const useWNTRStore = create<WNTRState>()(
           } : {})
         }))
 
-        console.log('🗑️ [WNTR Store] Network deleted from depot:', networkId)
+        logger.debug('🗑️ [WNTR Store] Network deleted from depot:', networkId)
         return true
       },
 
@@ -440,7 +441,7 @@ export const useWNTRStore = create<WNTRState>()(
         const networkExists = storedNetworks.some(net => net.id === networkId)
 
         if (!networkExists) {
-          console.error('❌ [WNTR Store] Network not found for update:', networkId)
+          logger.error('❌ [WNTR Store] Network not found for update:', networkId)
           return false
         }
 
@@ -452,7 +453,7 @@ export const useWNTRStore = create<WNTRState>()(
           )
         }))
 
-        console.log('✏️ [WNTR Store] Network updated in depot:', { id: networkId, updates })
+        logger.debug('✏️ [WNTR Store] Network updated in depot:', { id: networkId, updates })
         return true
       },
 
@@ -461,7 +462,7 @@ export const useWNTRStore = create<WNTRState>()(
         const originalNetwork = storedNetworks.find(net => net.id === networkId)
 
         if (!originalNetwork) {
-          console.error('❌ [WNTR Store] Network not found for duplication:', networkId)
+          logger.error('❌ [WNTR Store] Network not found for duplication:', networkId)
           return null
         }
 
@@ -483,7 +484,7 @@ export const useWNTRStore = create<WNTRState>()(
           storedNetworks: [...state.storedNetworks, duplicatedNetwork]
         }))
 
-        console.log('📄 [WNTR Store] Network duplicated in depot:', { originalId: networkId, newId: newNetworkId, newName })
+        logger.debug('📄 [WNTR Store] Network duplicated in depot:', { originalId: networkId, newId: newNetworkId, newName })
         return newNetworkId
       },
 
@@ -519,7 +520,7 @@ export const useWNTRStore = create<WNTRState>()(
           storedNetworks: [],
           recentNetworkIds: []
         })
-        console.log('🧹 [WNTR Store] Network depot cleared')
+        logger.debug('🧹 [WNTR Store] Network depot cleared')
       },
 
       // Bulk operations
@@ -542,11 +543,11 @@ export const useWNTRStore = create<WNTRState>()(
               }
             }
           } catch (error) {
-            console.error('❌ [WNTR Store] Failed to import network:', filePath, error)
+            logger.error('❌ [WNTR Store] Failed to import network:', filePath, error)
           }
         }
 
-        console.log(`📥 [WNTR Store] Imported ${successCount}/${filePaths.length} networks`)
+        logger.debug(`📥 [WNTR Store] Imported ${successCount}/${filePaths.length} networks`)
         return successCount
       },
 
@@ -554,7 +555,7 @@ export const useWNTRStore = create<WNTRState>()(
         const storedNetwork = get().getStoredNetworkById(networkId)
 
         if (!storedNetwork) {
-          console.error('❌ [WNTR Store] Network not found for export:', networkId)
+          logger.error('❌ [WNTR Store] Network not found for export:', networkId)
           return false
         }
 
@@ -566,14 +567,14 @@ export const useWNTRStore = create<WNTRState>()(
           })
 
           if (result.success) {
-            console.log('📤 [WNTR Store] Network exported successfully:', { networkId, exportPath: result.filePath })
+            logger.debug('📤 [WNTR Store] Network exported successfully:', { networkId, exportPath: result.filePath })
             return true
           } else {
-            console.error('❌ [WNTR Store] Export failed:', result.error)
+            logger.error('❌ [WNTR Store] Export failed:', result.error)
             return false
           }
         } catch (error) {
-          console.error('❌ [WNTR Store] Error exporting network:', error)
+          logger.error('❌ [WNTR Store] Error exporting network:', error)
           return false
         }
       },
@@ -583,7 +584,7 @@ export const useWNTRStore = create<WNTRState>()(
         const { currentNetwork, networkFilePath, networkFileName } = get()
 
         if (!currentNetwork) {
-          console.error('❌ [WNTR Store] No current network to save to project')
+          logger.error('❌ [WNTR Store] No current network to save to project')
           return false
         }
 
@@ -597,18 +598,18 @@ export const useWNTRStore = create<WNTRState>()(
           })
 
           if (result.success) {
-            console.log('💾 [WNTR Store] Network saved to project:', { projectId, name })
+            logger.debug('💾 [WNTR Store] Network saved to project:', { projectId, name })
 
             // Also save to depot with project ID
             await get().saveNetworkToDepot(name, description, ['project'], projectId)
 
             return true
           } else {
-            console.error('❌ [WNTR Store] Failed to save network to project:', result.error)
+            logger.error('❌ [WNTR Store] Failed to save network to project:', result.error)
             return false
           }
         } catch (error) {
-          console.error('❌ [WNTR Store] Error saving network to project:', error)
+          logger.error('❌ [WNTR Store] Error saving network to project:', error)
           return false
         }
       },
@@ -623,14 +624,14 @@ export const useWNTRStore = create<WNTRState>()(
             // Set the network data in the store
             get().setNetworkData(networkData, filePath, fileName || 'project_network.inp')
 
-            console.log('📂 [WNTR Store] Network loaded from project:', { projectId, name })
+            logger.debug('📂 [WNTR Store] Network loaded from project:', { projectId, name })
             return true
           } else {
-            console.error('❌ [WNTR Store] Failed to load network from project:', result.error)
+            logger.error('❌ [WNTR Store] Failed to load network from project:', result.error)
             return false
           }
         } catch (error) {
-          console.error('❌ [WNTR Store] Error loading network from project:', error)
+          logger.error('❌ [WNTR Store] Error loading network from project:', error)
           return false
         }
       },
@@ -646,7 +647,7 @@ export const useWNTRStore = create<WNTRState>()(
           return { storedNetworks: updatedNetworks }
         })
 
-        console.log('🔄 [WNTR Store] Synced with project:', projectId)
+        logger.debug('🔄 [WNTR Store] Synced with project:', projectId)
       },
 
       // Simulation operations
@@ -660,7 +661,7 @@ export const useWNTRStore = create<WNTRState>()(
         set({ isSimulating: true, simulationType: type, simulationProgress: 0, error: null })
 
         try {
-          console.log(`🔬 [WNTR Store] Running ${type} simulation...`)
+          logger.debug(`🔬 [WNTR Store] Running ${type} simulation...`)
 
           const result = await window.electronAPI.wntr.runSimulation({
             type,
@@ -670,17 +671,17 @@ export const useWNTRStore = create<WNTRState>()(
 
           if (result.success && result.data) {
             get().setSimulationResults(result.data)
-            console.log(`✅ [WNTR Store] ${type} simulation completed`)
+            logger.debug(`✅ [WNTR Store] ${type} simulation completed`)
             return true
           } else {
             set({ error: result.error || 'Simulation failed' })
-            console.error(`❌ [WNTR Store] ${type} simulation failed:`, result.error)
+            logger.error(`❌ [WNTR Store] ${type} simulation failed:`, result.error)
             return false
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           set({ error: errorMessage })
-          console.error(`❌ [WNTR Store] Error running ${type} simulation:`, error)
+          logger.error(`❌ [WNTR Store] Error running ${type} simulation:`, error)
           return false
         } finally {
           set({ isSimulating: false, simulationProgress: 0 })
@@ -694,7 +695,7 @@ export const useWNTRStore = create<WNTRState>()(
           maxTimeSteps: maxSteps,
           currentTimeStep: 0
         })
-        console.log('📊 [WNTR Store] Simulation results set:', { timesteps: maxSteps })
+        logger.debug('📊 [WNTR Store] Simulation results set:', { timesteps: maxSteps })
       },
 
       addSimulationResults: (results: SimulationResults) => {
@@ -723,7 +724,7 @@ export const useWNTRStore = create<WNTRState>()(
         set({ isAnalyzing: true, analysisType: type, analysisProgress: 0, error: null })
 
         try {
-          console.log(`📈 [WNTR Store] Running ${type} analysis...`)
+          logger.debug(`📈 [WNTR Store] Running ${type} analysis...`)
 
           const result = await window.electronAPI.wntr.runAnalysis({
             type,
@@ -733,17 +734,17 @@ export const useWNTRStore = create<WNTRState>()(
 
           if (result.success && result.data) {
             get().setAnalysisResults({ ...get().analysisResults, [type]: result.data })
-            console.log(`✅ [WNTR Store] ${type} analysis completed`)
+            logger.debug(`✅ [WNTR Store] ${type} analysis completed`)
             return true
           } else {
             set({ error: result.error || 'Analysis failed' })
-            console.error(`❌ [WNTR Store] ${type} analysis failed:`, result.error)
+            logger.error(`❌ [WNTR Store] ${type} analysis failed:`, result.error)
             return false
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           set({ error: errorMessage })
-          console.error(`❌ [WNTR Store] Error running ${type} analysis:`, error)
+          logger.error(`❌ [WNTR Store] Error running ${type} analysis:`, error)
           return false
         } finally {
           set({ isAnalyzing: false, analysisProgress: 0 })
@@ -752,7 +753,7 @@ export const useWNTRStore = create<WNTRState>()(
 
       setAnalysisResults: (results: AnalysisResults) => {
         set({ analysisResults: results })
-        console.log('📈 [WNTR Store] Analysis results set')
+        logger.debug('📈 [WNTR Store] Analysis results set')
       },
 
       clearAnalysisResults: () => {
@@ -793,7 +794,7 @@ export const useWNTRStore = create<WNTRState>()(
       // Visualization operations
       setSelectedParameter: (parameter: 'pressure' | 'flow' | 'velocity' | 'head' | 'demand' | 'headloss', type: 'node' | 'link') => {
         set({ selectedParameter: parameter, selectedParameterType: type })
-        console.log(`🎨 [WNTR Store] Parameter changed to: ${parameter} (${type})`)
+        logger.debug(`🎨 [WNTR Store] Parameter changed to: ${parameter} (${type})`)
       },
 
       setCurrentTimeStep: (step: number) => {
@@ -819,12 +820,12 @@ export const useWNTRStore = create<WNTRState>()(
       // Animation operations
       startAnimation: () => {
         set({ isAnimating: true })
-        console.log('▶️ [WNTR Store] Animation started')
+        logger.debug('▶️ [WNTR Store] Animation started')
       },
 
       stopAnimation: () => {
         set({ isAnimating: false })
-        console.log('⏸️ [WNTR Store] Animation stopped')
+        logger.debug('⏸️ [WNTR Store] Animation stopped')
       },
 
       setAnimationSpeed: (speed: number) => {
@@ -838,7 +839,7 @@ export const useWNTRStore = create<WNTRState>()(
 
       resetState: () => {
         set(initialState)
-        console.log('🔄 [WNTR Store] State reset')
+        logger.debug('🔄 [WNTR Store] State reset')
       }
     }),
     {

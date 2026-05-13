@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -132,7 +133,7 @@ export const WNTRSimulationWizard: React.FC<WNTRSimulationWizardProps> = ({
         onSimulationComplete(result);
       }
     } catch (error) {
-      console.error('Error en simulación:', error);
+      logger.error('Error en simulación:', error);
       alert('Error al ejecutar la simulación');
     } finally {
       setIsRunning(false);
@@ -163,7 +164,7 @@ export const WNTRSimulationWizard: React.FC<WNTRSimulationWizardProps> = ({
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error generando reporte:', error);
+      logger.error('Error generando reporte:', error);
       alert('Error al generar el reporte');
     }
   };
@@ -179,7 +180,7 @@ export const WNTRSimulationWizard: React.FC<WNTRSimulationWizardProps> = ({
         setNetworkFile(result.filePaths[0]);
       }
     } catch (error) {
-      console.error('Error seleccionando archivo:', error);
+      logger.error('Error seleccionando archivo:', error);
     }
   };
 

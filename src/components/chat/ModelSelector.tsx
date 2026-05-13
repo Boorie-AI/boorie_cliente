@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { getOllamaBaseUrl } from '@/config/ollama';
 import { useState, useEffect } from 'react'
 import { useAppStore } from '@/stores/appStore'
@@ -37,7 +38,7 @@ export function ModelSelector() {
         setSelectedModel(storedModel.id)
       }
     } catch {
-      console.warn('Failed to load selected model from localStorage')
+      logger.warn('Failed to load selected model from localStorage')
     }
   }, [])
 
@@ -107,14 +108,14 @@ export function ModelSelector() {
     setAvailableModels(uniqueModels)
 
     // Debug log
-    console.log('Loaded models:', uniqueModels)
-    console.log('API models from config:', selectedAPIModels)
+    logger.debug('Loaded models:', uniqueModels)
+    logger.debug('API models from config:', selectedAPIModels)
   }
 
   const handleModelChange = (modelId: string) => {
     const selectedModelObj = availableModels.find(m => m.id === modelId)
     if (selectedModelObj) {
-      console.log('Selected model:', selectedModelObj)
+      logger.debug('Selected model:', selectedModelObj)
       setSelectedModel(modelId)
 
       // Update current conversation's model if there's an active conversation
@@ -140,7 +141,7 @@ export function ModelSelector() {
 
   // Debug: Log current state (reduced logging)
   if (availableModels.length === 0) {
-    console.log('No models loaded yet')
+    logger.debug('No models loaded yet')
   }
 
   return (

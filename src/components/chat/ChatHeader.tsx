@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { Conversation, useChatStore, type WisdomConfiguration } from '@/stores/chatStore'
 import { Edit2, MoreVertical, Trash2, Copy, Download, Plus, FolderPlus } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
@@ -103,7 +104,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
       await navigator.clipboard.writeText(text)
       // You could add a toast notification here
     } catch (error) {
-      console.error('Failed to copy conversation:', error)
+      logger.error('Failed to copy conversation:', error)
     }
     setShowMenu(false)
   }

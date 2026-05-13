@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 /**
  * Microsoft Clarity Integration Service
  * Handles the initialization and management of Microsoft Clarity analytics
@@ -55,7 +56,7 @@ class ClarityService {
 
       this.isInitialized = true;
     } catch (error) {
-      console.error('Failed to initialize Microsoft Clarity:', error);
+      logger.error('Failed to initialize Microsoft Clarity:', error);
     }
   }
 
@@ -135,14 +136,14 @@ class ClarityService {
    */
   trackEvent(eventName: string, properties?: Record<string, any>): void {
     if (!this.isInitialized || !window.clarity) {
-      console.warn('Clarity not initialized, cannot track event:', eventName);
+      logger.warn('Clarity not initialized, cannot track event:', eventName);
       return;
     }
 
     try {
       window.clarity("event", eventName, properties);
     } catch (error) {
-      console.error('Failed to track Clarity event:', error);
+      logger.error('Failed to track Clarity event:', error);
     }
   }
 
@@ -151,14 +152,14 @@ class ClarityService {
    */
   setUserId(userId: string): void {
     if (!this.isInitialized || !window.clarity) {
-      console.warn('Clarity not initialized, cannot set user ID');
+      logger.warn('Clarity not initialized, cannot set user ID');
       return;
     }
 
     try {
       window.clarity("identify", userId);
     } catch (error) {
-      console.error('Failed to set Clarity user ID:', error);
+      logger.error('Failed to set Clarity user ID:', error);
     }
   }
 
@@ -167,14 +168,14 @@ class ClarityService {
    */
   setSessionTag(key: string, value: string): void {
     if (!this.isInitialized || !window.clarity) {
-      console.warn('Clarity not initialized, cannot set session tag');
+      logger.warn('Clarity not initialized, cannot set session tag');
       return;
     }
 
     try {
       window.clarity("set", key, value);
     } catch (error) {
-      console.error('Failed to set Clarity session tag:', error);
+      logger.error('Failed to set Clarity session tag:', error);
     }
   }
 
@@ -191,7 +192,7 @@ class ClarityService {
       // But you can access it through the Clarity dashboard
       return `https://clarity.microsoft.com/dashboard/project/${this.config.projectId}`;
     } catch (error) {
-      console.error('Failed to get Clarity session URL:', error);
+      logger.error('Failed to get Clarity session URL:', error);
       return null;
     }
   }

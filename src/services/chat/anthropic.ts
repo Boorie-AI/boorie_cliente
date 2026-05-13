@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { ChatMessage, ChatResponse, ChatProvider } from './types'
 
 export const anthropicProvider: ChatProvider = {
@@ -22,7 +23,7 @@ export const anthropicProvider: ChatProvider = {
       stream: isStreaming,
     }
 
-    console.log('Anthropic API Request:', { 
+    logger.debug('Anthropic API Request:', { 
       model, 
       messagesCount: anthropicMessages.length, 
       stream: isStreaming,
@@ -45,14 +46,14 @@ export const anthropicProvider: ChatProvider = {
         signal: AbortSignal.timeout(30000) // 30 second timeout
       })
       
-      console.log('Anthropic API Response:', { 
+      logger.debug('Anthropic API Response:', { 
         status: response.status, 
         ok: response.ok, 
         statusText: response.statusText,
         headers: Object.fromEntries(response.headers.entries())
       })
     } catch (fetchError) {
-      console.error('Anthropic fetch error details:', {
+      logger.error('Anthropic fetch error details:', {
         error: fetchError,
         name: fetchError instanceof Error ? fetchError.name : 'Unknown',
         message: fetchError instanceof Error ? fetchError.message : 'Unknown',
@@ -236,7 +237,7 @@ async function handleStreamingResponse(
                 stopReason = parsed.delta?.stop_reason || ''
               }
             } catch {
-              console.warn('Failed to parse Anthropic streaming chunk:', data)
+              logger.warn('Failed to parse Anthropic streaming chunk:', data)
             }
           }
         }

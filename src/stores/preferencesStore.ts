@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import { databaseService } from '@/services/database'
@@ -53,7 +54,7 @@ export const usePreferencesStore = create<PreferencesState>()(
 
             set(updatedPrefs)
           } catch (error) {
-            console.error('Failed to load preferences:', error)
+            logger.error('Failed to load preferences:', error)
           }
         },
 
@@ -70,7 +71,7 @@ export const usePreferencesStore = create<PreferencesState>()(
             // Persist to database
             await databaseService.setSetting(key, value.toString(), 'preferences')
           } catch (error) {
-            console.error('Failed to update preference:', error)
+            logger.error('Failed to update preference:', error)
           }
         },
 
@@ -83,7 +84,7 @@ export const usePreferencesStore = create<PreferencesState>()(
               await databaseService.setSetting(key, value.toString(), 'preferences')
             }
           } catch (error) {
-            console.error('Failed to reset preferences:', error)
+            logger.error('Failed to reset preferences:', error)
           }
         },
       }),

@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -31,10 +32,10 @@ proj4.defs('EPSG:4326', '+proj=longlat +datum=WGS84 +no_defs')
 // Test UTM 18N conversion with known Cartagena coordinates
 // Cartagena is approximately at -75.514, 10.400 (lng, lat)
 // In UTM 18N this should be around: 842000, 1151000
-console.log('Testing proj4 UTM 18N conversion:')
+logger.debug('Testing proj4 UTM 18N conversion:')
 proj4.defs('EPSG:32618', '+proj=utm +zone=18 +datum=WGS84 +units=m +no_defs')
 const testCartagena = proj4('EPSG:32618', 'EPSG:4326', [842000, 1151000])
-console.log('Test Cartagena UTM [842000, 1151000] → WGS84:', testCartagena)
+logger.debug('Test Cartagena UTM [842000, 1151000] → WGS84:', testCartagena)
 
 interface NetworkData {
   name: string
@@ -131,7 +132,7 @@ export function WNTRSimulationViewer() {
     if (!mapContainer.current || map.current) return
     
     
-    console.log('Initializing map...')
+    logger.debug('Initializing map...')
     
     try {
       map.current = new mapboxgl.Map({
@@ -145,14 +146,14 @@ export function WNTRSimulationViewer() {
       map.current.addControl(new mapboxgl.NavigationControl(), 'top-right')
       
       map.current.on('load', () => {
-        console.log('Map loaded successfully')
+        logger.debug('Map loaded successfully')
       })
       
       map.current.on('error', (e) => {
-        console.error('Map error:', e)
+        logger.error('Map error:', e)
       })
     } catch (error) {
-      console.error('Failed to initialize map:', error)
+      logger.error('Failed to initialize map:', error)
       setError('Failed to initialize map. You can still use network analysis features.')
     }
     
@@ -182,7 +183,7 @@ export function WNTRSimulationViewer() {
       map.current.once('style.load', () => {
         // Trigger re-render after style loads
         if (networkData) {
-          console.log('Style loaded, triggering re-render')
+          logger.debug('Style loaded, triggering re-render')
           // Force a re-render by updating the network data; when `prev` is
           // null we keep it null instead of materialising a partial object
           // that would break the NetworkData shape.
@@ -230,7 +231,7 @@ export function WNTRSimulationViewer() {
     const yMin = Math.min(...yValues)
     const yMax = Math.max(...yValues)
     
-    console.log('Detecting coordinate system for ranges:', { xMin, xMax, yMin, yMax })
+    logger.debug('Detecting coordinate system for ranges:', { xMin, xMax, yMin, yMax })
     
     // Geographic coordinates check
     if (xMin >= -180 && xMax <= 180 && yMin >= -90 && yMax <= 90) {
@@ -286,7 +287,7 @@ export function WNTRSimulationViewer() {
     
     // If we have a user-selected or detected UTM zone, use proj4 for conversion
     const zone = utmZone || detectedCoordSystem?.suggested_zone
-    console.log('convertCoords - zone:', zone, 'x:', x, 'y:', y, 'detectedSystem:', detectedCoordSystem)
+    logger.debug('convertCoords - zone:', zone, 'x:', x, 'y:', y, 'detectedSystem:', detectedCoordSystem)
     
     if (zone && zone.match(/^\d{1,2}[NS]$/)) {
       try {
@@ -297,7 +298,7 @@ export function WNTRSimulationViewer() {
         const epsgCode = hemisphere === 'N' ? 32600 + zoneNum : 32700 + zoneNum
         const epsg = `EPSG:${epsgCode}`
         
-        console.log('Using projection:', epsg)
+        logger.debug('Using projection:', epsg)
         
         // Define the projection if not already defined.
         // `proj4.defs(name)` (single-arg) returns the existing definition or
@@ -315,22 +316,22 @@ export function WNTRSimulationViewer() {
           // Current data shows Y around 1,641,000
           // Apply offset of approximately -491,000
           adjustedY = y - 491000
-          console.log(`Adjusted Y coordinate from ${y} to ${adjustedY} for Cartagena`)
+          logger.debug(`Adjusted Y coordinate from ${y} to ${adjustedY} for Cartagena`)
         }
         
         // Convert from UTM to WGS84
         const [lng, lat] = proj4(epsg, 'EPSG:4326', [x, adjustedY])
-        console.log('Converted:', [x, adjustedY], '→', [lng, lat])
+        logger.debug('Converted:', [x, adjustedY], '→', [lng, lat])
         
         // Verify the conversion is reasonable
         if (isNaN(lng) || isNaN(lat) || Math.abs(lng) > 180 || Math.abs(lat) > 90) {
-          console.error('Invalid conversion result:', { lng, lat })
+          logger.error('Invalid conversion result:', { lng, lat })
           throw new Error('Invalid coordinate conversion')
         }
         
         return [lng, lat]
       } catch (e) {
-        console.error('Projection conversion error:', e)
+        logger.error('Projection conversion error:', e)
       }
     }
     
@@ -338,7 +339,7 @@ export function WNTRSimulationViewer() {
     if (networkData?.coordinate_system?.bounds) {
       const bounds = networkData.coordinate_system.bounds
       
-      console.log('Fallback path - no UTM zone specified. Zone:', zone, 'DetectedSystem:', detectedCoordSystem)
+      logger.debug('Fallback path - no UTM zone specified. Zone:', zone, 'DetectedSystem:', detectedCoordSystem)
       
       // Check if user has set a custom location
       const userLocation = localStorage.getItem('hydraulicNetworkLocation')
@@ -367,7 +368,7 @@ export function WNTRSimulationViewer() {
       const lng = -99.1332 - 0.1 + xNorm * 0.2
       const lat = 19.4326 - 0.1 + yNorm * 0.2
       
-      console.warn('Using Mexico City fallback coordinates')
+      logger.warn('Using Mexico City fallback coordinates')
       return [lng, lat]
     }
     
@@ -396,7 +397,7 @@ export function WNTRSimulationViewer() {
       return
     }
     
-    console.log('Updating visualization with nodes:', networkData.nodes.length, 'links:', networkData.links.length)
+    logger.debug('Updating visualization with nodes:', networkData.nodes.length, 'links:', networkData.links.length)
     
     // Remove existing layers and sources in the correct order
     const layerIds = ['node-labels', 'network-nodes', 'network-links'] // Remove in reverse order
@@ -409,7 +410,7 @@ export function WNTRSimulationViewer() {
           map.current.removeLayer(id)
         }
       } catch (e) {
-        console.warn(`Error removing layer ${id}:`, e)
+        logger.warn(`Error removing layer ${id}:`, e)
       }
     })
     
@@ -420,19 +421,19 @@ export function WNTRSimulationViewer() {
           map.current.removeSource(id)
         }
       } catch (e) {
-        console.warn(`Error removing source ${id}:`, e)
+        logger.warn(`Error removing source ${id}:`, e)
       }
     })
     
     // Prepare node features with simulation data
-    console.log('First node coordinates:', networkData.nodes[0])
+    logger.debug('First node coordinates:', networkData.nodes[0])
     
     // Test conversion on a few nodes to debug
     const testNodes = networkData.nodes.slice(0, 5)
-    console.log('Testing conversion on first 5 nodes:')
+    logger.debug('Testing conversion on first 5 nodes:')
     testNodes.forEach(node => {
       const coords = convertCoords(node.x, node.y)
-      console.log(`Node ${node.id}: [${node.x}, ${node.y}] → [${coords[0]}, ${coords[1]}]`)
+      logger.debug(`Node ${node.id}: [${node.x}, ${node.y}] → [${coords[0]}, ${coords[1]}]`)
     })
     
     const nodeFeatures = networkData.nodes.map(node => {
@@ -523,7 +524,7 @@ export function WNTRSimulationViewer() {
     }).filter(Boolean)
     
     // Add sources
-    console.log('Adding sources with features:', {
+    logger.debug('Adding sources with features:', {
       nodes: nodeFeatures.length,
       links: linkFeatures.length,
       sampleNode: nodeFeatures[0],
@@ -533,8 +534,8 @@ export function WNTRSimulationViewer() {
     // Verify converted coordinates
     if (nodeFeatures.length > 0) {
       const sampleCoords = nodeFeatures[0].geometry.coordinates
-      console.log('Sample converted coordinates:', sampleCoords)
-      console.log('Is valid LngLat?', sampleCoords[0] >= -180 && sampleCoords[0] <= 180 && sampleCoords[1] >= -90 && sampleCoords[1] <= 90)
+      logger.debug('Sample converted coordinates:', sampleCoords)
+      logger.debug('Is valid LngLat?', sampleCoords[0] >= -180 && sampleCoords[0] <= 180 && sampleCoords[1] >= -90 && sampleCoords[1] <= 90)
     }
     
     // Add sources only if they don't exist
@@ -591,10 +592,10 @@ export function WNTRSimulationViewer() {
             'line-opacity': 0.9
           }
         })
-        console.log('Links layer added successfully')
+        logger.debug('Links layer added successfully')
       }
     } catch (e) {
-      console.error('Error adding links layer:', e)
+      logger.error('Error adding links layer:', e)
     }
     
     try {
@@ -617,10 +618,10 @@ export function WNTRSimulationViewer() {
             'circle-opacity': 1.0
           }
         })
-        console.log('Nodes layer added successfully')
+        logger.debug('Nodes layer added successfully')
       }
     } catch (e) {
-      console.error('Error adding nodes layer:', e)
+      logger.error('Error adding nodes layer:', e)
     }
     
     // Labels layer
@@ -644,7 +645,7 @@ export function WNTRSimulationViewer() {
         })
       }
     } catch (e) {
-      console.error('Error adding labels layer:', e)
+      logger.error('Error adding labels layer:', e)
     }
     
     // Add click handlers
@@ -703,7 +704,7 @@ export function WNTRSimulationViewer() {
         [Math.max(...lngs), Math.max(...lats)]
       ] as [[number, number], [number, number]]
       
-      console.log('Fitting to network bounds:', bounds)
+      logger.debug('Fitting to network bounds:', bounds)
       
       // Add a small delay to ensure layers are rendered
       setTimeout(() => {
@@ -717,7 +718,7 @@ export function WNTRSimulationViewer() {
           // Also log the final zoom level
           setTimeout(() => {
             const zoom = map.current?.getZoom()
-            console.log('Final zoom level:', zoom)
+            logger.debug('Final zoom level:', zoom)
           }, 1000)
         }
       }, 100)
@@ -746,30 +747,30 @@ export function WNTRSimulationViewer() {
       const result = await window.electronAPI.wntr.loadINPFile()
       
       if (result.success && result.data) {
-        console.log('Network data loaded:', result.data)
+        logger.debug('Network data loaded:', result.data)
         
         // Detect coordinate system
         if (result.data.nodes && result.data.nodes.length > 0) {
-          console.log('Sample node coordinates (first 5):')
+          logger.debug('Sample node coordinates (first 5):')
           result.data.nodes.slice(0, 5).forEach((node: any) => {
-            console.log(`Node ${node.id}: x=${node.x}, y=${node.y}`)
+            logger.debug(`Node ${node.id}: x=${node.x}, y=${node.y}`)
           })
           
           // Find coordinate ranges
           const xCoords = result.data.nodes.map((n: any) => n.x)
           const yCoords = result.data.nodes.map((n: any) => n.y)
-          console.log('X range:', Math.min(...xCoords), 'to', Math.max(...xCoords))
-          console.log('Y range:', Math.min(...yCoords), 'to', Math.max(...yCoords))
+          logger.debug('X range:', Math.min(...xCoords), 'to', Math.max(...xCoords))
+          logger.debug('Y range:', Math.min(...yCoords), 'to', Math.max(...yCoords))
           
           // Detect coordinate system
           const coordSystem = detectCoordinateSystem(result.data.nodes)
-          console.log('Detected coordinate system:', coordSystem)
+          logger.debug('Detected coordinate system:', coordSystem)
           setDetectedCoordSystem(coordSystem)
           
           // If UTM detected, set the suggested zone
           if (coordSystem?.type === 'UTM' && coordSystem.suggested_zone) {
             setUtmZone(coordSystem.suggested_zone)
-            console.log('Setting UTM zone to:', coordSystem.suggested_zone)
+            logger.debug('Setting UTM zone to:', coordSystem.suggested_zone)
             
             // Save to localStorage to ensure it persists
             localStorage.setItem('detectedUtmZone', coordSystem.suggested_zone)
@@ -793,20 +794,20 @@ export function WNTRSimulationViewer() {
           
           // Ensure the detected coordinate system is available for conversion
           if (detectedCoordSystem?.type === 'UTM') {
-            console.log('Network data set with UTM zone:', detectedCoordSystem.suggested_zone)
+            logger.debug('Network data set with UTM zone:', detectedCoordSystem.suggested_zone)
           }
         }, 50)
         
         // Fit bounds if available
         if (result.data.coordinate_system?.bounds) {
           const bounds = result.data.coordinate_system.bounds
-          console.log('Coordinate system:', result.data.coordinate_system)
-          console.log('Raw bounds:', bounds)
+          logger.debug('Coordinate system:', result.data.coordinate_system)
+          logger.debug('Raw bounds:', bounds)
           
           // Get SW and NE corners
           const sw = convertCoords(bounds.minX || bounds.minLon, bounds.minY || bounds.minLat)
           const ne = convertCoords(bounds.maxX || bounds.maxLon, bounds.maxY || bounds.maxLat)
-          console.log('Converted bounds - SW:', sw, 'NE:', ne)
+          logger.debug('Converted bounds - SW:', sw, 'NE:', ne)
           
           // Validate coordinates
           const isValidLng = (lng: number) => lng >= -180 && lng <= 180
@@ -815,7 +816,7 @@ export function WNTRSimulationViewer() {
           if (isValidLng(sw[0]) && isValidLat(sw[1]) && isValidLng(ne[0]) && isValidLat(ne[1])) {
             setTimeout(() => {
               if (map.current?.loaded()) {
-                console.log('Fitting bounds to:', { sw, ne })
+                logger.debug('Fitting bounds to:', { sw, ne })
                 map.current.fitBounds([sw, ne], {
                   padding: 100,
                   maxZoom: 14,
@@ -824,7 +825,7 @@ export function WNTRSimulationViewer() {
               }
             }, 500)
           } else {
-            console.warn('Invalid coordinates detected, centering on nodes instead')
+            logger.warn('Invalid coordinates detected, centering on nodes instead')
             // If bounds are invalid, center on the average of all nodes
             if (result.data.nodes && result.data.nodes.length > 0) {
               let avgX = 0, avgY = 0
@@ -841,7 +842,7 @@ export function WNTRSimulationViewer() {
               
               if (validNodes > 0) {
                 const center: [number, number] = [avgX / validNodes, avgY / validNodes]
-                console.log('Centering map on average coordinates:', center)
+                logger.debug('Centering map on average coordinates:', center)
                 
                 setTimeout(() => {
                   if (map.current?.loaded()) {
@@ -850,13 +851,13 @@ export function WNTRSimulationViewer() {
                   }
                 }, 500)
               } else {
-                console.error('No valid coordinates found in the network')
+                logger.error('No valid coordinates found in the network')
                 setWarning('The network file contains coordinates that cannot be displayed on the map. Please check the coordinate system.')
               }
             }
           }
         } else {
-          console.log('No coordinate system bounds, trying to fit to nodes')
+          logger.debug('No coordinate system bounds, trying to fit to nodes')
           // No bounds, try to fit to all nodes
           if (result.data.nodes && result.data.nodes.length > 0) {
             const coords = result.data.nodes.map((node: any) => convertCoords(node.x, node.y))
@@ -913,7 +914,7 @@ export function WNTRSimulationViewer() {
         
         // Check for warnings
         if (result.warning) {
-          console.warn('Simulation warning:', result.warning)
+          logger.warn('Simulation warning:', result.warning)
           setWarning(`${result.warning.message}\n\n${result.warning.details}`)
         }
       } else {

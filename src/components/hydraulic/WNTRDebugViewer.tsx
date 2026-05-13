@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState } from 'react'
 import { FileUp } from 'lucide-react'
 
@@ -13,7 +14,7 @@ export function WNTRDebugViewer() {
       setResult(null)
       
       const response = await window.electronAPI.wntr.loadINPFile()
-      console.log('WNTR Response:', response)
+      logger.debug('WNTR Response:', response)
       
       // Guardar el resultado completo para inspección
       setResult(response)
@@ -22,7 +23,7 @@ export function WNTRDebugViewer() {
         setError(response.error || 'Failed to load file')
       }
     } catch (err) {
-      console.error('Error:', err)
+      logger.error('Error:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(false)

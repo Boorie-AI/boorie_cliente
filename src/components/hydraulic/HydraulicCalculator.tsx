@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import { useClarity } from '@/components/ClarityProvider'
 import {
@@ -45,7 +46,7 @@ export function HydraulicCalculator() {
         selectFormula(defaultFormula)
       }
     } catch (error) {
-      console.error('Failed to load formulas:', error)
+      logger.error('Failed to load formulas:', error)
     }
   }
   
@@ -68,8 +69,8 @@ export function HydraulicCalculator() {
   const handleCalculate = async () => {
     if (!selectedFormula) return
     
-    console.log('Starting calculation for formula:', selectedFormula.id)
-    console.log('Current inputs:', inputs)
+    logger.debug('Starting calculation for formula:', selectedFormula.id)
+    logger.debug('Current inputs:', inputs)
     
     // Track calculation start
     if (clarityReady) {
@@ -105,14 +106,14 @@ export function HydraulicCalculator() {
         numericInputs[key] = { value, unit: input.unit }
       }
       
-      console.log('Numeric inputs:', numericInputs)
+      logger.debug('Numeric inputs:', numericInputs)
       
       const calculationResult = await hydraulicService.calculate(
         selectedFormula.id,
         numericInputs
       )
       
-      console.log('Calculation result:', calculationResult)
+      logger.debug('Calculation result:', calculationResult)
       
       if (!calculationResult) {
         throw new Error('No result returned from calculation')
@@ -132,7 +133,7 @@ export function HydraulicCalculator() {
         });
       }
     } catch (err) {
-      console.error('Calculation error:', err)
+      logger.error('Calculation error:', err)
       const errorMessage = err instanceof Error ? err.message : 'Calculation failed';
       setError(errorMessage)
       

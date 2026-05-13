@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState, useRef, useEffect } from 'react'
 import { useChatStore } from '@/stores/chatStore'
 import { Send, Paperclip, Mic } from 'lucide-react'
@@ -24,7 +25,7 @@ export function MessageInput() {
         }
       }, 100)
     } catch (error) {
-      console.error('Failed to send message:', error)
+      logger.error('Failed to send message:', error)
       // Re-focus even on error
       setTimeout(() => {
         if (textareaRef.current) {
@@ -43,13 +44,13 @@ export function MessageInput() {
 
   const handleFileAttach = () => {
     // TODO: Implement file attachment
-    console.log('File attachment clicked')
+    logger.debug('File attachment clicked')
   }
 
   const handleVoiceRecord = () => {
     // TODO: Implement voice recording
     setIsRecording(!isRecording)
-    console.log('Voice recording toggled:', !isRecording)
+    logger.debug('Voice recording toggled:', !isRecording)
   }
 
   // Auto-resize textarea

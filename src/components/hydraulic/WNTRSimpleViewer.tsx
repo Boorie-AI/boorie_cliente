@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState, useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -45,7 +46,7 @@ export function WNTRSimpleViewer() {
       
       if (result.success && result.data) {
         setNetworkData(result.data)
-        console.log('Network loaded:', result.data)
+        logger.debug('Network loaded:', result.data)
         // Display network after loading
         displayNetwork(result.data)
       } else {
@@ -227,7 +228,7 @@ export function WNTRSimpleViewer() {
         }
         
       } catch (error) {
-        console.error('Error changing map style:', error)
+        logger.error('Error changing map style:', error)
         setError('Failed to change map style. Try another style.')
         // Revert to previous style
         setMapStyle('light')

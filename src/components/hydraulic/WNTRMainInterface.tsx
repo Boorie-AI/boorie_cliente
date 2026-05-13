@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import React, { useState, useCallback, useEffect } from 'react';
 import { useClarity } from '@/components/ClarityProvider';
 import { Button } from '@/components/ui/button';
@@ -104,7 +105,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
         const parsed = JSON.parse(savedProjects);
         setProjects(parsed);
       } catch (e) {
-        console.error('Failed to load projects:', e);
+        logger.error('Failed to load projects:', e);
       }
     }
   }, []);
@@ -286,7 +287,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       // Find the filePath from saved networks, or skip if already loaded
       const savedNet = currentProject?.networks.find(n => n.name === networkData.name);
       if (savedNet?.filePath) {
-        console.log('Loading INP file before analysis:', savedNet.filePath);
+        logger.debug('Loading INP file before analysis:', savedNet.filePath);
         const loadResult = await window.electronAPI.wntr.loadINPFromPath(savedNet.filePath);
         if (!loadResult.success) {
           throw new Error(`Failed to load INP file: ${loadResult.error}`);
@@ -347,7 +348,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       // Ensure the INP file is loaded in the backend
       const savedNet = currentProject?.networks.find(n => n.name === networkData.name);
       if (savedNet?.filePath) {
-        console.log('Loading INP file before simulation:', savedNet.filePath);
+        logger.debug('Loading INP file before simulation:', savedNet.filePath);
         const loadResult = await window.electronAPI.wntr.loadINPFromPath(savedNet.filePath);
         if (!loadResult.success) {
           throw new Error(`Failed to load INP file: ${loadResult.error}`);
@@ -514,7 +515,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               try {
                                 await window.electronAPI.wntr.loadINPFromPath(net.filePath);
                               } catch (err) {
-                                console.warn('Could not reload INP file:', err);
+                                logger.warn('Could not reload INP file:', err);
                               }
                             }
                           }}

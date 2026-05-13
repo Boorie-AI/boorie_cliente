@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 
 import { Save, RotateCcw, FileText } from 'lucide-react'
@@ -42,7 +43,7 @@ INSTRUCCIONES:
         setSystemPrompt(defaultPrompt)
       }
     } catch (error) {
-      console.error('Error loading system prompt:', error)
+      logger.error('Error loading system prompt:', error)
       setSystemPrompt(defaultPrompt)
     } finally {
       setIsLoading(false)
@@ -60,14 +61,14 @@ INSTRUCCIONES:
 
       if (success) {
         setLastSaved(new Date())
-        console.log('✅ System prompt saved successfully')
+        logger.debug('✅ System prompt saved successfully')
         alert('Prompt del sistema guardado correctamente')
       } else {
-        console.error('❌ Failed to save system prompt')
+        logger.error('❌ Failed to save system prompt')
         alert('Error al guardar el prompt del sistema')
       }
     } catch (error) {
-      console.error('Error saving system prompt:', error)
+      logger.error('Error saving system prompt:', error)
       alert('Error al guardar el prompt del sistema')
     } finally {
       setIsSaving(false)
@@ -78,7 +79,7 @@ INSTRUCCIONES:
     try {
       // Test the system prompt by getting it from database
       const retrieved = await databaseService.getSetting('system_prompt')
-      console.log('🧪 System prompt test:', {
+      logger.debug('🧪 System prompt test:', {
         saved: systemPrompt.length,
         retrieved: retrieved?.length || 0,
         matches: retrieved === systemPrompt
@@ -90,7 +91,7 @@ INSTRUCCIONES:
         alert('❌ El prompt en la base de datos no coincide con el mostrado')
       }
     } catch (error) {
-      console.error('Error testing system prompt:', error)
+      logger.error('Error testing system prompt:', error)
       alert('Error al probar el prompt del sistema')
     }
   }

@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import { cn } from '@/utils/cn'
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -81,7 +82,7 @@ export function MilvusInspector() {
             }
 
         } catch (err: any) {
-            console.error(err)
+            logger.error(err)
             setError(`Error fetching details: ${err.message}`)
         } finally {
             setInspectLoading(false)

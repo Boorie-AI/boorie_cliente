@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/utils/cn'
@@ -43,7 +44,7 @@ export function EditProjectDialog({ project, onClose, onProjectUpdated }: EditPr
       onProjectUpdated()
       onClose()
     } catch (error) {
-      console.error('Failed to update project:', error)
+      logger.error('Failed to update project:', error)
       alert('Failed to update project: ' + (error as Error).message)
     } finally {
       setLoading(false)

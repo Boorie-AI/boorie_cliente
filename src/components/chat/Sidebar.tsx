@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useAppStore } from '@/stores/appStore'
 import { useChatStore } from '@/stores/chatStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
@@ -48,7 +49,7 @@ export function Sidebar() {
       const projectList = await hydraulicService.listProjects()
       setProjects(projectList)
     } catch (error) {
-      console.error('Failed to load projects:', error)
+      logger.error('Failed to load projects:', error)
     }
   }
 

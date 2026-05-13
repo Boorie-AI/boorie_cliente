@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { databaseService } from '@/services/database'
@@ -89,7 +90,7 @@ export const useAIConfigStore = create<AIConfigState>()(
 
           set({ providers: uiProviders })
         } catch (error) {
-          console.error('Failed to load providers from database:', error)
+          logger.error('Failed to load providers from database:', error)
         } finally {
           set({ isLoading: false })
         }
@@ -136,7 +137,7 @@ export const useAIConfigStore = create<AIConfigState>()(
             }))
           }
         } catch (error) {
-          console.error('Failed to save provider:', error)
+          logger.error('Failed to save provider:', error)
         }
       },
 
@@ -184,7 +185,7 @@ export const useAIConfigStore = create<AIConfigState>()(
             }))
           }
         } catch (error) {
-          console.error('Failed to update provider:', error)
+          logger.error('Failed to update provider:', error)
         }
       },
 
@@ -216,7 +217,7 @@ export const useAIConfigStore = create<AIConfigState>()(
           const provider = providers.find(p => p.id === providerId)
 
           if (!provider) {
-            console.error('❌ Provider not found:', providerId)
+            logger.error('❌ Provider not found:', providerId)
             return false
           }
 
@@ -225,7 +226,7 @@ export const useAIConfigStore = create<AIConfigState>()(
           const dbProvider = dbProviders.find(p => p.name === provider.name)
 
           if (!dbProvider) {
-            console.error('❌ Database provider not found:', provider.name)
+            logger.error('❌ Database provider not found:', provider.name)
             return false
           }
 
@@ -244,7 +245,7 @@ export const useAIConfigStore = create<AIConfigState>()(
             return false
           }
         } catch (error) {
-          console.error('Provider connection test error:', error)
+          logger.error('Provider connection test error:', error)
           get().updateProviderConnection(providerId, false, 'error', 'Connection test failed')
           return false
         }
@@ -284,7 +285,7 @@ export const useAIConfigStore = create<AIConfigState>()(
             get().updateProviderConnection(providerId, true, 'success', 'Connected successfully', [])
           }
         } catch (error) {
-          console.error('Failed to refresh models:', error)
+          logger.error('Failed to refresh models:', error)
           get().updateProviderConnection(providerId, false, 'error', 'Failed to fetch models')
         }
       },
@@ -352,7 +353,7 @@ export const useAIConfigStore = create<AIConfigState>()(
             }))
           }
         } catch (error) {
-          console.error('Failed to toggle model selection:', error)
+          logger.error('Failed to toggle model selection:', error)
         }
       },
 
@@ -397,7 +398,7 @@ export const useAIConfigStore = create<AIConfigState>()(
             }))
           }
         } catch (error) {
-          console.error('Failed to add custom model:', error)
+          logger.error('Failed to add custom model:', error)
         }
       },
 
@@ -416,7 +417,7 @@ export const useAIConfigStore = create<AIConfigState>()(
             )
           }))
         } catch (error) {
-          console.error('Failed to remove custom model:', error)
+          logger.error('Failed to remove custom model:', error)
         }
       },
 

@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 
 import { BookOpen, Search, X, ChevronDown, ChevronRight, FileText } from 'lucide-react'
@@ -55,7 +56,7 @@ export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
         setExpandedSections(firstSections)
       }
     } catch (error) {
-      console.error('Error loading wisdom catalog:', error)
+      logger.error('Error loading wisdom catalog:', error)
     } finally {
       setLoading(false)
     }
@@ -109,7 +110,7 @@ export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
         alert(`❌ Failed to index: ${result.message}`)
       }
     } catch (error) {
-      console.error('Error indexing document:', error)
+      logger.error('Error indexing document:', error)
       alert('❌ Error indexing document')
     } finally {
       setLoading(false)

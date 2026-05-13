@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import { databaseService } from '@/services/database'
@@ -60,7 +61,7 @@ export const useAppStore = create<AppState>()(
             // Initialize database
             const dbInitialized = await databaseService.initialize()
             if (!dbInitialized) {
-              console.warn('Database initialization failed, using fallback storage')
+              logger.warn('Database initialization failed, using fallback storage')
             }
 
             // Load saved settings from database
@@ -89,7 +90,7 @@ export const useAppStore = create<AppState>()(
 
             set({ isInitialized: true })
           } catch (error) {
-            console.error('Failed to initialize app:', error)
+            logger.error('Failed to initialize app:', error)
             set({ isInitialized: true }) // Still mark as initialized to prevent infinite loading
           }
         },
@@ -124,7 +125,7 @@ export const useAppStore = create<AppState>()(
               }
             })
           } catch (error) {
-            console.error('Failed to load settings from database:', error)
+            logger.error('Failed to load settings from database:', error)
           }
         },
 

@@ -1,3 +1,4 @@
+import { logger } from '@/utils/logger'
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,7 +64,7 @@ export const WNTRAnalysisPanel: React.FC<WNTRAnalysisPanelProps> = ({
         setNetworkFile(result.filePaths[0]);
       }
     } catch (error) {
-      console.error('Error seleccionando archivo:', error);
+      logger.error('Error seleccionando archivo:', error);
     }
   };
 
@@ -95,7 +96,7 @@ export const WNTRAnalysisPanel: React.FC<WNTRAnalysisPanelProps> = ({
         onAnalysisComplete({ topology: result });
       }
     } catch (error) {
-      console.error('Error en análisis de topología:', error);
+      logger.error('Error en análisis de topología:', error);
       alert('Error al ejecutar el análisis de topología');
     } finally {
       setIsAnalyzing(false);
@@ -133,7 +134,7 @@ export const WNTRAnalysisPanel: React.FC<WNTRAnalysisPanelProps> = ({
         onAnalysisComplete({ criticality: result });
       }
     } catch (error) {
-      console.error('Error en análisis de criticidad:', error);
+      logger.error('Error en análisis de criticidad:', error);
       alert('Error al ejecutar el análisis de criticidad');
     } finally {
       setIsAnalyzing(false);
@@ -171,7 +172,7 @@ export const WNTRAnalysisPanel: React.FC<WNTRAnalysisPanelProps> = ({
         onAnalysisComplete({ resilience: result });
       }
     } catch (error) {
-      console.error('Error en análisis de resiliencia:', error);
+      logger.error('Error en análisis de resiliencia:', error);
       alert('Error al ejecutar el análisis de resiliencia');
     } finally {
       setIsAnalyzing(false);
@@ -201,7 +202,7 @@ export const WNTRAnalysisPanel: React.FC<WNTRAnalysisPanelProps> = ({
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error generando reporte:', error);
+      logger.error('Error generando reporte:', error);
       alert('Error al generar el reporte');
     }
   };
