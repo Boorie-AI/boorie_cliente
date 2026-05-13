@@ -134,6 +134,7 @@ export class HydraulicHandler {
     // Project management
     ipcMain.handle('hydraulic:create-project', async (_, projectData: Partial<HydraulicProject>) => {
       try {
+        const createdBy = await this.resolveCurrentUser()
         const project = await this.services.database.prisma.hydraulicProject.create({
           data: {
             name: projectData.name!,
@@ -146,7 +147,7 @@ export class HydraulicHandler {
             wntrModel: projectData.network ? JSON.stringify(projectData.network) : null,
             metadata: JSON.stringify({
               timeline: projectData.timeline,
-              createdBy: 'current-user' // TODO: Get from auth context
+              createdBy
             })
           }
         })
@@ -473,6 +474,22 @@ export class HydraulicHandler {
     return sections.join('\n')
   }
   
+  // Returns email of the most-recently-updated active user profile,
+  // or 'local-user' if no OAuth profile is connected.
+  private async resolveCurrentUser(): Promise<string> {
+    try {
+      const profile = await this.services.database.prisma.userProfile.findFirst({
+        where: { isActive: true },
+        orderBy: { updatedAt: 'desc' },
+        select: { email: true }
+      })
+      return profile?.email || 'local-user'
+    } catch (error) {
+      appLogger.warn('resolveCurrentUser failed, falling back to local-user', error as Error)
+      return 'local-user'
+    }
+  }
+
   cleanup() {
     // Cleanup if needed
     appLogger.info('Hydraulic handler cleanup completed')
