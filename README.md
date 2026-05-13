@@ -39,21 +39,26 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.3.8
+### 🚀 Latest Release - v1.4.1
 
-| Platform | Architecture | Download | Size |
-|----------|-------------|----------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.3.8-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.8/Boorie-1.3.8-arm64.dmg) | ~286 MB |
-| 🪟 **Windows** | x64 | [Boorie Setup 1.3.8.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.8/Boorie.Setup.1.3.8.exe) | ~213 MB |
-| 🐧 **Linux** | x64 | [Coming Soon](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.3.8) | ~TBD |
+> Source code is at **v1.4.2** (CI hardening + lint/typecheck cleanup); the latest release with downloadable installers is **v1.4.1**.
 
-### 📝 What's New in v1.3.8
-- **fix(windows):** Resolved Prisma module resolution error that caused app crash on startup in Windows.
+| Platform | Architecture | Download |
+|----------|-------------|----------|
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.4.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.4.1/Boorie-1.4.1-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie Setup 1.4.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.4.1/Boorie.Setup.1.4.1.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.4.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.4.1/Boorie-1.4.1.AppImage) |
+
+### 📝 What's New
+
+- **v1.4.2**: 5 real bugs fixed during lint/typecheck cleanup; CI matrix (macOS/Linux/Windows) green again.
+- **v1.4.1**: Automatic Python/WNTR setup on first launch (no terminal required).
+- **v1.4.0**: NVIDIA NeMo Guardrails (agentic safety net) + embedded Milvus Lite vector DB (no Docker).
 
 ### Recent Changes
-- **v1.3.7**: Remove deprecated 'crashed' event, update @langchain/core, resolve npm audit vulnerabilities, clean up production code.
-- **v1.3.6**: Performance improvements and bug fixes.
-- **v1.3.2**: First Launch Experience, improved UI, RAG & search upgrade, conversation vectorization.
+- **v1.3.10**: Fix Ollama detection on macOS (broken template string).
+- **v1.3.9**: Fix bugs #8 (.inp path), #9 (Milvus sync), #10 (chat WNTR projects).
+- **v1.3.8**: Fix Prisma module resolution on Windows startup.
 
 
 ### Installation Instructions
@@ -65,12 +70,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download the Linux package from the release page
-2. Extract the archive: `tar -xzf boorie-linux.tar.gz`
-3. Run: `./boorie`
+1. Download `Boorie-1.4.1.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.4.1.AppImage`
+3. Run: `./Boorie-1.4.1.AppImage`
 
 #### Windows
-1. Download `Boorie Setup 1.3.8.exe` from the link above
+1. Download `Boorie Setup 1.4.1.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 
@@ -88,7 +93,7 @@ View all available releases: [**GitHub Releases**](https://github.com/Boorie-AI/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-username/boorie_cliente.git
+   git clone https://github.com/Boorie-AI/boorie_cliente.git
    cd boorie_cliente
    ```
 
@@ -346,8 +351,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 For support and questions:
 - 📧 Email: support@boorie.com
 - 💬 Discord: [Boorie Community](https://discord.gg/boorie)
-- 📖 Documentation: [GitHub Wiki](https://github.com/your-username/boorie_cliente/wiki)
-- 🐛 Issues: [GitHub Issues](https://github.com/your-username/boorie_cliente/issues)
+- 📖 Documentation: [GitHub Wiki](https://github.com/Boorie-AI/boorie_cliente/wiki)
+- 🐛 Issues: [GitHub Issues](https://github.com/Boorie-AI/boorie_cliente/issues)
 
 ## 📚 Additional Documentation
 
