@@ -178,7 +178,7 @@ body:
       required: true
 
   - type: dropdown
-    id: diseño
+    id: diseno
     attributes:
       label: "¿Consideras que el diseño es claro y ordenado?"
       options:
