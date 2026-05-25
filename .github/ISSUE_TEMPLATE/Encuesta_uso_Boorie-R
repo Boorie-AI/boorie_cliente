@@ -1,0 +1,463 @@
+name: Cuestionario de uso de la aplicación
+description: "Completa este formulario para compartir tu experiencia usando la aplicación Boorie."
+title: "Encuesta de uso: "
+labels: ["encuesta", "feedback"]
+body:
+
+  # ─────────────────────────────────────────
+  # SECCIÓN 1 — IDENTIFICACIÓN DEL RESPONDENTE
+  # ─────────────────────────────────────────
+  - type: markdown
+    attributes:
+      value: |
+        ## 👤 Identificación
+        Por favor completa tus datos antes de continuar con el cuestionario.
+
+  - type: input
+    id: nombre-completo
+    attributes:
+      label: "Nombre completo"
+      placeholder: "Ej: María González López"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: pais
+    attributes:
+      label: "País"
+      options:
+        - "Chile"
+        - "Colombia"
+        - "El Salvador"
+        - "Perú"
+        - "Otro"
+    validations:
+      required: true
+
+  - type: input
+    id: institucion
+    attributes:
+      label: "Institución"
+      placeholder: "Ej: Universidad de Chile, Empresa XYZ, Ministerio de Salud"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: sector
+    attributes:
+      label: "Sector al que pertenece"
+      description: "Selecciona el sector que mejor describe tu contexto de uso."
+      options:
+        - "Academia"
+        - "APyS (Agua Potable y Saneamiento)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: rol-academia
+    attributes:
+      label: "Rol en Academia"
+      description: "Completa solo si tu sector es Academia. Si no aplica, selecciona 'No aplica'."
+      options:
+        - "No aplica"
+        - "Docente"
+        - "Estudiante pregrado"
+        - "Estudiante posgrado"
+        - "Investigador"
+        - "Director académico"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: rol-apys
+    attributes:
+      label: "Rol en APyS"
+      description: "Completa solo si tu sector es APyS. Si no aplica, selecciona 'No aplica'."
+      options:
+        - "No aplica"
+        - "Operador"
+        - "Técnico especializado"
+        - "Supervisor técnico"
+        - "Coordinador operativo"
+    validations:
+      required: true
+
+  - type: input
+    id: cargo
+    attributes:
+      label: "Cargo"
+      placeholder: "Ej: Jefe de área, Analista de datos, Coordinador de proyectos"
+    validations:
+      required: true
+
+  - type: input
+    id: area-trabajo
+    attributes:
+      label: "Área de trabajo"
+      placeholder: "Ej: Investigación y Desarrollo, Operaciones, Docencia"
+    validations:
+      required: true
+
+  # ─────────────────────────────────────────
+  # SECCIÓN 2 — USO GENERAL
+  # ─────────────────────────────────────────
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 📱 Uso general
+
+  - type: input
+    id: frecuencia
+    attributes:
+      label: "¿Con qué frecuencia usas la aplicación?"
+      placeholder: "Ejemplo: Diario, semanalmente, ocasionalmente"
+    validations:
+      required: true
+
+  - type: input
+    id: tiempo-uso
+    attributes:
+      label: "¿Desde hace cuánto tiempo la usas?"
+      placeholder: "Ejemplo: Desde hace 2 semanas, desde hace 3 meses"
+    validations:
+      required: true
+
+  - type: input
+    id: proposito
+    attributes:
+      label: "¿Para qué la utilizas principalmente?"
+      placeholder: "Ejemplo: Trabajo, estudio, uso personal"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: dispositivo
+    attributes:
+      label: "¿Qué tipo de dispositivo usas para acceder a la aplicación?"
+      options:
+        - "Teléfono móvil"
+        - "Computadora de escritorio"
+        - "Portátil"
+        - "Tablet"
+        - "Otro"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: uso
+    attributes:
+      label: "¿La usas de forma personal o para trabajo/estudio?"
+      options:
+        - "Personal"
+        - "Trabajo"
+        - "Estudio"
+        - "Mixto"
+    validations:
+      required: true
+
+  # ─────────────────────────────────────────
+  # SECCIÓN 3 — PRIMEROS PASOS
+  # ─────────────────────────────────────────
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 🚀 Primeros pasos
+
+  - type: dropdown
+    id: instalacion
+    attributes:
+      label: "¿Qué tan fácil fue instalar o abrir la aplicación por primera vez?"
+      options:
+        - "Muy fácil"
+        - "Fácil"
+        - "Regular"
+        - "Difícil"
+        - "Muy difícil"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: entendimiento
+    attributes:
+      label: "¿Pudiste entender rápidamente para qué sirve?"
+      options:
+        - "Sí, totalmente"
+        - "Sí, en parte"
+        - "Más o menos"
+        - "No mucho"
+        - "No"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: primer-uso
+    attributes:
+      label: "¿Encontraste fácil crear tu primer uso o interacción?"
+      options:
+        - "Muy fácil"
+        - "Fácil"
+        - "Regular"
+        - "Difícil"
+        - "Muy difícil"
+    validations:
+      required: true
+
+  - type: textarea
+    id: inicio-confuso
+    attributes:
+      label: "¿Hubo algún paso que te resultó confuso al comenzar?"
+      description: "Si no hubo ninguno, escribe \"No\"."
+      placeholder: "Describe el paso que te generó duda."
+    validations:
+      required: true
+
+  - type: textarea
+    id: mejorar-inicio
+    attributes:
+      label: "¿Qué mejorarías del proceso de inicio?"
+      placeholder: "Escribe tu sugerencia."
+    validations:
+      required: true
+
+  # ─────────────────────────────────────────
+  # SECCIÓN 4 — FUNCIONALIDAD
+  # ─────────────────────────────────────────
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## ⚙️ Funcionalidad
+
+  - type: dropdown
+    id: cumple-esperativas
+    attributes:
+      label: "¿La aplicación cumple con lo que esperabas?"
+      options:
+        - "Sí, totalmente"
+        - "Sí, en parte"
+        - "Regular"
+        - "No mucho"
+        - "No"
+    validations:
+      required: true
+
+  - type: textarea
+    id: funcion-util
+    attributes:
+      label: "¿Qué función te resulta más útil?"
+      placeholder: "Describe la función que más usas."
+    validations:
+      required: true
+
+  - type: textarea
+    id: funciones-no-uso
+    attributes:
+      label: "¿Hay alguna función que no uses porque te parece difícil?"
+      placeholder: "Indica cuál y por qué."
+    validations:
+      required: false
+
+  - type: dropdown
+    id: rapidez
+    attributes:
+      label: "¿Sientes que la aplicación responde de manera rápida?"
+      options:
+        - "Siempre"
+        - "Casi siempre"
+        - "A veces"
+        - "Rara vez"
+        - "Nunca"
+    validations:
+      required: true
+
+  - type: textarea
+    id: errores
+    attributes:
+      label: "¿Has encontrado errores o fallos durante el uso?"
+      description: "Si no, escribe \"No\"."
+      placeholder: "Describe el error, si ocurrió."
+    validations:
+      required: true
+
+  # ─────────────────────────────────────────
+  # SECCIÓN 5 — DISEÑO Y EXPERIENCIA
+  # ─────────────────────────────────────────
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 🎨 Diseño y experiencia
+
+  - type: dropdown
+    id: navegacion
+    attributes:
+      label: "¿Qué tan fácil es navegar dentro de la aplicación?"
+      options:
+        - "Muy fácil"
+        - "Fácil"
+        - "Regular"
+        - "Difícil"
+        - "Muy difícil"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: diseno
+    attributes:
+      label: "¿Consideras que el diseño es claro y ordenado?"
+      options:
+        - "Sí, totalmente"
+        - "Sí, en parte"
+        - "Regular"
+        - "No mucho"
+        - "No"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: satisfaccion
+    attributes:
+      label: "¿Qué tan satisfecho estás con la experiencia general?"
+      options:
+        - "Muy satisfecho"
+        - "Satisfecho"
+        - "Neutral"
+        - "Insatisfecho"
+        - "Muy insatisfecho"
+    validations:
+      required: true
+
+  - type: textarea
+    id: utilidad
+    attributes:
+      label: "¿La información o las respuestas que recibes te parecen útiles?"
+      placeholder: "Explica brevemente tu respuesta."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: confianza
+    attributes:
+      label: "¿La aplicación te genera confianza para usarla de forma frecuente?"
+      options:
+        - "Sí, mucha confianza"
+        - "Sí, bastante"
+        - "Regular"
+        - "Poca confianza"
+        - "Nada de confianza"
+    validations:
+      required: true
+
+  # ─────────────────────────────────────────
+  # SECCIÓN 6 — PROBLEMAS TÉCNICOS
+  # ─────────────────────────────────────────
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 🔧 Problemas técnicos
+
+  - type: textarea
+    id: login
+    attributes:
+      label: "¿Has tenido problemas al iniciar sesión?"
+      placeholder: "Si no, escribe \"No\"."
+    validations:
+      required: false
+
+  - type: textarea
+    id: cierre
+    attributes:
+      label: "¿La aplicación se ha cerrado sola o ha presentado fallos?"
+      placeholder: "Describe el problema, si ocurrió."
+    validations:
+      required: false
+
+  - type: textarea
+    id: conexion
+    attributes:
+      label: "¿Has tenido problemas de conexión o carga?"
+      placeholder: "Describe qué pasó."
+    validations:
+      required: false
+
+  - type: textarea
+    id: lentitud
+    attributes:
+      label: "¿Alguna parte de la aplicación tarda demasiado en responder?"
+      placeholder: "Indica en qué parte ocurre."
+    validations:
+      required: false
+
+  - type: textarea
+    id: reinicio
+    attributes:
+      label: "¿Has necesitado reiniciar la aplicación por un error?"
+      placeholder: "Explica si ocurrió."
+    validations:
+      required: false
+
+  # ─────────────────────────────────────────
+  # SECCIÓN 7 — SUGERENCIAS
+  # ─────────────────────────────────────────
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 💡 Sugerencias
+
+  - type: textarea
+    id: mejoras
+    attributes:
+      label: "¿Qué te gustaría que la aplicación hiciera mejor?"
+      placeholder: "Escribe tu sugerencia."
+    validations:
+      required: true
+
+  - type: textarea
+    id: nueva-funcion
+    attributes:
+      label: "¿Qué función nueva te gustaría que tuviera?"
+      placeholder: "Describe la idea."
+    validations:
+      required: false
+
+  - type: textarea
+    id: cambiar-diseno
+    attributes:
+      label: "¿Qué cambiarías del diseño o la forma de uso?"
+      placeholder: "Comparte tu opinión."
+    validations:
+      required: false
+
+  # ─────────────────────────────────────────
+  # SECCIÓN 8 — VALORACIÓN FINAL
+  # ─────────────────────────────────────────
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## ⭐ Valoración final
+
+  - type: dropdown
+    id: recomendar
+    attributes:
+      label: "¿Qué tan probable es que recomiendes la aplicación?"
+      options:
+        - "Muy probable"
+        - "Probable"
+        - "Neutral"
+        - "Poco probable"
+        - "Nada probable"
+    validations:
+      required: true
+
+  - type: textarea
+    id: experiencia-general
+    attributes:
+      label: "¿Cómo calificarías tu experiencia general?"
+      placeholder: "Escribe una breve valoración final."
+    validations:
+      required: true
