@@ -1,10 +1,14 @@
-// Centralized logging utility for backend services
+/* eslint-disable no-console */
+// Centralized logging utility for backend services.
+// debug/info are gated to development; warn/error/success always emit.
+
+const isDev = process.env.NODE_ENV !== 'production'
 
 export enum LogLevel {
   ERROR = 'error',
   WARN = 'warn',
   INFO = 'info',
-  DEBUG = 'debug'
+  DEBUG = 'debug',
 }
 
 export interface ILogEntry {
@@ -12,7 +16,7 @@ export interface ILogEntry {
   level: LogLevel
   service: string
   message: string
-  data?: any
+  data?: unknown
   error?: Error
 }
 
@@ -23,68 +27,44 @@ class Logger {
     this.serviceName = serviceName
   }
 
-  private log(level: LogLevel, message: string, data?: any, error?: Error): void {
-    const entry: ILogEntry = {
-      timestamp: new Date().toISOString(),
-      level,
-      service: this.serviceName,
-      message,
-      data,
-      error
-    }
-
-    // Format the log message
-    const formattedMessage = `[${entry.timestamp}] [${level.toUpperCase()}] [${this.serviceName}] ${message}`
-    
-    // Log to console with appropriate level
-    switch (level) {
-      case LogLevel.ERROR:
-        console.error('❌', formattedMessage, error || data || '')
-        break
-      case LogLevel.WARN:
-        console.warn('⚠️', formattedMessage, data || '')
-        break
-      case LogLevel.INFO:
-        console.log('ℹ️', formattedMessage, data || '')
-        break
-      case LogLevel.DEBUG:
-        console.debug('🐛', formattedMessage, data || '')
-        break
-    }
+  private format(level: LogLevel, message: string): string {
+    return `[${new Date().toISOString()}] [${level.toUpperCase()}] [${this.serviceName}] ${message}`
   }
 
-  error(message: string, errorOrData?: Error | string | any, data?: any): void {
+  error(message: string, errorOrData?: unknown, ...rest: unknown[]): void {
+    const formatted = this.format(LogLevel.ERROR, message)
     if (errorOrData instanceof Error) {
-      this.log(LogLevel.ERROR, message, data, errorOrData)
+      console.error('❌', formatted, errorOrData, ...rest)
+    } else if (errorOrData !== undefined) {
+      console.error('❌', formatted, errorOrData, ...rest)
     } else {
-      this.log(LogLevel.ERROR, message, errorOrData)
+      console.error('❌', formatted)
     }
   }
 
-  warn(message: string, data?: any): void {
-    this.log(LogLevel.WARN, message, data)
+  warn(message: string, ...rest: unknown[]): void {
+    console.warn('⚠️', this.format(LogLevel.WARN, message), ...rest)
   }
 
-  info(message: string, data?: any): void {
-    this.log(LogLevel.INFO, message, data)
+  info(message: string, ...rest: unknown[]): void {
+    if (!isDev) return
+    console.log('ℹ️', this.format(LogLevel.INFO, message), ...rest)
   }
 
-  debug(message: string, data?: any): void {
-    this.log(LogLevel.DEBUG, message, data)
+  debug(message: string, ...rest: unknown[]): void {
+    if (!isDev) return
+    console.debug('🐛', this.format(LogLevel.DEBUG, message), ...rest)
   }
 
-  success(message: string, data?: any): void {
-    const formattedMessage = `[${new Date().toISOString()}] [SUCCESS] [${this.serviceName}] ${message}`
-    console.log('✅', formattedMessage, data || '')
+  success(message: string, ...rest: unknown[]): void {
+    console.log('✅', this.format(LogLevel.INFO, message).replace('[INFO]', '[SUCCESS]'), ...rest)
   }
 }
 
-// Factory function to create loggers for different services
 export function createLogger(serviceName: string): Logger {
   return new Logger(serviceName)
 }
 
-// Pre-configured loggers for common services
 export const conversationLogger = createLogger('ConversationService')
 export const aiProviderLogger = createLogger('AIProviderService')
 export const databaseLogger = createLogger('DatabaseService')
