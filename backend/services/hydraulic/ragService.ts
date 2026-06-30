@@ -216,6 +216,10 @@ export class HydraulicRAGService {
         console.warn(`[RAG Service] ${failedCount}/${chunks.length} chunks failed embedding generation`)
       }
 
+      if (successfulChunks.length === 0 && chunks.length > 0) {
+        throw new Error('Failed to generate embeddings for any chunk. The embedding provider (Ollama/OpenAI) may be unreachable or misconfigured.')
+      }
+
       console.log(`[RAG Service] Creating document with ${successfulChunks.length} indexed chunks`)
 
       // Create document in database

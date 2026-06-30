@@ -11,6 +11,15 @@ import {
 } from '../../src/types/hydraulic'
 import { appLogger } from '../../backend/utils/logger'
 
+function safeJsonParse<T>(value: string | null | undefined, fallback: T): T {
+  if (!value) return fallback
+  try {
+    return JSON.parse(value)
+  } catch {
+    return fallback
+  }
+}
+
 export class HydraulicHandler {
   private services: ServiceContainer
   private contextProcessor: HydraulicContextProcessor
@@ -180,8 +189,8 @@ export class HydraulicHandler {
           name: project.name,
           description: project.description || undefined,
           type: project.type as any,
-          location: JSON.parse(project.location),
-          regulations: JSON.parse(project.regulations).map((r: any) => ({
+          location: safeJsonParse(project.location, { country: '', region: '' }),
+          regulations: safeJsonParse<string[]>(project.regulations, []).map((r: any) => ({
             id: r,
             code: r,
             name: r,
@@ -249,7 +258,7 @@ export class HydraulicHandler {
           name: p.name,
           type: p.type,
           status: p.status,
-          location: JSON.parse(p.location),
+          location: safeJsonParse(p.location, { country: '', region: '' }),
           updatedAt: p.updatedAt
         }))
         
