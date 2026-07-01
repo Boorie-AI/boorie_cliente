@@ -39,20 +39,21 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.3.2
+### 🚀 Última Versión - v1.4.3
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.3.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.2/Boorie-1.3.2-arm64.dmg) | ~227 MB |
-| 🪟 **Windows** | x64 | [Boorie.Setup.1.3.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.3.2/Boorie.Setup.1.3.2.exe) | ~170 MB |
-| 🐧 **Linux** | x64 | [Próximamente](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.3.2) | ~Por determinar |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.4.3-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.4.3/Boorie-1.4.3-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie.Setup.1.4.3.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.4.3/Boorie.Setup.1.4.3.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.4.3.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.4.3/Boorie-1.4.3.AppImage) | ~344 MB |
 
-### 📝 Novedades en v1.3.2
-- **Experiencia de Inicio**: Añadida guía de bienvenida profesional para nuevos usuarios.
-- **Mejoras UI**: Tema claro por defecto y eliminación de créditos en la barra lateral.
-- **Mejoras de Desarrollo**: Herramientas de desarrollador desactivadas por defecto en producción.
-- **Mejora RAG**: Procesamiento robusto de archivos PDF/DOCX.
-- **Vectorización de Conversaciones**: Los mensajes se vectorizan automáticamente en Milvus.
+### 📝 Novedades en v1.4.3
+- **Fix #15**: los proyectos no aparecían en el selector de proyectos del Chat (un solo proyecto con datos corruptos vaciaba silenciosamente toda la lista).
+- **Fix #14**: documentos del Wisdom Center atascados en "Not Indexed" en Windows (URL de Ollama hardcodeada a una IP de LAN en vez de `localhost`).
+- Refactor del logger de backend y actualización de dependencias.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.4.3).
+
+📖 Documentación completa: [GitHub Wiki](https://github.com/Boorie-AI/boorie_cliente/wiki)
 
 ### Instrucciones de Instalación
 
@@ -63,14 +64,14 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga el paquete Linux desde la página de releases
-2. Extrae el archivo: `tar -xzf boorie-linux.tar.gz`
-3. Ejecuta: `./boorie`
+1. Descarga `Boorie-1.4.3.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.4.3.AppImage`
+3. Ejecuta: `./Boorie-1.4.3.AppImage`
 
 #### Windows
-1. Descarga el paquete Windows desde la página de releases
-2. Extrae el archivo ZIP
-3. Ejecuta `Boorie.exe`
+1. Descarga `Boorie Setup 1.4.3.exe` del enlace anterior
+2. Ejecuta el instalador y sigue el asistente
+3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
 ### 🔗 Todas las Versiones
 Ver todas las versiones disponibles: [**GitHub Releases**](https://github.com/Boorie-AI/boorie_cliente/releases)
