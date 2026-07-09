@@ -8,6 +8,12 @@ export class MilvusService {
     private connected: boolean = false;
     private connectionAttempted: boolean = false;
     private unavailable: boolean = false;
+    private unavailableSince: number = 0;
+    // Milvus Lite can take a few seconds to come up after Electron spawns it
+    // (see electron/services/milvusProcess.ts); caching "unavailable" forever
+    // after one early failed attempt made RAG permanently unusable for the
+    // rest of the session even once the server became reachable (issue #19/#21).
+    private static readonly RETRY_INTERVAL_MS = 20_000;
 
     // Collection Names — Milvus Lite embebido es la BD vectorial única
     // para RAG, memoria de agentes, conversaciones y guardrails.
@@ -29,6 +35,24 @@ export class MilvusService {
 
     private static resolveAddress(): string {
         try {
+            // BOORIE_DATA_DIR is the writable userData dir Electron passes to both
+            // this process and the spawned start_milvus.py — authoritative when
+            // set (electron/main.ts sets it before any service is constructed).
+            // We deliberately do NOT fall through to the process.cwd()/__dirname/
+            // resourcesPath candidates below in this case: those exist for
+            // standalone-script contexts, and falling through to them here could
+            // pick up a stale port file left over from an old dev run instead of
+            // correctly defaulting to Milvus Lite's well-known first port while
+            // the freshly-spawned server is still starting up (issue #19/#21).
+            if (process.env.BOORIE_DATA_DIR) {
+                const candidate = path.join(process.env.BOORIE_DATA_DIR, 'boorie-milvus', 'port');
+                if (fs.existsSync(candidate)) {
+                    const port = fs.readFileSync(candidate, 'utf-8').trim();
+                    if (/^\d+$/.test(port)) return `127.0.0.1:${port}`;
+                }
+                return '127.0.0.1:19530';
+            }
+
             const candidates = [
                 path.join(process.cwd(), 'data', 'boorie-milvus', 'port'),
                 path.join(__dirname, '..', '..', 'data', 'boorie-milvus', 'port'),
@@ -62,22 +86,45 @@ export class MilvusService {
 
     public async ensureConnection() {
         if (this.connected) return;
+
         if (this.unavailable) {
-            // Already known to be down: short-circuit so callers don't spam retries.
-            throw new Error('Milvus unavailable (cached)');
+            const elapsed = Date.now() - this.unavailableSince;
+            if (elapsed < MilvusService.RETRY_INTERVAL_MS) {
+                // Known to be down and still within the backoff window: short-circuit.
+                throw new Error('Milvus unavailable (cached)');
+            }
+            // Backoff window elapsed — give it another chance instead of caching
+            // forever. Re-resolve and recreate the client too: the address was
+            // baked in at construction time and Milvus Lite may have since come
+            // up on a different port than what was resolved back then.
+            this.unavailable = false;
+            this.connectionAttempted = false;
+            this.client = new MilvusClient({ address: MilvusService.resolveAddress() });
         }
+
         if (this.connectionAttempted) {
-            // Re-entry while a previous attempt failed; bail fast.
+            // Re-entry while a previous attempt is still fresh; bail fast.
             throw new Error('Milvus unavailable');
         }
         this.connectionAttempted = true;
         try {
-            let retries = 3; // Reduced from 10 — if it isn't up quickly we give up.
+            let retries = 5; // ~7.5s total — enough for start_milvus.py to finish coming up.
+            let lastResolvedAddress = MilvusService.resolveAddress();
             while (retries > 0) {
                 try {
+                    // Milvus Lite may still be starting up when the client was first
+                    // constructed, and can land on a different port than the initial
+                    // guess if the well-known default was already taken. Re-resolve on
+                    // every attempt so we pick up the real port as soon as
+                    // start_milvus.py writes it, instead of retrying a stale address.
+                    const resolved = MilvusService.resolveAddress();
+                    if (resolved !== lastResolvedAddress || retries === 5) {
+                        this.client = new MilvusClient({ address: resolved });
+                        lastResolvedAddress = resolved;
+                    }
                     await this.client.listCollections();
                     this.connected = true;
-                    console.log('[MilvusService] Connected successfully');
+                    console.log('[MilvusService] Connected successfully at', resolved);
                     break;
                 } catch {
                     console.log(`[MilvusService] Waiting for Milvus server... (${retries})`);
@@ -90,14 +137,17 @@ export class MilvusService {
                 await this.initCollections();
             } else {
                 this.unavailable = true;
-                console.warn('[MilvusService] Milvus unavailable — RAG will fall back to in-DB chunks. (Logged once.)');
+                this.unavailableSince = Date.now();
+                console.warn(`[MilvusService] Milvus unavailable — RAG will fall back to in-DB chunks. Retrying in ${MilvusService.RETRY_INTERVAL_MS / 1000}s.`);
                 throw new Error('Milvus unavailable');
             }
         } catch (error) {
             this.unavailable = true;
-            // Only log on the first failure — subsequent callers will short-circuit above.
-            console.warn('[MilvusService] Connection failed (logged once):', (error as Error).message);
+            this.unavailableSince = Date.now();
+            console.warn('[MilvusService] Connection failed:', (error as Error).message);
             throw error;
+        } finally {
+            this.connectionAttempted = false;
         }
     }
 

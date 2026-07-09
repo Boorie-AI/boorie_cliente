@@ -47,6 +47,7 @@ interface Window {
     chat: {
       sendMessage: (data: any) => Promise<any>;
       streamMessage: (data: any) => Promise<any>;
+      pickAttachment: () => Promise<{ success: boolean; fileName?: string; content?: string; message?: string }>;
     };
     agenticRAG: {
       search: (data: any) => Promise<any>;

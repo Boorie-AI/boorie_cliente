@@ -346,16 +346,18 @@ export const useChatStore = create<ChatState>()(
                 // Clear streaming message before adding final message
                 get().clearStreamingMessage()
 
-                // Add RAG sources to metadata if available
-                if (enhancedPrompt !== content) {
-                  metadata.ragEnabled = true
+                // ragEnabled reflects whether RAG actually found and injected
+                // context — not just whether the feature toggle is on — so the
+                // UI badge never contradicts what the model was actually given.
+                if (state.wisdomConfig?.enabled) {
+                  metadata.ragAttempted = true
+                  metadata.ragEnabled = ragSources.length > 0
+                  metadata.sources = ragSources
                   metadata.originalQuery = content
                   metadata.enhancedQuery = enhancedPrompt !== content
-                  metadata.sources = ragSources
-                  metadata.ragAttempted = true
                 } else {
-                  metadata.ragAttempted = true
-                  metadata.ragEnabled = state.wisdomConfig?.enabled
+                  metadata.ragAttempted = false
+                  metadata.ragEnabled = false
                 }
 
                 // Add assistant message
@@ -679,9 +681,18 @@ export const useChatStore = create<ChatState>()(
             technicalLevel: 'intermediate'
           })
 
+          // `sources` is always returned as an array (possibly empty) once we've
+          // actually queried the RAG system, so callers can tell "attempted, no
+          // matches" apart from "not attempted at all" — undefined means the
+          // query itself never went out. Previously ragEnabled/ragAttempted were
+          // derived from comparing prompt text, which was true just from the
+          // generic system_prompt prefix even when sources was empty, causing
+          // the UI to show "RAG Habilitado" with zero actual retrieval (#19/#20).
           if (!ragResult.success || !ragResult.data) {
-            return { enhancedPrompt: originalPrompt }
+            return { enhancedPrompt: originalPrompt, sources: [] }
           }
+
+          const sources = ragResult.data.sources || []
 
           // Build enhanced prompt with context
           let enhancedPrompt = ''
@@ -692,25 +703,30 @@ export const useChatStore = create<ChatState>()(
           }
 
           // Add RAG context
-          if (ragResult.data.sources && ragResult.data.sources.length > 0) {
+          if (sources.length > 0) {
             enhancedPrompt += '=== CONTEXT FROM HYDRAULIC ENGINEERING KNOWLEDGE ===\n\n'
 
-            ragResult.data.sources.forEach((source: any, index: number) => {
+            sources.forEach((source: any, index: number) => {
               enhancedPrompt += `[Source ${index + 1}]: ${source.title}\n`
               enhancedPrompt += `${source.content}\n\n`
             })
 
             enhancedPrompt += '=== END CONTEXT ===\n\n'
             enhancedPrompt += 'Based on the above hydraulic engineering context, please answer the following question:\n\n'
+          } else {
+            // No matches: tell the model explicitly instead of letting it guess
+            // (previously it would deny having any RAG access at all, contradicting
+            // the "RAG Habilitado" badge shown from the enabled toggle).
+            enhancedPrompt += 'No se encontró información relevante en los documentos indexados del RAG para esta consulta. Indícaselo claramente al usuario en vez de afirmar que no tienes acceso a ningún sistema RAG.\n\n'
           }
 
           enhancedPrompt += originalPrompt
 
-          return { enhancedPrompt: enhancedPrompt, sources: ragResult.data.sources }
+          return { enhancedPrompt: enhancedPrompt, sources }
 
         } catch (error) {
           logger.error('Failed to enhance prompt with RAG:', error)
-          return { enhancedPrompt: originalPrompt }
+          return { enhancedPrompt: originalPrompt, sources: [] }
         }
       }
     }),

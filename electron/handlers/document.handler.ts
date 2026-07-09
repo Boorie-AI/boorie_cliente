@@ -8,6 +8,75 @@ import { PrismaClient } from '@prisma/client'
 
 import { EmbeddingService } from '../../backend/services/embedding.service'
 
+/**
+ * Extract plain text from a document on disk. Shared by wisdom:upload
+ * (persistent RAG indexing) and chat:pickAttachment (one-off chat context).
+ */
+export async function extractTextFromFile(filePath: string): Promise<string> {
+  const fileName = path.basename(filePath)
+  const fileExtension = path.extname(fileName).toLowerCase()
+
+  if (fileExtension === '.pdf') {
+    try {
+      const pdfBuffer = await fs.readFile(filePath)
+      const pdfData = await pdf(pdfBuffer)
+      return pdfData.text.replace(/\n\s*\n/g, '\n\n').trim()
+    } catch (error) {
+      console.warn(`Could not process PDF ${fileName}:`, error)
+      return `PDF Document: ${fileName}\nUnable to extract text content. Error: ${error}`
+    }
+  }
+
+  if (fileExtension === '.docx') {
+    try {
+      const buffer = await fs.readFile(filePath)
+      const result = await mammoth.extractRawText({ buffer })
+      return result.value
+    } catch (error) {
+      console.warn(`Could not process DOCX ${fileName}:`, error)
+      return `DOCX Document: ${fileName}\nUnable to extract text content. Error: ${error}`
+    }
+  }
+
+  if (fileExtension === '.doc') {
+    return `DOC Document: ${fileName}\nLegacy binary Word formats are not supported. Please convert to DOCX or PDF.`
+  }
+
+  return fs.readFile(filePath, 'utf-8')
+}
+
+/**
+ * Open a native file picker and extract text from the chosen document,
+ * without indexing it into the persistent RAG catalog — used to attach a
+ * one-off document directly to a chat message (issue #20-B).
+ */
+export function registerChatAttachmentHandler() {
+  ipcMain.handle('chat:pickAttachment', async () => {
+    try {
+      const result = await dialog.showOpenDialog({
+        properties: ['openFile'],
+        filters: [
+          { name: 'Documents', extensions: ['pdf', 'txt', 'md', 'docx', 'doc'] },
+          { name: 'All Files', extensions: ['*'] }
+        ]
+      })
+
+      if (result.canceled || result.filePaths.length === 0) {
+        return { success: false, message: 'No file selected' }
+      }
+
+      const filePath = result.filePaths[0]
+      const fileName = path.basename(filePath)
+      const content = await extractTextFromFile(filePath)
+
+      return { success: true, fileName, content }
+    } catch (error) {
+      console.error('[Document Handler] chat:pickAttachment failed:', error)
+      return { success: false, message: error instanceof Error ? error.message : 'Failed to read attachment' }
+    }
+  })
+}
+
 export function registerWisdomHandlers(prisma?: PrismaClient) {
   const prismaClient = prisma || new PrismaClient()
   const embeddingService = new EmbeddingService(prismaClient)

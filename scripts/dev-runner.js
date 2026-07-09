@@ -112,21 +112,9 @@ async function start() {
         process.env.VITE_PORT = port;
         process.env.ELECTRON_START_URL = `http://localhost:${port}`;
 
-        // Start Milvus Lite Server
-        log('Milvus', 'Starting Milvus Lite server...', colors.cyan);
-        const milvus = spawn('python3', ['scripts/start_milvus.py'], {
-            stdio: 'pipe',
-            shell: true
-        });
-
-        milvus.stdout.on('data', (data) => {
-            log('Milvus', data.toString().trim(), colors.cyan);
-        });
-
-        milvus.stderr.on('data', (data) => {
-            // Milvus often logs to stderr for info
-            log('Milvus', data.toString().trim(), colors.cyan);
-        });
+        // Milvus Lite is started by electron/main.ts (initializeApplication) once
+        // Electron itself launches below — single source of truth for the process
+        // lifecycle and Python interpreter resolution (see electron/services/milvusProcess.ts).
 
         log('Vite', 'Starting frontend server...');
 

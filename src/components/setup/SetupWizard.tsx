@@ -8,11 +8,12 @@ interface SetupStatus {
   pythonVersion: string | null
   venvPath: string
   missing: string[]
+  optionalMissing: string[]
   message?: string
 }
 
 interface ProgressEvent {
-  stage?: 'venv' | 'pip' | 'install' | 'done' | 'error'
+  stage?: 'venv' | 'pip' | 'install' | 'done' | 'error' | 'warning'
   current?: number
   total?: number
   package?: string
@@ -179,9 +180,20 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           )}
 
           {!installing && status?.ready && (
-            <div className="flex items-center gap-3 text-sm text-green-600 dark:text-green-400">
-              <CheckCircle2 className="w-5 h-5" />
-              Todo listo. Boorie ya tiene los motores cargados.
+            <div className="space-y-2">
+              <div className="flex items-center gap-3 text-sm text-green-600 dark:text-green-400">
+                <CheckCircle2 className="w-5 h-5" />
+                Todo listo. Boorie ya tiene los motores cargados.
+              </div>
+              {status.optionalMissing.length > 0 && (
+                <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 text-xs text-yellow-700 dark:text-yellow-400 flex gap-2 items-start">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <div>
+                    Guardrails ({status.optionalMissing.join(', ')}) no se pudo instalar y quedará
+                    deshabilitado. Esto <strong>no</strong> afecta a RAG, Milvus ni WNTR, que funcionan con normalidad.
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -199,7 +211,9 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
             onClick={skip}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Continuar sin guardrails
+            {status?.ready
+              ? 'Continuar sin guardrails'
+              : 'Continuar de todos modos (algunas funciones no estarán disponibles)'}
           </button>
           <div className="flex gap-2">
             {status?.ready ? (

@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { WNTRAdvancedMapViewer } from './WNTRAdvancedMapViewer';
 import { ProjectDashboard } from './ProjectDashboard';
 import { Project, NetworkAsset, CalculationAsset } from '../../types/project';
+import { hydraulicService } from '@/services/hydraulic/hydraulicService';
 import {
   FileUp, Play, Map, Network,
   RefreshCw, AlertCircle,
@@ -94,53 +95,102 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   const { trackEvent, isReady: clarityReady } = useClarity();
 
   // PROJECT MANAGEMENT STATE
+  //
+  // The project catalog (id/name/description/chatCount) is backed by the real
+  // HydraulicProject table via hydraulicService — the same catalog Chat's
+  // "Select a project" reads — so a project created in "Mis Proyectos" shows
+  // up in Chat and vice versa, and the CHATS counter reflects real
+  // conversations instead of always reading 0 (issue #17).
+  //
+  // `networks`/`calculations` remain a lightweight session overlay persisted
+  // to localStorage per project id — loading a .inp file or running a
+  // simulation while a project is open doesn't yet write into the dedicated
+  // HydraulicNetwork/HydraulicCalculation tables (that's a separate, larger
+  // feature — see network-repo IPC channels), so this keeps existing
+  // behavior working without regressing it.
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
-
-  // Load projects from localStorage on mount
-  useEffect(() => {
-    const savedProjects = localStorage.getItem('wntr_projects');
-    if (savedProjects) {
-      try {
-        const parsed = JSON.parse(savedProjects);
-        setProjects(parsed);
-      } catch (e) {
-        logger.error('Failed to load projects:', e);
-      }
+  // Lazy-initialized from localStorage so there's no load/save race on mount
+  // (a load-then-save effect pair would briefly overwrite storage with the
+  // initial empty state before the async load's setState landed).
+  const [projectAssets, setProjectAssets] = useState<Record<string, { networks: NetworkAsset[]; calculations: CalculationAsset[] }>>(() => {
+    try {
+      const saved = localStorage.getItem('wntr_project_assets');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      logger.error('Failed to load project assets:', e);
+      return {};
     }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('wntr_project_assets', JSON.stringify(projectAssets));
+  }, [projectAssets]);
+
+  const toViewModel = useCallback((p: any): Project => {
+    const assets = projectAssets[p.id] || { networks: [], calculations: [] };
+    return {
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
+      lastModified: p.updatedAt ? new Date(p.updatedAt).toISOString() : new Date().toISOString(),
+      networks: assets.networks,
+      calculations: assets.calculations,
+      chatCount: p.chatCount ?? 0
+    };
+  }, [projectAssets]);
+
+  const refreshProjects = useCallback(async () => {
+    try {
+      const list = await hydraulicService.listProjects();
+      setProjects(list.map(toViewModel));
+    } catch (e) {
+      logger.error('Failed to load projects:', e);
+    }
+  }, [toViewModel]);
+
+  // Load the project catalog from the DB on mount.
+  useEffect(() => {
+    refreshProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Save projects to localStorage whenever they change
-  useEffect(() => {
-    if (projects.length > 0) {
-      localStorage.setItem('wntr_projects', JSON.stringify(projects));
-    }
-  }, [projects]);
 
   // Project Management Functions
-  const handleCreateProject = useCallback((name: string, description: string) => {
-    const newProject: Project = {
-      id: `proj_${Date.now()}`,
-      name,
-      description,
-      createdAt: new Date().toISOString(),
-      lastModified: new Date().toISOString(),
-      networks: [],
-      calculations: [],
-      chats: []
-    };
-    setProjects(prev => [...prev, newProject]);
-    setCurrentProject(newProject);
-  }, []);
+  const handleCreateProject = useCallback(async (name: string, description: string) => {
+    try {
+      const created = await hydraulicService.createProject({
+        name,
+        description,
+        type: 'analysis' as any,
+        location: { country: '', region: '' }
+      });
+      const newProject = toViewModel(created);
+      setProjects(prev => [newProject, ...prev]);
+      setCurrentProject(newProject);
+    } catch (e) {
+      logger.error('Failed to create project:', e);
+    }
+  }, [toViewModel]);
 
   const handleSelectProject = useCallback((project: Project) => {
     setCurrentProject(project);
   }, []);
 
-  const handleDeleteProject = useCallback((projectId: string) => {
-    setProjects(prev => prev.filter(p => p.id !== projectId));
-    if (currentProject?.id === projectId) {
-      setCurrentProject(null);
+  const handleDeleteProject = useCallback(async (projectId: string) => {
+    try {
+      await hydraulicService.deleteProject(projectId);
+      setProjects(prev => prev.filter(p => p.id !== projectId));
+      setProjectAssets(prev => {
+        const next = { ...prev };
+        delete next[projectId];
+        return next;
+      });
+      if (currentProject?.id === projectId) {
+        setCurrentProject(null);
+      }
+    } catch (e) {
+      logger.error('Failed to delete project:', e);
     }
   }, [currentProject]);
 
@@ -157,11 +207,10 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       data: data
     };
 
-    setProjects(prev => prev.map(p =>
-      p.id === currentProject.id
-        ? { ...p, networks: [...p.networks, networkAsset], lastModified: new Date().toISOString() }
-        : p
-    ));
+    setProjectAssets(prev => {
+      const existing = prev[currentProject.id] || { networks: [], calculations: [] };
+      return { ...prev, [currentProject.id]: { ...existing, networks: [...existing.networks, networkAsset] } };
+    });
 
     setCurrentProject(prev => prev ? {
       ...prev,
@@ -182,11 +231,10 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       results
     };
 
-    setProjects(prev => prev.map(p =>
-      p.id === currentProject.id
-        ? { ...p, calculations: [...p.calculations, calculation], lastModified: new Date().toISOString() }
-        : p
-    ));
+    setProjectAssets(prev => {
+      const existing = prev[currentProject.id] || { networks: [], calculations: [] };
+      return { ...prev, [currentProject.id]: { ...existing, calculations: [...existing.calculations, calculation] } };
+    });
 
     setCurrentProject(prev => prev ? {
       ...prev,
@@ -423,7 +471,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     if (!currentProject) {
       return (
         <ProjectDashboard
-          projects={projects}
+          projects={projects.map(p => ({
+            ...p,
+            networks: projectAssets[p.id]?.networks ?? p.networks,
+            calculations: projectAssets[p.id]?.calculations ?? p.calculations
+          }))}
           onSelectProject={handleSelectProject}
           onCreateProject={handleCreateProject}
           onDeleteProject={handleDeleteProject}

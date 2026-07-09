@@ -48,8 +48,15 @@ def main() -> int:
             return 0
         return 0
 
-    project_root = Path(__file__).resolve().parent.parent
-    db_dir = project_root / "data" / "boorie-milvus"
+    # En dev, los datos viven junto al repo (data/boorie-milvus). En la app
+    # empaquetada, Resources/ no es escribible, así que Electron pasa
+    # BOORIE_DATA_DIR apuntando a app.getPath('userData').
+    data_root = os.environ.get("BOORIE_DATA_DIR")
+    if data_root:
+        db_dir = Path(data_root) / "boorie-milvus"
+    else:
+        project_root = Path(__file__).resolve().parent.parent
+        db_dir = project_root / "data" / "boorie-milvus"
     db_dir.mkdir(parents=True, exist_ok=True)
     db_file = db_dir / "boorie.db"
     port_file = db_dir / "port"

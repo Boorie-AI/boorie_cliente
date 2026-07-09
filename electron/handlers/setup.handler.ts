@@ -1,8 +1,10 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, app } from 'electron'
 import { spawn } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
 import * as os from 'os'
+import { startMilvusServer } from '../services/milvusProcess'
+import { resetPythonPathCache } from '../../backend/services/hydraulic/pythonDetector'
 
 /**
  * Setup handler — instala/repara las dependencias Python que Boorie necesita
@@ -19,7 +21,11 @@ import * as os from 'os'
  *   4. Verifica con `import` que cada paquete carga.
  */
 
-const REQUIRED_PACKAGES: { name: string; pip: string; importName: string }[] = [
+// `optional: true` marca paquetes cuyo fallo de instalación no debe bloquear
+// el resto del setup: Milvus/WNTR/RAG dependen solo de los paquetes "core".
+// nemoguardrails es opcional (moderación) y no debe poder dejar Milvus
+// inutilizable si su instalación falla — ver issue #21/#19.
+const REQUIRED_PACKAGES: { name: string; pip: string; importName: string; optional?: boolean }[] = [
   { name: 'numpy',                          pip: 'numpy>=1.20',                            importName: 'numpy' },
   { name: 'scipy',                          pip: 'scipy>=1.7',                             importName: 'scipy' },
   { name: 'pandas',                         pip: 'pandas>=1.3',                            importName: 'pandas' },
@@ -28,8 +34,12 @@ const REQUIRED_PACKAGES: { name: string; pip: string; importName: string }[] = [
   { name: 'milvus-lite',                    pip: 'milvus-lite>=2.5.1',                     importName: 'milvus_lite' },
   { name: 'langchain-ollama',               pip: 'langchain-ollama>=0.2.0',                importName: 'langchain_ollama' },
   { name: 'langchain-nvidia-ai-endpoints',  pip: 'langchain-nvidia-ai-endpoints>=0.3.0',   importName: 'langchain_nvidia_ai_endpoints' },
-  { name: 'nemoguardrails',                 pip: 'nemoguardrails>=0.10.0',                 importName: 'nemoguardrails' },
+  { name: 'nemoguardrails',                 pip: 'nemoguardrails>=0.10.0',                 importName: 'nemoguardrails', optional: true },
 ]
+
+function isOptionalPackage(name: string): boolean {
+  return REQUIRED_PACKAGES.find((p) => p.name === name)?.optional === true
+}
 
 interface SetupStatus {
   ready: boolean
@@ -37,6 +47,7 @@ interface SetupStatus {
   pythonVersion: string | null
   venvPath: string
   missing: string[]
+  optionalMissing: string[]
   message?: string
 }
 
@@ -175,27 +186,34 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
 
     if (!venvExists) {
       const sys = await findSystemPython()
+      const allNames = REQUIRED_PACKAGES.map((p) => p.name)
       return {
         ready: false,
         pythonPath: sys?.path ?? null,
         pythonVersion: sys?.version ?? null,
         venvPath: venvDir,
-        missing: REQUIRED_PACKAGES.map((p) => p.name),
+        missing: allNames.filter((n) => !isOptionalPackage(n)),
+        optionalMissing: allNames.filter((n) => isOptionalPackage(n)),
         message: sys
           ? 'venv no creado todavía. Boorie puede crearlo automáticamente.'
           : 'Python 3.9+ no encontrado. Instálalo desde python.org y reinicia Boorie.',
       }
     }
 
-    const missing = await checkPackagesInstalled(venvPython)
+    const allMissing = await checkPackagesInstalled(venvPython)
+    const missing = allMissing.filter((n) => !isOptionalPackage(n))
+    const optionalMissing = allMissing.filter((n) => isOptionalPackage(n))
     return {
       ready: missing.length === 0,
       pythonPath: venvPython,
       pythonVersion: 'venv',
       venvPath: venvDir,
       missing,
+      optionalMissing,
       message: missing.length === 0
-        ? 'Todo listo.'
+        ? (optionalMissing.length === 0
+          ? 'Todo listo.'
+          : `Todo listo (guardrails opcional no disponible: ${optionalMissing.join(', ')}).`)
         : `Faltan ${missing.length} paquete${missing.length === 1 ? '' : 's'} Python.`,
     }
   })
@@ -223,6 +241,11 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
       venvPython = getVenvPython(venvDir)
     }
 
+    // El venv ya existe (o se acaba de crear): fijamos PYTHON_PATH ya mismo
+    // para que WNTR/Milvus puedan usarlo aunque un paquete opcional falle
+    // más abajo y el setup termine en estado parcial.
+    process.env.PYTHON_PATH = venvPython
+
     // Step 2 — upgrade pip
     emitProgress(window, { stage: 'pip', message: 'Actualizando pip…' })
     await new Promise<void>((resolve) => {
@@ -235,16 +258,27 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
       p.on('error', () => resolve())
     })
 
-    // Step 3 — install required packages
+    // Step 3 — install required packages. Un paquete opcional (nemoguardrails)
+    // que falle se registra y se salta, pero no aborta el setup: Milvus/WNTR
+    // no dependen de él y deben quedar operativos igualmente (issue #21).
     const missing = await checkPackagesInstalled(venvPython)
     const total = missing.length
     let i = 0
+    const failedOptional: string[] = []
     for (const name of missing) {
       i += 1
       const pkg = REQUIRED_PACKAGES.find((p) => p.name === name)
       if (!pkg) continue
       const ok = await pipInstall(venvPython, pkg.pip, window, i, total)
       if (!ok) {
+        if (pkg.optional) {
+          failedOptional.push(pkg.name)
+          emitProgress(window, {
+            stage: 'warning',
+            message: `${pkg.name} (opcional) no se pudo instalar. Se continúa sin él; el resto de funciones (RAG/Milvus/WNTR) no se ven afectadas.`,
+          })
+          continue
+        }
         emitProgress(window, {
           stage: 'error',
           message: `Falló instalación de ${pkg.name}. Revisa los logs y reintenta.`,
@@ -253,8 +287,8 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
       }
     }
 
-    // Step 4 — verify
-    const stillMissing = await checkPackagesInstalled(venvPython)
+    // Step 4 — verify (solo paquetes core; los opcionales fallidos ya se reportaron arriba)
+    const stillMissing = (await checkPackagesInstalled(venvPython)).filter((n) => !isOptionalPackage(n))
     if (stillMissing.length > 0) {
       emitProgress(window, {
         stage: 'error',
@@ -265,12 +299,22 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
 
     emitProgress(window, {
       stage: 'done',
-      message: '¡Listo! Boorie está preparado para usar guardrails y RAG.',
+      message: failedOptional.length === 0
+        ? '¡Listo! Boorie está preparado para usar guardrails y RAG.'
+        : `¡Listo! RAG/Milvus/WNTR operativos. Guardrails no disponible (${failedOptional.join(', ')} falló al instalar).`,
     })
 
-    // Update PYTHON_PATH in process so wrappers pick the new venv on next call.
-    process.env.PYTHON_PATH = venvPython
+    // El venv recién instalado tiene milvus-lite: reiniciamos el servidor
+    // embebido apuntando a él (pudo haber arrancado antes con el Python del
+    // sistema, sin milvus-lite, si este era el primer arranque).
+    resetPythonPathCache()
+    try {
+      const milvusDataDir = path.join(app.getPath('userData'), 'data')
+      startMilvusServer(venvPython, milvusDataDir)
+    } catch {
+      // non-fatal — MilvusService will just stay "unavailable" and RAG degrades gracefully
+    }
 
-    return { success: true, pythonPath: venvPython }
+    return { success: true, pythonPath: venvPython, optionalFailed: failedOptional }
   })
 }

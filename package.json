@@ -1,6 +1,6 @@
 {
   "name": "boorie",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "Boorie - Advanced AI Desktop Client with comprehensive productivity features",
   "main": "dist/electron/main.js",
   "scripts": {
@@ -170,6 +170,13 @@
           "**/*.py",
           "**/*.co",
           "**/*.yml"
+        ]
+      },
+      {
+        "from": "scripts",
+        "to": "scripts",
+        "filter": [
+          "start_milvus.py"
         ]
       }
     ],

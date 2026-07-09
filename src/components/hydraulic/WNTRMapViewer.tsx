@@ -15,18 +15,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import * as Dialog from '@radix-ui/react-dialog'
-
-// Mapbox access token from environment variables
-const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || ''
-
-logger.debug('Mapbox token loaded:', MAPBOX_ACCESS_TOKEN ? `${MAPBOX_ACCESS_TOKEN.substring(0, 10)}...` : 'NO TOKEN')
-
-// Set the access token if available
-if (MAPBOX_ACCESS_TOKEN) {
-  mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN
-} else {
-  logger.error('No Mapbox access token found. Please set VITE_MAPBOX_ACCESS_TOKEN in your .env file.')
-}
+import { useMapboxToken } from '@/hooks/useMapboxToken'
 
 // Define coordinate systems for Latin America
 proj4.defs('EPSG:4326', '+proj=longlat +datum=WGS84 +no_defs') // WGS84 Geographic
@@ -100,6 +89,9 @@ export function WNTRMapViewer({
   simulationResults: propSimulationResults,
   activeTimeStep: propActiveTimeStep
 }: WNTRMapViewerProps) {
+  // Priority: token pasted in Settings → General (persisted, works in the
+  // packaged app) over the VITE_MAPBOX_ACCESS_TOKEN build-time env var.
+  const { token: MAPBOX_ACCESS_TOKEN } = useMapboxToken()
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   // Default to Mexico City coordinates (TK_Lomas appears to be from Mexico)
@@ -272,7 +264,7 @@ export function WNTRMapViewer({
 
     // Check if Mapbox token is available
     if (!MAPBOX_ACCESS_TOKEN) {
-      setError('Mapbox access token not configured. Please add VITE_MAPBOX_ACCESS_TOKEN to your .env file.')
+      setError('Mapbox access token not configured. Add it in ⚙️ Settings → General.')
       return
     }
 
@@ -399,7 +391,9 @@ export function WNTRMapViewer({
       map.current?.remove()
       map.current = null
     }
-  }, []) // Only run once on mount
+    // Re-run when the token resolves/changes: it now loads asynchronously
+    // from Settings (DB) and may not be available yet on first mount.
+  }, [MAPBOX_ACCESS_TOKEN])
 
   // Update map style
   useEffect(() => {
@@ -1490,9 +1484,8 @@ export function WNTRMapViewer({
                 <ol className="text-sm text-muted-foreground space-y-2">
                   <li>1. Create a free account at <a href="https://account.mapbox.com/auth/signup/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">mapbox.com</a></li>
                   <li>2. Copy your access token from the dashboard</li>
-                  <li>3. Create a <code className="bg-muted px-1 py-0.5 rounded">.env</code> file in the project root</li>
-                  <li>4. Add: <code className="bg-muted px-1 py-0.5 rounded">VITE_MAPBOX_ACCESS_TOKEN=your_token_here</code></li>
-                  <li>5. Restart the development server</li>
+                  <li>3. Open <strong>⚙️ Settings → General</strong> in Boorie</li>
+                  <li>4. Paste it into the <strong>Mapbox Access Token</strong> field and click Save</li>
                 </ol>
               </div>
               <p className="text-xs text-muted-foreground mt-4">

@@ -83,6 +83,17 @@ export function UnifiedWisdomPanel() {
   const [isSelectMode, setIsSelectMode] = useState(false)
   const [apiAvailable, setApiAvailable] = useState(false)
   const [ollamaStatus, setOllamaStatus] = useState<'checking' | 'available' | 'unavailable'>('checking')
+  const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' } | null>(null)
+
+  const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+    setNotification({ message, type })
+  }
+
+  useEffect(() => {
+    if (!notification) return
+    const timer = setTimeout(() => setNotification(null), 4000)
+    return () => clearTimeout(timer)
+  }, [notification])
 
   // Progress State
   const [uploadProgress, setUploadProgress] = useState<{ current: number, total: number, message: string, filename: string } | null>(null)
@@ -500,13 +511,13 @@ export function UnifiedWisdomPanel() {
       const result = await window.electronAPI.wisdom.setEmbeddingProvider(providerId)
       if (result.success) {
         setSelectedProviderId(providerId)
-        alert(result.message)
+        showNotification(result.message, 'success')
       } else {
-        alert(result.message)
+        showNotification(result.message, 'error')
       }
     } catch (error) {
       logger.error('Error changing embedding provider:', error)
-      alert('Error changing embedding provider')
+      showNotification('Error changing embedding provider', 'error')
     } finally {
       setLoading(false)
     }
@@ -516,7 +527,7 @@ export function UnifiedWisdomPanel() {
   const handleUpload = async () => {
     // Check if electronAPI is available
     if (!window.electronAPI || !window.electronAPI.wisdom) {
-      alert('Error: Electron API not available. Please restart the application.')
+      showNotification('Error: Electron API not available. Please restart the application.', 'error')
       return
     }
 
@@ -546,13 +557,13 @@ export function UnifiedWisdomPanel() {
           message += `• Total documents indexed: ${result.stats.total}`
         }
 
-        alert(message)
+        showNotification(message, 'success')
       } else {
-        alert(result.message)
+        showNotification(result.message, 'error')
       }
     } catch (error) {
       logger.error('Error uploading documents:', error)
-      alert('Error uploading documents. Please check the console for details.')
+      showNotification('Error uploading documents. Please check the console for details.', 'error')
     } finally {
       setLoading(false)
       setUploadProgress(null) // Reset on finish
@@ -564,7 +575,7 @@ export function UnifiedWisdomPanel() {
 
     // Check if electronAPI is available
     if (!window.electronAPI || !window.electronAPI.wisdom) {
-      alert('Error: Electron API not available. Please restart the application.')
+      showNotification('Error: Electron API not available. Please restart the application.', 'error')
       return
     }
 
@@ -580,11 +591,11 @@ export function UnifiedWisdomPanel() {
       if (result.success) {
         // setSearchResults(result.results || [])
         // Show search results in a modal or overlay instead of switching tabs
-        alert(`Found ${result.results?.length || 0} relevant documents using semantic search`)
+        showNotification(`Found ${result.results?.length || 0} relevant documents using semantic search`, 'success')
       }
     } catch (error) {
       logger.error('Error searching documents:', error)
-      alert('Error performing semantic search. Please try again.')
+      showNotification('Error performing semantic search. Please try again.', 'error')
     } finally {
       setLoading(false)
     }
@@ -620,9 +631,9 @@ export function UnifiedWisdomPanel() {
         includeContent: false,
       })
       if (result.success) {
-        alert(`Exported ${result.exportedCount} documents successfully.`)
+        showNotification(`Exported ${result.exportedCount} documents successfully.`, 'success')
       } else {
-        alert(`Export failed: ${result.message}`)
+        showNotification(`Export failed: ${result.message}`, 'error')
       }
     } catch (error) {
       logger.error('Export error:', error)
@@ -693,10 +704,10 @@ export function UnifiedWisdomPanel() {
         if (result.success) {
           logger.debug('✅ Document reindexed successfully')
           await loadWisdomDocuments() // Refresh the list
-          alert('Document reindexed successfully!')
+          showNotification('Document reindexed successfully!', 'success')
         } else {
           logger.error('❌ Reindexing failed:', result.message)
-          alert(`Reindexing failed: ${result.message}`)
+          showNotification(`Reindexing failed: ${result.message}`, 'error')
         }
       } else {
         // Fallback: use update to trigger reprocessing
@@ -704,15 +715,15 @@ export function UnifiedWisdomPanel() {
         if (result.success) {
           logger.debug('✅ Document updated/reindexed successfully')
           await loadWisdomDocuments()
-          alert('Document reindexed successfully!')
+          showNotification('Document reindexed successfully!', 'success')
         } else {
           logger.error('❌ Reindexing failed:', result.message)
-          alert(`Reindexing failed: ${result.message}`)
+          showNotification(`Reindexing failed: ${result.message}`, 'error')
         }
       }
     } catch (error) {
       logger.error('Error reindexing document:', error)
-      alert('Error reindexing document. Check console for details.')
+      showNotification('Error reindexing document. Check console for details.', 'error')
     } finally {
       setLoading(false)
     }
@@ -721,7 +732,7 @@ export function UnifiedWisdomPanel() {
   const handleBulkDelete = async () => {
     const selectedCount = selectedDocuments.size
     if (selectedCount === 0) {
-      alert('No documents selected for deletion')
+      showNotification('No documents selected for deletion', 'error')
       return
     }
 
@@ -754,13 +765,13 @@ export function UnifiedWisdomPanel() {
       await loadWisdomDocuments()
 
       if (errors === 0) {
-        alert(`Successfully deleted ${deleted} documents`)
+        showNotification(`Successfully deleted ${deleted} documents`, 'success')
       } else {
-        alert(`Deleted ${deleted} documents with ${errors} errors`)
+        showNotification(`Deleted ${deleted} documents with ${errors} errors`, 'error')
       }
     } catch (error) {
       logger.error('Error in bulk delete:', error)
-      alert('Error during bulk delete operation')
+      showNotification('Error during bulk delete operation', 'error')
     } finally {
       setLoading(false)
     }
@@ -818,6 +829,17 @@ export function UnifiedWisdomPanel() {
 
   return (
     <div className="flex-1 p-6 bg-background overflow-y-auto">
+      {notification && (
+        <div
+          className={`fixed top-4 right-4 z-50 max-w-sm rounded-lg px-4 py-3 shadow-lg text-sm ${
+            notification.type === 'error'
+              ? 'bg-destructive text-destructive-foreground'
+              : 'bg-primary text-primary-foreground'
+          }`}
+        >
+          {notification.message}
+        </div>
+      )}
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -1243,13 +1265,13 @@ export function UnifiedWisdomPanel() {
 
                                   if (result.success && result.available) {
                                     await loadEmbeddingProviders()
-                                    alert(`Ollama detected! Found ${result.models?.length || 0} embedding models out of ${result.totalModels || 0} total models.`)
+                                    showNotification(`Ollama detected! Found ${result.models?.length || 0} embedding models out of ${result.totalModels || 0} total models.`, 'success')
                                   } else {
-                                    alert(`Ollama connection failed: ${result.message || 'Unknown error'}`)
+                                    showNotification(`Ollama connection failed: ${result.message || 'Unknown error'}`, 'error')
                                   }
                                 } catch (error: any) {
                                   logger.error('❌ Error checking connection:', error)
-                                  alert(`Connection check failed: ${error.message}`)
+                                  showNotification(`Connection check failed: ${error.message}`, 'error')
                                 }
                               }}
                               className="text-xs px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition-colors"

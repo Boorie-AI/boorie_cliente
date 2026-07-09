@@ -250,18 +250,22 @@ export class HydraulicHandler {
     ipcMain.handle('hydraulic:list-projects', async () => {
       try {
         const projects = await this.services.database.prisma.hydraulicProject.findMany({
-          orderBy: { updatedAt: 'desc' }
+          orderBy: { updatedAt: 'desc' },
+          include: { _count: { select: { conversations: true } } }
         })
-        
+
         const projectList = projects.map(p => ({
           id: p.id,
           name: p.name,
+          description: p.description || undefined,
           type: p.type,
           status: p.status,
           location: safeJsonParse(p.location, { country: '', region: '' }),
-          updatedAt: p.updatedAt
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+          chatCount: p._count.conversations
         }))
-        
+
         return { success: true, data: projectList }
       } catch (error) {
         appLogger.error('List projects failed', error as Error)

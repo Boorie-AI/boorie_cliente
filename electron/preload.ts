@@ -85,6 +85,7 @@ const electronAPI = {
   // Chat services
   chat: {
     sendMessage: (params: any) => ipcRenderer.invoke('chat:send-message', params),
+    pickAttachment: () => ipcRenderer.invoke('chat:pickAttachment'),
   },
 
   // Authentication

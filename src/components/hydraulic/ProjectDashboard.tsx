@@ -262,7 +262,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                                         </div>
                                         <div className="text-center border-l border-slate-700/50">
                                             <div className="flex justify-center mb-1 text-purple-400"><MessageSquare className="h-4 w-4" /></div>
-                                            <div className="text-lg font-bold text-white">{project.chats.length}</div>
+                                            <div className="text-lg font-bold text-white">{project.chatCount}</div>
                                             <div className="text-[10px] uppercase tracking-wider text-slate-500">Chats</div>
                                         </div>
                                     </div>

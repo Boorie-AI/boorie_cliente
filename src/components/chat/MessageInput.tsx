@@ -1,20 +1,46 @@
 import { logger } from '@/utils/logger'
 import { useState, useRef, useEffect } from 'react'
 import { useChatStore } from '@/stores/chatStore'
-import { Send, Paperclip, Mic } from 'lucide-react'
+import { Send, Paperclip, Mic, X, FileText } from 'lucide-react'
+
+interface PendingAttachment {
+  fileName: string
+  content: string
+}
+
+// Chromium (and therefore Electron's renderer) exposes SpeechRecognition
+// under the webkit-prefixed name; there's no official TS lib type for it.
+type SpeechRecognitionInstance = {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  onresult: ((event: any) => void) | null
+  onerror: ((event: any) => void) | null
+  onend: (() => void) | null
+  start: () => void
+  stop: () => void
+}
 
 export function MessageInput() {
   const [message, setMessage] = useState('')
   const [isRecording, setIsRecording] = useState(false)
+  const [attachment, setAttachment] = useState<PendingAttachment | null>(null)
+  const [attachError, setAttachError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
   const { sendMessage, isLoading } = useChatStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!message.trim() || isLoading) return
+    if ((!message.trim() && !attachment) || isLoading) return
 
-    const messageToSend = message.trim()
+    let messageToSend = message.trim()
+    if (attachment) {
+      messageToSend =
+        `=== ATTACHED DOCUMENT: ${attachment.fileName} ===\n\n${attachment.content}\n\n=== END DOCUMENT ===\n\n${messageToSend}`
+    }
     setMessage('')
+    setAttachment(null)
 
     try {
       await sendMessage(messageToSend)
@@ -42,16 +68,78 @@ export function MessageInput() {
     }
   }
 
-  const handleFileAttach = () => {
-    // TODO: Implement file attachment
-    logger.debug('File attachment clicked')
+  const handleFileAttach = async () => {
+    setAttachError(null)
+    if (!window.electronAPI?.chat?.pickAttachment) {
+      setAttachError('Attaching files is not available in this build.')
+      return
+    }
+    try {
+      const result = await window.electronAPI.chat.pickAttachment()
+      if (!result.success || !result.content) {
+        if (result.message && result.message !== 'No file selected') {
+          setAttachError(result.message)
+        }
+        return
+      }
+      setAttachment({ fileName: result.fileName || 'document', content: result.content })
+    } catch (error) {
+      logger.error('Failed to attach file:', error)
+      setAttachError('Failed to read the selected file.')
+    }
   }
 
   const handleVoiceRecord = () => {
-    // TODO: Implement voice recording
-    setIsRecording(!isRecording)
-    logger.debug('Voice recording toggled:', !isRecording)
+    const SpeechRecognitionCtor =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+
+    if (!SpeechRecognitionCtor) {
+      setAttachError('Voice dictation is not supported in this browser.')
+      return
+    }
+
+    if (isRecording) {
+      recognitionRef.current?.stop()
+      return
+    }
+
+    const recognition: SpeechRecognitionInstance = new SpeechRecognitionCtor()
+    recognition.lang = navigator.language || 'es-ES'
+    recognition.continuous = true
+    recognition.interimResults = true
+
+    recognition.onresult = (event: any) => {
+      let finalTranscript = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript
+        }
+      }
+      if (finalTranscript) {
+        setMessage((prev) => (prev ? `${prev} ${finalTranscript}` : finalTranscript).trim())
+      }
+    }
+    recognition.onerror = (event: any) => {
+      logger.error('Voice recognition error:', event.error)
+      setAttachError('Voice dictation failed. Check microphone permissions.')
+      setIsRecording(false)
+    }
+    recognition.onend = () => {
+      setIsRecording(false)
+      recognitionRef.current = null
+    }
+
+    recognitionRef.current = recognition
+    setIsRecording(true)
+    recognition.start()
   }
+
+  // Stop any in-progress dictation if the component unmounts.
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop()
+    }
+  }, [])
 
   // Auto-resize textarea
   useEffect(() => {
@@ -70,6 +158,23 @@ export function MessageInput() {
 
   return (
     <div className="p-4 relative z-10">
+      {attachment && (
+        <div className="mb-2 flex items-center gap-2 text-xs bg-accent text-foreground rounded-lg px-3 py-1.5 w-fit">
+          <FileText size={14} />
+          <span>{attachment.fileName}</span>
+          <button
+            type="button"
+            onClick={() => setAttachment(null)}
+            className="text-muted-foreground hover:text-foreground"
+            title="Remove attachment"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+      {attachError && (
+        <div className="mb-2 text-xs text-destructive">{attachError}</div>
+      )}
       <form onSubmit={handleSubmit} className="flex items-center space-x-2"
             onClick={(e) => {
               // If clicking on the form but not on a button, focus the textarea
@@ -130,7 +235,7 @@ export function MessageInput() {
         {/* Send button */}
         <button
           type="submit"
-          disabled={!message.trim() || isLoading}
+          disabled={(!message.trim() && !attachment) || isLoading}
           className="p-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors flex items-center justify-center"
           title="Send message"
         >

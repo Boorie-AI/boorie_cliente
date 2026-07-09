@@ -686,6 +686,8 @@ if (!ENABLE_HARDWARE_ACCELERATION) {
 import { ServiceContainer } from '../backend/services'
 import { HandlersManager } from './handlers'
 import { appLogger } from '../backend/utils/logger'
+import { findPythonPath } from '../backend/services/hydraulic/pythonDetector'
+import { startMilvusServer, stopMilvusServer } from './services/milvusProcess'
 
 log.transports.file.level = 'info'
 autoUpdater.logger = log
@@ -903,6 +905,16 @@ async function initializeApplication(): Promise<void> {
   try {
     appLogger.info('Initializing application services')
 
+    // BOORIE_DATA_DIR must be set before ANY service that might touch Milvus
+    // gets constructed (ServiceContainer/HandlersManager below construct the
+    // MilvusService singleton eagerly, which bakes in its connection address
+    // at construction time). Setting it here, first thing, means
+    // MilvusService.resolveAddress() always sees it instead of falling back
+    // to process.cwd()-relative paths that can hold a stale port file from an
+    // old dev run (issue #19/#21).
+    const milvusDataDir = path.join(app.getPath('userData'), 'data')
+    process.env.BOORIE_DATA_DIR = milvusDataDir
+
     // Check Python environment for WNTR
     try {
       // Skip Python environment check - handled by wntrWrapper
@@ -939,6 +951,17 @@ async function initializeApplication(): Promise<void> {
       appLogger.success('Setup handlers registered')
     } catch (error) {
       appLogger.warn('Setup handlers registration failed', error as Error)
+    }
+
+    // Start the embedded Milvus Lite server. Both this process and the
+    // spawned Python script read/write under BOORIE_DATA_DIR (Resources/
+    // isn't writable in the packaged app). Previously nothing spawned this
+    // process outside of the dev-only dev-runner.js, so Milvus was never
+    // running in the installed app (root cause of issues #19/#20/#21).
+    try {
+      startMilvusServer(findPythonPath(), milvusDataDir)
+    } catch (error) {
+      appLogger.warn('Failed to start embedded Milvus Lite server', error as Error)
     }
 
     // Agentic RAG handlers are now registered via HandlersManager
@@ -1091,6 +1114,8 @@ app.on('before-quit', async () => {
   appLogger.info('Application shutting down')
 
   try {
+    stopMilvusServer()
+
     // Cleanup handlers
     if (handlers) {
       handlers.cleanup()

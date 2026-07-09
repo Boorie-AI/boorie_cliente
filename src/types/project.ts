@@ -17,13 +17,6 @@ export interface CalculationAsset {
     results?: any;
 }
 
-export interface ChatSession {
-    id: string;
-    name: string;
-    date: string;
-    messages: any[]; // Or Message type
-}
-
 export interface Project {
     id: string;
     name: string;
@@ -31,8 +24,13 @@ export interface Project {
     createdAt: string;
     lastModified: string;
 
-    // Inventory
+    // Inventory. `networks`/`calculations` are a session-local overlay (see
+    // WNTRMainInterface's projectAssets) — the project's identity itself
+    // (id/name/description) is backed by HydraulicProject in the real DB, the
+    // same catalog Chat's project selector reads, so a project created here
+    // shows up there and vice versa. `chatCount` comes from the DB relation
+    // (Conversation.projectId), replacing the old always-zero local `chats` array.
     networks: NetworkAsset[];
     calculations: CalculationAsset[];
-    chats: ChatSession[];
+    chatCount: number;
 }
