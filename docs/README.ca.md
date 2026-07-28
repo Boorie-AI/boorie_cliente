@@ -44,7 +44,7 @@
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
 | 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.5.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.0/Boorie-1.5.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie.Setup.1.5.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.0/Boorie.Setup.1.5.0.exe) | ~223 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.5.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.0/Boorie-Setup-1.5.0.exe) | ~223 MB |
 | 🐧 **Linux** | x64 | [Boorie-1.5.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.0/Boorie-1.5.0.AppImage) | ~344 MB |
 
 ### 📝 Novetats a v1.5.0
@@ -78,7 +78,7 @@
 3. Executa: `./Boorie-1.5.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie Setup 1.5.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.5.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 

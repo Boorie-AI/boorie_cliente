@@ -44,7 +44,7 @@
 | Platform | Architecture | Download |
 |----------|-------------|----------|
 | 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.5.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.0/Boorie-1.5.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie Setup 1.5.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.0/Boorie.Setup.1.5.0.exe) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.5.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.0/Boorie-Setup-1.5.0.exe) |
 | 🐧 **Linux** | x64 | [Boorie-1.5.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.0/Boorie-1.5.0.AppImage) |
 
 ### 📝 What's New
@@ -77,7 +77,7 @@
 3. Run: `./Boorie-1.5.0.AppImage`
 
 #### Windows
-1. Download `Boorie Setup 1.5.0.exe` from the link above
+1. Download `Boorie-Setup-1.5.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 
