@@ -75,6 +75,7 @@ export function UnifiedWisdomPanel() {
 
   // UI State
   const [loading, setLoading] = useState(false)
+  const [providerChangeLoading, setProviderChangeLoading] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [showSettings, setShowSettings] = useState(false)
   const [showVectorGraph, setShowVectorGraph] = useState(false)
@@ -506,7 +507,7 @@ export function UnifiedWisdomPanel() {
   */
 
   const handleProviderChange = async (providerId: string) => {
-    setLoading(true)
+    setProviderChangeLoading(true)
     try {
       const result = await window.electronAPI.wisdom.setEmbeddingProvider(providerId)
       if (result.success) {
@@ -519,7 +520,7 @@ export function UnifiedWisdomPanel() {
       logger.error('Error changing embedding provider:', error)
       showNotification('Error changing embedding provider', 'error')
     } finally {
-      setLoading(false)
+      setProviderChangeLoading(false)
     }
   }
 
@@ -1099,21 +1100,21 @@ export function UnifiedWisdomPanel() {
                       <button
                         onClick={async () => {
                           logger.debug('🔄 Manual refresh of embedding providers triggered')
-                          setLoading(true)
+                          setProviderChangeLoading(true)
                           try {
                             await loadEmbeddingProviders()
                             logger.debug('✅ Embedding providers refreshed')
                           } catch (error) {
                             logger.error('❌ Failed to refresh providers:', error)
                           } finally {
-                            setLoading(false)
+                            setProviderChangeLoading(false)
                           }
                         }}
-                        disabled={loading}
+                        disabled={providerChangeLoading}
                         className="p-1 text-muted-foreground hover:text-foreground transition-colors"
                         title="Refresh Ollama models and providers"
                       >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`w-4 h-4 ${providerChangeLoading ? 'animate-spin' : ''}`} />
                       </button>
                     </div>
 
@@ -1129,7 +1130,7 @@ export function UnifiedWisdomPanel() {
                       key={`provider-select-${embeddingProviders.length}`}
                       value={selectedProviderId}
                       onChange={(e) => handleProviderChange(e.target.value)}
-                      disabled={loading}
+                      disabled={providerChangeLoading}
                       className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm mb-3"
                     >
                       {embeddingProviders.length > 0 ? (
