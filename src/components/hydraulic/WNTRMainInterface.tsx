@@ -15,7 +15,8 @@ import {
   FileUp, Play, Map, Network,
   RefreshCw, AlertCircle,
   Activity, Database,
-  Target, FolderOpen, ChevronDown
+  Target, FolderOpen, ChevronDown,
+  Scissors, Zap, ShieldAlert, AlertTriangle, Download
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -27,6 +28,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import { Line } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale,
@@ -274,6 +276,33 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   const [simulationTimestep, setSimulationTimestep] = useState<number>(60); // minutes
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
 
+  // --- Resilience routines (epic #26): skeletonization, service interruption,
+  // resilience indicators, fragility curve ---
+  const [skeletonizeThresholdMm, setSkeletonizeThresholdMm] = useState<number>(100);
+  const [isSkeletonizing, setIsSkeletonizing] = useState(false);
+  const [skeletonizePreview, setSkeletonizePreview] = useState<any>(null);
+  const [skeletonizeError, setSkeletonizeError] = useState<string | null>(null);
+
+  const [failureComponentIds, setFailureComponentIds] = useState('');
+  const [failureDurationHours, setFailureDurationHours] = useState<number>(24);
+  const [failureStartHours, setFailureStartHours] = useState<number>(0);
+  const [failureRestoreHours, setFailureRestoreHours] = useState<string>('');
+  const [minPressureThreshold, setMinPressureThreshold] = useState<number>(10);
+  const [isSimulatingFailure, setIsSimulatingFailure] = useState(false);
+  const [failureResult, setFailureResult] = useState<any>(null);
+  const [failureError, setFailureError] = useState<string | null>(null);
+
+  const [compareWithFailure, setCompareWithFailure] = useState(false);
+  const [isCalculatingIndicators, setIsCalculatingIndicators] = useState(false);
+  const [resilienceIndicatorsResult, setResilienceIndicatorsResult] = useState<any>(null);
+  const [resilienceIndicatorsError, setResilienceIndicatorsError] = useState<string | null>(null);
+
+  const [fragilityMaterial, setFragilityMaterial] = useState('PVC');
+  const [fragilityMaxIntensity, setFragilityMaxIntensity] = useState<number>(100);
+  const [isGeneratingFragility, setIsGeneratingFragility] = useState(false);
+  const [fragilityResult, setFragilityResult] = useState<any>(null);
+  const [fragilityError, setFragilityError] = useState<string | null>(null);
+
   // Load network file
   const handleLoadNetwork = useCallback(async () => {
     try {
@@ -461,8 +490,196 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     }
   }, [networkData, onSimulationComplete, simulationDuration, simulationTimestep, currentProject, handleSaveCalculationToProject]);
 
+  // --- Resilience routines handlers (epic #26) ---
 
+  // #24: Esqueletización de redes
+  const handlePreviewSkeletonize = useCallback(async () => {
+    if (!networkData) return;
+    setIsSkeletonizing(true);
+    setSkeletonizeError(null);
+    setSkeletonizePreview(null);
+    try {
+      const res = await window.electronAPI.wntr.skeletonizeNetwork({
+        pipe_diameter_threshold_mm: skeletonizeThresholdMm
+      });
+      if (res.success) {
+        setSkeletonizePreview(res.data);
+      } else {
+        setSkeletonizeError(res.error || 'No se pudo esqueletizar la red');
+      }
+    } catch (err) {
+      setSkeletonizeError(err instanceof Error ? err.message : 'Error al esqueletizar la red');
+    } finally {
+      setIsSkeletonizing(false);
+    }
+  }, [networkData, skeletonizeThresholdMm]);
 
+  const handleSaveSkeletonizedNetwork = useCallback(async () => {
+    if (!skeletonizePreview || !currentProject || !networkData) return;
+    try {
+      const saveRes = await window.electronAPI.wntr.saveINPFile(
+        skeletonizePreview.inp_content,
+        `${networkData.name}_skeletonized.inp`
+      );
+      if (!saveRes.success || !saveRes.filePath) {
+        setSkeletonizeError(saveRes.error || 'Guardado cancelado');
+        return;
+      }
+
+      const newProject = await hydraulicService.createProject({
+        name: `${currentProject.name} (esqueletizada)`,
+        description: `Red esqueletizada a partir de "${currentProject.name}" (umbral ${skeletonizeThresholdMm}mm, reducción ${skeletonizePreview.reduction.pipes_pct}% tuberías / ${skeletonizePreview.reduction.junctions_pct}% nudos). Red original trazable: proyecto "${currentProject.name}" (${currentProject.id}).`,
+        type: 'analysis' as any,
+        location: { country: '', region: '' }
+      });
+
+      const loadRes = await window.electronAPI.wntr.loadINPFromPath(saveRes.filePath);
+      if (loadRes.success && loadRes.data) {
+        const networkAsset: NetworkAsset = {
+          id: `net_${Date.now()}`,
+          name: loadRes.data.name,
+          filePath: saveRes.filePath,
+          uploadDate: new Date().toISOString(),
+          nodeCount: loadRes.data.summary?.junctions || 0,
+          linkCount: loadRes.data.summary?.pipes || 0,
+          data: loadRes.data
+        };
+        setProjectAssets(prev => ({
+          ...prev,
+          [newProject.id]: { networks: [networkAsset], calculations: [] }
+        }));
+      }
+
+      await refreshProjects();
+      setSkeletonizePreview(null);
+    } catch (err) {
+      setSkeletonizeError(err instanceof Error ? err.message : 'Error al guardar la red esqueletizada');
+    }
+  }, [skeletonizePreview, currentProject, networkData, skeletonizeThresholdMm, refreshProjects]);
+
+  // #22: Simulación de interrupción del servicio
+  const handleSimulateFailure = useCallback(async () => {
+    if (!networkData) return;
+    const components = failureComponentIds
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean)
+      .map(id => ({ id }));
+
+    if (components.length === 0) {
+      setFailureError('Especifica al menos un componente (ID de tubería, bomba o válvula)');
+      return;
+    }
+
+    setIsSimulatingFailure(true);
+    setFailureError(null);
+    try {
+      const res = await window.electronAPI.wntr.simulateComponentFailure({
+        components,
+        duration_hours: failureDurationHours,
+        failure_start_hours: failureStartHours,
+        restore_hours: failureRestoreHours ? Number(failureRestoreHours) : undefined,
+        min_pressure_threshold: minPressureThreshold
+      });
+
+      if (res.success) {
+        setFailureResult(res.data);
+        if (currentProject) {
+          const currentNetwork = currentProject.networks.find(n => n.name === networkData.name);
+          const networkId = currentNetwork?.id || 'unknown';
+          handleSaveCalculationToProject(
+            `Interrupción de Servicio: ${res.data.failed_components.join(', ')}`,
+            networkId,
+            res.data
+          );
+        }
+      } else {
+        setFailureError(res.error || 'No se pudo simular la interrupción del servicio');
+      }
+    } catch (err) {
+      setFailureError(err instanceof Error ? err.message : 'Error al simular la interrupción');
+    } finally {
+      setIsSimulatingFailure(false);
+    }
+  }, [networkData, failureComponentIds, failureDurationHours, failureStartHours, failureRestoreHours, minPressureThreshold, currentProject, handleSaveCalculationToProject]);
+
+  // #23: Indicadores de resiliencia
+  const handleCalculateResilienceIndicators = useCallback(async () => {
+    if (!networkData) return;
+    setIsCalculatingIndicators(true);
+    setResilienceIndicatorsError(null);
+    try {
+      const options: any = {
+        duration_hours: failureDurationHours,
+        min_pressure_threshold: minPressureThreshold
+      };
+      if (compareWithFailure && failureResult?.failed_components?.length) {
+        options.failed_components = failureResult.failed_components.map((id: string) => ({ id }));
+        options.failure_start_hours = failureStartHours;
+      }
+
+      const res = await window.electronAPI.wntr.calculateResilienceIndicators(options);
+      if (res.success) {
+        setResilienceIndicatorsResult(res.data);
+        if (currentProject) {
+          const currentNetwork = currentProject.networks.find(n => n.name === networkData.name);
+          const networkId = currentNetwork?.id || 'unknown';
+          handleSaveCalculationToProject('Indicadores de Resiliencia', networkId, res.data);
+        }
+      } else {
+        setResilienceIndicatorsError(res.error || 'No se pudieron calcular los indicadores de resiliencia');
+      }
+    } catch (err) {
+      setResilienceIndicatorsError(err instanceof Error ? err.message : 'Error al calcular los indicadores');
+    } finally {
+      setIsCalculatingIndicators(false);
+    }
+  }, [networkData, failureDurationHours, minPressureThreshold, compareWithFailure, failureResult, failureStartHours, currentProject, handleSaveCalculationToProject]);
+
+  const handleExportResilienceCSV = useCallback(() => {
+    if (!resilienceIndicatorsResult) return;
+    const b = resilienceIndicatorsResult.before;
+    const a = resilienceIndicatorsResult.after;
+    const d = resilienceIndicatorsResult.delta;
+    const rows = [
+      ['Métrica', 'Antes', 'Después', 'Delta'],
+      ['Índice de Todini', b.todini_index.toFixed(4), a ? a.todini_index.toFixed(4) : '', d ? d.todini_index.toFixed(4) : ''],
+      ['Entropía de red', b.network_entropy.toFixed(4), a ? a.network_entropy.toFixed(4) : '', d ? d.network_entropy.toFixed(4) : ''],
+      ['Redundancia hidráulica', b.hydraulic_redundancy.toFixed(4), a ? a.hydraulic_redundancy.toFixed(4) : '', d ? d.hydraulic_redundancy.toFixed(4) : ''],
+      ['Serviceability (presión)', b.serviceability.pressure_serviceability.toFixed(4), a ? a.serviceability.pressure_serviceability.toFixed(4) : '', d ? d.pressure_serviceability.toFixed(4) : '']
+    ];
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `indicadores_resiliencia_${networkData?.name || 'red'}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [resilienceIndicatorsResult, networkData]);
+
+  // #25: Curva de fragilidad
+  const handleGenerateFragilityCurve = useCallback(async () => {
+    if (!networkData) return;
+    setIsGeneratingFragility(true);
+    setFragilityError(null);
+    try {
+      const res = await window.electronAPI.wntr.generateFragilityCurve({
+        hazard_type: 'seismic_pgv',
+        material: fragilityMaterial,
+        max_intensity: fragilityMaxIntensity
+      });
+      if (res.success) {
+        setFragilityResult(res.data);
+      } else {
+        setFragilityError(res.error || 'No se pudo generar la curva de fragilidad');
+      }
+    } catch (err) {
+      setFragilityError(err instanceof Error ? err.message : 'Error al generar la curva de fragilidad');
+    } finally {
+      setIsGeneratingFragility(false);
+    }
+  }, [networkData, fragilityMaterial, fragilityMaxIntensity]);
 
 
   // Dashboard Layout Render
@@ -607,12 +824,15 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
           <Tabs defaultValue="simulate" className="flex-1 flex flex-col min-h-0">
             <div className="px-4 pt-2 border-b bg-muted/10">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="simulate" title="Simulation">
                   <Play className="h-4 w-4" />
                 </TabsTrigger>
                 <TabsTrigger value="analyze" title="Analysis">
                   <Target className="h-4 w-4" />
+                </TabsTrigger>
+                <TabsTrigger value="resilience" title="Resilience">
+                  <ShieldAlert className="h-4 w-4" />
                 </TabsTrigger>
 
                 <TabsTrigger value="layers" title="Layers">
@@ -941,6 +1161,332 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
               {/* RESULTS TAB - Aggregating Analysis/Sim Results */}
 
+              {/* RESILIENCE TAB (epic #26) */}
+              <TabsContent value="resilience" className="mt-0 space-y-4">
+                <div className="space-y-6">
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    <ShieldAlert className="h-4 w-4 text-amber-500" />
+                    Rutinas de Resiliencia
+                  </h3>
+
+                  {/* Skeletonization (#24) */}
+                  <div className="space-y-2 p-3 bg-muted/20 rounded-lg">
+                    <h4 className="text-xs font-semibold flex items-center gap-2 text-foreground">
+                      <Scissors className="h-3.5 w-3.5" /> Esqueletización de Red
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground">
+                      Simplifica la red fusionando/eliminando tuberías bajo un diámetro umbral. Se guarda como un proyecto nuevo, sin modificar el original.
+                    </p>
+                    <div className="bg-background p-2 rounded border">
+                      <div className="text-[10px] text-muted-foreground mb-1">Umbral de diámetro (mm)</div>
+                      <input
+                        type="number"
+                        value={skeletonizeThresholdMm}
+                        onChange={(e) => setSkeletonizeThresholdMm(Number(e.target.value))}
+                        className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                    <Button size="sm" className="w-full" onClick={handlePreviewSkeletonize} disabled={isSkeletonizing}>
+                      {isSkeletonizing ? (
+                        <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> Esqueletizando...</>
+                      ) : (
+                        <><Scissors className="h-3.5 w-3.5 mr-2" /> Vista Previa</>
+                      )}
+                    </Button>
+
+                    {skeletonizeError && (
+                      <Alert variant="destructive" className="text-xs">
+                        <AlertCircle className="h-3 w-3 inline mr-1" /> {skeletonizeError}
+                      </Alert>
+                    )}
+
+                    {skeletonizePreview && (
+                      <Card>
+                        <CardContent className="p-3 text-xs space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <div className="text-[10px] text-muted-foreground">Tuberías</div>
+                              <div className="font-mono">
+                                {skeletonizePreview.before.pipes} → {skeletonizePreview.after.pipes}{' '}
+                                <span className="text-green-600">(-{skeletonizePreview.reduction.pipes_pct}%)</span>
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] text-muted-foreground">Nudos</div>
+                              <div className="font-mono">
+                                {skeletonizePreview.before.junctions} → {skeletonizePreview.after.junctions}{' '}
+                                <span className="text-green-600">(-{skeletonizePreview.reduction.junctions_pct}%)</span>
+                              </div>
+                            </div>
+                          </div>
+                          <Button size="sm" variant="outline" className="w-full" onClick={handleSaveSkeletonizedNetwork}>
+                            Guardar como nuevo proyecto
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+
+                  {/* Service interruption simulation (#22) */}
+                  <div className="space-y-2 p-3 bg-muted/20 rounded-lg border-t pt-4">
+                    <h4 className="text-xs font-semibold flex items-center gap-2 text-foreground">
+                      <Zap className="h-3.5 w-3.5" /> Simulación de Interrupción del Servicio
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground">
+                      Simula la falla de uno o más componentes (tubería, bomba, válvula) y estima el impacto sobre el servicio.
+                    </p>
+                    <div className="bg-background p-2 rounded border">
+                      <div className="text-[10px] text-muted-foreground mb-1">IDs de componentes (separados por coma)</div>
+                      <input
+                        type="text"
+                        value={failureComponentIds}
+                        onChange={(e) => setFailureComponentIds(e.target.value)}
+                        placeholder="ej. P-12, PUMP-1"
+                        className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">Inicio falla (h)</div>
+                        <input
+                          type="number"
+                          value={failureStartHours}
+                          onChange={(e) => setFailureStartHours(Number(e.target.value))}
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        />
+                      </div>
+                      <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">Restaurar en (h, opcional)</div>
+                        <input
+                          type="number"
+                          value={failureRestoreHours}
+                          onChange={(e) => setFailureRestoreHours(e.target.value)}
+                          placeholder="permanente"
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        />
+                      </div>
+                      <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">Duración simulación (h)</div>
+                        <input
+                          type="number"
+                          value={failureDurationHours}
+                          onChange={(e) => setFailureDurationHours(Number(e.target.value))}
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        />
+                      </div>
+                      <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">Presión mínima (m)</div>
+                        <input
+                          type="number"
+                          value={minPressureThreshold}
+                          onChange={(e) => setMinPressureThreshold(Number(e.target.value))}
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        />
+                      </div>
+                    </div>
+                    <Button size="sm" className="w-full" onClick={handleSimulateFailure} disabled={isSimulatingFailure}>
+                      {isSimulatingFailure ? (
+                        <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> Simulando...</>
+                      ) : (
+                        <><Zap className="h-3.5 w-3.5 mr-2" /> Simular Interrupción</>
+                      )}
+                    </Button>
+
+                    {failureError && (
+                      <Alert variant="destructive" className="text-xs">
+                        <AlertCircle className="h-3 w-3 inline mr-1" /> {failureError}
+                      </Alert>
+                    )}
+
+                    {failureResult && (
+                      <Card>
+                        <CardContent className="p-3 text-xs space-y-2">
+                          <div className="flex justify-between">
+                            <span>Nudos afectados:</span>
+                            <span className="font-mono">{failureResult.affected_node_count} / {failureResult.total_junction_count}</span>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">Click en un nudo para resaltarlo en el mapa</div>
+                          <div className="flex flex-wrap gap-1">
+                            {failureResult.affected_nodes.slice(0, 8).map((n: any) => (
+                              <Badge
+                                key={n.id}
+                                variant={highlightedComponents.includes(n.id) ? "default" : "outline"}
+                                className="text-[10px] h-5 cursor-pointer hover:bg-primary/20"
+                                onClick={() => setHighlightedComponents(prev => prev.includes(n.id) ? prev.filter(x => x !== n.id) : [...prev, n.id])}
+                                title={`Presión residual: ${n.min_pressure.toFixed(2)}m · ${n.outage_hours.toFixed(1)}h fuera de servicio`}
+                              >
+                                {n.id}
+                              </Badge>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+
+                  {/* Resilience indicators (#23) */}
+                  <div className="space-y-2 p-3 bg-muted/20 rounded-lg border-t pt-4">
+                    <h4 className="text-xs font-semibold flex items-center gap-2 text-foreground">
+                      <Target className="h-3.5 w-3.5" /> Indicadores de Resiliencia
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground">
+                      Índice de Todini, entropía de red y redundancia hidráulica. Compara antes/después del escenario de interrupción simulado arriba.
+                    </p>
+                    <label className="flex items-center gap-2 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={compareWithFailure}
+                        onChange={(e) => setCompareWithFailure(e.target.checked)}
+                        disabled={!failureResult}
+                      />
+                      Comparar con la interrupción simulada {!failureResult && '(simula una interrupción primero)'}
+                    </label>
+                    <Button size="sm" className="w-full" onClick={handleCalculateResilienceIndicators} disabled={isCalculatingIndicators}>
+                      {isCalculatingIndicators ? (
+                        <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> Calculando...</>
+                      ) : (
+                        <><Target className="h-3.5 w-3.5 mr-2" /> Calcular Indicadores</>
+                      )}
+                    </Button>
+
+                    {resilienceIndicatorsError && (
+                      <Alert variant="destructive" className="text-xs">
+                        <AlertCircle className="h-3 w-3 inline mr-1" /> {resilienceIndicatorsError}
+                      </Alert>
+                    )}
+
+                    {resilienceIndicatorsResult && (
+                      <Card>
+                        <CardContent className="p-3 text-xs space-y-2">
+                          {[
+                            { label: 'Índice de Todini', key: 'todini_index' },
+                            { label: 'Entropía de red', key: 'network_entropy' },
+                            { label: 'Redundancia hidráulica', key: 'hydraulic_redundancy' },
+                          ].map(({ label, key }) => (
+                            <div key={key} className="flex justify-between">
+                              <span>{label}:</span>
+                              <span className="font-mono">
+                                {resilienceIndicatorsResult.before[key]?.toFixed(4)}
+                                {resilienceIndicatorsResult.after && (
+                                  <span className={resilienceIndicatorsResult.delta[key] < 0 ? 'text-red-500' : 'text-green-600'}>
+                                    {' → '}{resilienceIndicatorsResult.after[key]?.toFixed(4)}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          ))}
+                          <div className="flex justify-between">
+                            <span>Serviceability (presión):</span>
+                            <span className="font-mono">
+                              {(resilienceIndicatorsResult.before.serviceability.pressure_serviceability * 100).toFixed(1)}%
+                              {resilienceIndicatorsResult.after && (
+                                <span className={resilienceIndicatorsResult.delta.pressure_serviceability < 0 ? 'text-red-500' : 'text-green-600'}>
+                                  {' → '}{(resilienceIndicatorsResult.after.serviceability.pressure_serviceability * 100).toFixed(1)}%
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          <Button size="sm" variant="outline" className="w-full mt-2" onClick={handleExportResilienceCSV}>
+                            <Download className="h-3 w-3 mr-2" /> Exportar CSV
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+
+                  {/* Fragility curve (#25) */}
+                  <div className="space-y-2 p-3 bg-muted/20 rounded-lg border-t pt-4">
+                    <h4 className="text-xs font-semibold flex items-center gap-2 text-foreground">
+                      <AlertTriangle className="h-3.5 w-3.5" /> Curva de Fragilidad (Sismo)
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground">
+                      Probabilidad de falla de tubería vs. intensidad sísmica (PGV). Modelo genérico ALA (2001) por material —{' '}
+                      <strong>requiere validación de un experto APyS antes de usarse en decisiones reales.</strong>
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">Material predominante</div>
+                        <select
+                          value={fragilityMaterial}
+                          onChange={(e) => setFragilityMaterial(e.target.value)}
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        >
+                          <option value="PVC">PVC</option>
+                          <option value="HDPE">PEAD/HDPE</option>
+                          <option value="DI">Hierro Dúctil</option>
+                          <option value="CI">Hierro Fundido</option>
+                          <option value="AC">Asbesto-Cemento</option>
+                          <option value="STEEL">Acero</option>
+                          <option value="CONCRETE">Concreto</option>
+                          <option value="DEFAULT">Genérico</option>
+                        </select>
+                      </div>
+                      <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">PGV máximo (cm/s)</div>
+                        <input
+                          type="number"
+                          value={fragilityMaxIntensity}
+                          onChange={(e) => setFragilityMaxIntensity(Number(e.target.value))}
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        />
+                      </div>
+                    </div>
+                    <Button size="sm" className="w-full" onClick={handleGenerateFragilityCurve} disabled={isGeneratingFragility}>
+                      {isGeneratingFragility ? (
+                        <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> Generando...</>
+                      ) : (
+                        <><AlertTriangle className="h-3.5 w-3.5 mr-2" /> Generar Curva</>
+                      )}
+                    </Button>
+
+                    {fragilityError && (
+                      <Alert variant="destructive" className="text-xs">
+                        <AlertCircle className="h-3 w-3 inline mr-1" /> {fragilityError}
+                      </Alert>
+                    )}
+
+                    {fragilityResult && (
+                      <Card>
+                        <CardContent className="p-3 text-xs space-y-2">
+                          <div className="h-40">
+                            <Line
+                              data={{
+                                labels: fragilityResult.intensities.map((v: number) => v.toFixed(0)),
+                                datasets: [{
+                                  label: 'Prob. falla de tubería',
+                                  data: fragilityResult.pipe_failure_probability,
+                                  borderColor: 'rgb(234, 88, 12)',
+                                  backgroundColor: 'rgba(234, 88, 12, 0.3)',
+                                  borderWidth: 2,
+                                  pointRadius: 0,
+                                  tension: 0.3
+                                }]
+                              }}
+                              options={{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                animation: { duration: 0 },
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                  x: { title: { display: true, text: 'PGV (cm/s)', font: { size: 9 } }, ticks: { maxTicksLimit: 6, font: { size: 9 } } },
+                                  y: { min: 0, max: 1, ticks: { font: { size: 9 } } }
+                                }
+                              }}
+                            />
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Tuberías afectadas esperadas (PGV máx.):</span>
+                            <span className="font-mono">
+                              {fragilityResult.expected_failed_pipes[fragilityResult.expected_failed_pipes.length - 1]?.toFixed(1)} / {fragilityResult.pipe_count}
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground italic">{fragilityResult.methodology}</div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
 
               {/* LAYERS / VIEW SETTINGS TAB */}
               <TabsContent value="layers" className="mt-0 space-y-4">

@@ -4,6 +4,7 @@ import { wntrWrapper } from '../../backend/services/hydraulic/wntrWrapper'
 import { WNTRSimulationService } from '../../backend/services/hydraulic/simulationService'
 import { WNTRAnalysisService } from '../../backend/services/hydraulic/analysisService'
 import { WNTRReportService } from '../../backend/services/hydraulic/reportService'
+import { WNTRResilienceService } from '../../backend/services/hydraulic/resilienceService'
 import { getPythonStatus } from '../../backend/services/hydraulic/pythonDetector'
 import { guardrailsWrapper } from '../../backend/services/guardrails/guardrailsWrapper'
 
@@ -11,6 +12,7 @@ import { guardrailsWrapper } from '../../backend/services/guardrails/guardrailsW
 const simulationService = new WNTRSimulationService()
 const analysisService = new WNTRAnalysisService()
 const reportService = new WNTRReportService()
+const resilienceService = new WNTRResilienceService()
 
 export function setupWNTRHandlers() {
   // Check Python/WNTR availability
@@ -422,6 +424,93 @@ export function setupWNTRHandlers() {
       return result // Return the result directly, it already has the correct structure
     } catch (error) {
       console.error('Error generating simulation report:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  })
+
+  // --- Resilience routines epic (#26): skeletonization, service interruption,
+  // resilience indicators, fragility curve ---
+
+  // Skeletonize network (#24)
+  ipcMain.handle('wntr:skeletonize-network', async (event, options: any) => {
+    try {
+      if (!global.currentWNTRFile) {
+        return { success: false, error: 'No EPANET file loaded' }
+      }
+
+      const result = await resilienceService.skeletonizeNetwork(global.currentWNTRFile, options)
+      return result
+    } catch (error) {
+      console.error('Error skeletonizing network:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  })
+
+  // Simulate service interruption / component failure (#22)
+  ipcMain.handle('wntr:simulate-component-failure', async (event, options: any) => {
+    try {
+      if (!global.currentWNTRFile) {
+        return { success: false, error: 'No EPANET file loaded' }
+      }
+
+      const verdict = await guardrailsWrapper.validateExecution('wntr.simulateComponentFailure', {
+        file: global.currentWNTRFile,
+        components: options?.components,
+      })
+      if (!verdict.allow) {
+        return {
+          success: false,
+          blockedBy: 'guardrail:execution',
+          error: `Simulación rechazada por guardrail: ${verdict.reason}`,
+        }
+      }
+
+      const result = await resilienceService.simulateComponentFailure(global.currentWNTRFile, options)
+      return result
+    } catch (error) {
+      console.error('Error simulating component failure:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  })
+
+  // Resilience indicators: Todini, entropy, hydraulic redundancy (#23)
+  ipcMain.handle('wntr:calculate-resilience-indicators', async (event, options: any) => {
+    try {
+      if (!global.currentWNTRFile) {
+        return { success: false, error: 'No EPANET file loaded' }
+      }
+
+      const result = await resilienceService.calculateResilienceIndicators(global.currentWNTRFile, options)
+      return result
+    } catch (error) {
+      console.error('Error calculating resilience indicators:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  })
+
+  // Fragility curve (#25)
+  ipcMain.handle('wntr:generate-fragility-curve', async (event, options: any) => {
+    try {
+      if (!global.currentWNTRFile) {
+        return { success: false, error: 'No EPANET file loaded' }
+      }
+
+      const result = await resilienceService.generateFragilityCurve(global.currentWNTRFile, options)
+      return result
+    } catch (error) {
+      console.error('Error generating fragility curve:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
