@@ -39,19 +39,28 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.4.3
+### 🚀 Última Versió - v1.5.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.4.3-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.4.3/Boorie-1.4.3-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie.Setup.1.4.3.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.4.3/Boorie.Setup.1.4.3.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.4.3.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.4.3/Boorie-1.4.3.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.5.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.0/Boorie-1.5.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie.Setup.1.5.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.0/Boorie.Setup.1.5.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.5.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.0/Boorie-1.5.0.AppImage) | ~344 MB |
 
-### 📝 Novetats a v1.4.3
+### 📝 Novetats a v1.5.0
+- Noves rutines de resiliència al mòdul WNTR Network: esqueletització de xarxes, simulació d'interrupció del servei, indicadors de resiliència (índex de Todini, entropia de xarxa, redundància hidràulica) i corbes de fragilitat sísmica.
+- **Fix #16**: la interfície es congelava en canviar el model d'IA d'indexació al Wisdom Center.
+- **Fix #17**: el selector de projecte del Chat no aplicava la selecció, i el LLM no rebia context del projecte hidràulic vinculat.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.5.0).
+
+<details>
+<summary>Novetats a v1.4.3</summary>
+
 - **Fix #15**: els projectes no apareixien al selector de projectes del Chat (un sol projecte amb dades corruptes buidava silenciosament tota la llista).
 - **Fix #14**: documents del Wisdom Center encallats en "Not Indexed" a Windows (URL d'Ollama fixada a una IP de LAN en lloc de `localhost`).
 - Refactorització del logger de backend i actualització de dependències.
 - Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.4.3).
+</details>
 
 📖 Documentació completa: [GitHub Wiki](https://github.com/Boorie-AI/boorie_cliente/wiki)
 
@@ -64,12 +73,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.4.3.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.4.3.AppImage`
-3. Executa: `./Boorie-1.4.3.AppImage`
+1. Descarrega `Boorie-1.5.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.5.0.AppImage`
+3. Executa: `./Boorie-1.5.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie Setup 1.4.3.exe` de l'enllaç anterior
+1. Descarrega `Boorie Setup 1.5.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
