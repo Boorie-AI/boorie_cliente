@@ -72,6 +72,9 @@ interface ChatState {
   // Wisdom/RAG actions
   setWisdomConfig: (config: WisdomConfiguration | undefined) => void
   enhancePromptWithRAG: (originalPrompt: string) => Promise<{ enhancedPrompt: string; sources?: any[] }>
+
+  // Hydraulic project context
+  buildProjectContext: (projectId: string) => Promise<string>
 }
 
 export const useChatStore = create<ChatState>()(
@@ -265,6 +268,24 @@ export const useChatStore = create<ChatState>()(
 
             const conversation = get().conversations.find(c => c.id === conversationId)
             if (!conversation) throw new Error('Conversation not found')
+
+            // Prepend hydraulic project context when the conversation is linked to a project
+            if (conversation.projectId) {
+              try {
+                const projectContextTimeout = new Promise<string>((resolve) =>
+                  setTimeout(() => resolve(''), 10000)
+                )
+                const projectContext = await Promise.race([
+                  get().buildProjectContext(conversation.projectId),
+                  projectContextTimeout
+                ])
+                if (projectContext) {
+                  enhancedPrompt = projectContext + enhancedPrompt
+                }
+              } catch (error) {
+                logger.warn('Failed to attach project context, continuing without it:', error)
+              }
+            }
 
             // Clear any previous streaming message
             get().clearStreamingMessage()
@@ -727,6 +748,44 @@ export const useChatStore = create<ChatState>()(
         } catch (error) {
           logger.error('Failed to enhance prompt with RAG:', error)
           return { enhancedPrompt: originalPrompt, sources: [] }
+        }
+      },
+
+      buildProjectContext: async (projectId: string): Promise<string> => {
+        try {
+          const result = await window.electronAPI.hydraulic.getProject(projectId)
+          if (!result.success || !result.data) {
+            return ''
+          }
+
+          const project = result.data
+          let context = '=== HYDRAULIC PROJECT CONTEXT ===\n\n'
+          context += `Project: ${project.name}\n`
+          if (project.description) context += `Description: ${project.description}\n`
+          if (project.type) context += `Type: ${project.type}\n`
+          if (project.status) context += `Status: ${project.status}\n`
+          if (project.location?.country || project.location?.region) {
+            context += `Location: ${[project.location?.city, project.location?.region, project.location?.country].filter(Boolean).join(', ')}\n`
+          }
+
+          if (project.network) {
+            context += `\nNetwork model: loaded (EPANET .inp data available for this project)\n`
+          }
+
+          if (project.calculations && project.calculations.length > 0) {
+            context += `\nCalculations performed on this project (${project.calculations.length}):\n`
+            project.calculations.slice(0, 10).forEach((calc: any) => {
+              context += `- ${calc.name} (${calc.type})${calc.verified ? ' [verified]' : ''}\n`
+            })
+          }
+
+          context += '\n=== END PROJECT CONTEXT ===\n\n'
+          context += 'Utiliza el contexto del proyecto anterior cuando sea relevante para responder la consulta del usuario.\n\n'
+
+          return context
+        } catch (error) {
+          logger.warn('Failed to build project context:', error)
+          return ''
         }
       }
     }),

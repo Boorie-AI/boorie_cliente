@@ -835,10 +835,7 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
       console.log(`[Document Handler] Static providers: ${staticProviders.length}`)
 
       // Get dynamic Ollama providers
-      await ipcMain.emit('wisdom:checkOllamaConnection')
       let dynamicProviders = []
-
-      // Try to get Ollama models directly since emit doesn't return values
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const axios = require('axios')
@@ -928,6 +925,17 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
 
       // Get all available providers (static + dynamic)
       const staticProviders = embeddingService.getProviders()
+      const staticProvider = staticProviders.find((p: any) => p.id === providerId)
+
+      // Static providers (e.g. OpenAI) never need an Ollama round-trip - switch immediately
+      if (staticProvider) {
+        embeddingService.setProvider(providerId)
+        return {
+          success: true,
+          message: `Switched to ${embeddingService.activeProvider.name}`
+        }
+      }
+
       let dynamicProviders = []
 
       // Get dynamic Ollama providers if available
@@ -983,29 +991,19 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
         console.log('[Document Handler] Could not get dynamic providers:', ollamaError.message)
       }
 
-      // Combine all providers
-      const allProviders = [...staticProviders, ...dynamicProviders]
-      const selectedProvider = allProviders.find(p => p.id === providerId)
+      const selectedProvider = dynamicProviders.find((p: any) => p.id === providerId)
 
       if (!selectedProvider) {
+        const allProviders = [...staticProviders, ...dynamicProviders]
         throw new Error(`Provider ${providerId} not found. Available providers: ${allProviders.map(p => p.id).join(', ')}`)
       }
 
-      // For static providers, use the existing service
-      if (staticProviders.find((p: any) => p.id === providerId)) {
-        embeddingService.setProvider(providerId)
-        return {
-          success: true,
-          message: `Switched to ${embeddingService.activeProvider.name}`
-        }
-      } else {
-        // For dynamic providers, set manually
-        embeddingService.activeProvider = selectedProvider
-        console.log(`[Document Handler] Set dynamic provider: ${selectedProvider.name}`)
-        return {
-          success: true,
-          message: `Switched to ${selectedProvider.name}`
-        }
+      // For dynamic (Ollama) providers, set manually
+      embeddingService.activeProvider = selectedProvider
+      console.log(`[Document Handler] Set dynamic provider: ${selectedProvider.name}`)
+      return {
+        success: true,
+        message: `Switched to ${selectedProvider.name}`
       }
 
     } catch (error: any) {

@@ -42,9 +42,15 @@ export function ProjectSelector({ selectedProjectId, onProjectSelect, className 
   
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <Select.Root value={currentProjectId || 'none'} onValueChange={(value) => {
-        onProjectSelect(value === 'none' ? undefined : value)
-      }}>
+      <Select.Root
+        value={currentProjectId || 'none'}
+        onValueChange={(value) => {
+          onProjectSelect(value === 'none' ? undefined : value)
+        }}
+        onOpenChange={(open) => {
+          if (open) loadProjects()
+        }}
+      >
         <Select.Trigger className={cn(
           "inline-flex items-center justify-between gap-2 px-3 py-2 rounded-lg",
           "bg-card border border-border/50 text-sm",
