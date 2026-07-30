@@ -138,7 +138,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                 <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4 text-sm text-yellow-700 dark:text-yellow-400 flex gap-3 items-start">
                   <AlertTriangle className="w-5 h-5 flex-shrink-0" />
                   <div>
-                    No se encontró Python 3.9+ en tu sistema. Instálalo desde{' '}
+                    No se encontró Python 3.10 o superior en tu sistema. Instálalo desde{' '}
                     <a className="underline" href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer">
                       python.org/downloads
                     </a>{' '}

@@ -13,7 +13,7 @@ import { resetPythonPathCache, savePythonPath } from '../../backend/services/hyd
  * Settings → Guardrails si algo se rompe.
  *
  * Estrategia:
- *   1. Detecta un Python 3.9+ del sistema.
+ *   1. Detecta un Python 3.10+ del sistema.
  *   2. Crea (o reutiliza) `venv-wntr/` en la carpeta de userData (writable
  *      en producción) o en el repo en dev.
  *   3. Hace `pip install` de los paquetes necesarios uno por uno con
@@ -234,7 +234,7 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
         optionalMissing: allNames.filter((n) => isOptionalPackage(n)),
         message: sys
           ? 'venv no creado todavía. Boorie puede crearlo automáticamente.'
-          : 'Python 3.9+ no encontrado. Instálalo desde python.org y reinicia Boorie.',
+          : 'Python 3.10 o superior no encontrado. Instálalo desde python.org (marcando "Add Python to PATH") y reinicia Boorie.',
       }
     }
 
@@ -267,7 +267,7 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
       if (!sys) {
         emitProgress(window, {
           stage: 'error',
-          message: 'No se encontró Python 3.9+ en el sistema. Instálalo desde python.org y reinicia Boorie.',
+          message: 'No se encontró Python 3.10 o superior en el sistema. Instálalo desde python.org (marcando "Add Python to PATH") y reinicia Boorie.',
         })
         return { success: false, error: 'python-not-found' }
       }
