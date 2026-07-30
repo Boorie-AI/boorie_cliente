@@ -4,6 +4,99 @@ import { execSync } from 'child_process'
 
 let cachedPythonPath: string | null = null
 
+/** Nombre del venv que gestiona el propio Boorie (SetupWizard / setup.handler). */
+const MANAGED_VENV_DIR = 'venv-wntr'
+/** Fichero donde persistimos la ruta del Python elegido, dentro de userData. */
+const PYTHON_CONFIG_FILE = 'python-path.json'
+
+/**
+ * Directorio userData de Electron. Se resuelve de forma perezosa porque este
+ * módulo también se carga desde tests y desde scripts fuera de Electron.
+ */
+function getUserDataDir(): string | null {
+  if (process.env.BOORIE_USER_DATA) return process.env.BOORIE_USER_DATA
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { app } = require('electron')
+    if (app && typeof app.getPath === 'function') return app.getPath('userData')
+  } catch {
+    // fuera de Electron (tests, scripts) — no hay userData
+  }
+  return null
+}
+
+/**
+ * Ruta del venv gestionado por Boorie. En la app instalada vive en userData
+ * porque el directorio de instalación no es escribible.
+ */
+export function getManagedVenvDir(): string | null {
+  const userData = getUserDataDir()
+  return userData ? path.join(userData, MANAGED_VENV_DIR) : null
+}
+
+function venvPythonCandidates(venvDir: string): string[] {
+  return [
+    path.join(venvDir, 'Scripts', 'python.exe'), // Windows
+    path.join(venvDir, 'bin', 'python'),         // macOS / Linux
+    path.join(venvDir, 'bin', 'python3'),
+  ]
+}
+
+function getPythonConfigFile(): string | null {
+  const userData = getUserDataDir()
+  return userData ? path.join(userData, PYTHON_CONFIG_FILE) : null
+}
+
+/**
+ * Persiste la ruta del intérprete que Boorie debe usar. Sin esto la ruta del
+ * venv recién creado sólo vivía en `process.env.PYTHON_PATH` y se perdía al
+ * cerrar la app: al siguiente arranque WNTR volvía a "no instalado".
+ */
+export function savePythonPath(pythonPath: string): void {
+  const configFile = getPythonConfigFile()
+  if (!configFile) return
+  try {
+    fs.mkdirSync(path.dirname(configFile), { recursive: true })
+    fs.writeFileSync(configFile, JSON.stringify({ pythonPath }, null, 2), 'utf-8')
+    console.log(`[PythonDetector] Saved Python path to ${configFile}: ${pythonPath}`)
+  } catch (error) {
+    console.warn('[PythonDetector] Could not persist Python path:', error)
+  }
+}
+
+function readSavedPythonPath(): string | null {
+  const configFile = getPythonConfigFile()
+  if (!configFile) return null
+  try {
+    if (!fs.existsSync(configFile)) return null
+    const parsed = JSON.parse(fs.readFileSync(configFile, 'utf-8'))
+    return typeof parsed?.pythonPath === 'string' && parsed.pythonPath.length > 0
+      ? parsed.pythonPath
+      : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Intérpretes "gestionados": el guardado en configuración y los venv que
+ * Boorie crea (userData en producción, raíz del repo en desarrollo).
+ */
+function getManagedPythonCandidates(): string[] {
+  const candidates: string[] = []
+
+  const saved = readSavedPythonPath()
+  if (saved) candidates.push(saved)
+
+  const managedVenv = getManagedVenvDir()
+  if (managedVenv) candidates.push(...venvPythonCandidates(managedVenv))
+
+  // Dev: el repo tiene su propio venv-wntr
+  candidates.push(...venvPythonCandidates(path.join(process.cwd(), MANAGED_VENV_DIR)))
+
+  return candidates
+}
+
 /**
  * Shared Python path detection utility.
  * Finds the best available Python installation with WNTR support.
@@ -21,33 +114,44 @@ export function findPythonPath(): string {
     return cachedPythonPath
   }
 
-  // 2. Check for venv-wntr in the app directory (works in dev and packaged)
-  const appVenvPaths = [
-    path.join(process.cwd(), 'venv-wntr', 'bin', 'python3'),
-    path.join(process.cwd(), 'venv-wntr', 'Scripts', 'python.exe'),
-  ]
-  for (const venvPath of appVenvPaths) {
-    if (fs.existsSync(venvPath)) {
-      if (testPythonHasWntr(venvPath)) {
-        cachedPythonPath = venvPath
-        return cachedPythonPath
-      }
+  // 2. Intérpretes gestionados por Boorie (ruta persistida + venv-wntr).
+  //    Si uno tiene WNTR es el ganador: es el entorno que la propia app
+  //    preparó y el que contiene también milvus-lite/langchain.
+  let managedFallback: string | null = null
+  for (const candidate of getManagedPythonCandidates()) {
+    if (!fs.existsSync(candidate)) continue
+    if (testPythonHasWntr(candidate)) {
+      console.log(`[PythonDetector] Found managed Python with WNTR: ${candidate}`)
+      cachedPythonPath = candidate
+      return cachedPythonPath
+    }
+    if (!managedFallback && testPythonIsReal(candidate)) {
+      // Venv a medio preparar: sólo lo usaremos si no aparece nada mejor.
+      managedFallback = candidate
     }
   }
 
   // 3. Platform-specific detection
+  let detected: { path: string; hasWntr: boolean }
   if (process.platform === 'darwin') {
-    cachedPythonPath = findPythonMacOS()
+    detected = findPythonMacOS()
   } else if (process.platform === 'win32') {
-    cachedPythonPath = findPythonWindows()
+    detected = findPythonWindows()
   } else {
-    cachedPythonPath = findPythonLinux()
+    detected = findPythonLinux()
   }
 
+  if (!detected.hasWntr && managedFallback) {
+    console.log(`[PythonDetector] Falling back to managed venv Python: ${managedFallback}`)
+    cachedPythonPath = managedFallback
+    return cachedPythonPath
+  }
+
+  cachedPythonPath = detected.path
   return cachedPythonPath
 }
 
-function findPythonMacOS(): string {
+function findPythonMacOS(): { path: string; hasWntr: boolean } {
   const possiblePaths = [
     `${process.env.HOME}/repositorio/uruguay_wihisper/venv/bin/python3`,
     `${process.env.HOME}/venv/bin/python3`,
@@ -67,42 +171,44 @@ function findPythonMacOS(): string {
     if (fs.existsSync(pythonPath)) {
       if (testPythonHasWntr(pythonPath)) {
         console.log(`[PythonDetector] Found Python with WNTR on macOS: ${pythonPath}`)
-        return pythonPath
+        return { path: pythonPath, hasWntr: true }
       }
     }
   }
 
   console.warn('[PythonDetector] No Python with WNTR found on macOS, using fallback')
-  return 'python3'
+  return { path: 'python3', hasWntr: false }
 }
 
-function findPythonWindows(): string {
+function findPythonWindows(): { path: string; hasWntr: boolean } {
   const home = process.env.USERPROFILE || process.env.HOME || ''
+  const programFiles = process.env.ProgramFiles || 'C:\\Program Files'
+  const versions = ['313', '312', '311', '310', '39']
 
   const possiblePaths = [
     // Common virtual environment locations
     path.join(process.cwd(), 'venv-wntr', 'Scripts', 'python.exe'),
     path.join(process.cwd(), 'venv', 'Scripts', 'python.exe'),
     path.join(process.cwd(), '.venv', 'Scripts', 'python.exe'),
-    // Python.org installer default locations
-    path.join(home, 'AppData', 'Local', 'Programs', 'Python', 'Python313', 'python.exe'),
-    path.join(home, 'AppData', 'Local', 'Programs', 'Python', 'Python312', 'python.exe'),
-    path.join(home, 'AppData', 'Local', 'Programs', 'Python', 'Python311', 'python.exe'),
-    path.join(home, 'AppData', 'Local', 'Programs', 'Python', 'Python310', 'python.exe'),
-    path.join(home, 'AppData', 'Local', 'Programs', 'Python', 'Python39', 'python.exe'),
+    // Python.org installer, instalación por usuario
+    ...versions.map((v) =>
+      path.join(home, 'AppData', 'Local', 'Programs', 'Python', `Python${v}`, 'python.exe')
+    ),
+    // Python.org installer, instalación para todos los usuarios
+    ...versions.map((v) => path.join(programFiles, `Python${v}`, 'python.exe')),
     // Anaconda / Miniconda
     path.join(home, 'Anaconda3', 'python.exe'),
     path.join(home, 'Miniconda3', 'python.exe'),
     path.join('C:', 'Anaconda3', 'python.exe'),
     path.join('C:', 'Miniconda3', 'python.exe'),
     // Chocolatey
-    path.join('C:', 'Python313', 'python.exe'),
-    path.join('C:', 'Python312', 'python.exe'),
-    path.join('C:', 'Python311', 'python.exe'),
+    ...versions.map((v) => path.join('C:', `Python${v}`, 'python.exe')),
     // pyenv-win
     path.join(home, '.pyenv', 'pyenv-win', 'shims', 'python.exe'),
     path.join(home, '.pyenv', 'pyenv-win', 'shims', 'python3.exe'),
   ]
+
+  let realPythonWithoutWntr: string | null = null
 
   for (const pythonPath of possiblePaths) {
     if (fs.existsSync(pythonPath)) {
@@ -111,26 +217,35 @@ function findPythonWindows(): string {
       if (testPythonIsReal(pythonPath)) {
         if (testPythonHasWntr(pythonPath)) {
           console.log(`[PythonDetector] Python has WNTR: ${pythonPath}`)
-          return pythonPath
+          return { path: pythonPath, hasWntr: true }
         }
         // Even without WNTR, a real Python is better than the MS Store alias
         console.log(`[PythonDetector] Python found (no WNTR): ${pythonPath}`)
+        if (!realPythonWithoutWntr) realPythonWithoutWntr = pythonPath
       }
     }
   }
 
   // Try 'python' command directly (may work if Python is in PATH and not MS Store alias)
   if (testPythonIsReal('python')) {
-    console.log('[PythonDetector] Using "python" from PATH')
-    return 'python'
+    if (testPythonHasWntr('python')) {
+      console.log('[PythonDetector] Using "python" from PATH (has WNTR)')
+      return { path: 'python', hasWntr: true }
+    }
+    if (!realPythonWithoutWntr) realPythonWithoutWntr = 'python'
+  }
+
+  if (realPythonWithoutWntr) {
+    console.warn(`[PythonDetector] Python without WNTR on Windows: ${realPythonWithoutWntr}`)
+    return { path: realPythonWithoutWntr, hasWntr: false }
   }
 
   console.warn('[PythonDetector] No Python installation found on Windows')
   console.warn('[PythonDetector] Please install Python from python.org and set PYTHON_PATH in .env')
-  return 'python'
+  return { path: 'python', hasWntr: false }
 }
 
-function findPythonLinux(): string {
+function findPythonLinux(): { path: string; hasWntr: boolean } {
   const possiblePaths = [
     `${process.env.HOME}/venv/bin/python3`,
     `${process.env.HOME}/.venv/bin/python3`,
@@ -146,13 +261,13 @@ function findPythonLinux(): string {
     if (fs.existsSync(pythonPath)) {
       if (testPythonHasWntr(pythonPath)) {
         console.log(`[PythonDetector] Found Python with WNTR on Linux: ${pythonPath}`)
-        return pythonPath
+        return { path: pythonPath, hasWntr: true }
       }
     }
   }
 
   console.warn('[PythonDetector] No Python with WNTR found on Linux, using fallback')
-  return 'python3'
+  return { path: 'python3', hasWntr: false }
 }
 
 /**
@@ -206,11 +321,13 @@ export function getPythonStatus(): {
   wntrAvailable: boolean
   pythonVersion: string | null
   platform: string
+  managedVenvPath: string | null
   instructions: string | null
 } {
   const pythonPath = findPythonPath()
   const isReal = testPythonIsReal(pythonPath)
   const hasWntr = isReal ? testPythonHasWntr(pythonPath) : false
+  const managedVenvPath = getManagedVenvDir()
 
   let pythonVersion: string | null = null
   if (isReal) {
@@ -223,14 +340,15 @@ export function getPythonStatus(): {
   let instructions: string | null = null
   if (!isReal) {
     if (process.platform === 'win32') {
-      instructions = 'Python is not installed. Download it from python.org/downloads and check "Add Python to PATH" during installation. Then run: pip install wntr'
+      instructions = 'Python is not installed. Download it from python.org/downloads (3.10 or newer), check "Add Python to PATH" during installation, then restart Boorie and let the setup assistant install the dependencies.'
     } else if (process.platform === 'darwin') {
-      instructions = 'Python is not installed. Run: brew install python@3.11 && pip3 install wntr'
+      instructions = 'Python is not installed. Run: brew install python@3.11 — then restart Boorie and let the setup assistant install the dependencies.'
     } else {
-      instructions = 'Python is not installed. Run: sudo apt install python3 python3-pip && pip3 install wntr'
+      instructions = 'Python is not installed. Run: sudo apt install python3 python3-pip python3-venv — then restart Boorie and let the setup assistant install the dependencies.'
     }
   } else if (!hasWntr) {
-    instructions = 'Python is installed but WNTR is missing. Run: pip install wntr'
+    instructions = 'Python is installed but WNTR is missing in the environment Boorie uses. Open Settings → General → "Preparar dependencias" to let Boorie install it, or run manually:\n' +
+      `  "${pythonPath}" -m pip install wntr`
   }
 
   return {
@@ -239,6 +357,7 @@ export function getPythonStatus(): {
     wntrAvailable: hasWntr,
     pythonVersion,
     platform: process.platform,
+    managedVenvPath,
     instructions,
   }
 }

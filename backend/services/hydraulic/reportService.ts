@@ -39,15 +39,17 @@ export interface ComprehensiveReportData {
 }
 
 export class WNTRReportService {
-  private pythonPath: string;
   private servicePath: string;
   private reportsDirectory: string;
 
-  constructor(reportsDirectory?: string) {
-    // Use shared Python detection utility
+  /** Ver nota en wntrWrapper: se resuelve en cada ejecución, no al construir. */
+  private get pythonPath(): string {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { findPythonPath } = require('./pythonDetector');
-    this.pythonPath = findPythonPath();
+    return findPythonPath();
+  }
+
+  constructor(reportsDirectory?: string) {
     this.servicePath = path.join(__dirname, 'wntr_report_generator.py');
     this.reportsDirectory = reportsDirectory || path.join(process.cwd(), 'reports');
   }

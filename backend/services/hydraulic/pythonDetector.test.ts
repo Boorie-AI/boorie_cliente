@@ -1,14 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { findPythonPath, resetPythonPathCache } from './pythonDetector'
+import * as path from 'path'
+import * as fs from 'fs'
+import { findPythonPath, resetPythonPathCache, savePythonPath, getManagedVenvDir } from './pythonDetector'
 
 // Mock fs and child_process
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal() as any
-  return {
-    ...actual,
-    default: { ...actual.default, existsSync: vi.fn().mockReturnValue(false) },
-    existsSync: vi.fn().mockReturnValue(false),
+  const mocks = {
+    existsSync: vi.fn(),
+    readFileSync: vi.fn(),
+    writeFileSync: vi.fn(),
+    mkdirSync: vi.fn(),
   }
+  return { ...actual, default: { ...actual.default, ...mocks }, ...mocks }
 })
 
 vi.mock('child_process', async (importOriginal) => {
@@ -19,10 +23,16 @@ vi.mock('child_process', async (importOriginal) => {
   }
 })
 
+const USER_DATA = path.join('/tmp', 'boorie-userdata')
+const CONFIG_FILE = path.join(USER_DATA, 'python-path.json')
+
 describe('pythonDetector', () => {
   beforeEach(() => {
     resetPythonPathCache()
     vi.unstubAllEnvs()
+    delete process.env.PYTHON_PATH
+    delete process.env.BOORIE_USER_DATA
+    vi.mocked(fs.existsSync).mockReturnValue(false)
   })
 
   afterEach(() => {
@@ -55,11 +65,39 @@ describe('pythonDetector', () => {
   })
 
   it('should return a string path when no PYTHON_PATH is set', () => {
-    // When PYTHON_PATH is not set, findPythonPath should still return a valid string
-    delete process.env.PYTHON_PATH
-    resetPythonPathCache()
     const result = findPythonPath()
     expect(typeof result).toBe('string')
     expect(result.length).toBeGreaterThan(0)
+  })
+
+  it('resolves the managed venv directory inside userData', () => {
+    vi.stubEnv('BOORIE_USER_DATA', USER_DATA)
+    expect(getManagedVenvDir()).toBe(path.join(USER_DATA, 'venv-wntr'))
+  })
+
+  it('has no managed venv directory outside Electron', () => {
+    expect(getManagedVenvDir()).toBeNull()
+  })
+
+  it('persists the python path under userData', () => {
+    vi.stubEnv('BOORIE_USER_DATA', USER_DATA)
+    savePythonPath(path.join(USER_DATA, 'venv-wntr', 'bin', 'python'))
+
+    expect(vi.mocked(fs.writeFileSync)).toHaveBeenCalledWith(
+      CONFIG_FILE,
+      expect.stringContaining(path.join(USER_DATA, 'venv-wntr', 'bin', 'python')),
+      'utf-8',
+    )
+  })
+
+  it('ignores a persisted path that no longer exists on disk', () => {
+    vi.stubEnv('BOORIE_USER_DATA', USER_DATA)
+    vi.mocked(fs.existsSync).mockImplementation(((p: string) => String(p) === CONFIG_FILE) as any)
+    vi.mocked(fs.readFileSync).mockImplementation(((p: string) => {
+      if (String(p) === CONFIG_FILE) return JSON.stringify({ pythonPath: '/deleted/venv/bin/python' })
+      throw new Error(`unexpected read: ${p}`)
+    }) as any)
+
+    expect(findPythonPath()).not.toBe('/deleted/venv/bin/python')
   })
 })

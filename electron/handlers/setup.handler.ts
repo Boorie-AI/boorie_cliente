@@ -4,7 +4,7 @@ import * as path from 'path'
 import * as fs from 'fs'
 import * as os from 'os'
 import { startMilvusServer } from '../services/milvusProcess'
-import { resetPythonPathCache } from '../../backend/services/hydraulic/pythonDetector'
+import { resetPythonPathCache, savePythonPath } from '../../backend/services/hydraulic/pythonDetector'
 
 /**
  * Setup handler — instala/repara las dependencias Python que Boorie necesita
@@ -25,13 +25,18 @@ import { resetPythonPathCache } from '../../backend/services/hydraulic/pythonDet
 // el resto del setup: Milvus/WNTR/RAG dependen solo de los paquetes "core".
 // nemoguardrails es opcional (moderación) y no debe poder dejar Milvus
 // inutilizable si su instalación falla — ver issue #21/#19.
+// milvus-lite también es opcional: las ruedas 2.5.x sólo existen para Linux y
+// macOS y la 3.x (pura Python) exige Python >= 3.10, así que en Windows con
+// Python 3.9 pip no encuentra candidato y el setup abortaba justo después de
+// instalar wntr, dejando el entorno marcado como "no listo" para siempre.
+// Sin Milvus el RAG degrada, pero WNTR debe seguir funcionando.
 const REQUIRED_PACKAGES: { name: string; pip: string; importName: string; optional?: boolean }[] = [
   { name: 'numpy',                          pip: 'numpy>=1.20',                            importName: 'numpy' },
   { name: 'scipy',                          pip: 'scipy>=1.7',                             importName: 'scipy' },
   { name: 'pandas',                         pip: 'pandas>=1.3',                            importName: 'pandas' },
   { name: 'networkx',                       pip: 'networkx>=2.6',                          importName: 'networkx' },
   { name: 'wntr',                           pip: 'wntr>=0.5.0',                            importName: 'wntr' },
-  { name: 'milvus-lite',                    pip: 'milvus-lite>=2.5.1',                     importName: 'milvus_lite' },
+  { name: 'milvus-lite',                    pip: 'milvus-lite>=2.5.1',                     importName: 'milvus_lite', optional: true },
   { name: 'langchain-ollama',               pip: 'langchain-ollama>=0.2.0',                importName: 'langchain_ollama' },
   { name: 'langchain-nvidia-ai-endpoints',  pip: 'langchain-nvidia-ai-endpoints>=0.3.0',   importName: 'langchain_nvidia_ai_endpoints' },
   { name: 'nemoguardrails',                 pip: 'nemoguardrails>=0.10.0',                 importName: 'nemoguardrails', optional: true },
@@ -69,41 +74,71 @@ function getVenvPython(venvDir: string): string {
   return process.platform === 'win32' ? winPath : unixPath
 }
 
-async function findSystemPython(): Promise<{ path: string; version: string } | null> {
-  const candidates: string[] = []
+interface SystemPython {
+  path: string
+  /** Argumentos previos a `-m` (el lanzador `py` de Windows necesita `-3`). */
+  args: string[]
+  version: string
+}
+
+// Milvus Lite y varias dependencias del stack RAG exigen Python >= 3.10.
+// Aceptar 3.9 hacía que el setup creara un venv en el que pip no podía
+// resolver milvus-lite y terminaba abortando.
+const SUPPORTED_PYTHON = /Python 3\.(1\d|[2-9]\d)(\.|\s|$)/
+
+async function findSystemPython(): Promise<SystemPython | null> {
+  const candidates: { cmd: string; args: string[] }[] = []
 
   if (process.platform === 'win32') {
-    candidates.push('python', 'python3', 'py')
-    const userPython = path.join(
-      os.homedir(),
-      'AppData', 'Local', 'Programs', 'Python', 'Python311', 'python.exe'
-    )
-    candidates.push(userPython)
+    const versions = ['313', '312', '311', '310']
+    const programFiles = process.env.ProgramFiles || 'C:\\Program Files'
+
+    candidates.push({ cmd: 'python', args: [] })
+    candidates.push({ cmd: 'python3', args: [] })
+    // Lanzador oficial: resuelve la versión más reciente instalada
+    candidates.push({ cmd: 'py', args: ['-3'] })
+    // Rutas por defecto del instalador de python.org (por usuario y global)
+    for (const v of versions) {
+      candidates.push({
+        cmd: path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'Python', `Python${v}`, 'python.exe'),
+        args: [],
+      })
+      candidates.push({ cmd: path.join(programFiles, `Python${v}`, 'python.exe'), args: [] })
+      candidates.push({ cmd: path.join('C:\\', `Python${v}`, 'python.exe'), args: [] })
+    }
   } else {
-    candidates.push(
+    for (const p of [
+      '/opt/homebrew/bin/python3.13',
+      '/opt/homebrew/bin/python3.12',
       '/opt/homebrew/bin/python3.11',
       '/opt/homebrew/bin/python3.10',
       '/opt/homebrew/bin/python3',
+      '/usr/local/bin/python3.12',
       '/usr/local/bin/python3.11',
       '/usr/local/bin/python3.10',
       '/usr/local/bin/python3',
       '/usr/bin/python3',
       'python3',
-    )
+    ]) {
+      candidates.push({ cmd: p, args: [] })
+    }
   }
 
   for (const candidate of candidates) {
     try {
       const version = await new Promise<string | null>((resolve) => {
-        const p = spawn(candidate, ['--version'], { stdio: ['ignore', 'pipe', 'pipe'] })
+        const p = spawn(candidate.cmd, [...candidate.args, '--version'], {
+          stdio: ['ignore', 'pipe', 'pipe'],
+          windowsHide: true,
+        })
         let out = ''
         p.stdout.on('data', (d) => (out += d.toString()))
         p.stderr.on('data', (d) => (out += d.toString()))
         p.on('close', (code) => resolve(code === 0 ? out.trim() : null))
         p.on('error', () => resolve(null))
       })
-      if (version && /Python 3\.(9|10|11|12|13)/.test(version)) {
-        return { path: candidate, version }
+      if (version && SUPPORTED_PYTHON.test(version)) {
+        return { path: candidate.cmd, args: candidate.args, version }
       }
     } catch {
       // try next
@@ -136,10 +171,13 @@ async function checkPackagesInstalled(pythonPath: string): Promise<string[]> {
   return missing
 }
 
-async function createVenv(systemPython: string, venvDir: string, window: BrowserWindow | null): Promise<boolean> {
+async function createVenv(systemPython: SystemPython, venvDir: string, window: BrowserWindow | null): Promise<boolean> {
   emitProgress(window, { stage: 'venv', message: 'Creando entorno Python (venv-wntr)…' })
   return new Promise((resolve) => {
-    const p = spawn(systemPython, ['-m', 'venv', venvDir], { stdio: ['ignore', 'pipe', 'pipe'] })
+    const p = spawn(systemPython.path, [...systemPython.args, '-m', 'venv', venvDir], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+    })
     p.stdout.on('data', (d) => emitProgress(window, { stage: 'venv', log: d.toString() }))
     p.stderr.on('data', (d) => emitProgress(window, { stage: 'venv', log: d.toString() }))
     p.on('close', (code) => resolve(code === 0))
@@ -233,7 +271,7 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
         })
         return { success: false, error: 'python-not-found' }
       }
-      const ok = await createVenv(sys.path, venvDir, window)
+      const ok = await createVenv(sys, venvDir, window)
       if (!ok) {
         emitProgress(window, { stage: 'error', message: 'No se pudo crear el entorno Python.' })
         return { success: false, error: 'venv-creation-failed' }
@@ -245,6 +283,10 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
     // para que WNTR/Milvus puedan usarlo aunque un paquete opcional falle
     // más abajo y el setup termine en estado parcial.
     process.env.PYTHON_PATH = venvPython
+    // …y lo persistimos en userData: PYTHON_PATH sólo vive en memoria, así que
+    // sin esto el siguiente arranque volvía a "Python/WNTR no instalado".
+    savePythonPath(venvPython)
+    resetPythonPathCache()
 
     // Step 2 — upgrade pip
     emitProgress(window, { stage: 'pip', message: 'Actualizando pip…' })
