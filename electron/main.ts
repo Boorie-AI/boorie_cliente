@@ -686,7 +686,7 @@ if (!ENABLE_HARDWARE_ACCELERATION) {
 import { ServiceContainer } from '../backend/services'
 import { HandlersManager } from './handlers'
 import { appLogger } from '../backend/utils/logger'
-import { findPythonPath } from '../backend/services/hydraulic/pythonDetector'
+import { findPythonForMilvus } from '../backend/services/hydraulic/pythonDetector'
 import { startMilvusServer, stopMilvusServer } from './services/milvusProcess'
 
 log.transports.file.level = 'info'
@@ -959,7 +959,9 @@ async function initializeApplication(): Promise<void> {
     // process outside of the dev-only dev-runner.js, so Milvus was never
     // running in the installed app (root cause of issues #19/#20/#21).
     try {
-      startMilvusServer(findPythonPath(), milvusDataDir)
+      // Milvus necesita el venv gestionado (el que tiene milvus_lite), no el
+      // Python del sistema que WNTR puede estar usando.
+      startMilvusServer(findPythonForMilvus(), milvusDataDir)
     } catch (error) {
       appLogger.warn('Failed to start embedded Milvus Lite server', error as Error)
     }

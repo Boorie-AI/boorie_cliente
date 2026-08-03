@@ -1,10 +1,17 @@
-import { ipcMain, BrowserWindow, app } from 'electron'
+import { ipcMain, BrowserWindow, app, dialog } from 'electron'
 import { spawn } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
 import * as os from 'os'
 import { startMilvusServer } from '../services/milvusProcess'
-import { resetPythonPathCache, savePythonPath } from '../../backend/services/hydraulic/pythonDetector'
+import {
+  resetPythonPathCache,
+  savePythonPath,
+  clearUserPythonPath,
+  getUserPythonPath,
+  getMissingWntrModules,
+  findPythonPath,
+} from '../../backend/services/hydraulic/pythonDetector'
 
 /**
  * Setup handler — instala/repara las dependencias Python que Boorie necesita
@@ -358,5 +365,72 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
     }
 
     return { success: true, pythonPath: venvPython, optionalFailed: failedOptional }
+  })
+
+  // --- Selección manual del intérprete de Python ---------------------------
+  // Escape para quien ya tiene su propio entorno (conda, venv propio, ruta no
+  // estándar): la autodetección es una heurística y no puede cubrirlo todo.
+
+  function describePython(pythonPath: string) {
+    const missing = getMissingWntrModules(pythonPath)
+    return {
+      pythonPath,
+      usable: missing !== null,
+      wntrReady: missing !== null && missing.length === 0,
+      missingModules: missing ?? [],
+    }
+  }
+
+  ipcMain.handle('setup:get-python', async () => {
+    const configured = getUserPythonPath()
+    return {
+      success: true,
+      configured,
+      effective: describePython(findPythonPath()),
+    }
+  })
+
+  ipcMain.handle('setup:set-python', async (_event, rawPath: string) => {
+    const pythonPath = (rawPath || '').trim()
+    if (!pythonPath) return { success: false, error: 'empty-path' }
+
+    const missing = getMissingWntrModules(pythonPath)
+    if (missing === null) {
+      return {
+        success: false,
+        error: 'not-a-python',
+        message: 'Esa ruta no ejecuta Python. Indica el ejecutable completo (python.exe en Windows).',
+      }
+    }
+
+    savePythonPath(pythonPath, 'user')
+    resetPythonPathCache()
+    return {
+      success: true,
+      pythonPath,
+      wntrReady: missing.length === 0,
+      missingModules: missing,
+      message: missing.length === 0
+        ? 'Intérprete configurado. WNTR está disponible.'
+        : `Intérprete configurado, pero le faltan módulos: ${missing.join(', ')}.`,
+    }
+  })
+
+  ipcMain.handle('setup:clear-python', async () => {
+    clearUserPythonPath()
+    resetPythonPathCache()
+    return { success: true, effective: describePython(findPythonPath()) }
+  })
+
+  ipcMain.handle('setup:browse-python', async () => {
+    const window = getMainWindow()
+    const filters = process.platform === 'win32'
+      ? [{ name: 'Python', extensions: ['exe'] }]
+      : [{ name: 'Todos los archivos', extensions: ['*'] }]
+    const result = window
+      ? await dialog.showOpenDialog(window, { properties: ['openFile'], filters })
+      : await dialog.showOpenDialog({ properties: ['openFile'], filters })
+    if (result.canceled || result.filePaths.length === 0) return { success: false, canceled: true }
+    return { success: true, path: result.filePaths[0] }
   })
 }

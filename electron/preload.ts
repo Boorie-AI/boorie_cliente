@@ -367,6 +367,10 @@ const electronAPI = {
   setup: {
     status: () => ipcRenderer.invoke('setup:status'),
     install: () => ipcRenderer.invoke('setup:install'),
+    getPython: () => ipcRenderer.invoke('setup:get-python'),
+    setPython: (pythonPath: string) => ipcRenderer.invoke('setup:set-python', pythonPath),
+    clearPython: () => ipcRenderer.invoke('setup:clear-python'),
+    browsePython: () => ipcRenderer.invoke('setup:browse-python'),
     onProgress: (callback: (data: any) => void) => {
       const wrapped = (_e: any, data: any) => callback(data)
       ipcRenderer.on('setup:progress', wrapped)
