@@ -20,7 +20,7 @@ import {
  * Settings → Guardrails si algo se rompe.
  *
  * Estrategia:
- *   1. Detecta un Python 3.10+ del sistema.
+ *   1. Detecta un Python del sistema en el rango soportado (3.10 – 3.13).
  *   2. Crea (o reutiliza) `venv-wntr/` en la carpeta de userData (writable
  *      en producción) o en el repo en dev.
  *   3. Hace `pip install` de los paquetes necesarios uno por uno con
@@ -43,7 +43,14 @@ import {
 // dejaba numpy 1.x, pip daba el wntr por instalado y luego `import wntr`
 // fallaba. matplotlib está en la lista porque wntr lo importa al cargarse:
 // sin verificarlo, un fallo suyo se manifestaba como "wntr no instalado".
-const REQUIRED_PACKAGES: { name: string; pip: string; importName: string; optional?: boolean }[] = [
+const REQUIRED_PACKAGES: {
+  name: string
+  pip: string
+  importName: string
+  optional?: boolean
+  /** Paquetes del mismo grupo se instalan en una única orden de pip. */
+  group?: string
+}[] = [
   { name: 'wntr',                           pip: 'wntr>=0.5.0',                            importName: 'wntr' },
   { name: 'numpy',                          pip: 'numpy>=1.20',                            importName: 'numpy' },
   { name: 'scipy',                          pip: 'scipy>=1.7',                             importName: 'scipy' },
@@ -56,8 +63,15 @@ const REQUIRED_PACKAGES: { name: string; pip: string; importName: string; option
   // él, `import milvus_lite` funciona y el servidor muere al arrancar: el RAG
   // se queda con 0 chunks y el panel informa "100% documents not indexed".
   { name: 'pymilvus',                       pip: 'pymilvus>=2.4',                          importName: 'pymilvus', optional: true },
-  { name: 'langchain-ollama',               pip: 'langchain-ollama>=0.2.0',                importName: 'langchain_ollama' },
-  { name: 'langchain-nvidia-ai-endpoints',  pip: 'langchain-nvidia-ai-endpoints>=0.3.0',   importName: 'langchain_nvidia_ai_endpoints' },
+  // Se instalan juntos y son opcionales. Juntos porque langchain-ollama exige
+  // langchain-core>=1.2.21 y langchain-nvidia-ai-endpoints >=1.4.7:
+  // instalándolos uno a uno pip deja un langchain_core que no satisface a
+  // ambos y el import falla con "cannot import name 'content'" / "'ModelProfile'".
+  // Opcionales porque sólo alimentan guardrails y el proveedor NVIDIA: ni WNTR
+  // ni el indexado de Milvus dependen de ellos, y su fallo no debe dejar el
+  // asistente en estado de error permanente.
+  { name: 'langchain-ollama',               pip: 'langchain-ollama>=0.2.0',                importName: 'langchain_ollama', optional: true, group: 'langchain' },
+  { name: 'langchain-nvidia-ai-endpoints',  pip: 'langchain-nvidia-ai-endpoints>=0.3.0',   importName: 'langchain_nvidia_ai_endpoints', optional: true, group: 'langchain' },
   { name: 'nemoguardrails',                 pip: 'nemoguardrails>=0.10.0',                 importName: 'nemoguardrails', optional: true },
 ]
 
@@ -105,23 +119,29 @@ interface SystemPython {
   version: string
 }
 
-// Milvus Lite y varias dependencias del stack RAG exigen Python >= 3.10.
-// Aceptar 3.9 hacía que el setup creara un venv en el que pip no podía
-// resolver milvus-lite y terminaba abortando.
-const SUPPORTED_PYTHON = /Python 3\.(1\d|[2-9]\d)(\.|\s|$)/
+// Rango soportado: 3.10 – 3.13.
+//   - Por abajo: Milvus Lite y el stack RAG exigen >= 3.10, y en 3.9 pip no
+//     podía resolver milvus-lite.
+//   - Por arriba: wntr 1.5 no publica rueda para cp314 en Windows (sí para
+//     cp313) y nemoguardrails declara python <3.14. Un venv sobre 3.14 deja
+//     WNTR ininstalable, que es lo que le ocurrió a un cliente con Anaconda
+//     3.14.6: pip "terminaba" y el import seguía fallando.
+const SUPPORTED_PYTHON = /Python 3\.(1[0-3])(\.|\s|$)/
 
 async function findSystemPython(): Promise<SystemPython | null> {
   const candidates: { cmd: string; args: string[] }[] = []
+
+  // Override explícito: si el usuario fijó PYTHON_PATH, manda.
+  if (process.env.PYTHON_PATH) candidates.push({ cmd: process.env.PYTHON_PATH, args: [] })
 
   if (process.platform === 'win32') {
     const versions = ['313', '312', '311', '310']
     const programFiles = process.env.ProgramFiles || 'C:\\Program Files'
 
-    candidates.push({ cmd: 'python', args: [] })
-    candidates.push({ cmd: 'python3', args: [] })
-    // Lanzador oficial: resuelve la versión más reciente instalada
-    candidates.push({ cmd: 'py', args: ['-3'] })
-    // Rutas por defecto del instalador de python.org (por usuario y global)
+    // Primero versiones concretas soportadas y sólo al final los comandos
+    // genéricos: en un equipo con Anaconda, `python` resuelve a la versión que
+    // tenga instalada (3.14 en el caso que investigamos) y se llevaba la
+    // elección aunque hubiera un 3.13 perfectamente válido al lado.
     for (const v of versions) {
       candidates.push({
         cmd: path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'Python', `Python${v}`, 'python.exe'),
@@ -129,17 +149,28 @@ async function findSystemPython(): Promise<SystemPython | null> {
       })
       candidates.push({ cmd: path.join(programFiles, `Python${v}`, 'python.exe'), args: [] })
       candidates.push({ cmd: path.join('C:\\', `Python${v}`, 'python.exe'), args: [] })
+      // Lanzador oficial con versión explícita
+      candidates.push({ cmd: 'py', args: [`-3.${v.slice(1)}`] })
     }
+    candidates.push({ cmd: 'python', args: [] })
+    candidates.push({ cmd: 'python3', args: [] })
+    candidates.push({ cmd: 'py', args: ['-3'] })
   } else {
+    // Igual que en Windows: versiones concretas primero, genéricos al final,
+    // para que un python3 que apunte a 3.14 no se lleve la elección.
     for (const p of [
       '/opt/homebrew/bin/python3.13',
       '/opt/homebrew/bin/python3.12',
       '/opt/homebrew/bin/python3.11',
       '/opt/homebrew/bin/python3.10',
-      '/opt/homebrew/bin/python3',
+      '/usr/local/bin/python3.13',
       '/usr/local/bin/python3.12',
       '/usr/local/bin/python3.11',
       '/usr/local/bin/python3.10',
+      '/usr/bin/python3.13',
+      '/usr/bin/python3.12',
+      '/usr/bin/python3.11',
+      '/opt/homebrew/bin/python3',
       '/usr/local/bin/python3',
       '/usr/bin/python3',
       'python3',
@@ -263,11 +294,12 @@ async function createVenv(
 
 async function pipInstall(
   pythonPath: string,
-  spec: string,
+  specs: string[],
   window: BrowserWindow | null,
   current: number,
   total: number,
 ): Promise<boolean> {
+  const spec = specs.join(' ')
   emitProgress(window, {
     stage: 'install',
     current,
@@ -276,8 +308,11 @@ async function pipInstall(
     message: `Instalando ${spec} (${current}/${total})…`,
   })
   return new Promise((resolve) => {
-    const p = spawn(pythonPath, ['-m', 'pip', 'install', '--upgrade', spec], {
+    // Varios specs en una sola invocación: pip resuelve sus restricciones
+    // conjuntamente en lugar de dejar versiones incompatibles entre sí.
+    const p = spawn(pythonPath, ['-m', 'pip', 'install', '--upgrade', ...specs], {
       stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
     })
     p.stdout.on('data', (d) => {
       const line = d.toString().trim()
@@ -334,7 +369,7 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
           ? `WNTR ya funciona con ${effectivePython}. Falta preparar el entorno de Milvus/RAG para poder indexar documentos.`
           : sys
             ? 'venv no creado todavía. Boorie puede crearlo automáticamente.'
-            : 'Python 3.10 o superior no encontrado. Instálalo desde python.org (marcando "Add Python to PATH") y reinicia Boorie.',
+            : 'No se encontró un Python compatible (3.10 – 3.13). Descarga Python 3.13 de python.org/downloads, marca "Add Python to PATH" y reinicia Boorie. Ojo: 3.14 todavía no sirve, porque WNTR no publica paquete para esa versión.',
       }
     }
 
@@ -349,7 +384,7 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
     if ((venvReady || effectiveReady) && milvusMissing.length > 0) {
       return {
         ready: false,
-        pythonPath: venvReady ? venvPython : effectivePython,
+        pythonPath: venvPython,   // los problemas listados vienen del venv
         pythonVersion: await getPythonVersion(venvPython),
         venvPath: venvDir,
         missing: milvusMissing,
@@ -390,7 +425,7 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
       if (!sys) {
         emitProgress(window, {
           stage: 'error',
-          message: 'No se encontró Python 3.10 o superior en el sistema. Instálalo desde python.org (marcando "Add Python to PATH") y reinicia Boorie.',
+          message: 'No se encontró un Python compatible (3.10 – 3.13) en el sistema. Descarga Python 3.13 de python.org/downloads, marca "Add Python to PATH" y reinicia Boorie. La 3.14 no sirve todavía: WNTR no publica paquete para ella.',
         })
         return { success: false, error: 'python-not-found' }
       }
@@ -402,10 +437,10 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
       venvPython = getVenvPython(venvDir)
     }
 
-    // Un venv heredado de versiones anteriores puede estar hecho con Python
-    // 3.9 (lo aceptábamos entonces). Ahí pip no puede resolver el árbol de
-    // wntr 1.5 (numpy>=2.2.6 exige 3.10) e "instala" versiones incompatibles
-    // que luego no importan. Lo apartamos y creamos uno nuevo.
+    // Un venv heredado puede estar fuera del rango soportado: hecho con 3.9
+    // (lo aceptábamos antes) o con 3.14 (donde wntr no tiene rueda para
+    // Windows). En ambos casos pip "instala" y el import falla después, así que
+    // lo apartamos y creamos uno nuevo con un intérprete del rango 3.10–3.13.
     const existingVersion = await getPythonVersion(venvPython)
     if (existingVersion && !SUPPORTED_PYTHON.test(existingVersion)) {
       const sys = await findSystemPython()
@@ -444,7 +479,7 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
       } else {
         emitProgress(window, {
           stage: 'warning',
-          message: `El entorno de Boorie usa ${existingVersion}, pero WNTR necesita Python 3.10 o superior y no hay ninguno instalado. Instálalo desde python.org y reintenta.`,
+          message: `El entorno de Boorie usa ${existingVersion}, fuera del rango que WNTR soporta (3.10 – 3.13), y no hay otro intérprete instalado. Instala Python 3.13 desde python.org/downloads y reintenta.`,
         })
       }
     }
@@ -477,11 +512,31 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
     const total = missing.length
     let i = 0
     const failedOptional: string[] = []
+    const doneGroups = new Set<string>()
     for (const name of missing) {
       i += 1
       const pkg = REQUIRED_PACKAGES.find((p) => p.name === name)
       if (!pkg) continue
-      const ok = await pipInstall(venvPython, pkg.pip, window, i, total)
+
+      // Los paquetes de un grupo van en una sola orden de pip para que el
+      // resolutor vea todas sus restricciones a la vez.
+      if (pkg.group) {
+        if (doneGroups.has(pkg.group)) continue
+        doneGroups.add(pkg.group)
+        const specs = REQUIRED_PACKAGES.filter((p) => p.group === pkg.group && missing.includes(p.name))
+        const okGroup = await pipInstall(venvPython, specs.map((p) => p.pip), window, i, total)
+        if (!okGroup) {
+          failedOptional.push(...specs.filter((p) => p.optional).map((p) => p.name))
+          emitProgress(window, {
+            stage: 'warning',
+            message: `No se pudo instalar el grupo ${pkg.group} (${specs.map((p) => p.name).join(', ')}). ` +
+              'Se continúa: WNTR y el indexado de Milvus no dependen de él.',
+          })
+        }
+        continue
+      }
+
+      const ok = await pipInstall(venvPython, [pkg.pip], window, i, total)
       if (!ok) {
         if (pkg.optional) {
           failedOptional.push(pkg.name)
