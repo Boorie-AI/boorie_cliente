@@ -234,10 +234,15 @@ function appendSetupLog(text: string): void {
   } catch { /* el log no debe romper el setup */ }
 }
 
-async function createVenv(systemPython: SystemPython, venvDir: string, window: BrowserWindow | null): Promise<boolean> {
+async function createVenv(
+  systemPython: SystemPython,
+  venvDir: string,
+  window: BrowserWindow | null,
+  extraArgs: string[] = [],
+): Promise<boolean> {
   emitProgress(window, { stage: 'venv', message: 'Creando entorno Python (venv-wntr)…' })
   return new Promise((resolve) => {
-    const p = spawn(systemPython.path, [...systemPython.args, '-m', 'venv', venvDir], {
+    const p = spawn(systemPython.path, [...systemPython.args, '-m', 'venv', ...extraArgs, venvDir], {
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
     })
@@ -383,14 +388,29 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
           message: `El entorno de Boorie usa ${existingVersion}; se recreará con ${sys.version}. El anterior se conserva en ${archived}.`,
         })
         appendSetupLog(`[recreate] ${existingVersion} -> ${sys.version}; archivado en ${archived}`)
+
+        // Si no se puede apartar (antivirus, un python del venv aún vivo…) hay
+        // que vaciarlo con `--clear`: crear encima dejaría el site-packages de
+        // 3.9 con un intérprete nuevo, que es peor que no tocar nada.
+        let archivedOk = true
         try {
           fs.renameSync(venvDir, archived)
         } catch (error) {
-          appendSetupLog(`[recreate] no se pudo apartar el venv: ${String(error)}`)
+          archivedOk = false
+          appendSetupLog(`[recreate] no se pudo apartar el venv, se recreará con --clear: ${String(error)}`)
+          emitProgress(window, {
+            stage: 'venv',
+            message: 'No se pudo conservar el entorno anterior; se vaciará y recreará.',
+          })
         }
-        if (!(await createVenv(sys, venvDir, window))) {
-          emitProgress(window, { stage: 'error', message: 'No se pudo recrear el entorno Python.' })
-          return { success: false, error: 'venv-recreation-failed' }
+
+        if (!(await createVenv(sys, venvDir, window, archivedOk ? [] : ['--clear']))) {
+          emitProgress(window, {
+            stage: 'error',
+            message: 'No se pudo recrear el entorno Python. Cierra Boorie, borra la carpeta ' +
+              `${venvDir} y vuelve a intentarlo.`,
+          })
+          return { success: false, error: 'venv-recreation-failed', venvPath: venvDir }
         }
         venvPython = getVenvPython(venvDir)
       } else {
