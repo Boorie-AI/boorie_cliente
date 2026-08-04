@@ -17,6 +17,9 @@ const PYTHON_CONFIG_FILE = 'python-path.json'
  */
 const WNTR_RUNTIME_MODULES = ['wntr', 'numpy', 'scipy', 'pandas', 'networkx']
 
+/** Lo que el servidor embebido de Milvus Lite necesita para arrancar de verdad. */
+export const MILVUS_RUNTIME_MODULES = ['milvus_lite', 'pymilvus']
+
 export type PythonSource = 'user' | 'auto'
 
 /**
@@ -197,7 +200,9 @@ export function findPythonPath(): string {
 export function findPythonForMilvus(): string {
   for (const candidate of getManagedPythonCandidates()) {
     if (!fs.existsSync(candidate)) continue
-    if (testPythonHasModules(candidate, ['milvus_lite'])) {
+    // pymilvus incluido: milvus_lite importa sin él, pero su servidor gRPC no
+    // arranca, y elegir ese intérprete dejaría el RAG sin indexar en silencio.
+    if (testPythonHasModules(candidate, MILVUS_RUNTIME_MODULES)) {
       console.log(`[PythonDetector] Milvus interpreter: ${candidate}`)
       return candidate
     }

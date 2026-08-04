@@ -51,10 +51,18 @@ const REQUIRED_PACKAGES: { name: string; pip: string; importName: string; option
   { name: 'networkx',                       pip: 'networkx>=2.6',                          importName: 'networkx' },
   { name: 'matplotlib',                     pip: 'matplotlib>=3.4',                        importName: 'matplotlib' },
   { name: 'milvus-lite',                    pip: 'milvus-lite>=2.5.1',                     importName: 'milvus_lite', optional: true },
+  // milvus-lite 3.x NO declara pymilvus entre sus dependencias, pero su
+  // adaptador gRPC hace `from pymilvus.grpc_gen import milvus_pb2_grpc`. Sin
+  // él, `import milvus_lite` funciona y el servidor muere al arrancar: el RAG
+  // se queda con 0 chunks y el panel informa "100% documents not indexed".
+  { name: 'pymilvus',                       pip: 'pymilvus>=2.4',                          importName: 'pymilvus', optional: true },
   { name: 'langchain-ollama',               pip: 'langchain-ollama>=0.2.0',                importName: 'langchain_ollama' },
   { name: 'langchain-nvidia-ai-endpoints',  pip: 'langchain-nvidia-ai-endpoints>=0.3.0',   importName: 'langchain_nvidia_ai_endpoints' },
   { name: 'nemoguardrails',                 pip: 'nemoguardrails>=0.10.0',                 importName: 'nemoguardrails', optional: true },
 ]
+
+/** Paquetes sin los que Milvus Lite no puede servir y el RAG no indexa. */
+const MILVUS_PACKAGE_NAMES = ['milvus-lite', 'pymilvus']
 
 function isOptionalPackage(name: string): boolean {
   return REQUIRED_PACKAGES.find((p) => p.name === name)?.optional === true
@@ -313,14 +321,17 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
       const sys = await findSystemPython()
       const allNames = REQUIRED_PACKAGES.map((p) => p.name)
       return {
-        ready: effectiveReady,
+        // Sin venv no hay Milvus, y sin Milvus el RAG queda sin indexar. Se
+        // avisa aunque WNTR ya funcione: la degradación silenciosa del RAG es
+        // justo el fallo que reportó un cliente ("100% documents not indexed").
+        ready: false,
         pythonPath: effectiveReady ? effectivePython : (sys?.path ?? null),
         pythonVersion: sys?.version ?? null,
         venvPath: venvDir,
-        missing: effectiveReady ? [] : allNames.filter((n) => !isOptionalPackage(n)),
+        missing: allNames.filter((n) => !isOptionalPackage(n)),
         optionalMissing: allNames.filter((n) => isOptionalPackage(n)),
         message: effectiveReady
-          ? `WNTR está disponible en ${effectivePython}. No hace falta preparar nada.`
+          ? `WNTR ya funciona con ${effectivePython}. Falta preparar el entorno de Milvus/RAG para poder indexar documentos.`
           : sys
             ? 'venv no creado todavía. Boorie puede crearlo automáticamente.'
             : 'Python 3.10 o superior no encontrado. Instálalo desde python.org (marcando "Add Python to PATH") y reinicia Boorie.',
@@ -331,6 +342,23 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
     const missing = missingNames(problems).filter((n) => !isOptionalPackage(n))
     const optionalMissing = missingNames(problems).filter((n) => isOptionalPackage(n))
     const venvReady = missing.length === 0
+    // Milvus es "opcional" para no bloquear WNTR si su instalación falla, pero
+    // su ausencia sí debe seguir avisando: sin él no se indexa nada.
+    const milvusMissing = missingNames(problems).filter((n) => MILVUS_PACKAGE_NAMES.includes(n))
+
+    if ((venvReady || effectiveReady) && milvusMissing.length > 0) {
+      return {
+        ready: false,
+        pythonPath: venvReady ? venvPython : effectivePython,
+        pythonVersion: await getPythonVersion(venvPython),
+        venvPath: venvDir,
+        missing: milvusMissing,
+        optionalMissing: optionalMissing.filter((n) => !milvusMissing.includes(n)),
+        problems: problems.filter((p) => milvusMissing.includes(p.name)),
+        message: `WNTR funciona, pero falta ${milvusMissing.join(' y ')} para el indexado RAG: ` +
+          'sin ellos Milvus no arranca y los documentos quedan sin indexar.',
+      }
+    }
 
     return {
       ready: venvReady || effectiveReady,

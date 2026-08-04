@@ -114,11 +114,21 @@ describe.skipIf(process.platform === 'win32')('prioridad del detector de Python'
     const system = fakePython(path.join(tmp, 'cwd', 'venv', 'bin'), FULL_STACK)
     const managed = fakePython(
       path.join(tmp, 'userdata', 'venv-wntr', 'bin'),
-      [...FULL_STACK, 'milvus_lite'],
+      [...FULL_STACK, 'milvus_lite', 'pymilvus'],
     )
 
     expect(path.resolve(findPythonPath())).toBe(path.resolve(system))
     expect(findPythonForMilvus()).toBe(managed)
+  })
+
+  it('no acepta para Milvus un venv con milvus_lite pero sin pymilvus', () => {
+    // milvus-lite 3.x importa, pero su servidor gRPC necesita pymilvus: sin él
+    // Milvus muere al arrancar y el RAG se queda con 0 chunks.
+    const system = fakePython(path.join(tmp, 'cwd', 'venv', 'bin'), FULL_STACK)
+    fakePython(path.join(tmp, 'userdata', 'venv-wntr', 'bin'), [...FULL_STACK, 'milvus_lite'])
+
+    // El venv no gana por tener milvus_lite: se cae al intérprete general
+    expect(path.resolve(findPythonForMilvus())).toBe(path.resolve(system))
   })
 
   it('informa de los módulos que faltan en el intérprete en uso', () => {
