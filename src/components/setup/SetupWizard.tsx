@@ -9,6 +9,7 @@ interface SetupStatus {
   venvPath: string
   missing: string[]
   optionalMissing: string[]
+  problems?: { name: string; error: string }[]
   message?: string
 }
 
@@ -78,7 +79,9 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           setTimeout(onComplete, 800)
         }
       } else {
-        setErrorMsg(result?.error || 'Setup falló.')
+        // El evento de progreso 'error' ya trae el motivo real (qué import
+        // falla y por qué). No lo pisamos con el código genérico.
+        setErrorMsg((prev) => prev || result?.error || 'Setup falló.')
       }
     } catch (e: any) {
       setErrorMsg(e?.message ?? 'Setup falló.')
@@ -132,6 +135,22 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                       </span>
                     ))}
                   </div>
+                  {/* El motivo del fallo, no sólo el nombre: un paquete puede
+                      estar instalado y no cargar (DLL, versión incompatible). */}
+                  {status.problems && status.problems.length > 0 && (
+                    <div className="pt-2 space-y-1 text-[11px] font-mono text-muted-foreground">
+                      {status.problems.map((p) => (
+                        <div key={p.name} className="break-all">
+                          {p.name}: {p.error}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {status.pythonVersion && (
+                    <div className="pt-1 text-[11px] text-muted-foreground">
+                      Intérprete: <span className="font-mono">{status.pythonPath}</span> ({status.pythonVersion})
+                    </div>
+                  )}
                 </div>
               )}
               {!status.pythonPath && (

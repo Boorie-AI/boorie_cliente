@@ -37,12 +37,19 @@ import {
 // Python 3.9 pip no encuentra candidato y el setup abortaba justo después de
 // instalar wntr, dejando el entorno marcado como "no listo" para siempre.
 // Sin Milvus el RAG degrada, pero WNTR debe seguir funcionando.
+// `wntr` va PRIMERO a propósito: declara numpy>=2.2.6, pandas>=2.0, scipy,
+// networkx y matplotlib, así que dejar que pip resuelva su árbol de una vez
+// evita el escenario que rompió a un tester — instalar antes `numpy>=1.20`
+// dejaba numpy 1.x, pip daba el wntr por instalado y luego `import wntr`
+// fallaba. matplotlib está en la lista porque wntr lo importa al cargarse:
+// sin verificarlo, un fallo suyo se manifestaba como "wntr no instalado".
 const REQUIRED_PACKAGES: { name: string; pip: string; importName: string; optional?: boolean }[] = [
+  { name: 'wntr',                           pip: 'wntr>=0.5.0',                            importName: 'wntr' },
   { name: 'numpy',                          pip: 'numpy>=1.20',                            importName: 'numpy' },
   { name: 'scipy',                          pip: 'scipy>=1.7',                             importName: 'scipy' },
   { name: 'pandas',                         pip: 'pandas>=1.3',                            importName: 'pandas' },
   { name: 'networkx',                       pip: 'networkx>=2.6',                          importName: 'networkx' },
-  { name: 'wntr',                           pip: 'wntr>=0.5.0',                            importName: 'wntr' },
+  { name: 'matplotlib',                     pip: 'matplotlib>=3.4',                        importName: 'matplotlib' },
   { name: 'milvus-lite',                    pip: 'milvus-lite>=2.5.1',                     importName: 'milvus_lite', optional: true },
   { name: 'langchain-ollama',               pip: 'langchain-ollama>=0.2.0',                importName: 'langchain_ollama' },
   { name: 'langchain-nvidia-ai-endpoints',  pip: 'langchain-nvidia-ai-endpoints>=0.3.0',   importName: 'langchain_nvidia_ai_endpoints' },
@@ -60,6 +67,8 @@ interface SetupStatus {
   venvPath: string
   missing: string[]
   optionalMissing: string[]
+  /** Motivo por el que cada paquete no carga; vacío si el venv no existe. */
+  problems?: { name: string; error: string }[]
   message?: string
 }
 
@@ -163,19 +172,66 @@ function emitProgress(window: BrowserWindow | null, payload: any) {
   } catch { /* ignore */ }
 }
 
-async function checkPackagesInstalled(pythonPath: string): Promise<string[]> {
-  const missing: string[] = []
+interface PackageProblem {
+  name: string
+  /** Última línea significativa del traceback: por qué falla el import. */
+  error: string
+}
+
+/**
+ * Comprueba qué paquetes no cargan y **conserva el motivo**. Antes se
+ * descartaba el stderr, así que un `import wntr` que fallaba por matplotlib o
+ * por una DLL de Windows se reportaba como un opaco "verification-failed" y no
+ * había forma de diagnosticarlo desde el equipo del usuario.
+ */
+async function checkPackagesInstalled(pythonPath: string): Promise<PackageProblem[]> {
+  const problems: PackageProblem[] = []
   for (const pkg of REQUIRED_PACKAGES) {
-    const ok = await new Promise<boolean>((resolve) => {
+    const result = await new Promise<{ ok: boolean; stderr: string }>((resolve) => {
       const p = spawn(pythonPath, ['-c', `import ${pkg.importName}`], {
-        stdio: ['ignore', 'ignore', 'ignore'],
+        stdio: ['ignore', 'ignore', 'pipe'],
+        windowsHide: true,
       })
-      p.on('close', (code) => resolve(code === 0))
-      p.on('error', () => resolve(false))
+      let stderr = ''
+      p.stderr?.on('data', (d) => (stderr += d.toString()))
+      p.on('close', (code) => resolve({ ok: code === 0, stderr }))
+      p.on('error', (err) => resolve({ ok: false, stderr: err.message }))
     })
-    if (!ok) missing.push(pkg.name)
+    if (!result.ok) {
+      const lines = result.stderr.trim().split('\n').filter((l) => l.trim().length > 0)
+      const relevant = lines.reverse().find((l) => /Error|Exception/.test(l)) || lines[0] || 'import failed'
+      problems.push({ name: pkg.name, error: relevant.trim() })
+      appendSetupLog(`[check] ${pkg.name}: ${relevant.trim()}\n${result.stderr}`)
+    }
   }
-  return missing
+  return problems
+}
+
+function missingNames(problems: PackageProblem[]): string[] {
+  return problems.map((p) => p.name)
+}
+
+/** Versión del intérprete, para saber si un venv reutilizado es demasiado viejo. */
+async function getPythonVersion(pythonPath: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const p = spawn(pythonPath, ['--version'], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
+    let out = ''
+    p.stdout.on('data', (d) => (out += d.toString()))
+    p.stderr.on('data', (d) => (out += d.toString()))
+    p.on('close', (code) => resolve(code === 0 ? out.trim() : null))
+    p.on('error', () => resolve(null))
+  })
+}
+
+/** Fichero de log del setup, para que un incidente se pueda diagnosticar. */
+let setupLogFile: string | null = null
+
+function appendSetupLog(text: string): void {
+  if (!setupLogFile) return
+  try {
+    fs.mkdirSync(path.dirname(setupLogFile), { recursive: true })
+    fs.appendFileSync(setupLogFile, `${text}\n`, 'utf-8')
+  } catch { /* el log no debe romper el setup */ }
 }
 
 async function createVenv(systemPython: SystemPython, venvDir: string, window: BrowserWindow | null): Promise<boolean> {
@@ -212,54 +268,81 @@ async function pipInstall(
     })
     p.stdout.on('data', (d) => {
       const line = d.toString().trim()
-      if (line) emitProgress(window, { stage: 'install', log: line })
+      if (line) {
+        emitProgress(window, { stage: 'install', log: line })
+        appendSetupLog(`[pip ${spec}] ${line}`)
+      }
     })
     p.stderr.on('data', (d) => {
       const line = d.toString().trim()
-      if (line) emitProgress(window, { stage: 'install', log: line })
+      if (line) {
+        emitProgress(window, { stage: 'install', log: line })
+        appendSetupLog(`[pip ${spec}] ${line}`)
+      }
     })
-    p.on('close', (code) => resolve(code === 0))
+    p.on('close', (code) => {
+      appendSetupLog(`[pip ${spec}] exit=${code}`)
+      resolve(code === 0)
+    })
     p.on('error', () => resolve(false))
   })
 }
 
 export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null, userDataDir: string, repoRoot: string) {
+  setupLogFile = path.join(userDataDir, 'logs', 'setup-python.log')
+
   ipcMain.handle('setup:status', async (): Promise<SetupStatus> => {
     const venvDir = getVenvDir(userDataDir, repoRoot)
     const venvPython = getVenvPython(venvDir)
     const venvExists = fs.existsSync(venvPython)
 
+    // El intérprete que WNTR usará de verdad puede ser el del sistema: si ya
+    // tiene el stack completo, el asistente no tiene nada que hacer y no debe
+    // aparecer. Antes sólo se medía el venv, así que el wizard insistía aunque
+    // el usuario tuviera su propia instalación funcionando.
+    const effectivePython = findPythonPath()
+    const effectiveMissing = getMissingWntrModules(effectivePython)
+    const effectiveReady = effectiveMissing !== null && effectiveMissing.length === 0
+
     if (!venvExists) {
       const sys = await findSystemPython()
       const allNames = REQUIRED_PACKAGES.map((p) => p.name)
       return {
-        ready: false,
-        pythonPath: sys?.path ?? null,
+        ready: effectiveReady,
+        pythonPath: effectiveReady ? effectivePython : (sys?.path ?? null),
         pythonVersion: sys?.version ?? null,
         venvPath: venvDir,
-        missing: allNames.filter((n) => !isOptionalPackage(n)),
+        missing: effectiveReady ? [] : allNames.filter((n) => !isOptionalPackage(n)),
         optionalMissing: allNames.filter((n) => isOptionalPackage(n)),
-        message: sys
-          ? 'venv no creado todavía. Boorie puede crearlo automáticamente.'
-          : 'Python 3.10 o superior no encontrado. Instálalo desde python.org (marcando "Add Python to PATH") y reinicia Boorie.',
+        message: effectiveReady
+          ? `WNTR está disponible en ${effectivePython}. No hace falta preparar nada.`
+          : sys
+            ? 'venv no creado todavía. Boorie puede crearlo automáticamente.'
+            : 'Python 3.10 o superior no encontrado. Instálalo desde python.org (marcando "Add Python to PATH") y reinicia Boorie.',
       }
     }
 
-    const allMissing = await checkPackagesInstalled(venvPython)
-    const missing = allMissing.filter((n) => !isOptionalPackage(n))
-    const optionalMissing = allMissing.filter((n) => isOptionalPackage(n))
+    const problems = await checkPackagesInstalled(venvPython)
+    const missing = missingNames(problems).filter((n) => !isOptionalPackage(n))
+    const optionalMissing = missingNames(problems).filter((n) => isOptionalPackage(n))
+    const venvReady = missing.length === 0
+
     return {
-      ready: missing.length === 0,
-      pythonPath: venvPython,
-      pythonVersion: 'venv',
+      ready: venvReady || effectiveReady,
+      pythonPath: venvReady ? venvPython : (effectiveReady ? effectivePython : venvPython),
+      pythonVersion: await getPythonVersion(venvPython),
       venvPath: venvDir,
-      missing,
+      missing: venvReady || effectiveReady ? [] : missing,
       optionalMissing,
-      message: missing.length === 0
+      problems,
+      message: venvReady
         ? (optionalMissing.length === 0
           ? 'Todo listo.'
           : `Todo listo (guardrails opcional no disponible: ${optionalMissing.join(', ')}).`)
-        : `Faltan ${missing.length} paquete${missing.length === 1 ? '' : 's'} Python.`,
+        : effectiveReady
+          ? `WNTR está disponible en ${effectivePython}. El entorno propio de Boorie está incompleto (${missing.join(', ')}), pero no es necesario.`
+          : `Faltan ${missing.length} paquete${missing.length === 1 ? '' : 's'} Python: ` +
+            problems.filter((p) => !isOptionalPackage(p.name)).map((p) => `${p.name} (${p.error})`).join('; '),
     }
   })
 
@@ -286,6 +369,38 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
       venvPython = getVenvPython(venvDir)
     }
 
+    // Un venv heredado de versiones anteriores puede estar hecho con Python
+    // 3.9 (lo aceptábamos entonces). Ahí pip no puede resolver el árbol de
+    // wntr 1.5 (numpy>=2.2.6 exige 3.10) e "instala" versiones incompatibles
+    // que luego no importan. Lo apartamos y creamos uno nuevo.
+    const existingVersion = await getPythonVersion(venvPython)
+    if (existingVersion && !SUPPORTED_PYTHON.test(existingVersion)) {
+      const sys = await findSystemPython()
+      if (sys) {
+        const archived = `${venvDir}-old-${Date.now()}`
+        emitProgress(window, {
+          stage: 'venv',
+          message: `El entorno de Boorie usa ${existingVersion}; se recreará con ${sys.version}. El anterior se conserva en ${archived}.`,
+        })
+        appendSetupLog(`[recreate] ${existingVersion} -> ${sys.version}; archivado en ${archived}`)
+        try {
+          fs.renameSync(venvDir, archived)
+        } catch (error) {
+          appendSetupLog(`[recreate] no se pudo apartar el venv: ${String(error)}`)
+        }
+        if (!(await createVenv(sys, venvDir, window))) {
+          emitProgress(window, { stage: 'error', message: 'No se pudo recrear el entorno Python.' })
+          return { success: false, error: 'venv-recreation-failed' }
+        }
+        venvPython = getVenvPython(venvDir)
+      } else {
+        emitProgress(window, {
+          stage: 'warning',
+          message: `El entorno de Boorie usa ${existingVersion}, pero WNTR necesita Python 3.10 o superior y no hay ninguno instalado. Instálalo desde python.org y reintenta.`,
+        })
+      }
+    }
+
     // El venv ya existe (o se acaba de crear): fijamos PYTHON_PATH ya mismo
     // para que WNTR/Milvus puedan usarlo aunque un paquete opcional falle
     // más abajo y el setup termine en estado parcial.
@@ -310,7 +425,7 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
     // Step 3 — install required packages. Un paquete opcional (nemoguardrails)
     // que falle se registra y se salta, pero no aborta el setup: Milvus/WNTR
     // no dependen de él y deben quedar operativos igualmente (issue #21).
-    const missing = await checkPackagesInstalled(venvPython)
+    const missing = missingNames(await checkPackagesInstalled(venvPython))
     const total = missing.length
     let i = 0
     const failedOptional: string[] = []
@@ -337,13 +452,29 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
     }
 
     // Step 4 — verify (solo paquetes core; los opcionales fallidos ya se reportaron arriba)
-    const stillMissing = (await checkPackagesInstalled(venvPython)).filter((n) => !isOptionalPackage(n))
-    if (stillMissing.length > 0) {
+    const stillFailing = (await checkPackagesInstalled(venvPython)).filter((p) => !isOptionalPackage(p.name))
+    if (stillFailing.length > 0) {
+      // pip puede terminar con éxito y el import fallar igualmente (una DLL de
+      // Windows que no carga, una dependencia incompatible…). Reportamos el
+      // motivo real en lugar de un "verification-failed" que no dice nada.
+      const detail = stillFailing.map((p) => `${p.name}: ${p.error}`).join('\n')
+      const venvVersion = await getPythonVersion(venvPython)
+      appendSetupLog(`[verify] venv=${venvPython} (${venvVersion ?? 'versión desconocida'})\n${detail}`)
       emitProgress(window, {
         stage: 'error',
-        message: `Tras la instalación, siguen faltando: ${stillMissing.join(', ')}.`,
+        message: `pip terminó, pero estos paquetes siguen sin cargar:\n${detail}\n\n` +
+          `Intérprete: ${venvPython} (${venvVersion ?? 'versión desconocida'})\n` +
+          `Detalle completo en: ${setupLogFile}`,
       })
-      return { success: false, error: 'verification-failed', missing: stillMissing }
+      return {
+        success: false,
+        error: 'verification-failed',
+        missing: missingNames(stillFailing),
+        problems: stillFailing,
+        pythonPath: venvPython,
+        pythonVersion: venvVersion,
+        logFile: setupLogFile,
+      }
     }
 
     emitProgress(window, {
