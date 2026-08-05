@@ -275,6 +275,11 @@ const electronAPI = {
     update: (documentId: string, updates: any) => ipcRenderer.invoke('wisdom:update', documentId, updates),
 
     reindex: (documentId: string) => ipcRenderer.invoke('wisdom:reindex', documentId),
+    onReindexProgress: (callback: (data: any) => void) => {
+      const wrapped = (_e: any, data: any) => callback(data)
+      ipcRenderer.on('wisdom:reindex-progress', wrapped)
+      return () => ipcRenderer.removeListener('wisdom:reindex-progress', wrapped)
+    },
 
     getEmbeddingProviders: () => ipcRenderer.invoke('wisdom:getEmbeddingProviders'),
 

@@ -705,7 +705,9 @@ export function UnifiedWisdomPanel() {
         if (result.success) {
           logger.debug('✅ Document reindexed successfully')
           await loadWisdomDocuments() // Refresh the list
-          showNotification('Document reindexed successfully!', 'success')
+          // El mensaje trae el número de fragmentos indexados: sin ese dato, un
+          // "reindexado con éxito" podía significar cero chunks creados.
+          showNotification(result.message || 'Document reindexed successfully!', 'success')
         } else {
           logger.error('❌ Reindexing failed:', result.message)
           showNotification(`Reindexing failed: ${result.message}`, 'error')
