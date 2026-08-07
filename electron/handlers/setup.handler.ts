@@ -91,8 +91,18 @@ interface SetupStatus {
   optionalMissing: string[]
   /** Motivo por el que cada paquete no carga; vacío si el venv no existe. */
   problems?: { name: string; error: string }[]
+  /** El venv está fuera de 3.10–3.13: pip nunca podrá completar Milvus ahí. */
+  venvPythonUnsupported?: boolean
+  /** Hay un intérprete del rango soportado con el que recrear el venv. */
+  canRecreateVenv?: boolean
   message?: string
 }
+
+/** Instrucción única para "instala un Python del rango soportado". */
+const INSTALL_PYTHON_HINT =
+  'Instala Python 3.13 desde python.org/downloads (marca "Add python.exe to PATH"), ' +
+  'reinicia Boorie y vuelve a pulsar "Instalar dependencias". La 3.14 todavía no sirve: ' +
+  'WNTR no publica paquete para ella.'
 
 function getVenvDir(userDataDir: string, repoRoot: string): string {
   // En dev, el repo tiene venv-wntr; reutilizamos.
@@ -369,11 +379,12 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
           ? `WNTR ya funciona con ${effectivePython}. Falta preparar el entorno de Milvus/RAG para poder indexar documentos.`
           : sys
             ? 'venv no creado todavía. Boorie puede crearlo automáticamente.'
-            : 'No se encontró un Python compatible (3.10 – 3.13). Descarga Python 3.13 de python.org/downloads, marca "Add Python to PATH" y reinicia Boorie. Ojo: 3.14 todavía no sirve, porque WNTR no publica paquete para esa versión.',
+            : `No se encontró un Python compatible (3.10 – 3.13). ${INSTALL_PYTHON_HINT}`,
       }
     }
 
     const problems = await checkPackagesInstalled(venvPython)
+    const venvVersion = await getPythonVersion(venvPython)
     const missing = missingNames(problems).filter((n) => !isOptionalPackage(n))
     const optionalMissing = missingNames(problems).filter((n) => isOptionalPackage(n))
     const venvReady = missing.length === 0
@@ -381,11 +392,37 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
     // su ausencia sí debe seguir avisando: sin él no se indexa nada.
     const milvusMissing = missingNames(problems).filter((n) => MILVUS_PACKAGE_NAMES.includes(n))
 
+    // Un venv heredado fuera de 3.10–3.13 no puede completarse nunca: milvus-lite
+    // sólo publica ruedas Linux/macOS hasta la 2.5.x y la 3.x —la única instalable
+    // en Windows— exige Python >= 3.10. Sin decirlo, el asistente reaparecía en
+    // cada arranque pidiendo paquetes que pip no puede resolver, sin pista alguna
+    // de que el problema era la versión del intérprete (caso de un cliente con un
+    // venv de 3.9 creado por una versión anterior de Boorie).
+    if (venvVersion && !SUPPORTED_PYTHON.test(venvVersion) && (missing.length > 0 || milvusMissing.length > 0)) {
+      const sys = await findSystemPython()
+      return {
+        ready: false,
+        pythonPath: venvPython,
+        pythonVersion: venvVersion,
+        venvPath: venvDir,
+        missing: milvusMissing.length > 0 ? milvusMissing : missing,
+        optionalMissing,
+        problems,
+        venvPythonUnsupported: true,
+        canRecreateVenv: sys !== null,
+        message: sys
+          ? `El entorno de Boorie está sobre ${venvVersion}, y milvus-lite/WNTR necesitan Python 3.10 – 3.13. ` +
+            `Pulsa "Instalar dependencias": el entorno se recreará con ${sys.version} y el anterior se conservará por si acaso.`
+          : `El entorno de Boorie está sobre ${venvVersion} y no hay ningún Python 3.10 – 3.13 en este equipo, ` +
+            `así que pip no puede instalar milvus-lite (sus versiones para Windows exigen 3.10+). ${INSTALL_PYTHON_HINT}`,
+      }
+    }
+
     if ((venvReady || effectiveReady) && milvusMissing.length > 0) {
       return {
         ready: false,
         pythonPath: venvPython,   // los problemas listados vienen del venv
-        pythonVersion: await getPythonVersion(venvPython),
+        pythonVersion: venvVersion,
         venvPath: venvDir,
         missing: milvusMissing,
         optionalMissing: optionalMissing.filter((n) => !milvusMissing.includes(n)),
@@ -398,7 +435,7 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
     return {
       ready: venvReady || effectiveReady,
       pythonPath: venvReady ? venvPython : (effectiveReady ? effectivePython : venvPython),
-      pythonVersion: await getPythonVersion(venvPython),
+      pythonVersion: venvVersion,
       venvPath: venvDir,
       missing: venvReady || effectiveReady ? [] : missing,
       optionalMissing,
@@ -425,7 +462,7 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
       if (!sys) {
         emitProgress(window, {
           stage: 'error',
-          message: 'No se encontró un Python compatible (3.10 – 3.13) en el sistema. Descarga Python 3.13 de python.org/downloads, marca "Add Python to PATH" y reinicia Boorie. La 3.14 no sirve todavía: WNTR no publica paquete para ella.',
+          message: `No se encontró un Python compatible (3.10 – 3.13) en el sistema. ${INSTALL_PYTHON_HINT}`,
         })
         return { success: false, error: 'python-not-found' }
       }
@@ -477,9 +514,13 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
         }
         venvPython = getVenvPython(venvDir)
       } else {
+        // Se continúa (WNTR puede seguir funcionando en el venv viejo), pero hay
+        // que decir que Milvus/RAG no van a completarse aquí: pip no tiene
+        // candidato de milvus-lite para Windows por debajo de 3.10.
         emitProgress(window, {
           stage: 'warning',
-          message: `El entorno de Boorie usa ${existingVersion}, fuera del rango que WNTR soporta (3.10 – 3.13), y no hay otro intérprete instalado. Instala Python 3.13 desde python.org/downloads y reintenta.`,
+          message: `El entorno de Boorie usa ${existingVersion}, fuera del rango que WNTR y Milvus soportan ` +
+            `(3.10 – 3.13), y no hay otro intérprete instalado: el indexado RAG seguirá sin funcionar. ${INSTALL_PYTHON_HINT}`,
         })
       }
     }

@@ -1358,34 +1358,61 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {resilienceIndicatorsResult && (
                       <Card>
                         <CardContent className="p-3 text-xs space-y-2">
-                          {[
-                            { label: 'Índice de Todini', key: 'todini_index' },
-                            { label: 'Entropía de red', key: 'network_entropy' },
-                            { label: 'Redundancia hidráulica', key: 'hydraulic_redundancy' },
-                          ].map(({ label, key }) => (
-                            <div key={key} className="flex justify-between">
-                              <span>{label}:</span>
-                              <span className="font-mono">
-                                {resilienceIndicatorsResult.before[key]?.toFixed(4)}
-                                {resilienceIndicatorsResult.after && (
-                                  <span className={resilienceIndicatorsResult.delta[key] < 0 ? 'text-red-500' : 'text-green-600'}>
-                                    {' → '}{resilienceIndicatorsResult.after[key]?.toFixed(4)}
-                                  </span>
+                          <table className="w-full">
+                            <thead>
+                              <tr className="text-[10px] uppercase tracking-wide text-muted-foreground border-b border-border">
+                                <th className="text-left font-medium pb-1">Indicador</th>
+                                {resilienceIndicatorsResult.after ? (
+                                  <>
+                                    <th className="text-right font-medium pb-1">Antes</th>
+                                    <th className="text-right font-medium pb-1">Después</th>
+                                  </>
+                                ) : (
+                                  <th className="text-right font-medium pb-1">Valor Actual</th>
                                 )}
-                              </span>
-                            </div>
-                          ))}
-                          <div className="flex justify-between">
-                            <span>Serviceability (presión):</span>
-                            <span className="font-mono">
-                              {(resilienceIndicatorsResult.before.serviceability.pressure_serviceability * 100).toFixed(1)}%
-                              {resilienceIndicatorsResult.after && (
-                                <span className={resilienceIndicatorsResult.delta.pressure_serviceability < 0 ? 'text-red-500' : 'text-green-600'}>
-                                  {' → '}{(resilienceIndicatorsResult.after.serviceability.pressure_serviceability * 100).toFixed(1)}%
-                                </span>
-                              )}
-                            </span>
-                          </div>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[
+                                {
+                                  label: 'Índice de Todini',
+                                  delta: resilienceIndicatorsResult.delta?.todini_index,
+                                  before: resilienceIndicatorsResult.before.todini_index?.toFixed(4),
+                                  after: resilienceIndicatorsResult.after?.todini_index?.toFixed(4),
+                                },
+                                {
+                                  label: 'Entropía de red',
+                                  delta: resilienceIndicatorsResult.delta?.network_entropy,
+                                  before: resilienceIndicatorsResult.before.network_entropy?.toFixed(4),
+                                  after: resilienceIndicatorsResult.after?.network_entropy?.toFixed(4),
+                                },
+                                {
+                                  label: 'Redundancia hidráulica',
+                                  delta: resilienceIndicatorsResult.delta?.hydraulic_redundancy,
+                                  before: resilienceIndicatorsResult.before.hydraulic_redundancy?.toFixed(4),
+                                  after: resilienceIndicatorsResult.after?.hydraulic_redundancy?.toFixed(4),
+                                },
+                                {
+                                  label: 'Serviceability (presión)',
+                                  delta: resilienceIndicatorsResult.delta?.pressure_serviceability,
+                                  before: `${(resilienceIndicatorsResult.before.serviceability.pressure_serviceability * 100).toFixed(1)}%`,
+                                  after: resilienceIndicatorsResult.after
+                                    ? `${(resilienceIndicatorsResult.after.serviceability.pressure_serviceability * 100).toFixed(1)}%`
+                                    : undefined,
+                                },
+                              ].map(({ label, before, after, delta }) => (
+                                <tr key={label} className="border-b border-border/40 last:border-0">
+                                  <td className="py-1 pr-2">{label}</td>
+                                  <td className="py-1 text-right font-mono">{before}</td>
+                                  {resilienceIndicatorsResult.after && (
+                                    <td className={`py-1 pl-2 text-right font-mono ${delta < 0 ? 'text-red-500' : 'text-green-600'}`}>
+                                      {after}
+                                    </td>
+                                  )}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                           <Button size="sm" variant="outline" className="w-full mt-2" onClick={handleExportResilienceCSV}>
                             <Download className="h-3 w-3 mr-2" /> Exportar CSV
                           </Button>
