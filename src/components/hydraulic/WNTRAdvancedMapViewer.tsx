@@ -67,13 +67,15 @@ interface WNTRAdvancedMapViewerProps {
   simulationResults?: SimulationResults | null;
   onDataLoaded?: (data: NetworkData) => void;
   onSimulationCompleted?: (results: SimulationResults) => void;
+  highlightedNodes?: string[];
 }
 
 export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
   networkData: externalNetworkData,
   simulationResults: externalSimulationResults,
   onDataLoaded: _onDataLoaded,
-  onSimulationCompleted: _onSimulationCompleted
+  onSimulationCompleted: _onSimulationCompleted,
+  highlightedNodes
 }) => {
   const [networkData, setNetworkData] = useState<NetworkData | null>(externalNetworkData || null);
   const [simulationResults, setSimulationResults] = useState<SimulationResults | null>(externalSimulationResults || null);
@@ -206,6 +208,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
             networkData={networkData}
             simulationResults={simulationResults}
             activeTimeStep={visualizationSettings.timeStep}
+            highlightedNodes={highlightedNodes}
           />
 
           {/* Overlay info - Empty for now as requested */}
