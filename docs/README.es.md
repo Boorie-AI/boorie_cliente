@@ -104,7 +104,7 @@ Ver todas las versiones disponibles: [**GitHub Releases**](https://github.com/Bo
 
 ### Requisitos Previos
 - Node.js 18+ y npm
-- Python 3.8+ con pip
+- Python 3.10 – 3.13 con pip (la 3.14 no sirve todavía: WNTR no publica paquete para ella)
 - Git
 
 ### Instalación

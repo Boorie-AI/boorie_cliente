@@ -104,7 +104,7 @@ Veure totes les versions disponibles: [**GitHub Releases**](https://github.com/B
 
 ### Requisits Previs
 - Node.js 18+ i npm
-- Python 3.8+ amb pip
+- Python 3.10 – 3.13 amb pip (la 3.14 encara no serveix: WNTR no publica cap paquet per a ella)
 - Git
 
 ### Instal·lació

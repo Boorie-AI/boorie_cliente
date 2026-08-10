@@ -45,7 +45,7 @@ Boorie està construït com una aplicació Electron moderna amb un frontend Reac
 - **SQLite**: Base de dades embeguda per a emmagatzematge local
 
 ### Capa d'Integració
-- **Python 3.8+**: Anàlisi hidràulica i integració WNTR
+- **Python 3.10 – 3.13**: Anàlisi hidràulica i integració WNTR
 - **WNTR**: Water Network Tool for Resilience
 - **NumPy/SciPy**: Biblioteques de computació científica
 - **Matplotlib**: Gràfics i visualització

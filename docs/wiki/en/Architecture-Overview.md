@@ -45,7 +45,7 @@ Boorie is built as a modern Electron application with a React frontend, TypeScri
 - **SQLite**: Embedded database for local storage
 
 ### Integration Layer
-- **Python 3.8+**: Hydraulic analysis and WNTR integration
+- **Python 3.10 – 3.13**: Hydraulic analysis and WNTR integration
 - **WNTR**: Water Network Tool for Resilience
 - **NumPy/SciPy**: Scientific computing libraries
 - **Matplotlib**: Plotting and visualization

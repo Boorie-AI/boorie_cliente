@@ -152,7 +152,7 @@ UnifiedWisdomPanel.tsx
 
 ### Requisitos Previos
 1. **Node.js 18+** para el entorno de desarrollo
-2. **Python 3.8+** con WNTR para funcionalidades hidráulicas
+2. **Python 3.10 – 3.13** con WNTR para funcionalidades hidráulicas
 3. **Electron 28+** para la aplicación de escritorio
 
 ### Comandos de Desarrollo

@@ -25,7 +25,7 @@
 - **Dependencies**: glibc 2.17+, GTK 3.0+
 
 ### Python Requirements (for WNTR)
-- **Python**: 3.8, 3.9, 3.10, or 3.11
+- **Python**: 3.10, 3.11, 3.12 or 3.13 (3.9 and earlier no longer work; 3.14 has no WNTR wheel yet)
 - **Packages**: numpy, scipy, pandas, networkx, matplotlib, wntr
 
 ## 🚀 Quick Installation

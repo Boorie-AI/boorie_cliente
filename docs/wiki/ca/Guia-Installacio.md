@@ -25,7 +25,7 @@
 - **Dependències**: glibc 2.17+, GTK 3.0+
 
 ### Requisits de Python (per a WNTR)
-- **Python**: 3.8, 3.9, 3.10 o 3.11
+- **Python**: 3.10, 3.11, 3.12 o 3.13 (la 3.9 i anteriors ja no funcionen; la 3.14 encara no té paquet de WNTR)
 - **Paquets**: numpy, scipy, pandas, networkx, matplotlib, wntr
 
 ## Instal·lació Ràpida

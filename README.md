@@ -89,7 +89,7 @@ View all available releases: [**GitHub Releases**](https://github.com/Boorie-AI/
 
 ### Prerequisites
 - Node.js 18+ and npm
-- Python 3.8+ with pip
+- Python 3.10 – 3.13 with pip (3.14 is not supported yet: WNTR ships no wheel for it)
 - Git
 
 ### Installation
