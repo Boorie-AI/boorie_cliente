@@ -18,9 +18,28 @@ export default defineConfig({
   },
   define: {
     global: 'globalThis',
+    // No puede calcularse en runtime: `new Date()` daría la fecha en que el
+    // usuario abre la app, no la de la compilación.
+    __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
   },
   server: {
     port: 3000,
+    watch: {
+      // Nada de esto es fuente del frontend, y vigilarlo agota
+      // fs.inotify.max_user_watches (65536 aquí): venv-wntr solo ya son
+      // ~21k archivos. Al pasarse, chokidar emite ENOSPC y Vite muere al
+      // arrancar, dejando un servidor huérfano sirviendo el puerto 3000.
+      ignored: [
+        '**/.git/**',
+        '**/node_modules/**',
+        '**/venv-wntr/**',
+        '**/dist/**',
+        '**/dist-electron/**',
+        '**/test-files/**',
+        '**/rag-knowledge/**',
+        '**/data/**',
+      ],
+    },
   },
   build: {
     outDir: 'dist',

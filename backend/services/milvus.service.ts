@@ -30,7 +30,23 @@ export class MilvusService {
         // each cold start. Falls back to 19530 if not present.
         const address = MilvusService.resolveAddress();
         console.log('[MilvusService] Connecting to Milvus Lite at', address);
-        this.client = new MilvusClient({ address });
+        this.client = MilvusService.createClient(address);
+    }
+
+    /**
+     * Crea el cliente y **recoge su promesa de conexión**. El SDK arranca la
+     * conexión dentro del constructor y expone `connectPromise`; si el servidor
+     * no está escuchando, esa promesa se rechaza sin dueño y aparece como
+     * "Unhandled promise rejection" (cuatro por arranque en los logs, que
+     * despistaron al diagnosticar un caso real) o mata el proceso si se usa
+     * este servicio fuera de Electron. El fallo real ya se detecta y reporta en
+     * ensureConnection().
+     */
+    private static createClient(address: string): MilvusClient {
+        const client = new MilvusClient({ address });
+        const pending = (client as unknown as { connectPromise?: Promise<void> }).connectPromise;
+        if (pending && typeof pending.catch === 'function') pending.catch(() => { /* reportado en ensureConnection */ });
+        return client;
     }
 
     private static resolveAddress(): string {
@@ -99,7 +115,7 @@ export class MilvusService {
             // up on a different port than what was resolved back then.
             this.unavailable = false;
             this.connectionAttempted = false;
-            this.client = new MilvusClient({ address: MilvusService.resolveAddress() });
+            this.client = MilvusService.createClient(MilvusService.resolveAddress());
         }
 
         if (this.connectionAttempted) {
@@ -119,7 +135,7 @@ export class MilvusService {
                     // start_milvus.py writes it, instead of retrying a stale address.
                     const resolved = MilvusService.resolveAddress();
                     if (resolved !== lastResolvedAddress || retries === 5) {
-                        this.client = new MilvusClient({ address: resolved });
+                        this.client = MilvusService.createClient(resolved);
                         lastResolvedAddress = resolved;
                     }
                     await this.client.listCollections();

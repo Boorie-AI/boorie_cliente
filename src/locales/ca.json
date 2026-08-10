@@ -62,7 +62,24 @@
     "settingsStorage": "Emmagatzematge de configuració:",
     "backupFrequency": "Freqüència de còpia de seguretat:",
     "aiConfiguration": "Configuració d'IA",
-    "accounts": "Comptes"
+    "accounts": "Comptes",
+    "about": {
+      "title": "Quant a",
+      "appName": "Boorie Client",
+      "currentVersion": "Versió actual",
+      "version": "Versió",
+      "buildDate": "Data de compilació",
+      "channel": "Canal",
+      "channelStable": "Estable",
+      "channelPrerelease": "Candidata de llançament",
+      "historyTitle": "Historial de versions",
+      "historyDesc": "Versions publicades de Boorie Client, de la més recent a la més antiga.",
+      "historyEmpty": "No s’ha pogut llegir l’historial de versions.",
+      "outOfSync": "L’historial no inclou cap entrada per a la versió instal·lada.",
+      "releaseNotes": "Veure les notes de versió completes a GitHub",
+      "loading": "Carregant…",
+      "unknown": "Desconeguda"
+    }
   },
   "ai": {
     "localModels": "Models Locals (Ollama)",

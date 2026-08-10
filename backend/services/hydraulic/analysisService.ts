@@ -95,14 +95,16 @@ export interface VulnerabilityAnalysis {
 }
 
 export class WNTRAnalysisService {
-  private pythonPath: string;
   private servicePath: string;
 
-  constructor() {
-    // Use shared Python detection utility
+  /** Ver nota en wntrWrapper: se resuelve en cada ejecución, no al construir. */
+  private get pythonPath(): string {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { findPythonPath } = require('./pythonDetector');
-    this.pythonPath = findPythonPath();
+    return findPythonPath();
+  }
+
+  constructor() {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { resolvePythonScriptPath } = require('./pythonScriptPath');
     this.servicePath = resolvePythonScriptPath('wntr_analysis_service.py');

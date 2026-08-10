@@ -35,6 +35,17 @@ declare module '*.webp' {
   export default content;
 }
 
+// CHANGELOG.md se importa como texto y se resuelve en tiempo de compilación, para
+// que su contenido viaje dentro del bundle en vez de leerse del disco en runtime.
+// Ver docs/ACERCA_DE_HISTORIAL_VERSIONES.md.
+declare module '*.md?raw' {
+  const content: string;
+  export default content;
+}
+
+/** Fecha de compilación (ISO), inyectada por `define` en vite.config.ts. */
+declare const __BUILD_DATE__: string;
+
 interface Window {
   electronAPI: {
     minimizeWindow: () => Promise<void>;

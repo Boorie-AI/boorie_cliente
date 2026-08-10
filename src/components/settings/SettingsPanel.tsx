@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { AIConfigurationPanel } from './AIConfigurationPanel'
 import { SystemPromptPanel } from './SystemPromptPanel'
-import { GeneralTab, AccountsTab } from './tabs'
+import { GeneralTab, AccountsTab, AboutTab } from './tabs'
 import { MilvusInspector } from './MilvusInspector'
 import { GuardrailsPanel } from './GuardrailsPanel'
 import { cn } from '@/utils/cn'
@@ -90,6 +90,16 @@ export function SettingsPanel() {
               >
                 Guardrails
               </Tabs.Trigger>
+              <Tabs.Trigger
+                value="about"
+                className={cn(
+                  "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+                  "data-[state=inactive]:text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {t('settings.about.title')}
+              </Tabs.Trigger>
             </Tabs.List>
 
             {/* Tab Content */}
@@ -115,6 +125,10 @@ export function SettingsPanel() {
 
             <Tabs.Content value="guardrails" className="flex-1 overflow-hidden">
               <GuardrailsPanel />
+            </Tabs.Content>
+
+            <Tabs.Content value="about" className="flex-1 overflow-hidden">
+              <AboutTab />
             </Tabs.Content>
           </Tabs.Root>
         </div>

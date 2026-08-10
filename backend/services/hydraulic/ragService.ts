@@ -128,97 +128,183 @@ export class HydraulicRAGService {
     }
   }
 
+  /**
+   * Trocea un texto y genera los embeddings de cada trozo. Es la única ruta
+   * que produce chunks indexados, y la comparten la subida de documentos y el
+   * reindexado: antes el reindexado sólo borraba chunks y nadie los recreaba,
+   * así que un documento reindexado se quedaba "Not Indexed" para siempre.
+   */
+  private async buildIndexedChunks(
+    content: string,
+    onProgress?: (progress: { current: number; total: number; message: string }) => void
+  ): Promise<{
+    chunks: { content: string; embedding: number[]; chunkIndex: number }[]
+    failedCount: number
+    totalChunks: number
+  }> {
+    const chunks = this.chunkDocument(content, {
+      maxChunkSize: 1000, // Larger chunks = fewer embeddings = faster indexing
+      overlap: 150
+    })
+
+    console.log(`[RAG Service] Chunked document into ${chunks.length} parts`)
+
+    const generateWithTimeout = async (text: string, timeoutMs: number = 60000) => {
+      return Promise.race([
+        this.embeddingService.generateEmbedding(text),
+        new Promise<number[]>((_, reject) =>
+          setTimeout(() => reject(new Error('Embedding generation timed out')), timeoutMs)
+        )
+      ])
+    }
+
+    // Process embeddings in concurrent batches for much faster indexing
+    const CONCURRENCY = 3
+    const chunkEmbeddings: (number[] | null)[] = new Array(chunks.length).fill(null)
+    const chunkTimings: number[] = []
+    let completedCount = 0
+
+    for (let batchStart = 0; batchStart < chunks.length; batchStart += CONCURRENCY) {
+      const batchEnd = Math.min(batchStart + CONCURRENCY, chunks.length)
+      const batchIndices = Array.from({ length: batchEnd - batchStart }, (_, k) => batchStart + k)
+
+      await Promise.all(batchIndices.map(async (i) => {
+        const chunkStart = Date.now()
+        try {
+          chunkEmbeddings[i] = await generateWithTimeout(chunks[i], 60000)
+          const duration = Date.now() - chunkStart
+          chunkTimings.push(duration)
+          if (duration > 5000) {
+            console.warn(`[RAG Service] Slow embedding for chunk ${i + 1}: ${duration}ms`)
+          }
+        } catch (err: any) {
+          console.error(`[RAG Service] Failed embedding for chunk ${i + 1}:`, err.message)
+          chunkEmbeddings[i] = null
+        }
+      }))
+
+      completedCount = batchEnd
+
+      if (onProgress) {
+        const avgTime = chunkTimings.length > 0
+          ? chunkTimings.reduce((a, b) => a + b, 0) / chunkTimings.length
+          : 0
+        const remainingChunks = chunks.length - completedCount
+        const etaSeconds = Math.round((avgTime * remainingChunks / CONCURRENCY) / 1000)
+        const etaText = etaSeconds > 0 ? ` (~${etaSeconds}s restantes)` : ''
+
+        onProgress({
+          current: completedCount,
+          total: chunks.length,
+          message: `Chunk ${completedCount}/${chunks.length}: Generando embeddings...${etaText}`
+        })
+      }
+
+      if (batchStart === 0 || completedCount % 10 === 0 || completedCount === chunks.length) {
+        console.log(`[RAG Service] Progress: ${completedCount}/${chunks.length} chunks processed`)
+      }
+    }
+
+    const successfulChunks = chunks
+      .map((chunk, index) => ({ content: chunk, embedding: chunkEmbeddings[index], chunkIndex: index }))
+      .filter((item): item is { content: string; embedding: number[]; chunkIndex: number } => item.embedding !== null)
+
+    const failedCount = chunks.length - successfulChunks.length
+    if (failedCount > 0) {
+      console.warn(`[RAG Service] ${failedCount}/${chunks.length} chunks failed embedding generation`)
+    }
+
+    if (successfulChunks.length === 0 && chunks.length > 0) {
+      throw new Error('Failed to generate embeddings for any chunk. The embedding provider (Ollama/OpenAI) may be unreachable or misconfigured.')
+    }
+
+    return { chunks: successfulChunks, failedCount, totalChunks: chunks.length }
+  }
+
+  /**
+   * Reindexa un documento que ya está en la base de datos, a partir del texto
+   * que guarda en `content`. Los embeddings se generan ANTES de tocar los
+   * chunks existentes: si el proveedor de embeddings no responde, el documento
+   * se queda como estaba en lugar de perder su indexado.
+   */
+  async reindexDocument(
+    documentId: string,
+    onProgress?: (progress: { current: number; total: number; message: string }) => void
+  ): Promise<{ chunkCount: number; failedCount: number; totalChunks: number; milvusSynced: boolean }> {
+    const doc = await this.prisma.hydraulicKnowledge.findUnique({
+      where: { id: documentId },
+      include: { chunks: { select: { id: true } } }
+    })
+
+    if (!doc) throw new Error('Document not found')
+    if (!doc.content || doc.content.trim().length === 0) {
+      throw new Error(
+        'El documento no conserva su texto en la base de datos, así que no se puede reindexar. Vuelve a subirlo.'
+      )
+    }
+
+    const { chunks: newChunks, failedCount, totalChunks } = await this.buildIndexedChunks(doc.content, onProgress)
+    const staleChunkIds = doc.chunks.map((c) => c.id)
+
+    // Sustitución atómica: si algo falla, no queda a medias
+    await this.prisma.$transaction([
+      this.prisma.knowledgeChunk.deleteMany({ where: { knowledgeId: documentId } }),
+      this.prisma.knowledgeChunk.createMany({
+        data: newChunks.map((item) => ({
+          knowledgeId: documentId,
+          content: item.content,
+          embedding: JSON.stringify(item.embedding),
+          chunkIndex: item.chunkIndex
+        }))
+      }),
+      this.prisma.hydraulicKnowledge.update({
+        where: { id: documentId },
+        data: { updatedAt: new Date() }
+      })
+    ])
+
+    // Milvus: quitar los vectores viejos e insertar los nuevos
+    let milvusSynced = false
+    try {
+      const milvusService = (await import('../milvus.service')).MilvusService.getInstance()
+      await milvusService.ensureConnection()
+
+      if (staleChunkIds.length > 0) {
+        await milvusService.delete('hydraulic_knowledge', staleChunkIds)
+      }
+
+      const persisted = await this.prisma.knowledgeChunk.findMany({ where: { knowledgeId: documentId } })
+      const rows = persisted
+        .filter((c) => c.embedding)
+        .map((c) => ({
+          id: c.id,
+          vector: JSON.parse(c.embedding as string),
+          content: c.content,
+          metadata: { chunkId: c.id, docId: doc.id, title: doc.title, category: doc.category },
+          timestamp: Date.now()
+        }))
+
+      if (rows.length > 0) {
+        await milvusService.insert('hydraulic_knowledge', rows)
+        console.log(`[RAG Service] Reindexed ${rows.length} chunks into Milvus for "${doc.title}"`)
+      }
+      milvusSynced = true
+    } catch (milvusErr) {
+      // Los chunks y sus embeddings ya están en la base relacional: la búsqueda
+      // por texto sigue funcionando y `wisdom:syncMilvus` puede reintentarlo.
+      console.error('[RAG Service] Reindex: failed to sync Milvus:', milvusErr)
+    }
+
+    return { chunkCount: newChunks.length, failedCount, totalChunks, milvusSynced }
+  }
+
   // Add new document to knowledge base
   async addDocument(
     document: Omit<HydraulicDocument, 'id' | 'lastUpdated'>,
     onProgress?: (progress: { current: number; total: number; message: string }) => void
   ): Promise<string> {
     try {
-      // Generate chunks from content
-      const chunks = this.chunkDocument(document.content, {
-        maxChunkSize: 1000, // Larger chunks = fewer embeddings = faster indexing
-        overlap: 150
-      })
-
-      console.log(`[RAG Service] Chunked document into ${chunks.length} parts`)
-
-      // Helper for timeout
-      const generateWithTimeout = async (text: string, timeoutMs: number = 60000) => {
-        return Promise.race([
-          this.embeddingService.generateEmbedding(text),
-          new Promise<number[]>((_, reject) =>
-            setTimeout(() => reject(new Error('Embedding generation timed out')), timeoutMs)
-          )
-        ])
-      }
-
-      // Process embeddings in concurrent batches for much faster indexing
-      const CONCURRENCY = 3 // Process 3 chunks at a time
-      const chunkEmbeddings: (number[] | null)[] = new Array(chunks.length).fill(null)
-      const chunkTimings: number[] = []
-      let completedCount = 0
-
-      for (let batchStart = 0; batchStart < chunks.length; batchStart += CONCURRENCY) {
-        const batchEnd = Math.min(batchStart + CONCURRENCY, chunks.length)
-        const batchIndices = Array.from({ length: batchEnd - batchStart }, (_, k) => batchStart + k)
-
-        const batchPromises = batchIndices.map(async (i) => {
-          const chunk = chunks[i]
-          const chunkStart = Date.now()
-
-          try {
-            const embedding = await generateWithTimeout(chunk, 60000)
-            chunkEmbeddings[i] = embedding
-
-            const duration = Date.now() - chunkStart
-            chunkTimings.push(duration)
-
-            if (duration > 5000) {
-              console.warn(`[RAG Service] Slow embedding for chunk ${i + 1}: ${duration}ms`)
-            }
-          } catch (err: any) {
-            console.error(`[RAG Service] Failed embedding for chunk ${i + 1}:`, err.message)
-            chunkEmbeddings[i] = null
-          }
-        })
-
-        await Promise.all(batchPromises)
-        completedCount = batchEnd
-
-        // Report progress with ETA
-        if (onProgress) {
-          const avgTime = chunkTimings.length > 0
-            ? chunkTimings.reduce((a, b) => a + b, 0) / chunkTimings.length
-            : 0
-          const remainingChunks = chunks.length - completedCount
-          const etaSeconds = Math.round((avgTime * remainingChunks / CONCURRENCY) / 1000)
-          const etaText = etaSeconds > 0 ? ` (~${etaSeconds}s restantes)` : ''
-
-          onProgress({
-            current: completedCount,
-            total: chunks.length,
-            message: `Chunk ${completedCount}/${chunks.length}: Generando embeddings...${etaText}`
-          })
-        }
-
-        if (batchStart === 0 || completedCount % 10 === 0 || completedCount === chunks.length) {
-          console.log(`[RAG Service] Progress: ${completedCount}/${chunks.length} chunks processed`)
-        }
-      }
-
-      // Filter out chunks with failed embeddings
-      const successfulChunks = chunks
-        .map((chunk, index) => ({ content: chunk, embedding: chunkEmbeddings[index], chunkIndex: index }))
-        .filter(item => item.embedding !== null)
-
-      const failedCount = chunks.length - successfulChunks.length
-      if (failedCount > 0) {
-        console.warn(`[RAG Service] ${failedCount}/${chunks.length} chunks failed embedding generation`)
-      }
-
-      if (successfulChunks.length === 0 && chunks.length > 0) {
-        throw new Error('Failed to generate embeddings for any chunk. The embedding provider (Ollama/OpenAI) may be unreachable or misconfigured.')
-      }
+      const { chunks: successfulChunks } = await this.buildIndexedChunks(document.content, onProgress)
 
       console.log(`[RAG Service] Creating document with ${successfulChunks.length} indexed chunks`)
 

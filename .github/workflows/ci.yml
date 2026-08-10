@@ -34,20 +34,44 @@ jobs:
     - name: Run TypeScript check
       run: npm run typecheck
 
-  test-frontend:
-    name: Test Frontend
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
-        
+
+    - name: Install dependencies
+      run: npm ci --legacy-peer-deps
+
+    # La bateria de vitest no era un check del CI: se ejecutaba solo en local.
+    # Entre otras cosas verifica que la entrada superior del CHANGELOG.md coincide
+    # con la version de package.json, de modo que una release no pueda documentar
+    # una version distinta de la que empaqueta.
+    - name: Run test suite
+      run: npm test
+
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
     - name: Install dependencies
       run: npm ci --legacy-peer-deps
 
@@ -88,7 +112,9 @@ jobs:
 
   build-electron:
     name: Build Electron Apps
-    needs: [lint-and-typecheck, test-frontend]
+    # Los tests entran como requisito previo: empaquetar en tres sistemas cuesta
+    # varios minutos y no tiene sentido gastarlos si la bateria ya falla.
+    needs: [lint-and-typecheck, unit-tests, test-frontend]
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]

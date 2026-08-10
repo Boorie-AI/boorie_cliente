@@ -9,6 +9,9 @@ interface SetupStatus {
   venvPath: string
   missing: string[]
   optionalMissing: string[]
+  problems?: { name: string; error: string }[]
+  venvPythonUnsupported?: boolean
+  canRecreateVenv?: boolean
   message?: string
 }
 
@@ -32,6 +35,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   const [installing, setInstalling] = useState(false)
   const [progress, setProgress] = useState<ProgressEvent | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [warnings, setWarnings] = useState<string[]>([])
   const logRef = useRef<HTMLDivElement>(null)
   const [logLines, setLogLines] = useState<string[]>([])
   const api = (window as any).electronAPI?.setup
@@ -53,6 +57,13 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
       if (p.stage === 'error') {
         setErrorMsg(p.message ?? 'Error en el setup.')
       }
+      // Los avisos ('warning') explican por qué algo quedará deshabilitado —
+      // p.ej. un venv sobre Python 3.9 donde Milvus no puede instalarse. Antes
+      // se emitían y no se pintaban en ningún sitio, así que el usuario veía el
+      // asistente reaparecer sin ninguna explicación.
+      if (p.stage === 'warning' && p.message) {
+        setWarnings((prev) => (prev.includes(p.message!) ? prev : [...prev, p.message!]))
+      }
     })
 
     return off
@@ -66,6 +77,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   const startInstall = async () => {
     setInstalling(true)
     setErrorMsg(null)
+    setWarnings([])
     setLogLines([])
     try {
       const result = await api.install()
@@ -78,7 +90,9 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           setTimeout(onComplete, 800)
         }
       } else {
-        setErrorMsg(result?.error || 'Setup falló.')
+        // El evento de progreso 'error' ya trae el motivo real (qué import
+        // falla y por qué). No lo pisamos con el código genérico.
+        setErrorMsg((prev) => prev || result?.error || 'Setup falló.')
       }
     } catch (e: any) {
       setErrorMsg(e?.message ?? 'Setup falló.')
@@ -132,17 +146,40 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                       </span>
                     ))}
                   </div>
+                  {/* El motivo del fallo, no sólo el nombre: un paquete puede
+                      estar instalado y no cargar (DLL, versión incompatible). */}
+                  {status.problems && status.problems.length > 0 && (
+                    <div className="pt-2 space-y-1 text-[11px] font-mono text-muted-foreground">
+                      {status.problems.map((p) => (
+                        <div key={p.name} className="break-all">
+                          {p.name}: {p.error}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {status.pythonVersion && (
+                    <div className="pt-1 text-[11px] text-muted-foreground">
+                      Intérprete: <span className="font-mono">{status.pythonPath}</span> ({status.pythonVersion})
+                    </div>
+                  )}
                 </div>
               )}
-              {!status.pythonPath && (
+              {/* El diagnóstico del backend (qué falta y por qué) es lo único
+                  que dice al usuario qué tiene que hacer; antes se descartaba. */}
+              {status.message && (
+                <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-foreground/80">
+                  {status.message}
+                </div>
+              )}
+              {(!status.pythonPath || (status.venvPythonUnsupported && !status.canRecreateVenv)) && (
                 <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4 text-sm text-yellow-700 dark:text-yellow-400 flex gap-3 items-start">
                   <AlertTriangle className="w-5 h-5 flex-shrink-0" />
                   <div>
-                    No se encontró Python 3.9+ en tu sistema. Instálalo desde{' '}
+                    No se encontró un Python compatible (3.10 – 3.13) en tu sistema. Instala la 3.13 desde{' '}
                     <a className="underline" href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer">
                       python.org/downloads
-                    </a>{' '}
-                    y reinicia Boorie.
+                    </a>
+                    , marca <span className="font-mono">Add python.exe to PATH</span> y reinicia Boorie.
                   </div>
                 </div>
               )}
@@ -194,6 +231,17 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {warnings.length > 0 && (
+            <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4 text-sm text-yellow-700 dark:text-yellow-400 space-y-2">
+              {warnings.map((w, i) => (
+                <div key={i} className="flex gap-3 items-start">
+                  <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                  <div>{w}</div>
+                </div>
+              ))}
             </div>
           )}
 

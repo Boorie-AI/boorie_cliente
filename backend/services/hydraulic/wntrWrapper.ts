@@ -69,18 +69,25 @@ export interface NetworkAnalysis {
 }
 
 class WNTRWrapper {
-  private pythonPath: string
   private scriptPath: string
 
   constructor() {
-    // Use shared Python detection utility (supports macOS, Windows, Linux)
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { findPythonPath } = require('./pythonDetector')
-    this.pythonPath = findPythonPath()
-
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { resolvePythonScriptPath } = require('./pythonScriptPath')
     this.scriptPath = resolvePythonScriptPath('wntrService.py')
+  }
+
+  /**
+   * La ruta de Python se resuelve en cada ejecución, no en el constructor:
+   * esta clase se instancia al arrancar la app, antes de que el asistente de
+   * preparación haya creado el venv, así que congelarla dejaba WNTR apuntando
+   * para siempre a un intérprete sin WNTR (findPythonPath ya cachea el
+   * resultado y setup.handler invalida la caché al terminar).
+   */
+  private get pythonPath(): string {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { findPythonPath } = require('./pythonDetector')
+    return findPythonPath()
   }
 
   private async runPythonScript(command: string, args: string[]): Promise<any> {

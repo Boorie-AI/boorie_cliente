@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/stores/appStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { databaseService } from '@/services/database'
-import { Moon, Sun, RotateCcw, Languages, Eye, EyeOff, Map, Check } from 'lucide-react'
+import { Moon, Sun, RotateCcw, Languages, Eye, EyeOff, Map, Check, Terminal } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import * as Switch from '@radix-ui/react-switch'
 import * as Select from '@radix-ui/react-select'
@@ -26,12 +26,71 @@ export function GeneralTab() {
   const [showMapboxToken, setShowMapboxToken] = useState(false)
   const [mapboxSaved, setMapboxSaved] = useState(false)
 
+  const [pythonPath, setPythonPath] = useState('')
+  const [pythonDetected, setPythonDetected] = useState('')
+  const [pythonMessage, setPythonMessage] = useState('')
+  const [pythonOk, setPythonOk] = useState(false)
+  const [pythonChecking, setPythonChecking] = useState(false)
+  const isWindows = navigator.userAgent.includes('Windows')
+  const setupApi = (window as any).electronAPI?.setup
+
+  const refreshPythonStatus = async () => {
+    if (!setupApi?.getPython) return
+    const info = await setupApi.getPython()
+    if (!info?.success) return
+    setPythonDetected(info.effective?.pythonPath ?? '')
+    setPythonPath(info.configured ?? '')
+    if (info.effective && !info.effective.wntrReady) {
+      setPythonOk(false)
+      setPythonMessage(
+        info.effective.usable
+          ? `El intérprete en uso no tiene: ${info.effective.missingModules.join(', ')}.`
+          : 'No hay un intérprete de Python utilizable.'
+      )
+    } else {
+      setPythonOk(true)
+      setPythonMessage('')
+    }
+  }
+
   useEffect(() => {
     loadPreferences()
     databaseService.getSetting(MAPBOX_TOKEN_SETTING_KEY).then((value) => {
       if (value) setMapboxToken(value)
     })
+    refreshPythonStatus()
   }, [loadPreferences])
+
+  const handleBrowsePython = async () => {
+    const result = await setupApi?.browsePython()
+    if (result?.success && result.path) setPythonPath(result.path)
+  }
+
+  const handleSavePythonPath = async () => {
+    if (!setupApi?.setPython) return
+    setPythonChecking(true)
+    try {
+      const result = await setupApi.setPython(pythonPath)
+      await refreshPythonStatus()
+      // Después del refresco, para que el mensaje de confirmación no se pise
+      setPythonOk(Boolean(result?.success && result?.wntrReady))
+      setPythonMessage(result?.message ?? result?.error ?? '')
+    } finally {
+      setPythonChecking(false)
+    }
+  }
+
+  const handleClearPythonPath = async () => {
+    if (!setupApi?.clearPython) return
+    setPythonChecking(true)
+    try {
+      await setupApi.clearPython()
+      setPythonPath('')
+      await refreshPythonStatus()
+    } finally {
+      setPythonChecking(false)
+    }
+  }
 
   const handleSaveMapboxToken = async () => {
     const ok = await databaseService.setSetting(MAPBOX_TOKEN_SETTING_KEY, mapboxToken.trim(), 'map')
@@ -270,6 +329,77 @@ export function GeneralTab() {
               >
                 {mapboxSaved ? <Check size={16} /> : null}
                 {mapboxSaved ? 'Guardado' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Python / WNTR interpreter */}
+        <div className="bg-card rounded-xl border border-border p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Terminal size={20} className="text-muted-foreground" />
+            <h2 className="text-xl font-semibold text-card-foreground">Python (WNTR)</h2>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium text-card-foreground">Ruta del intérprete</label>
+              <p className="text-sm text-muted-foreground">
+                Boorie detecta Python automáticamente y prioriza el de tu sistema. Indica aquí la ruta
+                sólo si tienes WNTR en un entorno que no encuentra (conda, un venv propio o una
+                instalación fuera de las rutas habituales).
+              </p>
+            </div>
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={pythonPath}
+                onChange={(e) => setPythonPath(e.target.value)}
+                placeholder={pythonDetected || (isWindows ? 'C:\\Python312\\python.exe' : '/usr/bin/python3')}
+                className="flex-1 min-w-0 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none text-sm font-mono"
+              />
+              <button
+                type="button"
+                onClick={handleBrowsePython}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
+              >
+                Examinar…
+              </button>
+              <button
+                type="button"
+                onClick={handleSavePythonPath}
+                disabled={pythonChecking}
+                className={cn(
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5',
+                  'bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50'
+                )}
+              >
+                {pythonChecking ? 'Comprobando…' : 'Guardar'}
+              </button>
+            </div>
+            {pythonMessage && (
+              <div
+                className={cn(
+                  'rounded-lg border p-3 text-sm flex gap-2 items-start',
+                  pythonOk
+                    ? 'border-green-600/30 bg-green-600/5 text-green-700 dark:text-green-400'
+                    : 'border-yellow-500/30 bg-yellow-500/5 text-yellow-700 dark:text-yellow-400'
+                )}
+              >
+                {pythonOk ? <Check size={16} className="mt-0.5 flex-shrink-0" /> : null}
+                <span className="whitespace-pre-wrap">{pythonMessage}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>
+                En uso ahora:{' '}
+                <span className="font-mono">{pythonDetected || 'detectando…'}</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleClearPythonPath}
+                className="underline hover:text-foreground"
+              >
+                Volver a la detección automática
               </button>
             </div>
           </div>

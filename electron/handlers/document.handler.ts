@@ -389,29 +389,27 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
 
       console.log(`[Document Handler] Reindexing document: "${document.title}"`)
 
-      // Delete existing chunks first
-      const deletedChunks = await prismaClient.knowledgeChunk.deleteMany({
-        where: { knowledgeId: documentId }
+      // Reindexado real: trocear, generar embeddings y sustituir los chunks.
+      // Antes esto sólo borraba los chunks y devolvía éxito, así que el
+      // documento quedaba "Not Indexed" de forma permanente.
+      const result = await ragService.reindexDocument(documentId, (progress) => {
+        event.sender.send('wisdom:reindex-progress', { documentId, ...progress })
       })
 
-      console.log(`[Document Handler] Deleted ${deletedChunks.count} existing chunks`)
-
-      // Update the document's updatedAt to trigger reprocessing
-      // The chunks were already deleted, so the system should recreate them
-      await prismaClient.hydraulicKnowledge.update({
-        where: { id: documentId },
-        data: {
-          updatedAt: new Date(),
-          // Optionally trigger reprocessing by changing a field slightly
-          version: document.version + '.reindexed'
-        }
-      })
-
-      console.log(`[Document Handler] Document reindexed successfully`)
+      console.log(
+        `[Document Handler] Reindexed "${document.title}": ${result.chunkCount}/${result.totalChunks} chunks` +
+        (result.milvusSynced ? '' : ' (sin sincronizar con Milvus)')
+      )
 
       return {
         success: true,
-        message: 'Document reindexed successfully'
+        chunkCount: result.chunkCount,
+        failedCount: result.failedCount,
+        totalChunks: result.totalChunks,
+        milvusSynced: result.milvusSynced,
+        message: result.failedCount > 0
+          ? `Reindexado con ${result.chunkCount} de ${result.totalChunks} fragmentos (${result.failedCount} fallaron al generar embedding).`
+          : `Reindexado: ${result.chunkCount} fragmentos indexados.`
       }
     } catch (error: any) {
       console.error('Document reindex error:', error)
@@ -598,30 +596,40 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
         totalProcessed: 0,
         successful: 0,
         failed: 0,
+        /** Fragmentos realmente indexados, para poder verificar el resultado. */
+        indexedChunks: 0,
+        /** Documentos reindexados en la BD pero no sincronizados con Milvus. */
+        milvusFailures: 0,
         errors: [] as string[]
       }
 
+      let docIndex = 0
       for (const doc of documentsToReindex) {
+        docIndex += 1
         try {
           console.log(`[Document Handler] Reindexing: "${doc.title}"`)
 
-          if (!options.clearAllEmbeddings) {
-            // Delete existing chunks for this document
-            await prismaClient.knowledgeChunk.deleteMany({
-              where: { knowledgeId: doc.id }
+          // Reindexado real por documento. Un fallo (por ejemplo, el proveedor
+          // de embeddings caído) se cuenta como fallo con su motivo, en lugar
+          // de reportar éxito habiendo borrado los chunks.
+          const result = await ragService.reindexDocument(doc.id, (progress) => {
+            event.sender.send('wisdom:reindex-progress', {
+              documentId: doc.id,
+              title: doc.title,
+              document: docIndex,
+              totalDocuments: documentsToReindex.length,
+              ...progress
             })
-          }
-
-          // Update document to trigger reprocessing
-          await prismaClient.hydraulicKnowledge.update({
-            where: { id: doc.id },
-            data: {
-              updatedAt: new Date(),
-              version: doc.version + '.reindexed-' + Date.now()
-            }
           })
 
           results.successful++
+          results.indexedChunks += result.chunkCount
+          if (result.failedCount > 0) {
+            results.errors.push(
+              `${doc.title}: ${result.failedCount} de ${result.totalChunks} fragmentos sin embedding`
+            )
+          }
+          if (!result.milvusSynced) results.milvusFailures++
         } catch (error: any) {
           console.error(`Failed to reindex document ${doc.id}:`, error)
           results.failed++
@@ -1612,12 +1620,28 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
       if (embeddingCoverage < 80 || indexedPercentage < 80) status = 'degraded'
       if (embeddingCoverage < 50 || totalDocs === 0) status = 'critical'
 
+      // Estado real de Milvus. Antes se devolvía 'connected' escrito a mano, así
+      // que el panel decía "Database: connected" con el servidor vectorial caído
+      // y 0% indexado, que es lo que despistó al diagnosticar un caso real.
+      let vectorStatus = 'disconnected'
+      try {
+        const milvusService = (await import('../../backend/services/milvus.service')).MilvusService.getInstance()
+        await milvusService.ensureConnection()
+        vectorStatus = milvusService.isAvailable() ? 'connected' : 'disconnected'
+      } catch {
+        vectorStatus = 'disconnected'
+      }
+      if (vectorStatus !== 'connected') {
+        issues.push('Milvus (base vectorial) no está disponible: no se puede indexar ni buscar por similitud')
+        status = 'critical'
+      }
+
       const health = {
         status,
         timestamp: new Date().toISOString(),
         issues,
         metrics: {
-          databaseStatus: 'connected',
+          databaseStatus: vectorStatus,
           documents: {
             total: totalDocs,
             indexedPercentage: Math.round(indexedPercentage)

@@ -82,12 +82,29 @@ interface WNTRMapViewerProps {
   networkData?: NetworkData | null
   simulationResults?: SimulationResults | null
   activeTimeStep?: number
+  /** IDs de nudos a destacar sobre el resto (p. ej. los afectados por una interrupción). */
+  highlightedNodes?: string[]
 }
+
+// `in` sobre una lista literal: si está vacía la expresión es siempre falsa, así
+// que sirve igual para "sin nada resaltado" sin ramas especiales.
+const isHighlighted = (ids?: string[]) =>
+  ['in', ['get', 'id'], ['literal', ids ?? []]] as unknown as mapboxgl.ExpressionSpecification
+
+const highlightRadius = (ids: string[] | undefined, nodeSize: number) =>
+  ['case', isHighlighted(ids), nodeSize * 2, nodeSize] as unknown as mapboxgl.ExpressionSpecification
+
+const highlightStrokeWidth = (ids?: string[]) =>
+  ['case', isHighlighted(ids), 3, 1] as unknown as mapboxgl.ExpressionSpecification
+
+const highlightStrokeColor = (ids?: string[]) =>
+  ['case', isHighlighted(ids), '#FACC15', '#ffffff'] as unknown as mapboxgl.ExpressionSpecification
 
 export function WNTRMapViewer({
   networkData: propNetworkData,
   simulationResults: propSimulationResults,
-  activeTimeStep: propActiveTimeStep
+  activeTimeStep: propActiveTimeStep,
+  highlightedNodes
 }: WNTRMapViewerProps) {
   // Priority: token pasted in Settings → General (persisted, works in the
   // packaged app) over the VITE_MAPBOX_ACCESS_TOKEN build-time env var.
@@ -828,6 +845,13 @@ export function WNTRMapViewer({
     }
   }, [detectCoordinateSystem])
 
+  // En una ref, no en las dependencias de addNetworkToMap: si entrara ahí, cada
+  // cambio de selección recrearía capas y fuentes (y con ellas el encuadre). La
+  // ref permite que una reconstrucción por otro motivo pinte el resaltado
+  // vigente en lugar del que hubiera cuando se creó el callback.
+  const highlightedNodesRef = useRef<string[] | undefined>(highlightedNodes)
+  useEffect(() => { highlightedNodesRef.current = highlightedNodes }, [highlightedNodes])
+
   // Add network overlay to map
   const addNetworkToMap = useCallback(() => {
     if (!map.current || !networkData) return
@@ -1028,10 +1052,16 @@ export function WNTRMapViewer({
         type: 'circle',
         source: 'network-nodes',
         paint: {
-          'circle-radius': mapSettings.nodeSize,
+          // El nudo resaltado gana tamaño y un halo ámbar: el color base ya lo
+          // usa la capa de presiones, así que distinguirlo sólo por color no
+          // serviría cuando la simulación pinta los nudos de rojo o naranja.
+          // La lista va en el paint, no en las propiedades de cada feature, para
+          // que resaltar no obligue a reconstruir la fuente (y con ella el
+          // encuadre del mapa) cada vez que cambia la selección.
+          'circle-radius': highlightRadius(highlightedNodesRef.current, mapSettings.nodeSize),
           'circle-color': ['get', 'color'],
-          'circle-stroke-width': 1,
-          'circle-stroke-color': '#ffffff'
+          'circle-stroke-width': highlightStrokeWidth(highlightedNodesRef.current),
+          'circle-stroke-color': highlightStrokeColor(highlightedNodesRef.current)
         }
       });
     }
@@ -1120,6 +1150,15 @@ export function WNTRMapViewer({
     }
 
   }, [networkData, simulationResults, mapSettings, convertToGeoCoordinates])
+
+  // Resaltar es sólo cambiar el paint de la capa ya montada: nada de rehacer
+  // fuentes ni volver a encuadrar.
+  useEffect(() => {
+    if (!map.current?.getLayer('network-nodes')) return
+    map.current.setPaintProperty('network-nodes', 'circle-radius', highlightRadius(highlightedNodes, mapSettings.nodeSize))
+    map.current.setPaintProperty('network-nodes', 'circle-stroke-width', highlightStrokeWidth(highlightedNodes))
+    map.current.setPaintProperty('network-nodes', 'circle-stroke-color', highlightStrokeColor(highlightedNodes))
+  }, [highlightedNodes, mapSettings.nodeSize, networkData])
 
   // Update network overlay when data or settings change
   useEffect(() => {

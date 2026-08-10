@@ -16,7 +16,7 @@ import {
   RefreshCw, AlertCircle,
   Activity, Database,
   Target, FolderOpen, ChevronDown,
-  Scissors, Zap, ShieldAlert, AlertTriangle, Download
+  Scissors, Zap, ShieldAlert, AlertTriangle, Download, Clock
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -87,6 +87,15 @@ interface SimulationResults {
   }
 }
 
+
+/** Las rutinas de resiliencia lanzan una simulación WNTR completa: en una red de
+ *  ~90 nudos rondan el minuto, y sin avisar parece que la aplicación se colgó. */
+const AvisoDuracion: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+    <Clock className="h-3 w-3 mt-px shrink-0" />
+    <span>{children}</span>
+  </p>
+);
 
 export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   projectId: _projectId,
@@ -584,6 +593,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
       if (res.success) {
         setFailureResult(res.data);
+        // Todos los afectados se resaltan de una vez: son el resultado de la
+        // simulación, no algo que el usuario deba ir marcando nudo a nudo.
+        setHighlightedComponents((res.data.affected_nodes ?? []).map((n: any) => n.id));
         if (currentProject) {
           const currentNetwork = currentProject.networks.find(n => n.name === networkData.name);
           const networkId = currentNetwork?.id || 'unknown';
@@ -646,7 +658,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       ['Índice de Todini', b.todini_index.toFixed(4), a ? a.todini_index.toFixed(4) : '', d ? d.todini_index.toFixed(4) : ''],
       ['Entropía de red', b.network_entropy.toFixed(4), a ? a.network_entropy.toFixed(4) : '', d ? d.network_entropy.toFixed(4) : ''],
       ['Redundancia hidráulica', b.hydraulic_redundancy.toFixed(4), a ? a.hydraulic_redundancy.toFixed(4) : '', d ? d.hydraulic_redundancy.toFixed(4) : ''],
-      ['Serviceability (presión)', b.serviceability.pressure_serviceability.toFixed(4), a ? a.serviceability.pressure_serviceability.toFixed(4) : '', d ? d.pressure_serviceability.toFixed(4) : '']
+      ['Nivel de servicio por presión', b.serviceability.pressure_serviceability.toFixed(4), a ? a.serviceability.pressure_serviceability.toFixed(4) : '', d ? d.pressure_serviceability.toFixed(4) : '']
     ];
     const csv = rows.map(r => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -680,6 +692,26 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       setIsGeneratingFragility(false);
     }
   }, [networkData, fragilityMaterial, fragilityMaxIntensity]);
+
+  const handleExportFragilityCSV = useCallback(() => {
+    if (!fragilityResult) return;
+    const rows = [
+      ['PGV (cm/s)', 'Prob. falla de tubería', 'Tuberías afectadas esperadas'],
+      ...fragilityResult.intensities.map((pgv: number, i: number) => [
+        pgv.toFixed(2),
+        fragilityResult.pipe_failure_probability[i]?.toFixed(6) ?? '',
+        fragilityResult.expected_failed_pipes[i]?.toFixed(2) ?? ''
+      ])
+    ];
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `curva_fragilidad_${fragilityMaterial}_${networkData?.name || 'red'}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [fragilityResult, fragilityMaterial, networkData]);
 
 
   // Dashboard Layout Render
@@ -1177,6 +1209,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     <p className="text-[11px] text-muted-foreground">
                       Simplifica la red fusionando/eliminando tuberías bajo un diámetro umbral. Se guarda como un proyecto nuevo, sin modificar el original.
                     </p>
+                    <AvisoDuracion>En redes grandes el proceso puede tardar cerca de un minuto.</AvisoDuracion>
                     <div className="bg-background p-2 rounded border">
                       <div className="text-[10px] text-muted-foreground mb-1">Umbral de diámetro (mm)</div>
                       <input
@@ -1190,7 +1223,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                       {isSkeletonizing ? (
                         <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> Esqueletizando...</>
                       ) : (
-                        <><Scissors className="h-3.5 w-3.5 mr-2" /> Vista Previa</>
+                        <><Scissors className="h-3.5 w-3.5 mr-2" /> Ejecutar Esqueletización / Vista Previa</>
                       )}
                     </Button>
 
@@ -1235,6 +1268,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     <p className="text-[11px] text-muted-foreground">
                       Simula la falla de uno o más componentes (tubería, bomba, válvula) y estima el impacto sobre el servicio.
                     </p>
+                    <AvisoDuracion>
+                      Ejecuta una simulación hidráulica completa: en redes grandes puede tardar un minuto o más.
+                    </AvisoDuracion>
                     <div className="bg-background p-2 rounded border">
                       <div className="text-[10px] text-muted-foreground mb-1">IDs de componentes (separados por coma)</div>
                       <input
@@ -1305,7 +1341,25 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             <span>Nudos afectados:</span>
                             <span className="font-mono">{failureResult.affected_node_count} / {failureResult.total_junction_count}</span>
                           </div>
-                          <div className="text-[10px] text-muted-foreground">Click en un nudo para resaltarlo en el mapa</div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] text-muted-foreground">
+                              Resaltados en el mapa. Click en un nudo para quitarlo o volver a ponerlo.
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-[10px] shrink-0"
+                              onClick={() => {
+                                const all = failureResult.affected_nodes.map((n: any) => n.id);
+                                const todosPuestos = all.every((id: string) => highlightedComponents.includes(id));
+                                setHighlightedComponents(todosPuestos ? [] : all);
+                              }}
+                            >
+                              {failureResult.affected_nodes.every((n: any) => highlightedComponents.includes(n.id))
+                                ? 'Quitar resaltado'
+                                : 'Resaltar todos'}
+                            </Button>
+                          </div>
                           <div className="flex flex-wrap gap-1">
                             {failureResult.affected_nodes.slice(0, 8).map((n: any) => (
                               <Badge
@@ -1332,6 +1386,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     <p className="text-[11px] text-muted-foreground">
                       Índice de Todini, entropía de red y redundancia hidráulica. Compara antes/después del escenario de interrupción simulado arriba.
                     </p>
+                    <AvisoDuracion>
+                      Con la comparación activada se simula dos veces la red, así que tarda aproximadamente el doble.
+                    </AvisoDuracion>
                     <label className="flex items-center gap-2 text-xs">
                       <input
                         type="checkbox"
@@ -1358,35 +1415,62 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {resilienceIndicatorsResult && (
                       <Card>
                         <CardContent className="p-3 text-xs space-y-2">
-                          {[
-                            { label: 'Índice de Todini', key: 'todini_index' },
-                            { label: 'Entropía de red', key: 'network_entropy' },
-                            { label: 'Redundancia hidráulica', key: 'hydraulic_redundancy' },
-                          ].map(({ label, key }) => (
-                            <div key={key} className="flex justify-between">
-                              <span>{label}:</span>
-                              <span className="font-mono">
-                                {resilienceIndicatorsResult.before[key]?.toFixed(4)}
-                                {resilienceIndicatorsResult.after && (
-                                  <span className={resilienceIndicatorsResult.delta[key] < 0 ? 'text-red-500' : 'text-green-600'}>
-                                    {' → '}{resilienceIndicatorsResult.after[key]?.toFixed(4)}
-                                  </span>
+                          <table className="w-full">
+                            <thead>
+                              <tr className="text-[10px] uppercase tracking-wide text-muted-foreground border-b border-border">
+                                <th className="text-left font-medium pb-1">Indicador</th>
+                                {resilienceIndicatorsResult.after ? (
+                                  <>
+                                    <th className="text-right font-medium pb-1">Antes</th>
+                                    <th className="text-right font-medium pb-1">Después</th>
+                                  </>
+                                ) : (
+                                  <th className="text-right font-medium pb-1">Valor Actual</th>
                                 )}
-                              </span>
-                            </div>
-                          ))}
-                          <div className="flex justify-between">
-                            <span>Serviceability (presión):</span>
-                            <span className="font-mono">
-                              {(resilienceIndicatorsResult.before.serviceability.pressure_serviceability * 100).toFixed(1)}%
-                              {resilienceIndicatorsResult.after && (
-                                <span className={resilienceIndicatorsResult.delta.pressure_serviceability < 0 ? 'text-red-500' : 'text-green-600'}>
-                                  {' → '}{(resilienceIndicatorsResult.after.serviceability.pressure_serviceability * 100).toFixed(1)}%
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                          <Button size="sm" variant="outline" className="w-full mt-2" onClick={handleExportResilienceCSV}>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[
+                                {
+                                  label: 'Índice de Todini',
+                                  delta: resilienceIndicatorsResult.delta?.todini_index,
+                                  before: resilienceIndicatorsResult.before.todini_index?.toFixed(4),
+                                  after: resilienceIndicatorsResult.after?.todini_index?.toFixed(4),
+                                },
+                                {
+                                  label: 'Entropía de red',
+                                  delta: resilienceIndicatorsResult.delta?.network_entropy,
+                                  before: resilienceIndicatorsResult.before.network_entropy?.toFixed(4),
+                                  after: resilienceIndicatorsResult.after?.network_entropy?.toFixed(4),
+                                },
+                                {
+                                  label: 'Redundancia hidráulica',
+                                  delta: resilienceIndicatorsResult.delta?.hydraulic_redundancy,
+                                  before: resilienceIndicatorsResult.before.hydraulic_redundancy?.toFixed(4),
+                                  after: resilienceIndicatorsResult.after?.hydraulic_redundancy?.toFixed(4),
+                                },
+                                {
+                                  label: 'Nivel de servicio por presión',
+                                  delta: resilienceIndicatorsResult.delta?.pressure_serviceability,
+                                  before: `${(resilienceIndicatorsResult.before.serviceability.pressure_serviceability * 100).toFixed(1)}%`,
+                                  after: resilienceIndicatorsResult.after
+                                    ? `${(resilienceIndicatorsResult.after.serviceability.pressure_serviceability * 100).toFixed(1)}%`
+                                    : undefined,
+                                },
+                              ].map(({ label, before, after, delta }) => (
+                                <tr key={label} className="border-b border-border/40 last:border-0">
+                                  <td className="py-1 pr-2">{label}</td>
+                                  <td className="py-1 text-right font-mono">{before}</td>
+                                  {resilienceIndicatorsResult.after && (
+                                    <td className={`py-1 pl-2 text-right font-mono ${delta < 0 ? 'text-red-500' : 'text-green-600'}`}>
+                                      {after}
+                                    </td>
+                                  )}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          <Button size="sm" className="w-full mt-2" onClick={handleExportResilienceCSV}>
                             <Download className="h-3 w-3 mr-2" /> Exportar CSV
                           </Button>
                         </CardContent>
@@ -1403,6 +1487,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                       Probabilidad de falla de tubería vs. intensidad sísmica (PGV). Modelo genérico ALA (2001) por material —{' '}
                       <strong>requiere validación de un experto APyS antes de usarse en decisiones reales.</strong>
                     </p>
+                    <AvisoDuracion>
+                      Evalúa la curva sobre todas las tuberías: en redes grandes puede tardar cerca de un minuto.
+                    </AvisoDuracion>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-background p-2 rounded border">
                         <div className="text-[10px] text-muted-foreground mb-1">Material predominante</div>
@@ -1481,6 +1568,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             </span>
                           </div>
                           <div className="text-[10px] text-muted-foreground italic">{fragilityResult.methodology}</div>
+                          <Button size="sm" className="w-full mt-2" onClick={handleExportFragilityCSV}>
+                            <Download className="h-3 w-3 mr-2" /> Exportar CSV
+                          </Button>
                         </CardContent>
                       </Card>
                     )}
@@ -1517,6 +1607,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
           <WNTRAdvancedMapViewer
             networkData={networkData}
             simulationResults={simulationResults?.hydraulic?.data}
+            highlightedNodes={highlightedComponents}
             onDataLoaded={setNetworkData}
             onSimulationCompleted={(res: any) => setSimulationResults(prev => ({ ...prev, hydraulic: { success: true, data: res } }))}
           />

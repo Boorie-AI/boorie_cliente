@@ -2,10 +2,16 @@
 """
 Boorie embedded Milvus Lite — la base vectorial está dentro de la app.
 
-Sin Docker. Arranca milvus-lite en gRPC TCP en el primer puerto libre a
-partir de 19530, persiste a `data/boorie-milvus/boorie.db` y escribe el
-puerto efectivo en `data/boorie-milvus/port` para que el cliente
-TypeScript (`backend/services/milvus.service.ts`) sepa dónde conectar.
+Sin Docker. Arranca milvus-lite en gRPC TCP, persiste a
+`data/boorie-milvus/boorie.db` y escribe el puerto efectivo en
+`data/boorie-milvus/port` para que el cliente TypeScript
+(`backend/services/milvus.service.ts`) sepa dónde conectar.
+
+milvus-lite >=3 corre el servidor gRPC in-process (hilos, sin subproceso
+C++ de ~200MB) y elige él mismo un puerto libre: `start_and_get_uri()`
+devuelve `http://127.0.0.1:{puerto}`. No podemos imponer el puerto, así
+que publicamos el que nos devuelve. Requiere `pymilvus` instalado —
+milvus_lite.adapter.grpc importa `pymilvus.grpc_gen`.
 
 Esta misma instancia es la BD vectorial compartida para:
   - RAG (colección hydraulic_knowledge)
@@ -17,29 +23,21 @@ from __future__ import annotations
 
 import os
 import signal
-import socket
 import sys
 import time
 from pathlib import Path
-
-
-def find_free_port(start: int = 19530, end: int = 19550) -> int:
-    for port in range(start, end + 1):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            try:
-                s.bind(("127.0.0.1", port))
-                return port
-            except OSError:
-                continue
-    raise RuntimeError(f"No free port in range {start}-{end}")
+from urllib.parse import urlparse
 
 
 def main() -> int:
     try:
-        from milvus_lite.server_manager import Server
+        from milvus_lite.server_manager import server_manager_instance
     except Exception as e:
-        print(f"[milvus] milvus-lite no instalado: {e}", flush=True)
-        print("[milvus] ejecuta:  ./venv-wntr/bin/pip install milvus-lite", flush=True)
+        print(f"[milvus] milvus-lite no importable: {e}", flush=True)
+        print(
+            "[milvus] ejecuta:  ./venv-wntr/bin/pip install 'milvus-lite>=3' pymilvus",
+            flush=True,
+        )
         # Quedamos en idle — la app cae a fail-soft (search devuelve [] sin spam).
         try:
             while True:
@@ -61,19 +59,23 @@ def main() -> int:
     db_file = db_dir / "boorie.db"
     port_file = db_dir / "port"
 
-    port = find_free_port(19530, 19550)
-    address = f"127.0.0.1:{port}"
-
     print(f"[milvus] DB:      {db_file}", flush=True)
-    print(f"[milvus] Address: {address}", flush=True)
 
-    server = Server(db_file=str(db_file), address=address)
-    if not server.init():
-        print("[milvus] Server.init() falló", flush=True)
+    # milvus-lite elige el puerto; nos devuelve http://127.0.0.1:{puerto}.
+    try:
+        uri = server_manager_instance.start_and_get_uri(str(db_file))
+    except Exception as e:  # noqa: BLE001 — cualquier fallo debe ser fail-soft
+        print(f"[milvus] start_and_get_uri() lanzó: {e}", flush=True)
+        uri = None
+    if not uri:
+        print("[milvus] no se pudo arrancar el servidor Milvus Lite", flush=True)
         return 1
-    if not server.start():
-        print("[milvus] Server.start() falló", flush=True)
+
+    port = urlparse(uri).port
+    if not port:
+        print(f"[milvus] URI sin puerto reconocible: {uri}", flush=True)
         return 1
+    address = f"127.0.0.1:{port}"
 
     # Publicar el puerto efectivo para que MilvusService lo lea.
     port_file.write_text(str(port), encoding="utf-8")
@@ -99,7 +101,8 @@ def main() -> int:
         except Exception:
             pass
         try:
-            server._p and server._p.terminate()  # type: ignore[attr-defined]
+            # El servidor vive en hilos de este proceso: release_all() los para.
+            server_manager_instance.release_all()
         except Exception:
             pass
 
