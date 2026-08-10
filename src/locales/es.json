@@ -62,7 +62,24 @@
     "settingsStorage": "Almacenamiento de configuración:",
     "backupFrequency": "Frecuencia de respaldo:",
     "aiConfiguration": "Configuración de IA",
-    "accounts": "Cuentas"
+    "accounts": "Cuentas",
+    "about": {
+      "title": "Acerca de",
+      "appName": "Boorie Cliente",
+      "currentVersion": "Versión actual",
+      "version": "Versión",
+      "buildDate": "Fecha de compilación",
+      "channel": "Canal",
+      "channelStable": "Estable",
+      "channelPrerelease": "Candidata de liberación",
+      "historyTitle": "Historial de versiones",
+      "historyDesc": "Versiones liberadas de Boorie Cliente, de la más reciente a la más antigua.",
+      "historyEmpty": "No se pudo leer el historial de versiones.",
+      "outOfSync": "El historial no incluye una entrada para la versión instalada.",
+      "releaseNotes": "Ver notas de versión completas en GitHub",
+      "loading": "Cargando…",
+      "unknown": "Desconocida"
+    }
   },
   "ai": {
     "localModels": "Modelos Locales (Ollama)",

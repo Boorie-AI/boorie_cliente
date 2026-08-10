@@ -62,7 +62,24 @@
     "settingsStorage": "Settings storage:",
     "backupFrequency": "Backup frequency:",
     "aiConfiguration": "AI Configuration",
-    "accounts": "Accounts"
+    "accounts": "Accounts",
+    "about": {
+      "title": "About",
+      "appName": "Boorie Client",
+      "currentVersion": "Current version",
+      "version": "Version",
+      "buildDate": "Build date",
+      "channel": "Channel",
+      "channelStable": "Stable",
+      "channelPrerelease": "Release candidate",
+      "historyTitle": "Version history",
+      "historyDesc": "Released versions of Boorie Client, newest first.",
+      "historyEmpty": "The version history could not be read.",
+      "outOfSync": "The history has no entry for the installed version.",
+      "releaseNotes": "See full release notes on GitHub",
+      "loading": "Loading…",
+      "unknown": "Unknown"
+    }
   },
   "ai": {
     "localModels": "Local Models (Ollama)",

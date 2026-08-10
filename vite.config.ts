@@ -18,6 +18,9 @@ export default defineConfig({
   },
   define: {
     global: 'globalThis',
+    // No puede calcularse en runtime: `new Date()` daría la fecha en que el
+    // usuario abre la app, no la de la compilación.
+    __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
   },
   server: {
     port: 3000,
