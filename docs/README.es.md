@@ -39,19 +39,34 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.5.0
+### 🚀 Última Versión - v1.5.1
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.5.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.0/Boorie-1.5.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.5.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.0/Boorie-Setup-1.5.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.5.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.0/Boorie-1.5.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.5.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.1/Boorie-1.5.1-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.5.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.1/Boorie-Setup-1.5.1.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.5.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.1/Boorie-1.5.1.AppImage) | ~344 MB |
 
-### 📝 Novedades en v1.5.0
+
+### 📝 Novedades en v1.5.1
+- El arranque de Python/WNTR en Windows sobrevive a un reinicio: la ruta del entorno virtual se conserva entre sesiones.
+- El asistente de preparación explica **por qué** falla una instalación, en vez de limitarse a «verification-failed», e indica qué paquete falta.
+- Rango soportado acotado a **Python 3.10 – 3.13**: WNTR 1.5 no publica rueda para la 3.14. Un entorno fuera de rango se conserva y se recrea.
+- **Fix**: «Reindexar» en el Wisdom Center borraba los fragmentos del documento y reportaba éxito sin recrearlos.
+- Los indicadores de resiliencia se presentan en tabla con encabezados, distinguiendo el escenario anterior del posterior a la interrupción simulada.
+- Los nudos afectados por una interrupción del servicio se resaltan sobre el mapa.
+- La curva de fragilidad y los indicadores de resiliencia se pueden exportar a CSV.
+- Nueva sección **Acerca de** en Configuración, con la versión instalada y el historial de versiones (#30).
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.5.1).
+
+<details>
+<summary>Novedades en v1.5.0</summary>
+
 - Nuevas rutinas de resiliencia en el módulo WNTR Network: esqueletización de redes, simulación de interrupción del servicio, indicadores de resiliencia (índice de Todini, entropía de red, redundancia hidráulica) y curvas de fragilidad sísmica.
 - **Fix #16**: la interfaz se congelaba al cambiar el modelo de IA de indexación en el Wisdom Center.
 - **Fix #17**: el selector de proyecto del Chat no aplicaba la selección, y el LLM no recibía contexto del proyecto hidráulico vinculado.
 - Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.5.0).
+</details>
 
 <details>
 <summary>Novedades en v1.4.3</summary>
@@ -73,12 +88,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.5.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.5.0.AppImage`
-3. Ejecuta: `./Boorie-1.5.0.AppImage`
+1. Descarga `Boorie-1.5.1.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.5.1.AppImage`
+3. Ejecuta: `./Boorie-1.5.1.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.5.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.5.1.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
