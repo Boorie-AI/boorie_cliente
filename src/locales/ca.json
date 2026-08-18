@@ -208,5 +208,14 @@
       "title": "Eines d'Enginyeria",
       "desc": "Accedeix a calculadores hidràuliques integrades i anàlisi de xarxes amb WNTR de forma directa."
     }
+  },
+  "project": {
+    "mismatch": {
+      "title": "Aquesta conversa pertany a un altre projecte",
+      "body": "La conversa que has obert pertany a «{{conversationProject}}», però el teu projecte actiu és «{{activeProject}}». Si no el canvies, l'assistent respondrà amb el context de «{{activeProject}}».",
+      "switch": "Canviar a «{{project}}»",
+      "keep": "Continuar a «{{project}}»",
+      "bodyNoActive": "La conversa que has obert pertany a «{{conversationProject}}» i ara mateix no hi ha cap projecte actiu."
+    }
   }
 }

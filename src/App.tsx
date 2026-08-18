@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ChatLayout } from '@/components/chat/ChatLayout'
 import { CustomTopBar } from '@/components/CustomTopBar'
 import { GlobalErrorTracker } from '@/components/GlobalErrorTracker'
+import { ProjectMismatchDialog } from '@/components/project/ProjectMismatchDialog'
 import { Onboarding } from '@/components/Onboarding'
 import { SetupWizard } from '@/components/setup/SetupWizard'
 import { useAppStore } from '@/stores/appStore'
@@ -82,6 +83,8 @@ function App() {
       <div className="flex-1 min-h-0 relative">
         <ChatLayout />
         <Onboarding />
+        {/* Único en la raíz: cualquier vista puede abrir una conversación. */}
+        <ProjectMismatchDialog />
         {setupChecked && setupNeeded && !setupSkipped && (
           <SetupWizard onComplete={() => { setSetupNeeded(false); setSetupSkipped(true) }} />
         )}

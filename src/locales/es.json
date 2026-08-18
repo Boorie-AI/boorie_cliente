@@ -208,5 +208,14 @@
       "title": "Herramientas de Ingeniería",
       "desc": "Accede a calculadoras hidráulicas integradas y análisis de redes con WNTR de forma directa."
     }
+  },
+  "project": {
+    "mismatch": {
+      "title": "Esta conversación pertenece a otro proyecto",
+      "body": "La conversación que has abierto pertenece a «{{conversationProject}}», pero tu proyecto activo es «{{activeProject}}». Si no cambias, el asistente responderá con el contexto de «{{activeProject}}».",
+      "switch": "Cambiar a «{{project}}»",
+      "keep": "Seguir en «{{project}}»",
+      "bodyNoActive": "La conversación que has abierto pertenece a «{{conversationProject}}» y ahora mismo no hay ningún proyecto activo."
+    }
   }
 }

@@ -208,5 +208,14 @@
       "title": "Engineering Tools",
       "desc": "Access integrated hydraulic calculators and network analysis with WNTR directly."
     }
+  },
+  "project": {
+    "mismatch": {
+      "title": "This conversation belongs to another project",
+      "body": "The conversation you opened belongs to “{{conversationProject}}”, but your active project is “{{activeProject}}”. If you don't switch, the assistant will answer using the context of “{{activeProject}}”.",
+      "switch": "Switch to “{{project}}”",
+      "keep": "Stay in “{{project}}”",
+      "bodyNoActive": "The conversation you opened belongs to “{{conversationProject}}” and there is no active project right now."
+    }
   }
 }
