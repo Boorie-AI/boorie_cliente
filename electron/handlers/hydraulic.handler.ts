@@ -319,14 +319,23 @@ export class HydraulicHandler {
             projectId,
             type: calculation.type,
             name: calculation.name,
-            inputs: JSON.stringify(calculation.inputs),
-            results: JSON.stringify({
-              value: calculation.result.value,
-              unit: calculation.result.unit,
-              steps: calculation.intermediateSteps
-            }),
-            formulas: JSON.stringify([calculation.formula]),
-            notes: calculation.recommendations?.join('\n')
+            inputs: JSON.stringify(calculation.inputs ?? {}),
+            // El handler estaba ajustado solo a la calculadora de formulas, que
+            // devuelve un unico valor con unidad. Una simulacion WNTR produce un
+            // objeto de resultados arbitrario, asi que si el llamante ya envia
+            // `results` se guarda tal cual, y solo si no lo hace se compone desde
+            // la forma de CalculationResult.
+            results: JSON.stringify(
+              (calculation as any).results ?? {
+                value: calculation.result?.value,
+                unit: calculation.result?.unit,
+                steps: calculation.intermediateSteps
+              }
+            ),
+            formulas: JSON.stringify(
+              (calculation as any).formulas ?? (calculation.formula ? [calculation.formula] : [])
+            ),
+            notes: (calculation as any).notes ?? calculation.recommendations?.join('\n')
           }
         })
         

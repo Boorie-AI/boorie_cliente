@@ -78,7 +78,21 @@ async function proyectosExistentes(ids: string[]): Promise<Set<string>> {
   return vivos
 }
 
-export async function migrateProjectAssets(): Promise<InformeMigracion> {
+/**
+ * Guarda contra ejecuciones concurrentes. El marcador solo se escribe al final, asi
+ * que dos llamadas simultaneas verian ambas "sin migrar" y duplicarian el volcado.
+ * Pasa de verdad: React.StrictMode invoca los efectos dos veces en desarrollo.
+ */
+let enCurso: Promise<InformeMigracion> | null = null
+
+export function migrateProjectAssets(): Promise<InformeMigracion> {
+  if (!enCurso) {
+    enCurso = ejecutarMigracion().finally(() => { enCurso = null })
+  }
+  return enCurso
+}
+
+async function ejecutarMigracion(): Promise<InformeMigracion> {
   if (localStorage.getItem(CLAVE_MARCADOR)) return informeVacio('ya-migrada')
 
   const bruto = localStorage.getItem(CLAVE_OVERLAY)

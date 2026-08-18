@@ -4,10 +4,12 @@ import { ChatLayout } from '@/components/chat/ChatLayout'
 import { CustomTopBar } from '@/components/CustomTopBar'
 import { GlobalErrorTracker } from '@/components/GlobalErrorTracker'
 import { ProjectMismatchDialog } from '@/components/project/ProjectMismatchDialog'
+import { MigracionAvisoDialog } from '@/components/project/MigracionAvisoDialog'
 import { Onboarding } from '@/components/Onboarding'
 import { SetupWizard } from '@/components/setup/SetupWizard'
 import { useAppStore } from '@/stores/appStore'
 import { useProjectStore } from '@/stores/projectStore'
+import { migrateProjectAssets } from '@/services/migration/migrateProjectAssets'
 import { cn } from '@/utils/cn'
 import './i18n' // Initialize i18n
 
@@ -18,6 +20,7 @@ function App() {
   const [setupChecked, setSetupChecked] = useState(false)
   const [setupNeeded, setSetupNeeded] = useState(false)
   const [setupSkipped, setSetupSkipped] = useState(false)
+  const [informeMigracion, setInformeMigracion] = useState<Awaited<ReturnType<typeof migrateProjectAssets>> | null>(null)
 
   useEffect(() => {
     initializeApp()
@@ -29,6 +32,17 @@ function App() {
   useEffect(() => {
     restoreActiveProject()
   }, [restoreActiveProject])
+
+  // Las redes y calculos que vivian en localStorage pasan a la base de datos
+  // (#31). Se hace despues de restaurar el proyecto y una sola vez: el modulo
+  // lleva su propio marcador y nunca borra los datos originales.
+  useEffect(() => {
+    migrateProjectAssets()
+      .then(informe => {
+        if (informe.ejecutada) setInformeMigracion(informe)
+      })
+      .catch(error => console.error('Fallo la migracion del almacenamiento local:', error))
+  }, [])
 
   // First-run check: if Python deps are missing, show the SetupWizard.
   useEffect(() => {
@@ -85,6 +99,7 @@ function App() {
         <Onboarding />
         {/* Único en la raíz: cualquier vista puede abrir una conversación. */}
         <ProjectMismatchDialog />
+        <MigracionAvisoDialog informe={informeMigracion} onClose={() => setInformeMigracion(null)} />
         {setupChecked && setupNeeded && !setupSkipped && (
           <SetupWizard onComplete={() => { setSetupNeeded(false); setSetupSkipped(true) }} />
         )}

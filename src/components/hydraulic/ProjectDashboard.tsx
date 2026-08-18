@@ -252,12 +252,12 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                                     <div className="grid grid-cols-3 gap-2 py-4 border-y border-slate-700/50">
                                         <div className="text-center">
                                             <div className="flex justify-center mb-1 text-blue-400"><Database className="h-4 w-4" /></div>
-                                            <div className="text-lg font-bold text-white">{project.networks.length}</div>
+                                            <div className="text-lg font-bold text-white">{project.networkCount}</div>
                                             <div className="text-[10px] uppercase tracking-wider text-slate-500">Redes</div>
                                         </div>
                                         <div className="text-center border-l border-slate-700/50">
                                             <div className="flex justify-center mb-1 text-green-400"><Activity className="h-4 w-4" /></div>
-                                            <div className="text-lg font-bold text-white">{project.calculations.length}</div>
+                                            <div className="text-lg font-bold text-white">{project.calculationCount}</div>
                                             <div className="text-[10px] uppercase tracking-wider text-slate-500">Sims</div>
                                         </div>
                                         <div className="text-center border-l border-slate-700/50">

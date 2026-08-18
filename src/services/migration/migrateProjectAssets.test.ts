@@ -123,6 +123,21 @@ describe('migrateProjectAssets', () => {
     expect(localStorage.getItem(CLAVE_MARCADOR)).toBeTruthy()
   })
 
+  // React.StrictMode invoca los efectos dos veces en desarrollo: sin guarda, dos
+  // llamadas simultaneas duplicaban el volcado, porque el marcador solo se escribe
+  // al terminar.
+  it('dos llamadas simultáneas comparten una sola ejecución', async () => {
+    localStorage.setItem(CLAVE_OVERLAY, JSON.stringify({
+      p1: { networks: [red('A', '/r/A.inp'), red('B', '/r/B.inp')] },
+    }))
+
+    const [r1, r2] = await Promise.all([migrateProjectAssets(), migrateProjectAssets()])
+
+    expect(save).toHaveBeenCalledTimes(2)
+    expect(r1).toBe(r2)
+    expect(r1.redesMigradas).toBe(2)
+  })
+
   it('no revienta ni marca si el overlay no es JSON válido', async () => {
     localStorage.setItem(CLAVE_OVERLAY, '{esto no es json')
 
