@@ -370,6 +370,12 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   const [failureResult, setFailureResult] = useState<any>(null);
   const [failureError, setFailureError] = useState<string | null>(null);
 
+  // #32: parámetros de población, entradas de la misma simulación de interrupción
+  const [demandModuleLphd, setDemandModuleLphd] = useState<number>(200);
+  const [availabilityThreshold, setAvailabilityThreshold] = useState<number>(0.8);
+  const [requiredPressure, setRequiredPressure] = useState<number>(20);
+  const [personsPerConnection, setPersonsPerConnection] = useState<string>('');
+
   const [compareWithFailure, setCompareWithFailure] = useState(false);
   const [isCalculatingIndicators, setIsCalculatingIndicators] = useState(false);
   const [resilienceIndicatorsResult, setResilienceIndicatorsResult] = useState<any>(null);
@@ -710,19 +716,26 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
         duration_hours: failureDurationHours,
         failure_start_hours: failureStartHours,
         restore_hours: failureRestoreHours ? Number(failureRestoreHours) : undefined,
-        min_pressure_threshold: minPressureThreshold
+        min_pressure_threshold: minPressureThreshold,
+        demand_module_lphd: demandModuleLphd,
+        availability_threshold: availabilityThreshold,
+        required_pressure: requiredPressure,
+        persons_per_connection: personsPerConnection ? Number(personsPerConnection) : undefined
       });
 
       if (res.success) {
         setFailureResult(res.data);
         // Todos los afectados se resaltan de una vez: son el resultado de la
         // simulación, no algo que el usuario deba ir marcando nudo a nudo.
-        setHighlightedComponents((res.data.affected_nodes ?? []).map((n: any) => n.id));
+        const impacted = res.data.population?.event?.affected_nodes ?? [];
+        setHighlightedComponents(
+          (impacted.length ? impacted : (res.data.affected_nodes ?? [])).map((n: any) => n.id)
+        );
         if (currentProject) {
           const currentNetwork = currentProject.networks.find(n => n.name === networkData.name);
           const networkId = currentNetwork?.id || 'unknown';
           handleSaveCalculationToProject(
-            `Interrupción de Servicio: ${res.data.failed_components.join(', ')}`,
+            `Interrupción de Servicio (PDA): ${res.data.failed_components.join(', ')}`,
             networkId,
             res.data
           );
@@ -735,7 +748,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     } finally {
       setIsSimulatingFailure(false);
     }
-  }, [networkData, failureComponentIds, failureDurationHours, failureStartHours, failureRestoreHours, minPressureThreshold, currentProject, handleSaveCalculationToProject]);
+  }, [networkData, failureComponentIds, failureDurationHours, failureStartHours, failureRestoreHours,
+      minPressureThreshold, demandModuleLphd, availabilityThreshold, requiredPressure, personsPerConnection,
+      currentProject, handleSaveCalculationToProject]);
 
   // #23: Indicadores de resiliencia
   const handleCalculateResilienceIndicators = useCallback(async () => {
@@ -1409,7 +1424,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                       <Zap className="h-3.5 w-3.5" /> Simulación de Interrupción del Servicio
                     </h4>
                     <p className="text-[11px] text-muted-foreground">
-                      Simula la falla de uno o más componentes (tubería, bomba, válvula) y estima el impacto sobre el servicio.
+                      Simula la falla de uno o más componentes (tubería, bomba, válvula) y estima el impacto
+                      sobre el servicio, en presiones y en habitantes sin agua. Una sola ejecución en modo PDA
+                      (demanda dependiente de la presión) devuelve ambos resultados.
                     </p>
                     <AvisoDuracion>
                       Ejecuta una simulación hidráulica completa: en redes grandes puede tardar un minuto o más.
@@ -1462,6 +1479,44 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         />
                       </div>
+                      <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">Módulo de demanda (l/hab/día)</div>
+                        <input
+                          type="number"
+                          value={demandModuleLphd}
+                          onChange={(e) => setDemandModuleLphd(Number(e.target.value))}
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        />
+                      </div>
+                      <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">Umbral de servicio (0-1)</div>
+                        <input
+                          type="number"
+                          step="0.05"
+                          value={availabilityThreshold}
+                          onChange={(e) => setAvailabilityThreshold(Number(e.target.value))}
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        />
+                      </div>
+                      <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">Presión de servicio pleno (m)</div>
+                        <input
+                          type="number"
+                          value={requiredPressure}
+                          onChange={(e) => setRequiredPressure(Number(e.target.value))}
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        />
+                      </div>
+                      <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">Hab./acometida (opcional)</div>
+                        <input
+                          type="number"
+                          value={personsPerConnection}
+                          onChange={(e) => setPersonsPerConnection(e.target.value)}
+                          placeholder="sin clientes"
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        />
+                      </div>
                     </div>
                     <Button size="sm" className="w-full" onClick={handleSimulateFailure} disabled={isSimulatingFailure}>
                       {isSimulatingFailure ? (
@@ -1480,6 +1535,13 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {failureResult && (
                       <Card>
                         <CardContent className="p-3 text-xs space-y-2">
+                          {failureResult.convergence_warnings && !failureResult.convergence_warnings.converged && (
+                            <Alert variant="destructive" className="text-[11px]">
+                              <AlertTriangle className="h-3 w-3 inline mr-1" />
+                              La simulación no convergió en todos los pasos. Las cifras de esos instantes
+                              no son fiables.
+                            </Alert>
+                          )}
                           <div className="flex justify-between">
                             <span>Nudos afectados:</span>
                             <span className="font-mono">{failureResult.affected_node_count} / {failureResult.total_junction_count}</span>
@@ -1516,6 +1578,100 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               </Badge>
                             ))}
                           </div>
+
+                          {failureResult.population && (
+                            <>
+                              {/* Lo atribuible al evento es la cifra que responde a la pregunta;
+                                  el total incluye el déficit que la red ya tenía sin la falla. */}
+                              <div className="pt-2 border-t">
+                                <div className="text-[10px] text-muted-foreground font-semibold">ATRIBUIBLE A LA INTERRUPCIÓN</div>
+                                <div className="grid grid-cols-3 gap-2 mt-1">
+                                  <div>
+                                    <div className="text-[9px] text-muted-foreground">Habitantes</div>
+                                    <div className="font-mono text-sm">{failureResult.population.attributable_to_event.population_affected.toLocaleString()}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-[9px] text-muted-foreground">Nudos</div>
+                                    <div className="font-mono text-sm">{failureResult.population.attributable_to_event.affected_node_count}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-[9px] text-muted-foreground">No entregado (m³)</div>
+                                    <div className="font-mono text-sm">{failureResult.population.attributable_to_event.undelivered_volume_m3.toFixed(1)}</div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="pt-2 border-t">
+                                <div className="text-[10px] text-muted-foreground font-semibold">TOTAL CON EL EVENTO</div>
+                                <div className="grid grid-cols-3 gap-2 mt-1">
+                                  <div>
+                                    <div className="text-[9px] text-muted-foreground">Habitantes</div>
+                                    <div className="font-mono text-sm">{failureResult.population.event.population_affected.toLocaleString()}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-[9px] text-muted-foreground">Déficit máx. (h)</div>
+                                    <div className="font-mono text-sm">{failureResult.population.event.max_outage_hours.toFixed(1)}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-[9px] text-muted-foreground">No entregado (m³)</div>
+                                    <div className="font-mono text-sm">{failureResult.population.event.undelivered_volume_m3.toFixed(1)}</div>
+                                  </div>
+                                </div>
+                                <div className="text-[10px] text-muted-foreground mt-1">
+                                  Sin el evento la red ya dejaba sin servicio a{' '}
+                                  {failureResult.population.baseline.population_affected.toLocaleString()} hab. de un total de{' '}
+                                  {failureResult.population.total_population.toLocaleString()}.
+                                </div>
+                              </div>
+
+                              {failureResult.population.connections && (
+                                <div className="pt-2 border-t">
+                                  <div className="text-[10px] text-muted-foreground font-semibold">CLIENTES (ACOMETIDAS)</div>
+                                  <div className="font-mono text-sm">
+                                    {failureResult.population.connections.affected_connections.toLocaleString()} de{' '}
+                                    {failureResult.population.connections.total_connections.toLocaleString()}
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground">
+                                    Derivadas de la población con {failureResult.population.connections.persons_per_connection} hab./acometida.
+                                  </div>
+                                </div>
+                              )}
+
+                              {failureResult.population.excluded_negative_demand_nodes?.length > 0 && (
+                                <div className="pt-2 border-t text-[10px] text-muted-foreground">
+                                  Excluidos {failureResult.population.excluded_negative_demand_nodes.length} nudo(s) con demanda
+                                  base negativa (fuentes modeladas como nudo de consumo):{' '}
+                                  {failureResult.population.excluded_negative_demand_nodes.map((n: any) => n.id).join(', ')}.
+                                </div>
+                              )}
+
+                              {failureResult.population.event.affected_nodes?.length > 0 && (
+                                <div className="pt-2 border-t">
+                                  <div className="text-[10px] text-muted-foreground font-semibold mb-1">HABITANTES POR NUDO</div>
+                                  <div className="max-h-40 overflow-y-auto space-y-1">
+                                    {failureResult.population.event.affected_nodes.map((n: any) => (
+                                      <div key={n.id} className="flex justify-between font-mono text-[11px]">
+                                        <span>{n.id}</span>
+                                        <span className="text-muted-foreground">
+                                          {n.population_affected.toLocaleString()} hab · {n.outage_hours.toFixed(1)} h ·{' '}
+                                          {(n.min_service_availability * 100).toFixed(1)}%
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="pt-2 border-t text-[10px] text-muted-foreground">
+                                Trazabilidad: {failureResult.population.traceability.demand_model} ·{' '}
+                                {failureResult.population.traceability.simulator} · WNTR{' '}
+                                {failureResult.population.traceability.wntr_version} ·{' '}
+                                {failureResult.population.traceability.demand_module_lphd} l/hab/día · umbral{' '}
+                                {failureResult.population.traceability.availability_threshold} · presión de servicio{' '}
+                                {failureResult.population.traceability.required_pressure_m} m
+                              </div>
+                            </>
+                          )}
                         </CardContent>
                       </Card>
                     )}

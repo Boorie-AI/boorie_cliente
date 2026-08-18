@@ -6,6 +6,8 @@
 
 import { spawn } from 'child_process';
 import { createLogger } from '../../utils/logger';
+import { findPythonPath } from './pythonDetector';
+import { resolvePythonScriptPath } from './pythonScriptPath';
 
 const logger = createLogger('WNTRResilienceService');
 
@@ -24,6 +26,60 @@ export interface SkeletonizeResult {
 export interface ComponentFailureInput {
   id: string;
   type?: 'pipe' | 'pump' | 'valve';
+}
+
+export interface AffectedPopulationNode {
+  id: string;
+  population: number;
+  population_affected: number;
+  min_service_availability: number;
+  outage_hours: number;
+  undelivered_m3: number;
+  min_pressure: number | null;
+}
+
+export interface PopulationSnapshot {
+  population_affected: number;
+  affected_node_count: number;
+  affected_nodes: AffectedPopulationNode[];
+  max_outage_hours: number;
+  undelivered_volume_m3: number;
+  min_service_availability: number;
+}
+
+/** Población y clientes afectados (#32), calculados sobre las mismas dos corridas PDA. */
+export interface PopulationImpact {
+  total_population: number;
+  population_nodes: number;
+  event: PopulationSnapshot;
+  /** Misma red sin el evento: separa el déficit crónico del causado por la interrupción. */
+  baseline: PopulationSnapshot;
+  attributable_to_event: {
+    population_affected: number;
+    affected_node_count: number;
+    undelivered_volume_m3: number;
+  };
+  connections: {
+    persons_per_connection: number;
+    total_connections: number;
+    affected_connections: number;
+    method: string;
+  } | null;
+  /** Nudos con demanda base negativa (fuentes modeladas como junction), excluidos del cómputo. */
+  excluded_negative_demand_nodes: Array<{ id: string; population: number }>;
+  traceability: {
+    demand_model: 'PDA';
+    simulator: string;
+    wntr_version: string;
+    demand_module_lphd: number;
+    per_capita_demand_m3s: number;
+    availability_threshold: number;
+    required_pressure_m: number;
+    minimum_pressure_m: number;
+    timestep_s: number;
+    population_metric: string;
+    impact_metric: string;
+  };
 }
 
 export interface SimulateFailureResult {
@@ -48,6 +104,8 @@ export interface SimulateFailureResult {
     node_results: Record<string, { pressure: number[] }>;
     link_results: Record<string, { flowrate: number[] }>;
     timestamps: number[];
+    convergence_warnings: { baseline: string[]; event: string[]; converged: boolean };
+    population: PopulationImpact;
   };
   error?: string;
 }
@@ -100,14 +158,10 @@ export class WNTRResilienceService {
 
   /** Ver nota en wntrWrapper: se resuelve en cada ejecución, no al construir. */
   private get pythonPath(): string {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { findPythonPath } = require('./pythonDetector');
     return findPythonPath();
   }
 
   constructor() {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { resolvePythonScriptPath } = require('./pythonScriptPath');
     this.servicePath = resolvePythonScriptPath('wntr_resilience_service.py');
   }
 
@@ -126,6 +180,16 @@ export class WNTRResilienceService {
     failure_start_hours?: number;
     restore_hours?: number;
     min_pressure_threshold?: number;
+    /** Módulo de demanda media en l/hab/día (típico LatAm 150-300, por defecto 200). */
+    demand_module_lphd?: number;
+    /** Por debajo de esta fracción de la demanda esperada el nudo cuenta como afectado. */
+    availability_threshold?: number;
+    /** Presión a la que PDA entrega el 100% de la demanda. */
+    required_pressure?: number;
+    /** Presión por debajo de la cual PDA no entrega nada. */
+    minimum_pressure?: number;
+    /** Habitantes por acometida. Si se omite no se reportan clientes. */
+    persons_per_connection?: number;
   }): Promise<SimulateFailureResult> {
     return this.executePythonService('simulate_failure', networkFile, options);
   }
