@@ -157,7 +157,10 @@ const electronAPI = {
     save: (data: {
       projectId: string
       networkData: any
-      fileContent: string
+      // Uno de los dos: el contenido del .inp, o su ruta para que el proceso
+      // principal lo lea (el renderer no tiene acceso a disco).
+      fileContent?: string
+      filePath?: string
       filename: string
       description?: string
     }) => ipcRenderer.invoke('network-repo:save', data),

@@ -1,4 +1,7 @@
 import { ipcMain } from 'electron'
+import { readFile, writeFile } from 'fs/promises'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { NetworkRepositoryService } from '../../backend/services/hydraulic/networkRepository'
 import type { PrismaClient } from '@prisma/client'
 import { appLogger } from '../../backend/utils/logger'
@@ -16,7 +19,14 @@ export class NetworkRepositoryHandler {
     ipcMain.handle('network-repo:save', async (_, data: {
       projectId: string
       networkData: any
-      fileContent: string
+      /** Contenido del .inp. Si no se envía, se lee de `filePath`. */
+      fileContent?: string
+      /**
+       * Ruta del .inp en disco. El renderer la tiene tras cargar la red, pero no
+       * puede leer ficheros: la lectura se hace aquí a propósito, para no exponer
+       * un lector genérico al proceso de renderizado.
+       */
+      filePath?: string
       filename: string
       description?: string
     }) => {
@@ -27,10 +37,18 @@ export class NetworkRepositoryHandler {
           filename: data.filename
         })
 
+        let fileContent = data.fileContent
+        if (!fileContent && data.filePath) {
+          fileContent = await readFile(data.filePath, 'utf-8')
+        }
+        if (!fileContent) {
+          throw new Error('Falta el contenido del .inp: envía fileContent o filePath')
+        }
+
         const savedNetwork = await this.networkRepo.saveNetwork(
           data.projectId,
           data.networkData,
-          data.fileContent,
+          fileContent,
           data.filename,
           data.description
         )
@@ -113,11 +131,20 @@ export class NetworkRepositoryHandler {
 
         const result = await this.networkRepo.loadNetwork(networkId)
 
-        appLogger.success('Network loaded successfully', { networkId })
+        // El .inp guardado se materializa en un temporal y se devuelve su ruta,
+        // para que el llamante pueda cargarlo en el backend de WNTR con el canal
+        // que ya existe. Así la red que se simula es la que se muestra, y la red
+        // guardada sigue abriéndose aunque el fichero original se haya movido o
+        // borrado: la fuente es la base de datos, no el disco del usuario.
+        const filePath = join(tmpdir(), `boorie-net-${networkId}.inp`)
+        await writeFile(filePath, result.fileContent, 'utf-8')
+
+        appLogger.success('Network loaded successfully', { networkId, filePath })
 
         return {
           success: true,
-          data: result.networkData
+          data: result.networkData,
+          filePath
         }
       } catch (error) {
         appLogger.error('Failed to load network', error as Error)
