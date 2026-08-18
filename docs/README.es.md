@@ -39,15 +39,25 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.5.2
+### 🚀 Última Versión - v1.6.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.5.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.2/Boorie-1.5.2-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.5.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.2/Boorie-Setup-1.5.2.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.5.2.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.2/Boorie-1.5.2.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.6.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.6.0/Boorie-1.6.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.6.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.6.0/Boorie-Setup-1.6.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.6.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.6.0/Boorie-1.6.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.6.0
+- La simulación de interrupción del servicio dice ahora a cuánta gente deja sin agua: habitantes afectados, en qué nudos, cuánto dura el déficit y cuánta agua no llega a entregarse.
+- Sale todo de la misma ejecución: no hay que lanzar una segunda simulación ni volver a describir la avería.
+- Puedes ajustar el módulo de demanda de tu zona en litros por habitante y día, y el resultado se recalcula.
+- Si indicas cuántos habitantes tiene una acometida, Boorie traduce la población a número de clientes afectados.
+- Boorie separa lo que causa la avería de lo que la red ya tenía mal, y muestra ambas cifras.
+- Las simulaciones de interrupción pasan a calcularse con demanda dependiente de la presión, lo correcto cuando falta agua: antes un nudo con muy poca presión se daba por bien servido y el impacto salía en cero.
+- **Fix**: las horas fuera de servicio podían superar la duración de la propia simulación.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.6.0).
 
 ### 📝 Novedades en v1.5.2
 - Un único proyecto activo para toda la aplicación: el chat, la red y el Wisdom Center trabajan sobre el mismo contexto.
@@ -102,12 +112,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.5.2.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.5.2.AppImage`
-3. Ejecuta: `./Boorie-1.5.2.AppImage`
+1. Descarga `Boorie-1.6.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.6.0.AppImage`
+3. Ejecuta: `./Boorie-1.6.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.5.2.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.6.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 

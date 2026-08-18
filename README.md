@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.5.2
+### 🚀 Latest Release - v1.6.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.5.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.2/Boorie-1.5.2-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.5.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.2/Boorie-Setup-1.5.2.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.5.2.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.2/Boorie-1.5.2.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.6.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.6.0/Boorie-1.6.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.6.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.6.0/Boorie-Setup-1.6.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.6.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.6.0/Boorie-1.6.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.6.0**: Service interruption simulation now tells you **how many people are left without water**. Simulating the failure of a pipe, pump or valve also reports the affected population and nodes, how long the deficit lasts and how much water is never delivered — all from the same run, with no second simulation to launch. The demand module (litres per person per day) is yours to set, and the result recalculates; give the people-per-connection factor and Boorie translates population into affected customers. Boorie separates what the failure causes from what the network already had wrong, so a sector that was chronically short of pressure is not counted against the new fault. Interruption simulations now run pressure-dependent, which is the physically correct mode when water is short: a node with very little pressure used to be treated as fully served and the impact came out as zero. Fixed outage hours exceeding the simulated window (24 simulated hours could report 25 hours of outage). See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.6.0).
 - **v1.5.2**: A single active project shared by the whole application — chat, network and Wisdom Center now work on the same context, and it is restored when you reopen Boorie. Opening a conversation that belongs to another project asks whether to switch, so the assistant never answers with the wrong context. Your networks and calculations are stored in the project instead of only on this machine, and are migrated automatically without touching the previous data. A saved network opens even if you moved or deleted the original .inp. Scenarios derived from a network, such as a skeletonization, can hang from it with their own results folder. Fixed analysis and simulation possibly running on a different network from the one on screen. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.5.2).
 - **v1.5.1**: Python/WNTR startup on Windows now survives a restart (the virtual environment path is persisted), and the setup assistant explains *why* an install failed instead of just reporting "verification-failed". Supported range narrowed to **Python 3.10 – 3.13** (WNTR 1.5 ships no cp314 wheel). "Reindex" in the Wisdom Center actually reindexes again — it used to delete the document's chunks and report success without recreating them. Resilience routines gained table headers, highlighting of the nodes affected by a service interruption, CSV export for the fragility curve and indicators, and duration warnings. New **About** section in Settings with the installed version and this history (#30). See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.5.1).
 - **v1.5.0**: New WNTR resilience routines in the WNTR Network module — network skeletonization, service interruption simulation, resilience indicators (Todini index, network entropy, hydraulic redundancy) and seismic fragility curves. Fixed bug #16 (UI freeze when switching the embedding model in Wisdom Center) and bug #17 (Chat project selector not applying, and the LLM not receiving hydraulic project context). See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.5.0).
@@ -74,12 +75,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.5.2.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.5.2.AppImage`
-3. Run: `./Boorie-1.5.2.AppImage`
+1. Download `Boorie-1.6.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.6.0.AppImage`
+3. Run: `./Boorie-1.6.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.5.2.exe` from the link above
+1. Download `Boorie-Setup-1.6.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 
