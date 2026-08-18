@@ -7,6 +7,31 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.6.0] - 2026-08-18
+
+La simulación de interrupción del servicio dice ahora a cuánta gente deja sin agua.
+
+- Al simular la falla de una tubería, bomba o válvula, Boorie calcula además cuántos
+  habitantes se quedan sin servicio, en qué nudos, cuánto dura el déficit y cuánta agua
+  no llega a entregarse. Sale todo de la misma ejecución: no hay que lanzar una segunda
+  simulación ni volver a describir la avería.
+- Puedes ajustar el módulo de demanda de tu zona en litros por habitante y día. Por
+  defecto son 200, el valor típico de diseño en América Latina, y el resultado se
+  recalcula al cambiarlo.
+- Si indicas cuántos habitantes tiene una acometida, Boorie traduce la población a
+  número de clientes afectados. Si no lo indicas, no se inventa la cifra.
+- Boorie separa lo que causa la avería de lo que la red ya tenía mal. Si un sector
+  llevaba tiempo sin presión suficiente, esa gente no se suma a la que deja sin agua la
+  falla nueva, y verás ambas cifras por separado.
+- Las simulaciones de interrupción pasan a calcularse con demanda dependiente de la
+  presión, que es lo correcto cuando falta agua. Antes un nudo con muy poca presión se
+  daba por bien servido y el impacto salía en cero. Las presiones que ya se mostraban
+  cambian apenas unos centímetros.
+- Corregido que las horas fuera de servicio pudieran superar la duración de la propia
+  simulación: 24 horas simuladas llegaban a reportar 25 horas de corte.
+- Si la simulación no converge en algún instante, Boorie lo avisa en lugar de presentar
+  cifras poco fiables como si fueran buenas.
+
 ## [1.5.2] - 2026-08-18
 
 Un único proyecto activo para toda la aplicación, y las redes y cálculos pasan a
