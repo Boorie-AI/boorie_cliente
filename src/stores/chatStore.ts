@@ -121,6 +121,17 @@ export const useChatStore = create<ChatState>()(
 
       setActiveConversation: (id) => {
         set({ activeConversationId: id })
+
+        // Aviso de discrepancia con el proyecto activo (#31). Se hace aquí y no
+        // en los componentes porque hay cinco sitios que abren conversaciones;
+        // repartir la comprobación entre ellos es lo que produjo el problema.
+        // El import es dinámico para no crear dependencia circular entre stores.
+        const projectId = get().conversations.find(c => c.id === id)?.projectId
+        import('./projectStore')
+          .then(({ useProjectStore }) => {
+            useProjectStore.getState().notifyConversationOpened(id, projectId)
+          })
+          .catch(error => logger.error('No se pudo comprobar el proyecto de la conversación:', error))
       },
 
       addMessageToConversation: async (conversationId, messageData) => {

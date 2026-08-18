@@ -331,8 +331,25 @@ model HydraulicNetwork {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  // Jerarquia madre/hija de escenarios (#31). La red importada es la "madre" y
+  // cada escenario derivado (esqueletizacion, interrupcion de servicio...) es una
+  // "hija" que cuelga de ella, en lugar de un proyecto suelto sin trazabilidad.
+  //
+  // onDelete: SetNull y no Cascade a proposito: borrar la red original no debe
+  // llevarse por delante los escenarios derivados de ella, que pueden tener
+  // resultados que el usuario quiere conservar. Se quedan como raiz.
+  parentId          String?
+  parent            HydraulicNetwork?  @relation("EscenariosDeRed", fields: [parentId], references: [id], onDelete: SetNull)
+  scenarios         HydraulicNetwork[] @relation("EscenariosDeRed")
+
+  /// Etiqueta del escenario, p. ej. "esqueletizada 100 mm". Null en la red madre.
+  scenarioLabel     String?
+  /// Carpeta de resultados del escenario, validada por el usuario.
+  resultsPath       String?
+
   project           HydraulicProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
+  @@index([parentId])
   @@unique([projectId, name])
   @@map("hydraulic_networks")
 }

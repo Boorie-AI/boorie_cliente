@@ -1,5 +1,6 @@
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect } from 'react'
 import { useChatStore } from '@/stores/chatStore'
+import { useProjectStore } from '@/stores/projectStore'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { ChatHeader } from './ChatHeader'
@@ -10,7 +11,16 @@ import boorieIconLight from '@/assets/boorie_icon_light.png'
 
 export function ChatArea() {
   const { activeConversationId, conversations, isLoading, streamingMessage } = useChatStore()
-  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>()
+  // El proyecto del chat es el proyecto activo global (issue #31): antes el chat
+  // llevaba su propia selección, así que podía estar en un proyecto distinto del
+  // que mostraba la vista WNTR.
+  const selectedProjectId = useProjectStore(s => s.currentProjectId) ?? undefined
+  const selectProject = useProjectStore(s => s.selectProject)
+  const clearProject = useProjectStore(s => s.clearProject)
+  const onProjectSelect = (projectId: string | undefined) => {
+    if (projectId) selectProject(projectId)
+    else clearProject()
+  }
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const activeConversation = conversations.find(c => c.id === activeConversationId)
@@ -47,7 +57,7 @@ export function ChatArea() {
             <div className="space-y-4 flex flex-col items-center">
               <ProjectSelector
                 selectedProjectId={selectedProjectId}
-                onProjectSelect={setSelectedProjectId}
+                onProjectSelect={onProjectSelect}
                 className="justify-center"
               />
 

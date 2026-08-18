@@ -1,4 +1,7 @@
 import { ipcMain } from 'electron'
+import { readFile, writeFile } from 'fs/promises'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { NetworkRepositoryService } from '../../backend/services/hydraulic/networkRepository'
 import type { PrismaClient } from '@prisma/client'
 import { appLogger } from '../../backend/utils/logger'
@@ -16,9 +19,26 @@ export class NetworkRepositoryHandler {
     ipcMain.handle('network-repo:save', async (_, data: {
       projectId: string
       networkData: any
-      fileContent: string
+      /** Contenido del .inp. Si no se envía, se lee de `filePath`. */
+      fileContent?: string
+      /**
+       * Ruta del .inp en disco. El renderer la tiene tras cargar la red, pero no
+       * puede leer ficheros: la lectura se hace aquí a propósito, para no exponer
+       * un lector genérico al proceso de renderizado.
+       */
+      filePath?: string
       filename: string
       description?: string
+      /**
+       * Permite guardar sin el .inp, dejando la red marcada como incompleta. Solo
+       * lo usa la migracion del overlay heredado: si el fichero original ya no
+       * esta en disco, conservar la red con sus datos parseados es mejor que
+       * descartarla. Exigirlo de forma explicita evita que ocurra por descuido en
+       * el flujo normal de guardado.
+       */
+      allowMissingFile?: boolean
+      /** Si viene, la red se guarda como escenario colgando de `parentId`. */
+      scenario?: { parentId?: string; scenarioLabel?: string; resultsPath?: string }
     }) => {
       try {
         appLogger.info('Saving network to repository', {
@@ -27,12 +47,28 @@ export class NetworkRepositoryHandler {
           filename: data.filename
         })
 
+        let fileContent = data.fileContent
+        if (!fileContent && data.filePath) {
+          try {
+            fileContent = await readFile(data.filePath, 'utf-8')
+          } catch (error) {
+            if (!data.allowMissingFile) throw error
+            appLogger.warn('El .inp ya no esta en disco; la red se guarda incompleta', {
+              filePath: data.filePath
+            })
+          }
+        }
+        if (!fileContent && !data.allowMissingFile) {
+          throw new Error('Falta el contenido del .inp: envia fileContent o filePath')
+        }
+
         const savedNetwork = await this.networkRepo.saveNetwork(
           data.projectId,
           data.networkData,
-          data.fileContent,
+          fileContent ?? '',
           data.filename,
-          data.description
+          data.description,
+          data.scenario
         )
 
         appLogger.success('Network saved successfully', {
@@ -45,10 +81,24 @@ export class NetworkRepositoryHandler {
           data: savedNetwork
         }
       } catch (error) {
-        appLogger.error('Failed to save network', error as Error)
+        // Una red ya guardada no es un error de verdad: la migracion del overlay
+        // heredado encuentra duplicados a puñados (el codigo antiguo reañadia la
+        // red en cada carga), y presentarlos como fallos alarma sin motivo. Se
+        // marca aqui, con el codigo de Prisma o el mensaje del servicio, para no
+        // tener que adivinarlo comparando cadenas en el renderer.
+        const mensaje = (error as Error).message
+        const duplicate =
+          (error as { code?: string }).code === 'P2002' ||
+          mensaje.includes('ya existe') ||
+          mensaje.includes('Unique constraint failed')
+
+        if (duplicate) appLogger.info('La red ya estaba guardada en el proyecto', { name: data.networkData?.name })
+        else appLogger.error('Failed to save network', error as Error)
+
         return {
           success: false,
-          error: (error as Error).message
+          duplicate,
+          error: mensaje
         }
       }
     })
@@ -113,11 +163,20 @@ export class NetworkRepositoryHandler {
 
         const result = await this.networkRepo.loadNetwork(networkId)
 
-        appLogger.success('Network loaded successfully', { networkId })
+        // El .inp guardado se materializa en un temporal y se devuelve su ruta,
+        // para que el llamante pueda cargarlo en el backend de WNTR con el canal
+        // que ya existe. Así la red que se simula es la que se muestra, y la red
+        // guardada sigue abriéndose aunque el fichero original se haya movido o
+        // borrado: la fuente es la base de datos, no el disco del usuario.
+        const filePath = join(tmpdir(), `boorie-net-${networkId}.inp`)
+        await writeFile(filePath, result.fileContent, 'utf-8')
+
+        appLogger.success('Network loaded successfully', { networkId, filePath })
 
         return {
           success: true,
-          data: result.networkData
+          data: result.networkData,
+          filePath
         }
       } catch (error) {
         appLogger.error('Failed to load network', error as Error)

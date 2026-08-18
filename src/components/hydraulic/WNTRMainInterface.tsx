@@ -1,6 +1,7 @@
 import { logger } from '@/utils/logger'
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useClarity } from '@/components/ClarityProvider';
+import { useProjectStore } from '@/stores/projectStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -120,37 +121,96 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   // feature — see network-repo IPC channels), so this keeps existing
   // behavior working without regressing it.
   const [projects, setProjects] = useState<Project[]>([]);
-  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  // El proyecto activo vive en useProjectStore (issue #31): así el chat, el
+  // Wisdom Center y esta vista comparten contexto, y sobrevive a desmontar la
+  // vista o a cerrar la aplicación. Aquí sólo se guarda el id; el view-model se
+  // deriva más abajo del catálogo y del overlay.
+  const activeProjectId = useProjectStore(s => s.currentProjectId);
+  const selectProjectGlobal = useProjectStore(s => s.selectProject);
+  const clearProjectGlobal = useProjectStore(s => s.clearProject);
   // Lazy-initialized from localStorage so there's no load/save race on mount
   // (a load-then-save effect pair would briefly overwrite storage with the
   // initial empty state before the async load's setState landed).
-  const [projectAssets, setProjectAssets] = useState<Record<string, { networks: NetworkAsset[]; calculations: CalculationAsset[] }>>(() => {
-    try {
-      const saved = localStorage.getItem('wntr_project_assets');
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) {
-      logger.error('Failed to load project assets:', e);
-      return {};
-    }
-  });
-
-  useEffect(() => {
-    localStorage.setItem('wntr_project_assets', JSON.stringify(projectAssets));
-  }, [projectAssets]);
+  // Las redes del proyecto activo salen de HydraulicNetwork. Antes vivian en la
+  // clave wntr_project_assets de localStorage, invisibles para el resto de la
+  // aplicacion y perdidas al cambiar de equipo (#31).
+  const [activeNetworks, setActiveNetworks] = useState<NetworkAsset[]>([]);
+  const storeCalculations = useProjectStore(s => s.currentProject?.calculations);
 
   const toViewModel = useCallback((p: any): Project => {
-    const assets = projectAssets[p.id] || { networks: [], calculations: [] };
     return {
       id: p.id,
       name: p.name,
       description: p.description,
       createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
       lastModified: p.updatedAt ? new Date(p.updatedAt).toISOString() : new Date().toISOString(),
-      networks: assets.networks,
-      calculations: assets.calculations,
+      networks: [],
+      calculations: [],
+      networkCount: p.networkCount ?? 0,
+      calculationCount: p.calculationCount ?? 0,
       chatCount: p.chatCount ?? 0
     };
-  }, [projectAssets]);
+  }, []);
+
+  // Derivado, no duplicado: el catálogo aporta la identidad y el overlay las
+  // redes y cálculos. Antes se mantenía una copia en estado local que había que
+  // sincronizar a mano en cada cambio del overlay, y esa copia se perdía al
+  // desmontar la vista.
+  const currentProject = useMemo<Project | null>(() => {
+    if (!activeProjectId) return null;
+    const base = projects.find(p => p.id === activeProjectId);
+    if (!base) return null;
+    const calculations: CalculationAsset[] = (storeCalculations ?? []).map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      date: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
+      status: 'completed',
+      networkId: '',
+      results: c.results
+    }));
+    return { ...base, networks: activeNetworks, calculations };
+  }, [activeProjectId, projects, activeNetworks, storeCalculations]);
+
+  const refreshCurrentProject = useCallback(() => {
+    if (activeProjectId) selectProjectGlobal(activeProjectId);
+  }, [activeProjectId, selectProjectGlobal]);
+
+  const refreshActiveNetworks = useCallback(async () => {
+    if (!activeProjectId) { setActiveNetworks([]); return; }
+    try {
+      const res = await window.electronAPI.networkRepository.getProjectNetworks(activeProjectId);
+      if (!res?.success) { logger.error('No se pudieron leer las redes del proyecto:', res?.error); return; }
+      const mapear = (n: any): NetworkAsset => ({
+        id: n.id,
+        name: n.name,
+        uploadDate: n.createdAt ? new Date(n.createdAt).toISOString() : new Date().toISOString(),
+        nodeCount: (n.summary?.junctions ?? 0) + (n.summary?.tanks ?? 0) + (n.summary?.reservoirs ?? 0),
+        linkCount: n.summary?.pipes ?? 0,
+        // Sin `data`: se pide al abrirla, para no traer todas las redes a memoria.
+        incomplete: n.hasFileContent === false,
+        parentId: n.parentId,
+        scenarioLabel: n.scenarioLabel
+      });
+
+      // Cada escenario justo debajo de su madre: si no, la sangria de la lista no
+      // significaria nada porque el orden viene por fecha de modificacion.
+      const todas = (res.data ?? []).map(mapear);
+      const madres = todas.filter((n: NetworkAsset) => !n.parentId);
+      const ordenadas = madres.flatMap((m: NetworkAsset) => [
+        m,
+        ...todas.filter((n: NetworkAsset) => n.parentId === m.id)
+      ]);
+      // Un escenario cuya madre se borro queda como raiz: no debe desaparecer.
+      const huerfanos = todas.filter(
+        (n: NetworkAsset) => n.parentId && !madres.some((m: NetworkAsset) => m.id === n.parentId)
+      );
+      setActiveNetworks([...ordenadas, ...huerfanos]);
+    } catch (e) {
+      logger.error('Error leyendo las redes del proyecto:', e);
+    }
+  }, [activeProjectId]);
+
+  useEffect(() => { refreshActiveNetworks(); }, [refreshActiveNetworks]);
 
   const refreshProjects = useCallback(async () => {
     try {
@@ -178,60 +238,57 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       });
       const newProject = toViewModel(created);
       setProjects(prev => [newProject, ...prev]);
-      setCurrentProject(newProject);
+      await selectProjectGlobal(created.id);
     } catch (e) {
       logger.error('Failed to create project:', e);
     }
-  }, [toViewModel]);
+  }, [toViewModel, selectProjectGlobal]);
 
   const handleSelectProject = useCallback((project: Project) => {
-    setCurrentProject(project);
-  }, []);
+    selectProjectGlobal(project.id);
+  }, [selectProjectGlobal]);
 
   const handleDeleteProject = useCallback(async (projectId: string) => {
     try {
       await hydraulicService.deleteProject(projectId);
+      // Las redes y calculos del proyecto los borra la cascada de la base de
+      // datos (onDelete: Cascade), ya no hay que limpiar nada en local.
       setProjects(prev => prev.filter(p => p.id !== projectId));
-      setProjectAssets(prev => {
-        const next = { ...prev };
-        delete next[projectId];
-        return next;
-      });
-      if (currentProject?.id === projectId) {
-        setCurrentProject(null);
+      if (activeProjectId === projectId) {
+        clearProjectGlobal();
       }
     } catch (e) {
       logger.error('Failed to delete project:', e);
     }
-  }, [currentProject]);
+  }, [activeProjectId, clearProjectGlobal]);
 
-  const handleSaveNetworkToProject = useCallback((data: NetworkData, filePath?: string) => {
-    if (!currentProject) return;
-
-    const networkAsset: NetworkAsset = {
-      id: `net_${Date.now()}`,
-      name: data.name,
-      filePath: filePath,
-      uploadDate: new Date().toISOString(),
-      nodeCount: data.summary?.junctions || 0,
-      linkCount: data.summary?.pipes || 0,
-      data: data
-    };
-
-    setProjectAssets(prev => {
-      const existing = prev[currentProject.id] || { networks: [], calculations: [] };
-      return { ...prev, [currentProject.id]: { ...existing, networks: [...existing.networks, networkAsset] } };
-    });
-
-    setCurrentProject(prev => prev ? {
-      ...prev,
-      networks: [...prev.networks, networkAsset],
-      lastModified: new Date().toISOString()
-    } : null);
-  }, [currentProject]);
+  const handleSaveNetworkToProject = useCallback(async (data: NetworkData, filePath?: string) => {
+    if (!activeProjectId) return;
+    try {
+      // El proceso principal lee el .inp de `filePath`: el renderer no tiene
+      // acceso a disco, y el contenido hace falta para poder simular mas tarde
+      // aunque el usuario mueva el fichero original.
+      const res = await window.electronAPI.networkRepository.save({
+        projectId: activeProjectId,
+        networkData: data,
+        filePath,
+        filename: filePath?.split(/[\\/]/).pop() || `${data.name}.inp`
+      });
+      if (!res?.success) {
+        // Guardar dos veces la misma red no es un error que deba interrumpir:
+        // el repositorio rechaza nombres duplicados por proyecto.
+        logger.warn('No se guardo la red en el proyecto:', res?.error);
+        return;
+      }
+      await refreshActiveNetworks();
+      await refreshProjects();
+    } catch (e) {
+      logger.error('Error guardando la red en el proyecto:', e);
+    }
+  }, [activeProjectId, refreshActiveNetworks, refreshProjects]);
 
   const handleSaveCalculationToProject = useCallback((name: string, networkId: string, results: any) => {
-    if (!currentProject) return;
+    if (!activeProjectId) return;
 
     const calculation: CalculationAsset = {
       id: `calc_${Date.now()}`,
@@ -242,20 +299,32 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       results
     };
 
-    setProjectAssets(prev => {
-      const existing = prev[currentProject.id] || { networks: [], calculations: [] };
-      return { ...prev, [currentProject.id]: { ...existing, calculations: [...existing.calculations, calculation] } };
-    });
-
-    setCurrentProject(prev => prev ? {
-      ...prev,
-      calculations: [...prev.calculations, calculation],
-      lastModified: new Date().toISOString()
-    } : null);
-  }, [currentProject]);
+    window.electronAPI.hydraulic
+      .saveCalculation(activeProjectId, {
+        type: 'wntr_simulation',
+        name: calculation.name,
+        inputs: { networkId },
+        results,
+        formulas: []
+      })
+      .then((res: any) => {
+        if (!res?.success) logger.warn('No se guardo el calculo en el proyecto:', res?.error);
+        // Recargar el proyecto trae la lista de calculos al dia, que es de donde
+        // la vista los lee ahora.
+        else refreshCurrentProject();
+      })
+      .catch((e: unknown) => logger.error('Error guardando el calculo:', e));
+  }, [activeProjectId, refreshCurrentProject]);
 
   // Core state
   const [networkData, setNetworkData] = useState<NetworkData | null>(null);
+  /**
+   * Ruta del .inp que el backend de WNTR tiene cargado. Antes se buscaba la red
+   * guardada por nombre para recuperarla, lo que falla con dos redes homonimas o
+   * con una red aun sin guardar. Recordar lo que se cargo es directo y no depende
+   * del catalogo.
+   */
+  const [loadedNetworkPath, setLoadedNetworkPath] = useState<string | null>(null);
   const [analysisResults, setAnalysisResults] = useState<AnalysisResults>({});
   // Core state - Updated to hold multiple simulation results
   interface ProjectSimulationResults {
@@ -327,6 +396,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
       if (result.success && result.data) {
         setNetworkData(result.data);
+        setLoadedNetworkPath(result.filePath ?? null);
 
         // Save to current project (include filePath for later re-loading)
         handleSaveNetworkToProject(result.data, result.filePath);
@@ -369,12 +439,10 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       setAnalysisProgress(0);
       setError(null);
 
-      // Ensure the INP file is loaded in the backend
-      // Find the filePath from saved networks, or skip if already loaded
-      const savedNet = currentProject?.networks.find(n => n.name === networkData.name);
-      if (savedNet?.filePath) {
-        logger.debug('Loading INP file before analysis:', savedNet.filePath);
-        const loadResult = await window.electronAPI.wntr.loadINPFromPath(savedNet.filePath);
+      // Se reasegura que el backend tenga cargado el .inp de la red que se ve.
+      if (loadedNetworkPath) {
+        logger.debug('Loading INP file before analysis:', loadedNetworkPath);
+        const loadResult = await window.electronAPI.wntr.loadINPFromPath(loadedNetworkPath);
         if (!loadResult.success) {
           throw new Error(`Failed to load INP file: ${loadResult.error}`);
         }
@@ -415,7 +483,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       setIsAnalyzing(false);
       // setAnalysisProgress(0); // Leave at 100 for visual confirmation
     }
-  }, [networkData, onAnalysisComplete]);
+  }, [networkData, loadedNetworkPath, onAnalysisComplete]);
 
 
 
@@ -431,11 +499,10 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       // Reset current results
       setSimulationResults({ hydraulic: null, quality: null, scenario: null });
 
-      // Ensure the INP file is loaded in the backend
-      const savedNet = currentProject?.networks.find(n => n.name === networkData.name);
-      if (savedNet?.filePath) {
-        logger.debug('Loading INP file before simulation:', savedNet.filePath);
-        const loadResult = await window.electronAPI.wntr.loadINPFromPath(savedNet.filePath);
+      // Se reasegura que el backend tenga cargado el .inp de la red que se ve.
+      if (loadedNetworkPath) {
+        logger.debug('Loading INP file before simulation:', loadedNetworkPath);
+        const loadResult = await window.electronAPI.wntr.loadINPFromPath(loadedNetworkPath);
         if (!loadResult.success) {
           throw new Error(`Failed to load INP file: ${loadResult.error}`);
         }
@@ -497,7 +564,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       setIsSimulating(false);
       // setSimulationProgress(0); // Leave at 100 to show success
     }
-  }, [networkData, onSimulationComplete, simulationDuration, simulationTimestep, currentProject, handleSaveCalculationToProject]);
+  }, [networkData, loadedNetworkPath, onSimulationComplete, simulationDuration, simulationTimestep, currentProject, handleSaveCalculationToProject]);
 
   // --- Resilience routines handlers (epic #26) ---
 
@@ -523,6 +590,66 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     }
   }, [networkData, skeletonizeThresholdMm]);
 
+  /**
+   * Guarda la red esqueletizada como escenario que cuelga de la red actual, dentro
+   * del mismo proyecto (#31). Es lo que pedia el criterio de Luis Mora: la red
+   * importada es la carpeta madre y cada escenario una hija con su ruta de
+   * resultados, en lugar de un proyecto suelto sin trazabilidad.
+   */
+  const handleSaveSkeletonizedAsScenario = useCallback(async () => {
+    if (!skeletonizePreview || !activeProjectId || !networkData) return;
+    const madre = activeNetworks.find(n => n.name === networkData.name);
+    if (!madre) {
+      setSkeletonizeError('Guarda primero la red original en el proyecto para poder derivar escenarios de ella');
+      return;
+    }
+    try {
+      const etiqueta = `esqueletizada ${skeletonizeThresholdMm} mm`;
+      const saveRes = await window.electronAPI.wntr.saveINPFile(
+        skeletonizePreview.inp_content,
+        `${networkData.name}_${skeletonizeThresholdMm}mm.inp`
+      );
+      if (!saveRes.success || !saveRes.filePath) {
+        setSkeletonizeError(saveRes.error || 'Guardado cancelado');
+        return;
+      }
+
+      const loadRes = await window.electronAPI.wntr.loadINPFromPath(saveRes.filePath);
+      if (!loadRes.success || !loadRes.data) {
+        setSkeletonizeError(loadRes.error || 'No se pudo leer la red esqueletizada');
+        return;
+      }
+
+      const res = await window.electronAPI.networkRepository.save({
+        projectId: activeProjectId,
+        networkData: { ...loadRes.data, name: `${networkData.name} (${etiqueta})` },
+        filePath: saveRes.filePath,
+        filename: saveRes.filePath.split(/[\\/]/).pop() || 'escenario.inp',
+        description: `Escenario derivado de "${networkData.name}": umbral ${skeletonizeThresholdMm} mm, reduccion ${skeletonizePreview.reduction.pipes_pct}% tuberias / ${skeletonizePreview.reduction.junctions_pct}% nudos.`,
+        scenario: {
+          parentId: madre.id,
+          scenarioLabel: etiqueta,
+          // La carpeta donde el usuario guardo el .inp es la de resultados del
+          // escenario: la elige el, no la impone la aplicacion.
+          resultsPath: saveRes.filePath.replace(/[\\/][^\\/]+$/, '')
+        }
+      });
+
+      if (!res?.success) {
+        setSkeletonizeError(res?.duplicate
+          ? 'Ya existe un escenario con ese nombre en el proyecto'
+          : res?.error || 'No se pudo guardar el escenario');
+        return;
+      }
+
+      await refreshActiveNetworks();
+      await refreshProjects();
+      setSkeletonizePreview(null);
+    } catch (err) {
+      setSkeletonizeError(err instanceof Error ? err.message : 'Error guardando el escenario');
+    }
+  }, [skeletonizePreview, activeProjectId, networkData, activeNetworks, skeletonizeThresholdMm, refreshActiveNetworks, refreshProjects]);
+
   const handleSaveSkeletonizedNetwork = useCallback(async () => {
     if (!skeletonizePreview || !currentProject || !networkData) return;
     try {
@@ -544,19 +671,14 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
       const loadRes = await window.electronAPI.wntr.loadINPFromPath(saveRes.filePath);
       if (loadRes.success && loadRes.data) {
-        const networkAsset: NetworkAsset = {
-          id: `net_${Date.now()}`,
-          name: loadRes.data.name,
+        setLoadedNetworkPath(saveRes.filePath);
+        await window.electronAPI.networkRepository.save({
+          projectId: newProject.id,
+          networkData: loadRes.data,
           filePath: saveRes.filePath,
-          uploadDate: new Date().toISOString(),
-          nodeCount: loadRes.data.summary?.junctions || 0,
-          linkCount: loadRes.data.summary?.pipes || 0,
-          data: loadRes.data
-        };
-        setProjectAssets(prev => ({
-          ...prev,
-          [newProject.id]: { networks: [networkAsset], calculations: [] }
-        }));
+          filename: saveRes.filePath.split(/[\\/]/).pop() || `${loadRes.data.name}.inp`,
+          description: `Esqueletizada desde "${currentProject.name}"`
+        });
       }
 
       await refreshProjects();
@@ -720,11 +842,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     if (!currentProject) {
       return (
         <ProjectDashboard
-          projects={projects.map(p => ({
-            ...p,
-            networks: projectAssets[p.id]?.networks ?? p.networks,
-            calculations: projectAssets[p.id]?.calculations ?? p.calculations
-          }))}
+          projects={projects}
           onSelectProject={handleSelectProject}
           onCreateProject={handleCreateProject}
           onDeleteProject={handleDeleteProject}
@@ -742,7 +860,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setCurrentProject(null)}
+                onClick={() => clearProjectGlobal()}
                 className="text-slate-400 hover:text-white"
               >
                 <ChevronDown className="h-4 w-4 mr-2 rotate-90" />
@@ -808,13 +926,22 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           key={net.id}
                           variant="outline"
                           size="sm"
-                          className="w-full justify-start text-xs"
+                          className={`w-full justify-start text-xs ${net.parentId ? 'ml-4 w-[calc(100%-1rem)]' : ''}`}
                           onClick={async () => {
-                            setNetworkData(net.data);
-                            // Reload the .inp file in the backend so simulations/analyses work
-                            if (net.filePath) {
+                            // Datos y .inp desde la base de datos: la red se abre
+                            // aunque el fichero original ya no este en disco.
+                            const res = await window.electronAPI.networkRepository.load(net.id);
+                            if (!res?.success) {
+                              setError(res?.error || 'No se pudo abrir la red guardada');
+                              return;
+                            }
+                            setNetworkData(res.data);
+                            setLoadedNetworkPath(res.filePath ?? null);
+                            // El backend debe quedarse con la misma red que se
+                            // muestra, o las simulaciones correrian sobre otra.
+                            if (res.filePath) {
                               try {
-                                await window.electronAPI.wntr.loadINPFromPath(net.filePath);
+                                await window.electronAPI.wntr.loadINPFromPath(res.filePath);
                               } catch (err) {
                                 logger.warn('Could not reload INP file:', err);
                               }
@@ -823,6 +950,19 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         >
                           <Database className="h-3 w-3 mr-2" />
                           {net.name}
+                          {net.scenarioLabel && (
+                            <span className="ml-2 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                              {net.scenarioLabel}
+                            </span>
+                          )}
+                          {net.incomplete && (
+                            <span
+                              className="ml-2 rounded bg-yellow-500/15 px-1.5 py-0.5 text-[10px] font-medium text-yellow-600 dark:text-yellow-500"
+                              title="Falta el fichero .inp original: la red se puede ver, pero no simular. Vuelve a importarla para recuperarla."
+                            >
+                              sin .inp
+                            </span>
+                          )}
                           <span className="ml-auto text-muted-foreground">
                             {net.nodeCount} nudos
                           </span>
@@ -1252,8 +1392,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               </div>
                             </div>
                           </div>
+                          <Button size="sm" className="w-full" onClick={handleSaveSkeletonizedAsScenario}>
+                            Guardar como escenario de esta red
+                          </Button>
                           <Button size="sm" variant="outline" className="w-full" onClick={handleSaveSkeletonizedNetwork}>
-                            Guardar como nuevo proyecto
+                            Guardar como proyecto aparte
                           </Button>
                         </CardContent>
                       </Card>
