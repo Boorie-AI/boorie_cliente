@@ -45,6 +45,10 @@ export interface SavedNetwork {
    * desde el overlay de localStorage cuyo .inp ya no estaba en disco.
    */
   hasFileContent: boolean
+  /** Red madre de la que deriva este escenario; ausente en la red original. */
+  parentId?: string
+  scenarioLabel?: string
+  resultsPath?: string
   isActive: boolean
   lastLoaded?: Date
   createdAt: Date
@@ -67,7 +71,12 @@ export class NetworkRepositoryService {
     networkData: NetworkData,
     fileContent: string,
     filename: string,
-    description?: string
+    description?: string,
+    /**
+     * Datos de escenario: cuando la red deriva de otra (esqueletizacion,
+     * interrupcion...), cuelga de ella en lugar de quedar como red suelta (#31).
+     */
+    scenario?: { parentId?: string; scenarioLabel?: string; resultsPath?: string }
   ): Promise<SavedNetwork> {
     // Check if network with same name exists in project
     const existing = await this.prisma.hydraulicNetwork.findFirst({
@@ -92,6 +101,9 @@ export class NetworkRepositoryService {
         networkData: JSON.stringify(networkData),
         coordinateSystem: networkData.coordinate_system ? JSON.stringify(networkData.coordinate_system) : null,
         summary: JSON.stringify(networkData.summary),
+        parentId: scenario?.parentId ?? null,
+        scenarioLabel: scenario?.scenarioLabel ?? null,
+        resultsPath: scenario?.resultsPath ?? null,
         version: '1.0'
       }
     })
@@ -281,6 +293,9 @@ export class NetworkRepositoryService {
     coordinateSystem: network.coordinateSystem ? JSON.parse(network.coordinateSystem) : undefined,
     version: network.version,
     hasFileContent: !!network.fileContent,
+    parentId: network.parentId ?? undefined,
+    scenarioLabel: network.scenarioLabel ?? undefined,
+    resultsPath: network.resultsPath ?? undefined,
     isActive: network.isActive,
     lastLoaded: network.lastLoaded,
     createdAt: network.createdAt,

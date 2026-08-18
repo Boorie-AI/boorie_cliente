@@ -180,15 +180,31 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     try {
       const res = await window.electronAPI.networkRepository.getProjectNetworks(activeProjectId);
       if (!res?.success) { logger.error('No se pudieron leer las redes del proyecto:', res?.error); return; }
-      setActiveNetworks((res.data ?? []).map((n: any): NetworkAsset => ({
+      const mapear = (n: any): NetworkAsset => ({
         id: n.id,
         name: n.name,
         uploadDate: n.createdAt ? new Date(n.createdAt).toISOString() : new Date().toISOString(),
         nodeCount: (n.summary?.junctions ?? 0) + (n.summary?.tanks ?? 0) + (n.summary?.reservoirs ?? 0),
         linkCount: n.summary?.pipes ?? 0,
         // Sin `data`: se pide al abrirla, para no traer todas las redes a memoria.
-        incomplete: n.hasFileContent === false
-      })));
+        incomplete: n.hasFileContent === false,
+        parentId: n.parentId,
+        scenarioLabel: n.scenarioLabel
+      });
+
+      // Cada escenario justo debajo de su madre: si no, la sangria de la lista no
+      // significaria nada porque el orden viene por fecha de modificacion.
+      const todas = (res.data ?? []).map(mapear);
+      const madres = todas.filter((n: NetworkAsset) => !n.parentId);
+      const ordenadas = madres.flatMap((m: NetworkAsset) => [
+        m,
+        ...todas.filter((n: NetworkAsset) => n.parentId === m.id)
+      ]);
+      // Un escenario cuya madre se borro queda como raiz: no debe desaparecer.
+      const huerfanos = todas.filter(
+        (n: NetworkAsset) => n.parentId && !madres.some((m: NetworkAsset) => m.id === n.parentId)
+      );
+      setActiveNetworks([...ordenadas, ...huerfanos]);
     } catch (e) {
       logger.error('Error leyendo las redes del proyecto:', e);
     }
@@ -574,6 +590,66 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     }
   }, [networkData, skeletonizeThresholdMm]);
 
+  /**
+   * Guarda la red esqueletizada como escenario que cuelga de la red actual, dentro
+   * del mismo proyecto (#31). Es lo que pedia el criterio de Luis Mora: la red
+   * importada es la carpeta madre y cada escenario una hija con su ruta de
+   * resultados, en lugar de un proyecto suelto sin trazabilidad.
+   */
+  const handleSaveSkeletonizedAsScenario = useCallback(async () => {
+    if (!skeletonizePreview || !activeProjectId || !networkData) return;
+    const madre = activeNetworks.find(n => n.name === networkData.name);
+    if (!madre) {
+      setSkeletonizeError('Guarda primero la red original en el proyecto para poder derivar escenarios de ella');
+      return;
+    }
+    try {
+      const etiqueta = `esqueletizada ${skeletonizeThresholdMm} mm`;
+      const saveRes = await window.electronAPI.wntr.saveINPFile(
+        skeletonizePreview.inp_content,
+        `${networkData.name}_${skeletonizeThresholdMm}mm.inp`
+      );
+      if (!saveRes.success || !saveRes.filePath) {
+        setSkeletonizeError(saveRes.error || 'Guardado cancelado');
+        return;
+      }
+
+      const loadRes = await window.electronAPI.wntr.loadINPFromPath(saveRes.filePath);
+      if (!loadRes.success || !loadRes.data) {
+        setSkeletonizeError(loadRes.error || 'No se pudo leer la red esqueletizada');
+        return;
+      }
+
+      const res = await window.electronAPI.networkRepository.save({
+        projectId: activeProjectId,
+        networkData: { ...loadRes.data, name: `${networkData.name} (${etiqueta})` },
+        filePath: saveRes.filePath,
+        filename: saveRes.filePath.split(/[\\/]/).pop() || 'escenario.inp',
+        description: `Escenario derivado de "${networkData.name}": umbral ${skeletonizeThresholdMm} mm, reduccion ${skeletonizePreview.reduction.pipes_pct}% tuberias / ${skeletonizePreview.reduction.junctions_pct}% nudos.`,
+        scenario: {
+          parentId: madre.id,
+          scenarioLabel: etiqueta,
+          // La carpeta donde el usuario guardo el .inp es la de resultados del
+          // escenario: la elige el, no la impone la aplicacion.
+          resultsPath: saveRes.filePath.replace(/[\\/][^\\/]+$/, '')
+        }
+      });
+
+      if (!res?.success) {
+        setSkeletonizeError(res?.duplicate
+          ? 'Ya existe un escenario con ese nombre en el proyecto'
+          : res?.error || 'No se pudo guardar el escenario');
+        return;
+      }
+
+      await refreshActiveNetworks();
+      await refreshProjects();
+      setSkeletonizePreview(null);
+    } catch (err) {
+      setSkeletonizeError(err instanceof Error ? err.message : 'Error guardando el escenario');
+    }
+  }, [skeletonizePreview, activeProjectId, networkData, activeNetworks, skeletonizeThresholdMm, refreshActiveNetworks, refreshProjects]);
+
   const handleSaveSkeletonizedNetwork = useCallback(async () => {
     if (!skeletonizePreview || !currentProject || !networkData) return;
     try {
@@ -850,7 +926,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           key={net.id}
                           variant="outline"
                           size="sm"
-                          className="w-full justify-start text-xs"
+                          className={`w-full justify-start text-xs ${net.parentId ? 'ml-4 w-[calc(100%-1rem)]' : ''}`}
                           onClick={async () => {
                             // Datos y .inp desde la base de datos: la red se abre
                             // aunque el fichero original ya no este en disco.
@@ -874,6 +950,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         >
                           <Database className="h-3 w-3 mr-2" />
                           {net.name}
+                          {net.scenarioLabel && (
+                            <span className="ml-2 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                              {net.scenarioLabel}
+                            </span>
+                          )}
                           {net.incomplete && (
                             <span
                               className="ml-2 rounded bg-yellow-500/15 px-1.5 py-0.5 text-[10px] font-medium text-yellow-600 dark:text-yellow-500"
@@ -1311,8 +1392,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               </div>
                             </div>
                           </div>
+                          <Button size="sm" className="w-full" onClick={handleSaveSkeletonizedAsScenario}>
+                            Guardar como escenario de esta red
+                          </Button>
                           <Button size="sm" variant="outline" className="w-full" onClick={handleSaveSkeletonizedNetwork}>
-                            Guardar como nuevo proyecto
+                            Guardar como proyecto aparte
                           </Button>
                         </CardContent>
                       </Card>

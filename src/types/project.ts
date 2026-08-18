@@ -16,6 +16,10 @@ export interface NetworkAsset {
      * cuyo fichero ya no estaba en disco). Se puede ver, pero no simular.
      */
     incomplete?: boolean;
+    /** Red madre de la que deriva; ausente en las redes importadas. */
+    parentId?: string;
+    /** Etiqueta del escenario, p. ej. "esqueletizada 100 mm". */
+    scenarioLabel?: string;
 }
 
 export interface CalculationAsset {

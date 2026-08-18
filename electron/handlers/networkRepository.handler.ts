@@ -37,6 +37,8 @@ export class NetworkRepositoryHandler {
        * el flujo normal de guardado.
        */
       allowMissingFile?: boolean
+      /** Si viene, la red se guarda como escenario colgando de `parentId`. */
+      scenario?: { parentId?: string; scenarioLabel?: string; resultsPath?: string }
     }) => {
       try {
         appLogger.info('Saving network to repository', {
@@ -65,7 +67,8 @@ export class NetworkRepositoryHandler {
           data.networkData,
           fileContent ?? '',
           data.filename,
-          data.description
+          data.description,
+          data.scenario
         )
 
         appLogger.success('Network saved successfully', {
