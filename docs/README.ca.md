@@ -39,16 +39,29 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.5.1
+### 🚀 Última Versió - v1.5.2
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.5.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.1/Boorie-1.5.1-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.5.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.1/Boorie-Setup-1.5.1.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.5.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.1/Boorie-1.5.1.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.5.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.2/Boorie-1.5.2-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.5.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.2/Boorie-Setup-1.5.2.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.5.2.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.5.2/Boorie-1.5.2.AppImage) | ~344 MB |
 
 
-### 📝 Novetats a v1.5.1
+
+### 📝 Novetats a v1.5.2
+- Un únic projecte actiu per a tota l'aplicació: el xat, la xarxa i el Wisdom Center treballen sobre el mateix context.
+- En tancar i reobrir Boorie es recupera l'últim projecte en què estaves.
+- Si obres una conversa d'un altre projecte, Boorie avisa i et deixa triar, perquè l'assistent no respongui amb el context equivocat.
+- Les teves xarxes i càlculs es guarden al projecte i no només en aquest equip. En actualitzar es traslladen sols, conservant les dades anteriors.
+- Una xarxa guardada s'obre encara que hagis mogut o esborrat el fitxer .inp original.
+- Els escenaris derivats d'una xarxa es poden guardar penjant d'ella, amb la seva pròpia carpeta de resultats. Encara es poden guardar com a projecte a part.
+- **Fix**: en analitzar o simular podia fer-se servir una xarxa diferent de la mostrada en pantalla.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.5.2).
+
+<details>
+<summary>Novetats a v1.5.1</summary>
+
 - L'arrencada de Python/WNTR a Windows sobreviu a un reinici: la ruta de l'entorn virtual es conserva entre sessions.
 - L'assistent de preparació explica **per què** falla una instal·lació, en lloc de limitar-se a «verification-failed», i indica quin paquet falta.
 - Rang admès limitat a **Python 3.10 – 3.13**: WNTR 1.5 no publica cap paquet per a la 3.14. Un entorn fora de rang es conserva i es recrea.
@@ -58,6 +71,7 @@
 - La corba de fragilitat i els indicadors de resiliència es poden exportar a CSV.
 - Nova secció **Quant a** a Configuració, amb la versió instal·lada i l'historial de versions (#30).
 - Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.5.1).
+</details>
 
 <details>
 <summary>Novetats a v1.5.0</summary>
@@ -88,12 +102,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.5.1.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.5.1.AppImage`
-3. Executa: `./Boorie-1.5.1.AppImage`
+1. Descarrega `Boorie-1.5.2.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.5.2.AppImage`
+3. Executa: `./Boorie-1.5.2.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.5.1.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.5.2.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
