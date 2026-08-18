@@ -1,6 +1,6 @@
 import { logger } from '@/utils/logger'
 import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
+import { devtools, persist } from 'zustand/middleware'
 
 interface ProjectData {
   id: string
@@ -22,6 +22,13 @@ interface ProjectData {
 interface ProjectState {
   // Current project
   currentProject: ProjectData | null
+  /**
+   * Proyecto activo global. Es lo único que se persiste, y es la fuente de
+   * verdad de "en qué proyecto está el usuario" para toda la aplicación: el
+   * objeto `currentProject` se rehidrata desde la base de datos a partir de
+   * este id, para no arrastrar una copia obsoleta entre sesiones.
+   */
+  currentProjectId: string | null
   projects: ProjectData[]
 
   // Loading states
@@ -36,6 +43,12 @@ interface ProjectState {
   updateProject: (projectId: string, updates: Partial<ProjectData>) => Promise<boolean>
   deleteProject: (projectId: string) => Promise<boolean>
   clearProject: () => void
+  /**
+   * Vuelve a cargar el proyecto activo persistido. La llama la raíz de la
+   * aplicación al arrancar, y no `onRehydrateStorage`, porque necesita
+   * `window.electronAPI` disponible.
+   */
+  restoreActiveProject: () => Promise<boolean>
 
   // Cross-section synchronization
   syncAllSections: (projectId: string) => Promise<void>
@@ -47,6 +60,7 @@ interface ProjectState {
 
 const initialState = {
   currentProject: null,
+  currentProjectId: null,
   projects: [],
   isLoading: false,
   isLoadingProjects: false,
@@ -55,8 +69,9 @@ const initialState = {
 
 export const useProjectStore = create<ProjectState>()(
   devtools(
-    (set, get) => ({
-      ...initialState,
+    persist(
+      (set, get) => ({
+        ...initialState,
 
       loadProjects: async () => {
         set({ isLoadingProjects: true, error: null })
@@ -85,7 +100,7 @@ export const useProjectStore = create<ProjectState>()(
           const result = await window.electronAPI.hydraulic.getProject(projectId)
 
           if (result.success && result.data) {
-            set({ currentProject: result.data })
+            set({ currentProject: result.data, currentProjectId: projectId })
 
             // Trigger cross-section synchronization
             await get().syncAllSections(projectId)
@@ -168,10 +183,11 @@ export const useProjectStore = create<ProjectState>()(
           const result = await window.electronAPI.hydraulic.deleteProject(projectId)
 
           if (result.success) {
-            // Clear current project if it's the one being deleted
-            const { currentProject } = get()
-            if (currentProject && currentProject.id === projectId) {
-              set({ currentProject: null })
+            // Clear current project if it's the one being deleted. También el id
+            // persistido: si no, al reabrir la aplicación intentaría restaurar un
+            // proyecto borrado.
+            if (get().currentProjectId === projectId) {
+              set({ currentProject: null, currentProjectId: null })
             }
 
             // Remove from projects list
@@ -195,7 +211,21 @@ export const useProjectStore = create<ProjectState>()(
       },
 
       clearProject: () => {
-        set({ currentProject: null, error: null })
+        set({ currentProject: null, currentProjectId: null, error: null })
+      },
+
+      restoreActiveProject: async () => {
+        const { currentProjectId, currentProject } = get()
+        if (!currentProjectId || currentProject?.id === currentProjectId) return false
+
+        const ok = await get().selectProject(currentProjectId)
+        if (!ok) {
+          // El proyecto pudo borrarse entre sesiones: se olvida en lugar de
+          // dejar la aplicación apuntando a un id que ya no existe.
+          logger.warn('El proyecto activo persistido ya no existe, se descarta:', currentProjectId)
+          set({ currentProjectId: null, error: null })
+        }
+        return ok
       },
 
       syncAllSections: async (projectId: string) => {
@@ -207,9 +237,11 @@ export const useProjectStore = create<ProjectState>()(
           // Sync WNTR networks
           useWNTRStore.getState().syncWithProject(projectId)
 
-          // Try to load WNTR network from project
-          const wntrStore = useWNTRStore.getState()
-          await wntrStore.loadNetworkFromProject(projectId)
+          // Aquí se cargaba la red del proyecto en el backend de WNTR. Se ha
+          // quitado a propósito: la vista que muestra una red gestiona su propia
+          // carga, y cargar otra por detrás deja el backend simulando una red
+          // distinta de la que el usuario ve. Seleccionar proyecto fija contexto;
+          // cargar una red es una acción explícita.
 
           // Sync chat conversations (filter by project if needed)
           // This could be enhanced to load project-specific conversations
@@ -257,13 +289,15 @@ export const useProjectStore = create<ProjectState>()(
           return false
         }
       }
-    }),
-    {
-      name: 'project-store',
-      partialize: (state: ProjectState) => ({
-        // Only persist current project ID for restoration
-        currentProjectId: state.currentProject?.id || null
-      })
-    }
+      }),
+      {
+        name: 'project-store',
+        // Sólo el id: el objeto del proyecto se rehidrata desde la base de
+        // datos con restoreActiveProject(), para no servir datos obsoletos si
+        // el proyecto cambió entre sesiones.
+        partialize: (state: ProjectState) => ({ currentProjectId: state.currentProjectId }) as Partial<ProjectState>
+      }
+    ),
+    { name: 'project-store' }
   )
 )

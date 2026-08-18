@@ -32,9 +32,14 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
   }, [])
   
   useEffect(() => {
-    if (projectId && projects.length > 0) {
-      const project = projects.find(p => p.id === projectId)
-      setSelectedProject(project || null)
+    // Sin el else, al volver a "General Conversations" (projectId undefined) se
+    // quedaba mostrando el nombre del proyecto anterior.
+    if (!projectId) {
+      setSelectedProject(null)
+      return
+    }
+    if (projects.length > 0) {
+      setSelectedProject(projects.find(p => p.id === projectId) || null)
     }
   }, [projectId, projects])
   

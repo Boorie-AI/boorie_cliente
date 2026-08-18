@@ -6,12 +6,14 @@ import { GlobalErrorTracker } from '@/components/GlobalErrorTracker'
 import { Onboarding } from '@/components/Onboarding'
 import { SetupWizard } from '@/components/setup/SetupWizard'
 import { useAppStore } from '@/stores/appStore'
+import { useProjectStore } from '@/stores/projectStore'
 import { cn } from '@/utils/cn'
 import './i18n' // Initialize i18n
 
 function App() {
   const { t } = useTranslation()
   const { initializeApp, isInitialized, theme } = useAppStore()
+  const restoreActiveProject = useProjectStore(s => s.restoreActiveProject)
   const [setupChecked, setSetupChecked] = useState(false)
   const [setupNeeded, setSetupNeeded] = useState(false)
   const [setupSkipped, setSetupSkipped] = useState(false)
@@ -19,6 +21,13 @@ function App() {
   useEffect(() => {
     initializeApp()
   }, [initializeApp])
+
+  // El proyecto activo se restaura aquí, y no en el store, porque hace falta
+  // que window.electronAPI exista para releerlo de la base de datos. Si el
+  // proyecto se borró entre sesiones, el store descarta el id sin romper nada.
+  useEffect(() => {
+    restoreActiveProject()
+  }, [restoreActiveProject])
 
   // First-run check: if Python deps are missing, show the SetupWizard.
   useEffect(() => {

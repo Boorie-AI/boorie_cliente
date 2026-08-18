@@ -1,6 +1,7 @@
 import { logger } from '@/utils/logger'
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useClarity } from '@/components/ClarityProvider';
+import { useProjectStore } from '@/stores/projectStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -120,7 +121,13 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   // feature — see network-repo IPC channels), so this keeps existing
   // behavior working without regressing it.
   const [projects, setProjects] = useState<Project[]>([]);
-  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  // El proyecto activo vive en useProjectStore (issue #31): así el chat, el
+  // Wisdom Center y esta vista comparten contexto, y sobrevive a desmontar la
+  // vista o a cerrar la aplicación. Aquí sólo se guarda el id; el view-model se
+  // deriva más abajo del catálogo y del overlay.
+  const activeProjectId = useProjectStore(s => s.currentProjectId);
+  const selectProjectGlobal = useProjectStore(s => s.selectProject);
+  const clearProjectGlobal = useProjectStore(s => s.clearProject);
   // Lazy-initialized from localStorage so there's no load/save race on mount
   // (a load-then-save effect pair would briefly overwrite storage with the
   // initial empty state before the async load's setState landed).
@@ -152,6 +159,18 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     };
   }, [projectAssets]);
 
+  // Derivado, no duplicado: el catálogo aporta la identidad y el overlay las
+  // redes y cálculos. Antes se mantenía una copia en estado local que había que
+  // sincronizar a mano en cada cambio del overlay, y esa copia se perdía al
+  // desmontar la vista.
+  const currentProject = useMemo<Project | null>(() => {
+    if (!activeProjectId) return null;
+    const base = projects.find(p => p.id === activeProjectId);
+    if (!base) return null;
+    const assets = projectAssets[activeProjectId] || { networks: [], calculations: [] };
+    return { ...base, networks: assets.networks, calculations: assets.calculations };
+  }, [activeProjectId, projects, projectAssets]);
+
   const refreshProjects = useCallback(async () => {
     try {
       const list = await hydraulicService.listProjects();
@@ -178,15 +197,15 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       });
       const newProject = toViewModel(created);
       setProjects(prev => [newProject, ...prev]);
-      setCurrentProject(newProject);
+      await selectProjectGlobal(created.id);
     } catch (e) {
       logger.error('Failed to create project:', e);
     }
   }, [toViewModel]);
 
   const handleSelectProject = useCallback((project: Project) => {
-    setCurrentProject(project);
-  }, []);
+    selectProjectGlobal(project.id);
+  }, [selectProjectGlobal]);
 
   const handleDeleteProject = useCallback(async (projectId: string) => {
     try {
@@ -197,8 +216,8 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
         delete next[projectId];
         return next;
       });
-      if (currentProject?.id === projectId) {
-        setCurrentProject(null);
+      if (activeProjectId === projectId) {
+        clearProjectGlobal();
       }
     } catch (e) {
       logger.error('Failed to delete project:', e);
@@ -222,12 +241,6 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       const existing = prev[currentProject.id] || { networks: [], calculations: [] };
       return { ...prev, [currentProject.id]: { ...existing, networks: [...existing.networks, networkAsset] } };
     });
-
-    setCurrentProject(prev => prev ? {
-      ...prev,
-      networks: [...prev.networks, networkAsset],
-      lastModified: new Date().toISOString()
-    } : null);
   }, [currentProject]);
 
   const handleSaveCalculationToProject = useCallback((name: string, networkId: string, results: any) => {
@@ -246,12 +259,6 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       const existing = prev[currentProject.id] || { networks: [], calculations: [] };
       return { ...prev, [currentProject.id]: { ...existing, calculations: [...existing.calculations, calculation] } };
     });
-
-    setCurrentProject(prev => prev ? {
-      ...prev,
-      calculations: [...prev.calculations, calculation],
-      lastModified: new Date().toISOString()
-    } : null);
   }, [currentProject]);
 
   // Core state
@@ -742,7 +749,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setCurrentProject(null)}
+                onClick={() => clearProjectGlobal()}
                 className="text-slate-400 hover:text-white"
               >
                 <ChevronDown className="h-4 w-4 mr-2 rotate-90" />
