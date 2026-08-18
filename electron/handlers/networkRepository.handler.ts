@@ -29,6 +29,14 @@ export class NetworkRepositoryHandler {
       filePath?: string
       filename: string
       description?: string
+      /**
+       * Permite guardar sin el .inp, dejando la red marcada como incompleta. Solo
+       * lo usa la migracion del overlay heredado: si el fichero original ya no
+       * esta en disco, conservar la red con sus datos parseados es mejor que
+       * descartarla. Exigirlo de forma explicita evita que ocurra por descuido en
+       * el flujo normal de guardado.
+       */
+      allowMissingFile?: boolean
     }) => {
       try {
         appLogger.info('Saving network to repository', {
@@ -39,16 +47,23 @@ export class NetworkRepositoryHandler {
 
         let fileContent = data.fileContent
         if (!fileContent && data.filePath) {
-          fileContent = await readFile(data.filePath, 'utf-8')
+          try {
+            fileContent = await readFile(data.filePath, 'utf-8')
+          } catch (error) {
+            if (!data.allowMissingFile) throw error
+            appLogger.warn('El .inp ya no esta en disco; la red se guarda incompleta', {
+              filePath: data.filePath
+            })
+          }
         }
-        if (!fileContent) {
-          throw new Error('Falta el contenido del .inp: envía fileContent o filePath')
+        if (!fileContent && !data.allowMissingFile) {
+          throw new Error('Falta el contenido del .inp: envia fileContent o filePath')
         }
 
         const savedNetwork = await this.networkRepo.saveNetwork(
           data.projectId,
           data.networkData,
-          fileContent,
+          fileContent ?? '',
           data.filename,
           data.description
         )

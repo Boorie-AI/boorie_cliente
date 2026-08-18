@@ -163,6 +163,9 @@ const electronAPI = {
       filePath?: string
       filename: string
       description?: string
+      // Solo la migracion del overlay heredado: guarda la red sin .inp, marcada
+      // como incompleta, en vez de perderla.
+      allowMissingFile?: boolean
     }) => ipcRenderer.invoke('network-repo:save', data),
 
     update: (data: {

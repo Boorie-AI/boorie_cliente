@@ -39,6 +39,12 @@ export interface SavedNetwork {
   }
   coordinateSystem?: any
   version: string
+  /**
+   * false cuando la red se guardo sin el .inp original: se puede ver en el mapa
+   * pero no simular, porque WNTR necesita el fichero. Pasa con redes migradas
+   * desde el overlay de localStorage cuyo .inp ya no estaba en disco.
+   */
+  hasFileContent: boolean
   isActive: boolean
   lastLoaded?: Date
   createdAt: Date
@@ -50,6 +56,11 @@ export class NetworkRepositoryService {
 
   /**
    * Save a network to the repository
+   */
+  /**
+   * `fileContent` vacio se acepta a proposito: una red migrada cuyo .inp ya no
+   * existe se conserva con sus datos parseados y queda marcada como incompleta,
+   * en lugar de descartarse. Perder la red seria peor que no poder simularla.
    */
   async saveNetwork(
     projectId: string,
@@ -269,6 +280,7 @@ export class NetworkRepositoryService {
     summary: JSON.parse(network.summary),
     coordinateSystem: network.coordinateSystem ? JSON.parse(network.coordinateSystem) : undefined,
     version: network.version,
+    hasFileContent: !!network.fileContent,
     isActive: network.isActive,
     lastLoaded: network.lastLoaded,
     createdAt: network.createdAt,
