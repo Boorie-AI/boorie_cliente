@@ -7,6 +7,29 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.5.2] - 2026-08-18
+
+Un único proyecto activo para toda la aplicación, y las redes y cálculos pasan a
+guardarse en el proyecto en lugar de solo en este equipo.
+
+- El proyecto en el que trabajas es ahora el mismo en todas las vistas: el chat, la red
+  y el Wisdom Center comparten contexto. Antes cada pantalla llevaba su propia
+  selección, así que podías estar en un proyecto en la red y en otro distinto en el
+  chat sin ningún aviso.
+- Al cerrar y reabrir Boorie se recupera el último proyecto en el que estabas.
+- Si abres una conversación que pertenece a otro proyecto, Boorie avisa y te deja
+  elegir si cambias de proyecto o sigues en el actual, para que el asistente no
+  responda con el contexto equivocado.
+- Tus redes y cálculos se guardan en el proyecto y no solo en el navegador del equipo.
+  Al actualizar se trasladan solos, y los datos anteriores se conservan intactos por si
+  acaso.
+- Una red guardada se abre aunque hayas movido o borrado el archivo .inp original.
+- Los escenarios derivados de una red, como una esqueletización, pueden guardarse
+  colgando de ella con su propia carpeta de resultados, en vez de quedar como proyectos
+  sueltos. Se sigue pudiendo guardarlos como proyecto aparte.
+- Corregido que al analizar o simular pudiera usarse una red distinta de la que se
+  muestra en pantalla.
+
 ## [1.5.1] - 2026-08-10
 
 Estabilización del arranque de Python/WNTR en Windows, corrección del indexado RAG y mejoras
