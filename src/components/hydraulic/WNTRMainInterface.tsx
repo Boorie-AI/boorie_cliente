@@ -201,7 +201,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     } catch (e) {
       logger.error('Failed to create project:', e);
     }
-  }, [toViewModel]);
+  }, [toViewModel, selectProjectGlobal]);
 
   const handleSelectProject = useCallback((project: Project) => {
     selectProjectGlobal(project.id);
@@ -222,7 +222,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     } catch (e) {
       logger.error('Failed to delete project:', e);
     }
-  }, [currentProject]);
+  }, [activeProjectId, clearProjectGlobal]);
 
   const handleSaveNetworkToProject = useCallback((data: NetworkData, filePath?: string) => {
     if (!currentProject) return;
@@ -263,6 +263,13 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
   // Core state
   const [networkData, setNetworkData] = useState<NetworkData | null>(null);
+  /**
+   * Ruta del .inp que el backend de WNTR tiene cargado. Antes se buscaba la red
+   * guardada por nombre para recuperarla, lo que falla con dos redes homonimas o
+   * con una red aun sin guardar. Recordar lo que se cargo es directo y no depende
+   * del catalogo.
+   */
+  const [loadedNetworkPath, setLoadedNetworkPath] = useState<string | null>(null);
   const [analysisResults, setAnalysisResults] = useState<AnalysisResults>({});
   // Core state - Updated to hold multiple simulation results
   interface ProjectSimulationResults {
@@ -334,6 +341,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
       if (result.success && result.data) {
         setNetworkData(result.data);
+        setLoadedNetworkPath(result.filePath ?? null);
 
         // Save to current project (include filePath for later re-loading)
         handleSaveNetworkToProject(result.data, result.filePath);
@@ -376,12 +384,10 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       setAnalysisProgress(0);
       setError(null);
 
-      // Ensure the INP file is loaded in the backend
-      // Find the filePath from saved networks, or skip if already loaded
-      const savedNet = currentProject?.networks.find(n => n.name === networkData.name);
-      if (savedNet?.filePath) {
-        logger.debug('Loading INP file before analysis:', savedNet.filePath);
-        const loadResult = await window.electronAPI.wntr.loadINPFromPath(savedNet.filePath);
+      // Se reasegura que el backend tenga cargado el .inp de la red que se ve.
+      if (loadedNetworkPath) {
+        logger.debug('Loading INP file before analysis:', loadedNetworkPath);
+        const loadResult = await window.electronAPI.wntr.loadINPFromPath(loadedNetworkPath);
         if (!loadResult.success) {
           throw new Error(`Failed to load INP file: ${loadResult.error}`);
         }
@@ -422,7 +428,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       setIsAnalyzing(false);
       // setAnalysisProgress(0); // Leave at 100 for visual confirmation
     }
-  }, [networkData, onAnalysisComplete]);
+  }, [networkData, loadedNetworkPath, onAnalysisComplete]);
 
 
 
@@ -438,11 +444,10 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       // Reset current results
       setSimulationResults({ hydraulic: null, quality: null, scenario: null });
 
-      // Ensure the INP file is loaded in the backend
-      const savedNet = currentProject?.networks.find(n => n.name === networkData.name);
-      if (savedNet?.filePath) {
-        logger.debug('Loading INP file before simulation:', savedNet.filePath);
-        const loadResult = await window.electronAPI.wntr.loadINPFromPath(savedNet.filePath);
+      // Se reasegura que el backend tenga cargado el .inp de la red que se ve.
+      if (loadedNetworkPath) {
+        logger.debug('Loading INP file before simulation:', loadedNetworkPath);
+        const loadResult = await window.electronAPI.wntr.loadINPFromPath(loadedNetworkPath);
         if (!loadResult.success) {
           throw new Error(`Failed to load INP file: ${loadResult.error}`);
         }
@@ -504,7 +509,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       setIsSimulating(false);
       // setSimulationProgress(0); // Leave at 100 to show success
     }
-  }, [networkData, onSimulationComplete, simulationDuration, simulationTimestep, currentProject, handleSaveCalculationToProject]);
+  }, [networkData, loadedNetworkPath, onSimulationComplete, simulationDuration, simulationTimestep, currentProject, handleSaveCalculationToProject]);
 
   // --- Resilience routines handlers (epic #26) ---
 
@@ -551,6 +556,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
       const loadRes = await window.electronAPI.wntr.loadINPFromPath(saveRes.filePath);
       if (loadRes.success && loadRes.data) {
+        setLoadedNetworkPath(saveRes.filePath);
         const networkAsset: NetworkAsset = {
           id: `net_${Date.now()}`,
           name: loadRes.data.name,
@@ -818,6 +824,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           className="w-full justify-start text-xs"
                           onClick={async () => {
                             setNetworkData(net.data);
+                            setLoadedNetworkPath(net.filePath ?? null);
                             // Reload the .inp file in the backend so simulations/analyses work
                             if (net.filePath) {
                               try {
