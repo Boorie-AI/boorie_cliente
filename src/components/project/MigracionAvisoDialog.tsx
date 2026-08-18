@@ -61,6 +61,14 @@ export function MigracionAvisoDialog({
               </div>
             </div>
 
+            {informe.redesYaExistentes.length > 0 && (
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                {informe.redesYaExistentes.length === 1
+                  ? 'Una red estaba repetida y ya se encontraba guardada, así que no se ha duplicado.'
+                  : `${informe.redesYaExistentes.length} redes estaban repetidas y ya se encontraban guardadas, así que no se han duplicado.`}
+              </p>
+            )}
+
             {informe.redesIncompletas.length > 0 && (
               <div className="mt-4 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 text-xs text-yellow-700 dark:text-yellow-400">
                 <div className="flex items-start gap-2">

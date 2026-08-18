@@ -48,6 +48,13 @@ export interface InformeMigracion {
   /** Motivo por el que no se ejecutó, si aplica. */
   motivo?: 'sin-datos' | 'ya-migrada'
   redesMigradas: number
+  /**
+   * Redes que ya estaban en la base de datos. No son un fallo: el overlay
+   * heredado acumulaba copias de la misma red (el codigo antiguo la reañadia en
+   * cada carga), asi que aqui hay muchas y contarlas como errores alarmaria sin
+   * motivo.
+   */
+  redesYaExistentes: { proyecto: string; red: string }[]
   redesIncompletas: { proyecto: string; red: string; ruta?: string }[]
   redesFallidas: { proyecto: string; red: string; error: string }[]
   calculosMigrados: number
@@ -58,6 +65,7 @@ const informeVacio = (motivo: InformeMigracion['motivo']): InformeMigracion => (
   ejecutada: false,
   motivo,
   redesMigradas: 0,
+  redesYaExistentes: [],
   redesIncompletas: [],
   redesFallidas: [],
   calculosMigrados: 0,
@@ -137,7 +145,8 @@ async function ejecutarMigracion(): Promise<InformeMigracion> {
         })
 
         if (!res?.success) {
-          informe.redesFallidas.push({ proyecto: projectId, red: red.name, error: res?.error || 'desconocido' })
+          if (res?.duplicate) informe.redesYaExistentes.push({ proyecto: projectId, red: red.name })
+          else informe.redesFallidas.push({ proyecto: projectId, red: red.name, error: res?.error || 'desconocido' })
           continue
         }
 

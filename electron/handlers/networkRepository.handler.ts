@@ -78,10 +78,24 @@ export class NetworkRepositoryHandler {
           data: savedNetwork
         }
       } catch (error) {
-        appLogger.error('Failed to save network', error as Error)
+        // Una red ya guardada no es un error de verdad: la migracion del overlay
+        // heredado encuentra duplicados a puñados (el codigo antiguo reañadia la
+        // red en cada carga), y presentarlos como fallos alarma sin motivo. Se
+        // marca aqui, con el codigo de Prisma o el mensaje del servicio, para no
+        // tener que adivinarlo comparando cadenas en el renderer.
+        const mensaje = (error as Error).message
+        const duplicate =
+          (error as { code?: string }).code === 'P2002' ||
+          mensaje.includes('ya existe') ||
+          mensaje.includes('Unique constraint failed')
+
+        if (duplicate) appLogger.info('La red ya estaba guardada en el proyecto', { name: data.networkData?.name })
+        else appLogger.error('Failed to save network', error as Error)
+
         return {
           success: false,
-          error: (error as Error).message
+          duplicate,
+          error: mensaje
         }
       }
     })

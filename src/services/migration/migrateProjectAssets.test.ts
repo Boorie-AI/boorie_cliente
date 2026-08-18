@@ -84,6 +84,24 @@ describe('migrateProjectAssets', () => {
     ])
   })
 
+  // El overlay heredado acumulaba copias de la misma red, asi que aqui hay muchas:
+  // contarlas como fallos diria "14 redes no se pudieron guardar" cuando 13 ya
+  // estaban dentro.
+  it('cuenta las redes ya existentes aparte, no como fallos', async () => {
+    save
+      .mockResolvedValueOnce({ success: true, data: { id: 'n1', hasFileContent: true } })
+      .mockResolvedValueOnce({ success: false, duplicate: true, error: 'ya existe' })
+    localStorage.setItem(CLAVE_OVERLAY, JSON.stringify({
+      p1: { networks: [red('A', '/r/A.inp'), red('A-copia', '/r/A.inp')] },
+    }))
+
+    const r = await migrateProjectAssets()
+
+    expect(r.redesMigradas).toBe(1)
+    expect(r.redesYaExistentes).toEqual([{ proyecto: 'p1', red: 'A-copia' }])
+    expect(r.redesFallidas).toEqual([])
+  })
+
   it('registra las redes que fallan sin abortar el resto', async () => {
     save
       .mockResolvedValueOnce({ success: false, error: 'nombre duplicado' })
