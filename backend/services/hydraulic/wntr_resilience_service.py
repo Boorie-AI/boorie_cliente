@@ -12,15 +12,28 @@ import json
 import os
 import time
 import tempfile
+import numpy as np
 import wntr
 import wntr.metrics.hydraulic
 import wntr.network.controls as ctrls
 from wntr.network import LinkStatus
+from wntr.metrics import (
+    expected_demand,
+    water_service_availability,
+    population,
+    population_impacted,
+)
 import warnings
 
 # Suppress specific WNTR warnings that are informational only
 warnings.filterwarnings('ignore', message='Changing the headloss formula from')
 warnings.filterwarnings('ignore', message='Not all curves were used in')
+
+# Población y clientes afectados (#32). Ver docs/POBLACION_AFECTADA_PDA.md.
+DEFAULT_DEMAND_MODULE_LPHD = 200.0    # l/hab/día (rango típico LatAm: 150-300)
+DEFAULT_AVAILABILITY_THRESHOLD = 0.8  # se considera afectado por debajo del 80%
+DEFAULT_REQUIRED_PRESSURE = 20.0      # m, presión a la que se sirve el 100%
+DEFAULT_MINIMUM_PRESSURE = 0.0        # m, por debajo no se entrega nada
 
 
 class WNTRResilienceService:
@@ -189,11 +202,173 @@ class WNTRResilienceService:
             applied.append(comp_id)
         return applied
 
+    # ------------------------------------------------------------------
+    # Población y clientes afectados (#32)
+    # ------------------------------------------------------------------
+    def _enable_pda(self, wn, required_pressure, minimum_pressure):
+        """
+        PDA es el único modo físicamente correcto para un escenario de
+        degradación: en DDA un nudo con 10 m de presión recibe el 100% de su
+        demanda y el impacto sale cero.
+        """
+        wn.options.hydraulic.demand_model = 'PDA'
+        wn.options.hydraulic.required_pressure = float(required_pressure)
+        wn.options.hydraulic.minimum_pressure = float(minimum_pressure)
+
+    def _population(self, wn, demand_module_lphd):
+        """
+        population(wn, R) con R derivado del módulo de demanda del usuario.
+
+        WNTR aplica pob = demanda_media / R sin filtrar signos, así que un nudo
+        que modela una fuente como demanda negativa sale con población negativa
+        (en la red de pruebas: -4601 hab, dejando el total de red en 0). Se
+        recortan a cero y se declaran aparte para que la cifra sea trazable.
+        """
+        R = float(demand_module_lphd) / 1000.0 / 86400.0  # l/hab/día -> m3/s/hab
+        raw = population(wn, R)
+        negative_nodes = [{'id': str(k), 'population': float(v)} for k, v in raw[raw < 0].items()]
+        return raw.clip(lower=0), R, negative_nodes
+
+    def _service_metrics(self, wn, results, pop, threshold):
+        """
+        Disponibilidad de servicio nudo a nudo y población impactada.
+
+        La disponibilidad es NaN donde la demanda esperada es 0 (nudos sin
+        demanda); ahí no hay déficit posible, así que se trata como servicio
+        completo en lugar de propagar el NaN a las sumas.
+        """
+        exp = expected_demand(wn)
+        dem = results.node['demand'].loc[:, exp.columns]
+        wsa = water_service_availability(exp, dem).fillna(1.0)
+        impacted = population_impacted(pop.reindex(wsa.columns).fillna(0.0), wsa, np.less, threshold)
+
+        # Integración por intervalos (Riemann por la izquierda). Una simulación
+        # de 24 h con paso de 1 h reporta 25 instantes, no 25 intervalos: contar
+        # instantes daba 25 h de déficit en una ventana de 24 h y sobreestimaba
+        # el volumen en un paso completo.
+        index = wsa.index.to_numpy(dtype=float)
+        intervals_s = np.diff(index) if len(index) > 1 else np.array([0.0])
+        below = (wsa < threshold).iloc[:-1] if len(index) > 1 else (wsa < threshold)
+        deficit = (exp - dem).clip(lower=0.0)
+        deficit_head = deficit.iloc[:-1] if len(index) > 1 else deficit
+
+        return {
+            'wsa': wsa,
+            'impacted': impacted,
+            'outage_hours': below.multiply(intervals_s, axis=0).sum(axis=0) / 3600.0,
+            'undelivered_m3': deficit_head.multiply(intervals_s, axis=0).sum(axis=0),
+            'timestep_s': float(np.median(intervals_s)) if len(index) > 1 else 0.0,
+        }
+
+    def _summarise_population(self, m, pop, results):
+        wsa, impacted = m['wsa'], m['impacted']
+        peak_per_node = impacted.max(axis=0)
+        outage_hours = m['outage_hours']
+        undelivered_per_node = m['undelivered_m3']
+        pressure = results.node['pressure']
+
+        affected = []
+        for node in peak_per_node.index:
+            if peak_per_node[node] <= 0:
+                continue
+            affected.append({
+                'id': str(node),
+                'population': float(pop.get(node, 0.0)),
+                'population_affected': float(peak_per_node[node]),
+                'min_service_availability': float(wsa[node].min()),
+                'outage_hours': float(outage_hours[node]),
+                'undelivered_m3': float(undelivered_per_node[node]),
+                'min_pressure': float(pressure[node].min()) if node in pressure.columns else None,
+            })
+        affected.sort(key=lambda a: a['population_affected'], reverse=True)
+
+        return {
+            'population_affected': int(round(float(peak_per_node.sum()))),
+            'affected_node_count': len(affected),
+            'affected_nodes': affected,
+            'max_outage_hours': float(outage_hours.max()) if len(outage_hours) else 0.0,
+            'undelivered_volume_m3': float(undelivered_per_node.sum()),
+            'min_service_availability': float(wsa.to_numpy().min()) if wsa.size else 1.0,
+        }
+
+    def _population_impact(self, wn_base, res_base, wn_ev, res_ev, opts):
+        """Población afectada a partir de las dos corridas que ya hizo simulate_failure."""
+        demand_module = float(opts.get('demand_module_lphd', DEFAULT_DEMAND_MODULE_LPHD))
+        threshold = float(opts.get('availability_threshold', DEFAULT_AVAILABILITY_THRESHOLD))
+        persons_per_connection = opts.get('persons_per_connection')
+
+        if demand_module <= 0:
+            raise ValueError('El módulo de demanda debe ser mayor que cero')
+        if not 0 < threshold <= 1:
+            raise ValueError('El umbral de disponibilidad debe estar entre 0 y 1')
+
+        pop, R, negative_nodes = self._population(wn_base, demand_module)
+        baseline = self._summarise_population(
+            self._service_metrics(wn_base, res_base, pop, threshold), pop, res_base)
+        ev_metrics = self._service_metrics(wn_ev, res_ev, pop, threshold)
+        event = self._summarise_population(ev_metrics, pop, res_ev)
+
+        total_population = int(round(float(pop.sum())))
+        connections = None
+        ppc = float(persons_per_connection) if persons_per_connection else 0.0
+        if ppc > 0:
+            connections = {
+                'persons_per_connection': ppc,
+                'total_connections': int(round(total_population / ppc)),
+                'affected_connections': int(round(event['population_affected'] / ppc)),
+                'method': 'derived_from_population',
+            }
+
+        return {
+            'total_population': total_population,
+            'population_nodes': int((pop > 0).sum()),
+            'event': event,
+            'baseline': baseline,
+            # Sin corrida de referencia, el déficit crónico de la red se
+            # atribuiría entero al evento.
+            'attributable_to_event': {
+                'population_affected': event['population_affected'] - baseline['population_affected'],
+                'affected_node_count': event['affected_node_count'] - baseline['affected_node_count'],
+                'undelivered_volume_m3': event['undelivered_volume_m3'] - baseline['undelivered_volume_m3'],
+            },
+            'connections': connections,
+            'excluded_negative_demand_nodes': negative_nodes,
+            'traceability': {
+                'demand_model': 'PDA',
+                'simulator': 'WNTRSimulator',
+                'wntr_version': wntr.__version__,
+                'demand_module_lphd': demand_module,
+                'per_capita_demand_m3s': R,
+                'availability_threshold': threshold,
+                'required_pressure_m': float(opts.get('required_pressure', DEFAULT_REQUIRED_PRESSURE)),
+                'minimum_pressure_m': float(opts.get('minimum_pressure', DEFAULT_MINIMUM_PRESSURE)),
+                'timestep_s': ev_metrics['timestep_s'],
+                'population_metric': 'wntr.metrics.population',
+                'impact_metric': 'wntr.metrics.population_impacted(service_availability < threshold)',
+            },
+        }
+
     def _run_extended(self, wn, duration_hours):
         wn.options.time.duration = float(duration_hours) * 3600.0
         self._prepare_wntr_simulator(wn)
         sim = wntr.sim.WNTRSimulator(wn)
         return sim.run_sim()
+
+    def _run_extended_checked(self, wn, duration_hours):
+        """
+        Como _run_extended, pero recoge los avisos de no convergencia.
+        "Exceeded maximum number of trials" significa que el paso no convergió y
+        las cifras de ese instante no son fiables; se reportan en lugar de
+        silenciarlas, porque el criterio es que ninguna cifra salga de una
+        estimación no simulada.
+        """
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter('always')
+            results = self._run_extended(wn, duration_hours)
+        return results, [
+            str(w.message) for w in caught
+            if 'maximum number of trials' in str(w.message).lower()
+        ]
 
     def simulate_failure(self, inp_file, options=None):
         start_time = time.time()
@@ -208,30 +383,38 @@ class WNTRResilienceService:
             failure_start_hours = float(options.get('failure_start_hours', 0))
             restore_hours = options.get('restore_hours')
             min_pressure_threshold = float(options.get('min_pressure_threshold', 10.0))
+            required_pressure = float(options.get('required_pressure', DEFAULT_REQUIRED_PRESSURE))
+            minimum_pressure = float(options.get('minimum_pressure', DEFAULT_MINIMUM_PRESSURE))
 
             # Baseline (undisturbed) run, used to report the pressure drop caused by the failure
             wn_baseline = self.load_network(inp_file)
-            baseline_results = self._run_extended(wn_baseline, duration_hours)
+            self._enable_pda(wn_baseline, required_pressure, minimum_pressure)
+            baseline_results, baseline_convergence = self._run_extended_checked(wn_baseline, duration_hours)
             baseline_pressure = baseline_results.node['pressure']
 
             # Failure run
             wn_failure = self.load_network(inp_file)
+            self._enable_pda(wn_failure, required_pressure, minimum_pressure)
             applied = self._apply_component_failures(wn_failure, components, failure_start_hours, restore_hours)
             if not applied:
                 print(json.dumps({'success': False, 'error': 'None of the specified components exist in the network'}))
                 return
 
-            failure_results = self._run_extended(wn_failure, duration_hours)
+            failure_results, event_convergence = self._run_extended_checked(wn_failure, duration_hours)
             pressure = failure_results.node['pressure']
-            report_ts_hours = wn_failure.options.time.report_timestep / 3600.0
+
+            # Por intervalos, no por instantes: una ventana de 24 h con paso de
+            # 1 h reporta 25 instantes y contarlos daba 25 h de corte.
+            index = pressure.index.to_numpy(dtype=float)
+            intervals_h = (np.diff(index) / 3600.0) if len(index) > 1 else np.array([0.0])
 
             affected_nodes = []
             for node_name in wn_failure.junction_name_list:
                 node_pressure = pressure.loc[:, node_name]
                 min_p = float(node_pressure.min())
                 baseline_min_p = float(baseline_pressure.loc[:, node_name].min()) if node_name in baseline_pressure.columns else min_p
-                below_threshold_steps = int((node_pressure < min_pressure_threshold).sum())
-                outage_hours = below_threshold_steps * report_ts_hours
+                below = (node_pressure < min_pressure_threshold).to_numpy()
+                outage_hours = float((below[:-1] * intervals_h).sum()) if len(index) > 1 else 0.0
 
                 if min_p < min_pressure_threshold or outage_hours > 0:
                     affected_nodes.append({
@@ -270,6 +453,16 @@ class WNTRResilienceService:
                     'node_results': node_results,
                     'link_results': link_results,
                     'timestamps': pressure.index.tolist(),
+                    'convergence_warnings': {
+                        'baseline': baseline_convergence,
+                        'event': event_convergence,
+                        'converged': not baseline_convergence and not event_convergence,
+                    },
+                    # Misma interrupción, medida en habitantes: se reaprovechan
+                    # las dos corridas de arriba en vez de simular otra vez.
+                    'population': self._population_impact(
+                        wn_baseline, baseline_results, wn_failure, failure_results, options
+                    ),
                 }
             }
             print(json.dumps(result))
