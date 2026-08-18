@@ -251,7 +251,20 @@ export class HydraulicHandler {
       try {
         const projects = await this.services.database.prisma.hydraulicProject.findMany({
           orderBy: { updatedAt: 'desc' },
-          include: { _count: { select: { conversations: true } } }
+          // Los contadores vienen en la misma consulta: el panel de proyectos
+          // muestra redes/simulaciones/chats de cada tarjeta, y pedirlos proyecto
+          // a proyecto seria una consulta por tarjeta.
+          include: {
+            _count: {
+              select: {
+                conversations: true,
+                // deleteNetwork() es borrado logico (isActive: false); sin filtrar,
+                // la tarjeta contaria redes ya borradas.
+                networks: { where: { isActive: true } },
+                calculations: true
+              }
+            }
+          }
         })
 
         const projectList = projects.map(p => ({
@@ -263,7 +276,9 @@ export class HydraulicHandler {
           location: safeJsonParse(p.location, { country: '', region: '' }),
           createdAt: p.createdAt,
           updatedAt: p.updatedAt,
-          chatCount: p._count.conversations
+          chatCount: p._count.conversations,
+          networkCount: p._count.networks,
+          calculationCount: p._count.calculations
         }))
 
         return { success: true, data: projectList }
