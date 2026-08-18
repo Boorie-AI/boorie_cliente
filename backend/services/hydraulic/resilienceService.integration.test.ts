@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import * as fs from 'fs'
 import * as path from 'path'
 import { WNTRResilienceService } from './resilienceService'
+import { getPythonStatus } from './pythonDetector'
 
 /**
  * Tests contra el servicio Python real y una red real (sin mocks), en la línea
@@ -18,16 +19,14 @@ import { WNTRResilienceService } from './resilienceService'
  *  - Sin corrida de referencia, el déficit crónico de la red se atribuía entero
  *    al evento: la bomba 6012 "afectaba" a 2009 hab que ya estaban afectados.
  *
- * Se omiten si el repo no tiene venv-wntr preparado (./setup-python-wntr.sh).
+ * Se omiten si la máquina no tiene un Python con WNTR. El gateo pregunta por
+ * el intérprete resuelto y no por la existencia de venv-wntr: en CI no hay venv
+ * y WNTR está en el Python del sistema, así que atarlo al venv dejaba estos
+ * ocho tests saltados y el check en verde sin haber probado nada.
  */
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..')
-const VENV_PYTHON = path.join(
-  REPO_ROOT, 'venv-wntr',
-  process.platform === 'win32' ? 'Scripts' : 'bin',
-  process.platform === 'win32' ? 'python.exe' : 'python'
-)
 const NETWORK = path.join(REPO_ROOT, 'test-files', 'SoloChamiseroMedioConPatronComercial-07p1.inp')
-const canRun = fs.existsSync(VENV_PYTHON) && fs.existsSync(NETWORK)
+const canRun = getPythonStatus().wntrAvailable && fs.existsSync(NETWORK)
 
 /** Cada llamada corre dos simulaciones de periodo extendido. */
 const SIM_TIMEOUT = 120_000

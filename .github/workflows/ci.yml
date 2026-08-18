@@ -102,13 +102,23 @@ jobs:
         python -m pip install --upgrade pip
         pip install numpy>=1.20 scipy>=1.7 pandas>=1.3 networkx>=2.6 matplotlib>=3.4 wntr>=0.5.0
         
-    - name: Test WNTR functionality
-      run: |
-        if [ -f "test-files/test-wntr-complete.py" ]; then
-          python test-files/test-wntr-complete.py
-        else
-          echo "WNTR tests not found, skipping"
-        fi
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    # Comprobacion explicita: si WNTR no queda disponible los tests de
+    # integracion se saltan solos y el job pasaria en verde sin probar nada,
+    # que es justo lo que hacia antes.
+    - name: Verify WNTR is importable
+      run: python -c "import wntr; print('WNTR', wntr.__version__)"
+
+    - name: Run WNTR integration tests
+      run: npx vitest run backend/services/hydraulic/resilienceService.integration.test.ts --reporter=verbose
 
   build-electron:
     name: Build Electron Apps
