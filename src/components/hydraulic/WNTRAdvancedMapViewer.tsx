@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { WNTRMapViewer } from './WNTRMapViewer';
 import { NetworkTopologyView } from './NetworkTopologyView';
 import { WNTRAdvancedVisualizerPanel } from './WNTRAdvancedVisualizerPanel';
-import { AJUSTES_INICIALES, type AjustesVisor } from './ajustesVisor';
+import { AJUSTES_INICIALES, soloAjustesDelMapa, type AjustesVisor } from './ajustesVisor';
+import type { MapSettings } from './WNTRMapViewer';
 import { tieneCoordenadasUtiles } from '@/services/network/topologia';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -139,9 +140,16 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
     setVisualizationSettings(settings);
   }, []);
 
-  const handleMapSettingsChange = useCallback((mapSettings: Parameters<typeof WNTRMapViewer>[0]['mapSettings']) => {
+  // Sólo se aceptan de vuelta las claves del mapa: el resto de los ajustes no son
+  // suyos y devolverlos pisaría la vista o el paso de tiempo vigentes.
+  const handleMapSettingsChange = useCallback((mapSettings: MapSettings) => {
     setVisualizationSettings(prev => ({ ...prev, ...mapSettings }));
   }, []);
+
+  const ajustesDelMapa = useMemo(
+    () => soloAjustesDelMapa(visualizationSettings),
+    [visualizationSettings]
+  );
 
   // Una red cargada desde el mapa es la red del visor y la de la pantalla que lo
   // contiene: se propaga en lugar de quedarse en el mapa.
@@ -228,7 +236,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
               activeTimeStep={visualizationSettings.timeStep}
               highlightedNodes={highlightedNodes}
               networkId={networkId}
-              mapSettings={visualizationSettings}
+              mapSettings={ajustesDelMapa}
               onMapSettingsChange={handleMapSettingsChange}
               onVerTopologia={verTopologia}
               onNetworkLoaded={handleNetworkLoaded}

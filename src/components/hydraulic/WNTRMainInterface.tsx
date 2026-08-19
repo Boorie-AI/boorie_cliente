@@ -136,6 +136,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   // deriva más abajo del catálogo y del overlay.
   const activeProjectId = useProjectStore(s => s.currentProjectId);
   const selectProjectGlobal = useProjectStore(s => s.selectProject);
+  const setCurrentView = useAppStore(s => s.setCurrentView);
   const clearProjectGlobal = useProjectStore(s => s.clearProject);
   // Lazy-initialized from localStorage so there's no load/save race on mount
   // (a load-then-save effect pair would briefly overwrite storage with the
@@ -256,6 +257,17 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   const handleSelectProject = useCallback((project: Project) => {
     selectProjectGlobal(project.id);
   }, [selectProjectGlobal]);
+
+  /**
+   * «Abrir» entra en el proyecto; pinchar la tarjeta sólo lo activa (#35). Se
+   * espera a que el proyecto esté cargado antes de navegar: la vista de red
+   * exige proyecto activo, y entrar antes de tiempo la dejaría bloqueada por su
+   * propia precondición (#33).
+   */
+  const handleOpenProject = useCallback(async (project: Project) => {
+    const listo = await selectProjectGlobal(project.id);
+    if (listo) setCurrentView('wntr');
+  }, [selectProjectGlobal, setCurrentView]);
 
   const handleDeleteProject = useCallback(async (projectId: string) => {
     try {
@@ -885,6 +897,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
         <ProjectDashboard
           projects={projects}
           onSelectProject={handleSelectProject}
+          onOpenProject={handleOpenProject}
           onCreateProject={handleCreateProject}
           onDeleteProject={handleDeleteProject}
           activeProjectId={activeProjectId}

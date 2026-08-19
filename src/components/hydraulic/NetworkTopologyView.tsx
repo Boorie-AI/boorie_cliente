@@ -7,7 +7,7 @@
  * dónde esté la red, así que un esquema siempre se puede dibujar.
  */
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Info } from 'lucide-react'
 import VisNetworkGraph from '@/components/common/VisNetworkGraph'
 import { construirGrafo, type DatosRed, type ResultadosSimulacion } from '@/services/network/topologia'
@@ -28,7 +28,7 @@ export function NetworkTopologyView({
   highlightedNodes,
   showLabels = false,
 }: NetworkTopologyViewProps) {
-  const grafoRef = useRef<unknown>(null)
+  const visRef = useRef<{ fit: () => void } | null>(null)
   const [seleccion, setSeleccion] = useState<{ tipo: 'nudo' | 'tramo'; texto: string } | null>(null)
 
   const grafo = useMemo(
@@ -57,11 +57,26 @@ export function NetworkTopologyView({
         : { enabled: false },
       layout: { improvedLayout: grafo.nodes.length < 500 },
       nodes: { font: { color: '#94a3b8', size: showLabels ? 12 : 0 } },
-      edges: { smooth: { type: 'continuous' as const } },
+      // Con miles de tramos, el suavizado de aristas cuesta mas que todo lo demas
+      // junto y deja el lienzo en blanco mientras calcula. Una red de
+      // abastecimiento son tramos rectos: no se pierde nada dibujandolos rectos.
+      edges: { smooth: grafo.edges.length < 1000 ? { type: 'continuous' as const } : false },
       interaction: { hover: true, tooltipDelay: 200, navigationButtons: true, keyboard: false },
     }),
-    [grafo.usaFisica, grafo.nodes.length, showLabels]
+    [grafo.usaFisica, grafo.nodes.length, grafo.edges.length, showLabels]
   )
+
+  /**
+   * Encuadrar es cosa nuestra. vis-network ajusta la vista al terminar de
+   * estabilizar, y con las coordenadas del fichero no hay estabilizacion que
+   * esperar: la red se dibujaba fuera del encuadre inicial y el lienzo parecia
+   * vacio.
+   */
+  useEffect(() => {
+    if (!visRef.current || grafo.nodes.length === 0) return
+    const id = setTimeout(() => visRef.current?.fit(), 0)
+    return () => clearTimeout(id)
+  }, [grafo])
 
   const eventos = useMemo(
     () => ({
@@ -90,14 +105,20 @@ export function NetworkTopologyView({
   }
 
   return (
-    <div className="relative h-full w-full bg-background">
-      <VisNetworkGraph
-        ref={grafoRef}
-        graph={datosVis}
-        options={opciones}
-        events={eventos}
-        style={{ width: '100%', height: '100%' }}
-      />
+    <div className="relative h-full w-full overflow-hidden bg-background">
+      {/* `absolute inset-0`, no `h-full`: vis-network dimensiona su lienzo a partir
+          del alto del contenedor, y si ese alto lo marca el contenido se
+          realimentan. Con una red grande el lienzo crecía hasta decenas de miles
+          de píxeles y no se veía nada. */}
+      <div className="absolute inset-0">
+        <VisNetworkGraph
+          graph={datosVis}
+          options={opciones}
+          events={eventos}
+          getNetwork={(red) => { visRef.current = red as unknown as { fit: () => void } }}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
 
       <div className="pointer-events-none absolute left-3 top-3 flex items-start gap-2 rounded-md border border-border bg-background/90 px-3 py-2 text-xs text-muted-foreground">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />

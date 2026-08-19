@@ -23,6 +23,7 @@ import {
   calcularLimites,
   nombreCRS,
   reproyectarLimites,
+  motivoEsquematico,
   resolverCRS,
   validarCordura,
 } from '@/services/geo/crs'
@@ -1263,19 +1264,53 @@ export function WNTRMapViewer({
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>
                     Esta red no se puede situar en el mapa: {crs.motivo}{' '}
-                    <button
-                      onClick={() => setMostrarSelectorCRS(true)}
-                      className="font-medium underline"
-                    >
-                      Declarar sistema de coordenadas
-                    </button>
-                    {onVerTopologia && (
+                    {/* Con coordenadas de esquema la salida buena es el esquema, no
+                        declarar un EPSG: se ofrece primero. */}
+                    {crs.esquematico && onVerTopologia ? (
                       <>
-                        {' · '}
                         <button onClick={onVerTopologia} className="font-medium underline">
                           Ver el esquema de la red
                         </button>
+                        {' · '}
+                        <button
+                          onClick={() => setMostrarSelectorCRS(true)}
+                          className="underline"
+                        >
+                          declarar un EPSG de todos modos
+                        </button>
                       </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setMostrarSelectorCRS(true)}
+                          className="font-medium underline"
+                        >
+                          Declarar sistema de coordenadas
+                        </button>
+                        {onVerTopologia && (
+                          <>
+                            {' · '}
+                            <button onClick={onVerTopologia} className="font-medium underline">
+                              Ver el esquema de la red
+                            </button>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </span>
+                </div>
+              )}
+
+              {crs.epsg && crs.esquematico && (
+                <div className="ml-5 flex items-start gap-2 rounded-md border border-yellow-500/50 bg-yellow-500/10 px-3 py-2 text-yellow-700 dark:text-yellow-400">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    Ojo: {limitesRed && motivoEsquematico(limitesRed)} Se está dibujando donde{' '}
+                    {crs.epsg} manda para esos números, que no tiene por qué ser dónde está.{' '}
+                    {onVerTopologia && (
+                      <button onClick={onVerTopologia} className="font-medium underline">
+                        Ver el esquema
+                      </button>
                     )}
                   </span>
                 </div>

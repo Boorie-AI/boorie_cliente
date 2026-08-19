@@ -47,6 +47,11 @@ export interface CRSResuelto {
   origen: OrigenCRS
   /** Por que se llego a este EPSG, o por que no se pudo. Texto para la interfaz. */
   motivo: string
+  /**
+   * Las coordenadas son unidades de dibujo, no una proyeccion: ningun EPSG las
+   * situa en su sitio porque no hay sitio al que situarlas.
+   */
+  esquematico?: boolean
 }
 
 /**
@@ -209,6 +214,39 @@ export function pareceGeografico(limites: LimitesProyectados): boolean {
 }
 
 /**
+ * Magnitud por debajo de la cual unas coordenadas no pueden ser de un sistema
+ * proyectado. El este de un UTM arranca en 100.000 y los origenes nacionales
+ * suelen desplazarse a 1.000.000 justamente para que no haya negativos ni
+ * valores pequeños; una red cuyas coordenadas van de 19 a 335 esta dibujada en
+ * unidades de esquema.
+ */
+const MAGNITUD_MINIMA_PROYECTADA = 10_000
+
+/**
+ * Distingue un `.inp` esquematico de uno georreferenciado. Importa porque son
+ * dos situaciones distintas con dos respuestas distintas: al georreferenciado le
+ * falta que alguien declare su EPSG; al esquematico no le sirve ninguno, y
+ * declarar uno lo planta en un punto arbitrario del planeta sin avisar de nada.
+ */
+export function pareceEsquematico(limites: LimitesProyectados): boolean {
+  if (pareceGeografico(limites)) return false
+  const magnitud = Math.max(
+    Math.abs(limites.minX), Math.abs(limites.maxX),
+    Math.abs(limites.minY), Math.abs(limites.maxY)
+  )
+  return magnitud < MAGNITUD_MINIMA_PROYECTADA
+}
+
+/** Explicacion de por que unas coordenadas de esquema no se pueden georreferenciar. */
+export function motivoEsquematico(limites: LimitesProyectados): string {
+  return (
+    `Las coordenadas de esta red van de ${limites.minX} a ${limites.maxX} en X: son unidades de ` +
+    'dibujo, no una proyección. El fichero no dice dónde está la red, así que ningún EPSG la sitúa ' +
+    'en su sitio.'
+  )
+}
+
+/**
  * Sugerencia honesta: geografico se reconoce, proyectado no.
  *
  * La X de una coordenada UTM es la distancia al meridiano central de su huso, y
@@ -227,6 +265,15 @@ export function sugerirCRS(limites: LimitesProyectados | null): CRSResuelto {
       motivo: 'Las coordenadas están en rango de longitud/latitud.',
     }
   }
+  if (pareceEsquematico(limites)) {
+    return {
+      epsg: null,
+      origen: 'desconocido',
+      esquematico: true,
+      motivo: motivoEsquematico(limites),
+    }
+  }
+
   return {
     epsg: null,
     origen: 'desconocido',
@@ -249,6 +296,7 @@ export function resolverCRS(
         epsg: normalizado,
         origen: 'declarado',
         motivo: `Declarado en el proyecto: ${nombreCRS(normalizado)}.`,
+        esquematico: limites ? pareceEsquematico(limites) : false,
       }
     }
     return {

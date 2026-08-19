@@ -18,6 +18,24 @@ export interface AjustesVisor extends MapSettings {
   playbackSpeed: number
 }
 
+/**
+ * Claves que son del mapa. Al mapa se le entrega sólo este trozo, y sólo este
+ * trozo se acepta de vuelta: si se le pasara el objeto entero, al corregirse a sí
+ * mismo —el estilo satélite cayendo a calles— devolvería también `vista` y
+ * `timeStep` con el valor que tuviera capturado, pisando lo que el usuario
+ * acabara de elegir en el panel.
+ */
+export function soloAjustesDelMapa(ajustes: AjustesVisor): MapSettings {
+  return {
+    baseMap: ajustes.baseMap,
+    showLabels: ajustes.showLabels,
+    opacity: ajustes.opacity,
+    nodeSize: ajustes.nodeSize,
+    linkWidth: ajustes.linkWidth,
+    simbologia: ajustes.simbologia,
+  }
+}
+
 export const AJUSTES_INICIALES: AjustesVisor = {
   vista: 'mapa',
   baseMap: 'streets',

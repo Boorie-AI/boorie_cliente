@@ -152,6 +152,28 @@ Con la base real y la red `Net3 2.inp` (proyectada, sin EPSG declarado):
   red dibujada (comprobado a 0,2 frente a 0,9).
 - La pestaña «Layers» ya no aparece.
 
+## Tres fallos que aparecieron al probarlo con una red real
+
+Salieron probando la aplicación con `Net6-EPANET-2p2-pump38x1p32-ok.inp`, de 3 358
+nudos y 3 892 tramos. Ninguno se veía con la red de 97 nudos con la que se
+desarrolló, y los tres eran de este cambio.
+
+**El esquema salía en blanco con redes grandes.** El contenedor de vis-network
+llevaba `h-full`, así que su alto dependía del contenido; vis dimensiona su lienzo
+a partir del alto del contenedor, y los dos se realimentaban. Con 3 358 nudos el
+lienzo llegó a medir 943 × 48 346 px y no se veía nada. Ahora el contenedor es
+`absolute inset-0` dentro de uno `relative`, con alto propio.
+
+**El esquema no se encuadraba.** vis-network ajusta la vista al terminar de
+estabilizar, y con las coordenadas del fichero no hay estabilización: la red se
+dibujaba fuera del encuadre inicial. Se llama a `fit()` explícitamente.
+
+**El mapa podía pisar la vista elegida.** Al mapa se le pasaba el objeto de
+ajustes entero, y su copia incluía `vista`. Cuando el mapa se corrige a sí mismo
+—el estilo satélite cayendo a calles— devolvía el objeto completo con el `vista`
+que tuviera capturado, deshaciendo el cambio a esquema que el usuario acababa de
+hacer. Ahora se le entrega y se le acepta sólo su trozo (`soloAjustesDelMapa`).
+
 ## Fuera de alcance
 
 **El control temporal no refleja el tiempo real del modelo.** La barra rotula las

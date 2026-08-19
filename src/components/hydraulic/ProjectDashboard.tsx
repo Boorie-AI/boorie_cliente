@@ -7,6 +7,13 @@ import { FolderPlus, FolderOpen, Trash2, Calendar, Database, MessageSquare, Acti
 interface ProjectDashboardProps {
     projects: Project[];
     onSelectProject: (project: Project) => void;
+    /**
+     * Abrir de verdad: seleccionar el proyecto y entrar en él. Pinchar la tarjeta
+     * sólo selecciona —así se decidió en #35, la raíz siempre enseña la lista—,
+     * pero el botón «Abrir» prometía navegar y no lo hacía: no tenía onClick, y
+     * el clic acababa en el de la tarjeta.
+     */
+    onOpenProject: (project: Project) => void;
     onCreateProject: (name: string, description: string) => void;
     onDeleteProject: (projectId: string) => void;
     /** Marca cuál es el proyecto activo cuando la lista se ve desde la raíz (#35). */
@@ -16,6 +23,7 @@ interface ProjectDashboardProps {
 export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
     projects,
     onSelectProject,
+    onOpenProject,
     onCreateProject,
     onDeleteProject,
     activeProjectId
@@ -284,7 +292,14 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                                         <Calendar className="h-3 w-3" />
                                         <span>Modificado: {new Date(project.lastModified).toLocaleDateString()}</span>
                                     </div>
-                                    <Button variant="link" className="text-blue-400 p-0 h-auto text-xs hover:text-blue-300">
+                                    <Button
+                                        variant="link"
+                                        className="text-blue-400 p-0 h-auto text-xs hover:text-blue-300"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onOpenProject(project);
+                                        }}
+                                    >
                                         Abrir &rarr;
                                     </Button>
                                 </CardFooter>
