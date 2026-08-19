@@ -7,6 +7,25 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.8.0] - 2026-08-19
+
+El chat deja de hablar de tu red de oídas: ahora la tiene delante y puede consultarla.
+
+- El agente recibe los datos reales de la red cargada —nudos, depósitos, tuberías, longitud
+  total, demanda y rango de diámetros— en lugar de un escueto «hay una red cargada». Antes,
+  a «¿cómo mejoro el flujo en el nudo J3?» respondía consejos genéricos sobre limpiar una
+  junta mecánica, sin enterarse de que J3 es un nudo de tu red.
+- Puede consultar un nudo o un tramo concreto cuando se lo preguntas, en vez de responder
+  con cifras aproximadas. En una red de 92 nudos el resumen no cabe entero en la conversación,
+  así que mira sólo lo que necesita para responderte.
+- La cabecera del chat indica qué red está viendo el agente. Si no ve ninguna, lo dice y te
+  explica que cargues un archivo .inp en el proyecto.
+- Sin proyecto abierto, el chat responde con conocimiento general de ingeniería hidráulica y
+  con tu base de conocimiento, pero ya no describe redes que no tiene delante ni suelta
+  ejemplos numéricos que puedan confundirse con la tuya.
+- Cuando el modelo que usas no admite consultas a la red, el agente lo sabe y te dice que no
+  puede mirarlo, en lugar de estimarlo.
+
 ## [1.7.0] - 2026-08-18
 
 Boorie dice qué falta y ofrece el botón que lo resuelve, en lugar de dejarte adivinando.
