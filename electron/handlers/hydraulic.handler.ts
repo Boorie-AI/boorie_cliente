@@ -175,7 +175,10 @@ export class HydraulicHandler {
           include: {
             calculations: true,
             documents: true,
-            teamMembers: true
+            teamMembers: true,
+            // Mismo criterio que la lista: deleteNetwork() es borrado lógico, y
+            // sin filtrar isActive el contador incluiría redes ya borradas.
+            _count: { select: { networks: { where: { isActive: true } } } }
           }
         })
         
@@ -236,6 +239,7 @@ export class HydraulicHandler {
             joinedAt: tm.joinedAt
           })),
           status: project.status as any,
+          networkCount: project._count.networks,
           createdAt: project.createdAt,
           updatedAt: project.updatedAt
         }

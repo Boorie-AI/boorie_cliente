@@ -161,6 +161,12 @@ export interface HydraulicProject {
   timeline: Timeline
   team: TeamMember[]
   status: ProjectStatus
+  /**
+   * Redes activas del proyecto. Lo consumen las precondiciones de navegación:
+   * sin este contador, «Simulaciones» aparecía bloqueada aunque el proyecto
+   * tuviera redes guardadas (#33, #35).
+   */
+  networkCount?: number
   createdAt: Date
   updatedAt: Date
 }

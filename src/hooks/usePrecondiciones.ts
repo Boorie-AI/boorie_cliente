@@ -15,10 +15,10 @@ import {
  *
  * `hayRed` cuenta las redes **guardadas** en el proyecto, no la que el visor
  * tenga abierta: esa vive en el estado local de WNTRMainInterface y el menú no
- * puede verla. Hoy ninguna vista se bloquea por este requisito —la de red es
- * justamente donde se importa el .inp—, así que sólo alimenta la tabla; cuando
- * el chat necesite contexto de red (#34) habrá que levantar el estado del visor
- * en lugar de deducirlo aquí.
+ * puede verla. Ninguna vista se bloquea por este requisito —la de red es
+ * justamente donde se importa el .inp—, pero sí el ítem «Simulaciones» del menú
+ * (#35), que es lo que destapó que `hydraulic:get-project` no devolvía el
+ * contador y lo dejaba siempre en 0.
  */
 export function usePrecondiciones() {
   const currentProjectId = useProjectStore(s => s.currentProjectId)
