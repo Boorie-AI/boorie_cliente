@@ -7,6 +7,22 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.7.0] - 2026-08-18
+
+Boorie dice qué falta y ofrece el botón que lo resuelve, en lugar de dejarte adivinando.
+
+- Si entras en la red hidráulica sin un proyecto activo, Boorie te lo dice y te ofrece
+  elegir uno. Antes te cambiaba la pantalla por la lista de proyectos sin explicar por
+  qué: el menú marcaba «Red WNTR» y el contenido era otro, sin una palabra.
+- Los ítems del menú que necesitan algo aparecen atenuados y con un candado, y al pasar
+  el ratón te dicen qué les falta. Siguen pudiéndose pulsar: así llegas a la pantalla que
+  te lo explica y te lo resuelve, en vez de encontrarte un botón muerto.
+- El tutorial de primer uso ya no termina en la calculadora: te lleva a crear un proyecto
+  y cargar tu red, que es lo que necesita el resto de la aplicación.
+- La calculadora sigue funcionando sola, sin pedirte ningún proyecto.
+- Los nombres del menú ya salen en tu idioma. «Projects», «Calculator» y «WNTR Network»
+  estaban en inglés aunque tuvieras la aplicación en español o catalán.
+
 ## [1.6.0] - 2026-08-18
 
 La simulación de interrupción del servicio dice ahora a cuánta gente deja sin agua.
