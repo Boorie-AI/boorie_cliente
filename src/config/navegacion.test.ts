@@ -104,4 +104,29 @@ describe('modelo de navegación', () => {
       }
     }
   })
+
+  it('el aviso mira lo que pidió el usuario, no sólo la vista a la que llega (#46)', () => {
+    // «Simulaciones» y «Red WNTR» llevan a la misma vista y sólo la primera
+    // exige red. Resolviendo por vista, quien pulsaba «Simulaciones» sin red
+    // aterrizaba en la pantalla de importar sin que nada lo explicara.
+    const sinRed = { hayProyecto: true, hayRed: false }
+    const enSimulaciones: UbicacionActual = { vista: 'wntr', ambitoChat: 'general', seccionRed: 'simulate' }
+
+    const activo = NAVEGACION.find(i => itemActivo(i, enSimulaciones))!
+    expect(activo.id).toBe('simulaciones')
+    expect(pendientesItem(activo, sinRed)).toEqual(['red'])
+
+    // La vista de red por sí misma no exige red: es donde se importa el .inp.
+    const enRed: UbicacionActual = { vista: 'wntr', ambitoChat: 'general', seccionRed: null }
+    const activoRed = NAVEGACION.find(i => itemActivo(i, enRed))!
+    expect(activoRed.id).toBe('red')
+    expect(pendientesItem(activoRed, sinRed)).toEqual([])
+  })
+
+  it('con red cargada, «Simulaciones» deja de reclamar nada', () => {
+    const conRed = { hayProyecto: true, hayRed: true }
+    const enSimulaciones: UbicacionActual = { vista: 'wntr', ambitoChat: 'general', seccionRed: 'simulate' }
+    const activo = NAVEGACION.find(i => itemActivo(i, enSimulaciones))!
+    expect(pendientesItem(activo, conRed)).toEqual([])
+  })
 })

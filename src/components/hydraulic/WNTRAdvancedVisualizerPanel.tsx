@@ -7,6 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/utils/cn';
 import type { AjustesVisor, VistaVisor } from './ajustesVisor';
 import { comprobarSoporteSatelite } from '@/utils/webgl';
+import { etiquetaCorta, type Timeline } from '@/hooks/useSimulationTimeline';
+import { ETIQUETAS_SIMBOLOGIA, type Escala } from '@/services/network/simbologia';
+import { CAPAS, CAPAS_TODAS, contarPorTipo, hayCapasOcultas } from '@/services/network/capas';
 
 // Función pura del entorno, no estado: se resuelve una vez al cargar el módulo.
 const SOPORTE_SATELITE = comprobarSoporteSatelite();
@@ -102,6 +105,14 @@ interface WNTRAdvancedVisualizerPanelProps {
   onCambio: (ajustes: AjustesVisor) => void;
   /** `false` cuando la red no se puede situar en el mapa: el esquema es la única vista posible. */
   mapaDisponible?: boolean;
+  /**
+   * Eje temporal de la simulación. Lo construye el armazón y se comparte: las
+   * gráficas rotulaban sus etiquetas tratando los segundos de WNTR como horas,
+   * así que un modelo de 24 h salía con marcas de «86400:00» (#45).
+   */
+  timeline: Timeline;
+  /** Escala vigente; su leyenda sale de los datos, no de umbrales escritos a mano. */
+  escala: Escala | null;
 }
 
 export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelProps> = ({
@@ -109,9 +120,12 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
   simulationResults,
   ajustes,
   onCambio,
-  mapaDisponible = true
+  mapaDisponible = true,
+  timeline,
+  escala
 }) => {
   const settings = ajustes;
+  const cuentas = React.useMemo(() => contarPorTipo(networkData), [networkData]);
 
   const handleSettingChange = <K extends keyof AjustesVisor>(key: K, value: AjustesVisor[K]) => {
     onCambio({ ...ajustes, [key]: value });
@@ -250,6 +264,62 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
         </CardContent>
       </Card>
 
+      {/* Capas. La ofrecía uno de los visores que retiró el #37 y se fue con él
+          sin que nadie la portara; con miles de nudos es lo que permite mirar
+          sólo las bombas, o el trazado sin la nube de acometidas. */}
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-white text-base flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Layers className="h-4 w-4" />
+              Capas
+            </div>
+            {hayCapasOcultas(settings.capas) && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-auto px-2 py-0.5 text-xs text-blue-400 hover:text-blue-300"
+                onClick={() => handleSettingChange('capas', CAPAS_TODAS)}
+              >
+                Ver todo
+              </Button>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {CAPAS.map(capa => (
+            <div key={capa.tipo} className="flex items-center justify-between">
+              <span
+                className={cn(
+                  'text-sm',
+                  cuentas[capa.tipo] === 0 && 'text-gray-500'
+                )}
+              >
+                {capa.etiqueta}
+                <span className="ml-2 text-xs text-gray-500">{cuentas[capa.tipo]}</span>
+              </span>
+              <Switch
+                // Un tipo que la red no tiene se deshabilita en vez de esconderse:
+                // así se ve que existe y que esta red no lo usa.
+                disabled={cuentas[capa.tipo] === 0}
+                checked={settings.capas[capa.tipo]}
+                onCheckedChange={checked =>
+                  handleSettingChange('capas', { ...settings.capas, [capa.tipo]: checked })
+                }
+              />
+            </div>
+          ))}
+
+          {hayCapasOcultas(settings.capas) && (
+            <p className="pt-1 text-[11px] text-yellow-500/90">
+              No estás viendo la red completa.
+              {settings.vista === 'topologia' &&
+                ' En el esquema, ocultar un tipo de nudo se lleva también los tramos que lo tocan: un tramo necesita sus dos extremos para dibujarse.'}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Simbología. Sustituye a los dos interruptores de «mapa de presiones»
           que cambiaban un estado que nadie leía: la red se coloreaba por presión
           estuvieran encendidos o apagados. */}
@@ -269,11 +339,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
           ) : (
             <>
               <div className="space-y-1">
-                {([
-                  { valor: 'ninguna' as const, etiqueta: 'Por tipo de elemento' },
-                  { valor: 'presion' as const, etiqueta: 'Presión en los nudos' },
-                  { valor: 'caudal' as const, etiqueta: 'Caudal en los tramos' },
-                ]).map(op => (
+                {ETIQUETAS_SIMBOLOGIA.map(op => (
                   <button
                     key={op.valor}
                     onClick={() => handleSettingChange('simbologia', op.valor)}
@@ -284,31 +350,37 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                         : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
                     )}
                   >
-                    {op.etiqueta}
+                    {op.texto}
                   </button>
                 ))}
               </div>
 
-              {settings.simbologia === 'presion' && (
+              {/* La leyenda declara los tramos que hay en esta red y en este
+                  paso. Los visores retirados los tenían escritos a mano —caudal
+                  0-200 L/s, velocidad 0-2 m/s—, así que mentían en cuanto la red
+                  se salía de ese rango. */}
+              {escala && (
                 <div className="space-y-1 text-xs text-gray-400">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-block h-2 w-4 rounded" style={{ background: '#DC2626' }} />
-                    Menos de 20 m
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-block h-2 w-4 rounded" style={{ background: '#3B82F6' }} />
-                    Entre 20 y 80 m
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-block h-2 w-4 rounded" style={{ background: '#F97316' }} />
-                    Más de 80 m
-                  </div>
+                  {escala.leyenda.map(tramo => (
+                    <div key={tramo.etiqueta} className="flex items-center gap-2">
+                      <span
+                        className="inline-block h-2 w-4 shrink-0 rounded"
+                        style={{ background: tramo.color }}
+                      />
+                      {tramo.etiqueta}
+                    </div>
+                  ))}
+                  <p className="pt-1 text-[11px] text-gray-500">
+                    {escala.absoluta
+                      ? 'Cortes de servicio, iguales en cualquier red.'
+                      : `Escala de esta red en este paso: ${escala.min.toFixed(2)} a ${escala.max.toFixed(2)} ${escala.unidad}.`}
+                  </p>
                 </div>
               )}
 
-              {settings.simbologia === 'caudal' && (
+              {settings.simbologia !== 'ninguna' && !escala && (
                 <p className="text-xs text-gray-400">
-                  El grosor del tramo crece con el caudal que circula por él en el paso mostrado.
+                  La simulación no trae esa magnitud, así que la red se dibuja por tipo de elemento.
                 </p>
               )}
             </>
@@ -354,10 +426,9 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
             <CardContent className="h-40">
               <Line
                 data={{
-                  labels: simulationResults.timestamps.map((t: number) => {
-                    const hours = Math.floor(t);
-                    return `${hours}:00`;
-                  }),
+                  labels: timeline.linea.segundos.map((_, i) =>
+                    etiquetaCorta(timeline.linea, i)
+                  ),
                   datasets: [
                     {
                       label: 'Demanda Total (L/s)',
@@ -408,10 +479,9 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
               <CardContent className="h-40">
                 <Line
                   data={{
-                    labels: simulationResults.timestamps.map((t: number) => {
-                      const hours = Math.floor(t);
-                      return `${hours}:00`;
-                    }),
+                    labels: timeline.linea.segundos.map((_, i) =>
+                      etiquetaCorta(timeline.linea, i)
+                    ),
                     datasets: networkData.links
                       .filter((l: any) => l.type?.toLowerCase() === 'pump')
                       .map((pump: any, idx: number) => ({
@@ -443,7 +513,9 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
               </CardContent>
               {/* Pump Status List */}
               <div className="px-4 pb-4 border-t border-slate-700 pt-3">
-                <div className="text-xs font-semibold text-gray-400 mb-2">Estado Actual (Paso {settings.timeStep})</div>
+                <div className="text-xs font-semibold text-gray-400 mb-2">
+                  Estado en {timeline.etiqueta}
+                </div>
                 <div className="space-y-2">
                   {networkData.links
                     .filter((l: any) => l.type?.toLowerCase() === 'pump')

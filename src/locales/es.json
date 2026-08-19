@@ -251,6 +251,8 @@
     "accionCrearProyecto": "Crear un proyecto",
     "tituloRed": "Este módulo necesita una red cargada",
     "descRed": "Importa un archivo .inp de EPANET para poder simular y analizar.",
-    "accionImportarRed": "Importar .inp"
+    "accionImportarRed": "Importar .inp",
+    "tituloRedDe": "«{{modulo}}» necesita una red cargada",
+    "esteModulo": "Este módulo"
   }
 }

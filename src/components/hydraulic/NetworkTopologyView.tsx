@@ -19,6 +19,9 @@ interface NetworkTopologyViewProps {
   /** IDs de nudos a destacar (p. ej. los afectados por una interrupción). */
   highlightedNodes?: string[]
   showLabels?: boolean
+  /** Escala de color vigente, para pintar la misma magnitud que el mapa. */
+  escala?: Parameters<typeof construirGrafo>[3]
+  capas?: Parameters<typeof construirGrafo>[4]
 }
 
 export function NetworkTopologyView({
@@ -27,13 +30,15 @@ export function NetworkTopologyView({
   activeTimeStep = 0,
   highlightedNodes,
   showLabels = false,
+  escala,
+  capas,
 }: NetworkTopologyViewProps) {
   const visRef = useRef<{ fit: () => void } | null>(null)
   const [seleccion, setSeleccion] = useState<{ tipo: 'nudo' | 'tramo'; texto: string } | null>(null)
 
   const grafo = useMemo(
-    () => construirGrafo(networkData, simulationResults, activeTimeStep),
-    [networkData, simulationResults, activeTimeStep]
+    () => construirGrafo(networkData, simulationResults, activeTimeStep, escala, capas),
+    [networkData, simulationResults, activeTimeStep, escala, capas]
   )
 
   const datosVis = useMemo(() => {

@@ -154,8 +154,15 @@ it('una herramienta desconocida se responde con error, no lanza', () => {
  * Contraste con las redes guardadas: `Net3 2.inp` tiene 92 nudos y 117 tramos,
  * que es el caso que justifica las herramientas (no cabe en el resumen).
  */
-describe.skipIf(!fs.existsSync(DB))('contraste con las redes guardadas', () => {
-  const leerRedes = (): Array<{ nombre: string; datos: RedCompleta }> => {
+/**
+ * Recorre todos los elementos de todas las redes guardadas, asi que su coste
+ * crece con lo que el usuario tenga en su base: una red de 3.358 nudos lo
+ * multiplica por treinta. El limite por defecto de vitest se queda corto y el
+ * test empieza a fallar a ratos, que es peor que no tenerlo. Se le da margen y se
+ * lee la base una sola vez en lugar de una por prueba.
+ */
+describe.skipIf(!fs.existsSync(DB))('contraste con las redes guardadas', { timeout: 60_000 }, () => {
+  const leerDeLaBase = (): Array<{ nombre: string; datos: RedCompleta }> => {
     const salida = execFileSync('python3', ['-c', `
 import sqlite3, json, sys
 c = sqlite3.connect(${JSON.stringify(DB)})
@@ -164,6 +171,9 @@ json.dump(filas, sys.stdout)
 `], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
     return JSON.parse(salida)
   }
+
+  let cache: Array<{ nombre: string; datos: RedCompleta }> | null = null
+  const leerRedes = () => (cache ??= leerDeLaBase())
 
   it('todo id de la red se puede consultar y se encuentra', () => {
     for (const { nombre, datos } of leerRedes()) {

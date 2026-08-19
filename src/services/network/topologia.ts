@@ -1,3 +1,5 @@
+import { nudoVisible, tramoVisible, type CapasVisibles } from './capas'
+
 /**
  * Grafo topológico de la red para el visor de vis-network (#37).
  *
@@ -163,21 +165,43 @@ function colorPorPresion(presion: number | undefined, base: string): string {
 export function construirGrafo(
   datos: DatosRed | null | undefined,
   resultados?: ResultadosSimulacion | null,
-  paso = 0
+  paso = 0,
+  /**
+   * Escala de color vigente. Se pasa desde fuera para que el esquema y el mapa
+   * pinten la misma magnitud: si el esquema coloreara siempre por presión
+   * mientras el panel dice «velocidad», estaría mintiendo (#37).
+   */
+  escala?: { aplicaA: 'nudos' | 'tramos'; parametro: string; color: (v: number | undefined) => string | null } | null,
+  /**
+   * Tipos de elemento visibles. En el esquema, ocultar un tipo de nudo se lleva
+   * tambien los tramos que lo tocan: un tramo necesita sus dos extremos para
+   * poder dibujarse. En el mapa no pasa, porque alli cada tramo tiene su propia
+   * geometria.
+   */
+  capas?: CapasVisibles | null
 ): GrafoRed {
   if (!datos || datos.nodes.length === 0) {
     return { nodes: [], edges: [], usaFisica: false, motivo: 'La red no tiene nudos.' }
   }
 
-  const conCoordenadas = tieneCoordenadasUtiles(datos.nodes)
-  const proyectar = conCoordenadas ? escalar(datos.nodes) : null
+  const nodosVisibles = capas ? datos.nodes.filter(n => nudoVisible(n, capas)) : datos.nodes
+  if (nodosVisibles.length === 0) {
+    return { nodes: [], edges: [], usaFisica: false, motivo: 'No hay ningún tipo de elemento visible.' }
+  }
 
-  const nodes: NodoGrafo[] = datos.nodes.map(n => {
+  const conCoordenadas = tieneCoordenadasUtiles(nodosVisibles)
+  const proyectar = conCoordenadas ? escalar(nodosVisibles) : null
+
+  const nodes: NodoGrafo[] = nodosVisibles.map(n => {
     const tipo = String(n.type ?? 'junction')
     const estilo = COLOR_POR_TIPO[tipo] ?? COLOR_POR_TIPO.junction
 
     const res = resultados?.node_results?.[n.id]
     const presion = valorEnPaso(res?.pressure, paso)
+    const porEscala =
+      escala?.aplicaA === 'nudos'
+        ? escala.color(valorEnPaso(res?.[escala.parametro === 'presion' ? 'pressure' : 'demand'], paso))
+        : null
 
     const detalles = [`${tipo}: ${n.label ?? n.id}`]
     if (typeof n.elevation === 'number') detalles.push(`Cota: ${n.elevation}`)
@@ -191,7 +215,7 @@ export function construirGrafo(
       id: n.id,
       label: String(n.label ?? n.id),
       title: detalles.join('\n'),
-      color: colorPorPresion(presion, estilo.color),
+      color: porEscala ?? colorPorPresion(presion, estilo.color),
       shape: estilo.shape,
       size: estilo.size,
       ...(xy ? { x: xy[0], y: xy[1], fixed: true } : {}),
@@ -200,10 +224,10 @@ export function construirGrafo(
 
   // Un tramo que apunta a un nudo que no existe rompe vis-network en lugar de
   // dibujarse a medias, asi que se descarta: pasa con .inp recortados a mano.
-  const ids = new Set(datos.nodes.map(n => n.id))
+  const ids = new Set(nodosVisibles.map(n => n.id))
 
   const edges: TramoGrafo[] = datos.links
-    .filter(l => ids.has(l.from) && ids.has(l.to))
+    .filter(l => (!capas || tramoVisible(l, capas)) && ids.has(l.from) && ids.has(l.to))
     .map(l => {
       const tipo = String(l.type ?? 'pipe')
       const estilo = COLOR_POR_TIPO_TRAMO[tipo] ?? COLOR_POR_TIPO_TRAMO.pipe
@@ -211,6 +235,11 @@ export function construirGrafo(
       const res = resultados?.link_results?.[l.id]
       const caudal = valorEnPaso(res?.flowrate, paso)
       const velocidad = valorEnPaso(res?.velocity, paso)
+
+      const porEscalaTramo =
+        escala?.aplicaA === 'tramos'
+          ? escala.color(valorEnPaso(res?.[escala.parametro === 'caudal' ? 'flowrate' : 'velocity'], paso))
+          : null
 
       const detalles = [`${tipo}: ${l.label ?? l.id}`]
       if (typeof l.length === 'number') detalles.push(`Longitud: ${l.length}`)
@@ -232,7 +261,7 @@ export function construirGrafo(
         from: invertido ? l.to : l.from,
         to: invertido ? l.from : l.to,
         title: detalles.join('\n'),
-        color: estilo.color,
+        color: porEscalaTramo ?? estilo.color,
         width: grosor,
         dashes: tipo === 'valve' && String(l.status ?? '').toUpperCase() === 'CLOSED',
         ...(typeof caudal === 'number' || tipo === 'pump' ? { arrows: 'to' } : {}),

@@ -251,6 +251,8 @@
     "accionCrearProyecto": "Create a project",
     "tituloRed": "This module needs a loaded network",
     "descRed": "Import an EPANET .inp file to run simulations and analyses.",
-    "accionImportarRed": "Import .inp"
+    "accionImportarRed": "Import .inp",
+    "tituloRedDe": "«{{modulo}}» needs a loaded network",
+    "esteModulo": "This module"
   }
 }
