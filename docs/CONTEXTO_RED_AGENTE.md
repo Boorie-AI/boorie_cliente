@@ -96,6 +96,31 @@ El criterio de aceptación pide que las cifras coincidan con el panel de la red.
 
 Los tests contrastan además el resumen contra las redes realmente guardadas en `prisma/hydraulic.db`, no sólo contra objetos de prueba.
 
+## El segundo nivel: herramientas
+
+El resumen son doce líneas fijas y no sirve para responder sobre un nudo concreto: en `Net3 2.inp` hay 92 nudos y 117 tramos. El issue proponía un segundo nivel bajo demanda, y está implementado:
+
+| Pieza | Fichero |
+|---|---|
+| Las dos herramientas y su ejecutor (módulo puro) | `backend/services/hydraulic/agentTools.ts` |
+| Traducción a los dialectos de cada proveedor | `backend/services/ai/toolWire.ts` |
+| El bucle de vueltas | `electron/handlers/chat.handler.ts` |
+
+`consultar_elemento(id)` devuelve un nudo con sus tramos conectados, o un tramo con sus extremos. `listar_elementos(tipo, ordenar_por, límite)` responde agregados, con tope de 50 y aviso explícito cuando recorta.
+
+**El bucle se cierra dentro de una sola llamada a `chat:send-message`.** Los turnos intermedios no salen del handler, así que la conversación guardada sigue siendo texto plano: ni Prisma, ni el render, ni el tipo `ChatMessage` cambian. El precio es que en el turno siguiente el modelo ya no ve los resultados salvo por lo que escribió en su respuesta.
+
+### El texto depende del proveedor
+
+`formatearContextoRed` recibe un `conHerramientas` que decide su cierre, y no es cosmética:
+
+- **Con herramientas**: «no estimes lo que puedes mirar», empujando a consultar.
+- **Sin ellas**: «no puedes consultar nudos ni tramos concretos», que es la verdad.
+
+Prometer una consulta que el proveedor no puede hacer le pide al modelo justo la invención que el resto del bloque trata de evitar. Quien decide es `proveedorSoportaHerramientas` en `toolWire.ts`, **la misma función que usa el despacho de `chat.handler` para cargar la red**: si divergieran, el prompt prometería lo que el código no ofrece. El parámetro va a `false` por defecto, así que un llamante que no sepa el proveedor no promete nada.
+
+Google queda fuera porque usa `functionDeclarations`, otro dialecto. En el resto —Anthropic, OpenAI, OpenRouter, NVIDIA y Ollama— si la API rechaza las herramientas se reintenta sin ellas, en lugar de mantener una lista blanca de modelos que envejecería mal.
+
 ## Fuera de alcance
 
-El issue propone un segundo nivel de detalle bajo demanda, vía herramienta, para consultas sobre nudos o tramos concretos. No entra aquí: requiere que el proveedor de IA soporte llamada a herramientas, y hoy la aplicación construye el prompt como texto plano.
+Google, por el dialecto. Y las herramientas de escritura —lanzar una simulación desde el chat—: aquí sólo se lee.

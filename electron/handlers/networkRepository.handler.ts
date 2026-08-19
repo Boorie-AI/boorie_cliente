@@ -5,6 +5,7 @@ import { join } from 'path'
 import { NetworkRepositoryService } from '../../backend/services/hydraulic/networkRepository'
 import { construirResumenRed, formatearContextoRed } from '../../backend/services/hydraulic/networkContext'
 import { leerRedActiva } from '../../backend/services/hydraulic/redActiva'
+import { proveedorSoportaHerramientas } from '../../backend/services/ai/toolWire'
 import type { PrismaClient } from '@prisma/client'
 import { appLogger } from '../../backend/utils/logger'
 
@@ -296,8 +297,12 @@ export class NetworkRepositoryHandler {
       }
     })
 
-    // Resumen de la red activa para el agente del chat (#34)
-    ipcMain.handle('network-repo:context', async (_, projectId: string) => {
+    // Resumen de la red activa para el agente del chat (#34).
+    // El proveedor llega porque el texto cambia segun pueda o no consultar la
+    // red con herramientas: prometer una consulta que no existe le pide al
+    // modelo justo la invencion que el resto del bloque trata de evitar.
+    ipcMain.handle('network-repo:context', async (_, projectId: string, proveedor?: string) => {
+      const conHerramientas = proveedorSoportaHerramientas(proveedor)
       try {
         if (!projectId) {
           return { success: true, data: { resumen: null, texto: formatearContextoRed(null) } }
@@ -336,7 +341,7 @@ export class NetworkRepositoryHandler {
           ultimaSimulacion: ultima ? { nombre: ultima.name, fecha: ultima.createdAt } : null
         })
 
-        return { success: true, data: { resumen, texto: formatearContextoRed(resumen) } }
+        return { success: true, data: { resumen, texto: formatearContextoRed(resumen, conHerramientas) } }
       } catch (error) {
         appLogger.error('Failed to build network context', error as Error)
         // Sin contexto es mejor no decir nada que decir que hay una red y no

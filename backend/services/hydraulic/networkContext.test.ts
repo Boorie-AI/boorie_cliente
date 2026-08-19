@@ -85,6 +85,33 @@ describe('resumen de la red para el agente', () => {
     expect(texto).toContain('Tuberías: 6')
   })
 
+  it('con herramientas, manda consultar en vez de estimar', () => {
+    const texto = formatearContextoRed(construirResumenRed(VILLA), true)
+    expect(texto).toContain('usa las')
+    expect(texto).toContain('herramientas de consulta')
+    expect(texto).toContain('No estimes lo que puedes mirar')
+  })
+
+  it('sin herramientas, no promete una consulta que no puede hacer', () => {
+    // Con Google el dialecto no está implementado y no hay herramientas.
+    // Decirle que consulte le pide justo la invención que el bloque evita.
+    const texto = formatearContextoRed(construirResumenRed(VILLA))
+    expect(texto).toContain('no puedes consultar nudos ni tramos concretos')
+    expect(texto).not.toContain('herramientas de consulta')
+  })
+
+  it('por defecto no hay herramientas: quien no lo sabe, no promete', () => {
+    expect(formatearContextoRed(construirResumenRed(VILLA)))
+      .toBe(formatearContextoRed(construirResumenRed(VILLA), false))
+  })
+
+  it('el chat general no menciona herramientas en ningún caso', () => {
+    // Sin red no se ofrece ninguna, la soporte el proveedor o no.
+    for (const conHerramientas of [true, false]) {
+      expect(formatearContextoRed(null, conHerramientas)).not.toContain('herramientas')
+    }
+  })
+
   it('cita la última simulación cuando existe, y lo dice cuando no', () => {
     const con = formatearContextoRed(construirResumenRed({
       ...VILLA,

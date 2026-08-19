@@ -19,6 +19,20 @@ export interface LlamadaHerramienta {
   argumentos: Record<string, unknown>
 }
 
+/**
+ * Proveedores cuyo dialecto de herramientas esta implementado. Es la unica
+ * fuente de verdad: la usa el despacho de `chat.handler` para decidir si
+ * cargar la red, y `network-repo:context` para no prometer en el prompt una
+ * consulta que ese proveedor no puede hacer.
+ *
+ * Google falta a proposito: usa functionDeclarations, otro dialecto.
+ */
+const PROVEEDORES_CON_HERRAMIENTAS = new Set(['anthropic', 'openai', 'openrouter', 'nvidia', 'ollama'])
+
+export function proveedorSoportaHerramientas(proveedor?: string | null): boolean {
+  return !!proveedor && PROVEEDORES_CON_HERRAMIENTAS.has(proveedor.trim().toLowerCase())
+}
+
 export function herramientasAnthropic(defs: DefinicionHerramienta[]) {
   return defs.map(d => ({
     name: d.nombre,

@@ -11,6 +11,7 @@ import {
   llamadasDesdeAnthropic,
   llamadasDesdeOpenAI,
   llamadasDesdeOllama,
+  proveedorSoportaHerramientas,
   mensajeResultadosAnthropic,
   mensajesResultadosOpenAI,
   textoDesdeAnthropic,
@@ -129,11 +130,13 @@ export class ChatHandler {
       const messagesWithSystemPrompt = await this.addSystemPrompt(messages)
       logger.info('Messages after system prompt processing', { messageCount: messagesWithSystemPrompt.length })
 
-      // Google queda fuera por ahora: usa otro dialecto
-      // (functionDeclarations). Ollama si entra, pero solo llega aqui cuando el
-      // renderer decide no ir por su ruta de streaming (ver chatStore).
-      
-      const red = await this.cargarRedActiva(projectId)
+      // La red solo se carga si el proveedor sabe usar herramientas, con la
+      // misma funcion que consulta `network-repo:context` para redactar el
+      // prompt. Asi el texto que promete la consulta y el codigo que la ofrece
+      // no pueden decir cosas distintas.
+      const red = proveedorSoportaHerramientas(provider)
+        ? await this.cargarRedActiva(projectId)
+        : null
 
       let result: ChatResponse
 

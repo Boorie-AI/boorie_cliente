@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { HERRAMIENTAS } from '../hydraulic/agentTools'
 import {
   esErrorDeHerramientas,
+  proveedorSoportaHerramientas,
   herramientasAnthropic,
   herramientasOpenAI,
   llamadasDesdeAnthropic,
@@ -187,5 +188,31 @@ describe('deteccion del rechazo de herramientas', () => {
     expect(esErrorDeHerramientas(400, 'Your credit balance is too low')).toBe(false)
     expect(esErrorDeHerramientas(401, 'invalid api key')).toBe(false)
     expect(esErrorDeHerramientas(429, 'rate limited, too many tool calls')).toBe(false)
+  })
+})
+
+describe('que proveedores saben usar herramientas', () => {
+  it('los cinco cuyo dialecto esta implementado', () => {
+    for (const p of ['anthropic', 'openai', 'openrouter', 'nvidia', 'ollama']) {
+      expect(proveedorSoportaHerramientas(p), p).toBe(true)
+    }
+  })
+
+  it('Google no, porque usa functionDeclarations', () => {
+    // Si esto pasa a true sin implementar el dialecto, el prompt promete una
+    // consulta que el modelo no puede hacer.
+    expect(proveedorSoportaHerramientas('google')).toBe(false)
+  })
+
+  it('el nombre llega de la conversacion, asi que se normaliza', () => {
+    expect(proveedorSoportaHerramientas('Ollama')).toBe(true)
+    expect(proveedorSoportaHerramientas(' Anthropic ')).toBe(true)
+  })
+
+  it('sin proveedor no se presume soporte', () => {
+    expect(proveedorSoportaHerramientas(undefined)).toBe(false)
+    expect(proveedorSoportaHerramientas(null)).toBe(false)
+    expect(proveedorSoportaHerramientas('')).toBe(false)
+    expect(proveedorSoportaHerramientas('un-proveedor-nuevo')).toBe(false)
   })
 })

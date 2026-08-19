@@ -301,7 +301,10 @@ export const useChatStore = create<ChatState>()(
             // más datos, pero incluía un «Ejemplo» con cifras inventadas.
             let hayRedEnContexto = false
             try {
-              const red = await window.electronAPI.networkRepository.context(proyectoParaContexto ?? '')
+              const red = await window.electronAPI.networkRepository.context(
+                proyectoParaContexto ?? '',
+                conversation.provider
+              )
               if (red?.success && red.data?.texto) {
                 enhancedPrompt = red.data.texto + enhancedPrompt
               }

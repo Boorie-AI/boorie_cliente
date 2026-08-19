@@ -267,6 +267,22 @@ describe('degradacion cuando no hay herramientas que ofrecer', () => {
     expect(cuerpoDe(0).tools).toBeUndefined()
   })
 
+  it('Google no recibe herramientas: su dialecto no esta implementado', async () => {
+    // El prompt de `network-repo:context` se redacta con la misma funcion que
+    // decide esto, asi que si un dia divergen, este test cae antes de que el
+    // texto empiece a prometer consultas que Google no puede hacer.
+    new ChatHandler(baseDeDatos(true))
+    fetchSimulado.mockResolvedValueOnce(respuesta({
+      candidates: [{ content: { parts: [{ text: 'Respuesta de Google.' }] } }],
+    }))
+
+    const r = await enviar({ provider: 'google' })
+
+    expect(r.success).toBe(true)
+    expect(cuerpoDe(0).tools).toBeUndefined()
+    expect(fetchSimulado.mock.calls[0][0]).toContain('generativelanguage')
+  })
+
   it('si el modelo las rechaza, reintenta sin ellas en vez de dar error', async () => {
     new ChatHandler(baseDeDatos(true))
     fetchSimulado

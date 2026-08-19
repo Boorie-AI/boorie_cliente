@@ -121,8 +121,15 @@ const MARCA_GLOBAL_FIN = '=== FIN CHAT GENERAL ==='
  * Texto que se inyecta en el prompt de sistema. Incluye la instrucción de no
  * inventar: el criterio del issue es que sin red el agente lo diga, en lugar de
  * responder generalidades como si fueran de la red del usuario.
+ *
+ * `conHerramientas` cambia el cierre del bloque, y no es un detalle de estilo:
+ * con herramientas hay que empujar al modelo a consultar en vez de suponer, y
+ * sin ellas prometerle una consulta que no puede hacer es pedirle justo la
+ * invención que el resto del texto trata de evitar. Lo decide el proveedor de
+ * la conversación (ver `proveedorSoportaHerramientas`), así que por defecto va
+ * a `false`: si el llamante no lo sabe, mejor no prometer.
  */
-export function formatearContextoRed(resumen: ResumenRed | null): string {
+export function formatearContextoRed(resumen: ResumenRed | null, conHerramientas = false): string {
   if (!resumen) {
     // Sin proyecto seleccionado esto es el chat general de Boorie. No es un
     // estado degradado: es un modo con sus propias reglas, y hay que decirlas,
@@ -168,12 +175,23 @@ export function formatearContextoRed(resumen: ResumenRed | null): string {
     lineas.push('Última simulación guardada: ninguna todavía.')
   }
 
-  lineas.push(
-    'Estas cifras vienen de la red cargada. Cíñete a ellas y no las completes con supuestos:',
-    'si te preguntan algo que no está aquí, dilo y ofrece ejecutar la simulación o el análisis que haga falta.',
-    MARCA_FIN,
-    '',
-  )
+  lineas.push('Estas cifras vienen de la red cargada. Cíñete a ellas y no las completes con supuestos.')
+
+  if (conHerramientas) {
+    lineas.push(
+      'Este resumen es sólo el total: no trae los nudos ni los tramos uno a uno. Para cualquier',
+      'pregunta sobre un elemento concreto, o sobre un dato que no aparezca arriba, usa las',
+      'herramientas de consulta antes de responder. No estimes lo que puedes mirar.',
+    )
+  } else {
+    lineas.push(
+      'Este resumen es todo lo que tienes de la red: no puedes consultar nudos ni tramos concretos.',
+      'Si te preguntan por uno, dilo con claridad en lugar de estimarlo, y ofrece ejecutar la',
+      'simulación o el análisis que haga falta.',
+    )
+  }
+
+  lineas.push(MARCA_FIN, '')
 
   return lineas.join('\n')
 }
