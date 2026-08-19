@@ -69,10 +69,11 @@ en el panel—, que es lo que pedía Luis Mora al redefinir los datos cargados.
 ### El hook único
 
 El issue pedía extraerlo y consumirlo desde los cinco componentes que duplicaban
-la lógica temporal. Tres de esos cinco —`WNTRSimulationViewer`,
-`WNTRNetworkVisualization` y `WNTRMapViewer` en su parte temporal— ya
-desaparecieron o se simplificaron con #37, que retiró los visores muertos. Quedan
-la barra de transporte y el panel, y los dos leen del mismo `useSimulationTimeline`.
+la lógica temporal. **Dos de esos cinco ya no existen**: `WNTRSimulationViewer` y
+`WNTRNetworkVisualization`, que retiró #37 por muertos. De los tres que quedan, la
+barra de transporte y el panel leen del mismo `useSimulationTimeline`, y
+`WNTRMapViewer` recibe el paso vigente por props: no tiene eje propio, sólo pinta
+el paso que le dan.
 
 ### Verificación
 
