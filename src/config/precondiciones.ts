@@ -37,17 +37,22 @@ export const REQUISITOS_VISTA: Record<Vista, Requisito[]> = {
   projects: [],
   calculator: [],
   wntr: ['proyecto'],
-  rag: [],
+  wisdom: [],
   settings: [],
 }
 
-/** Requisitos que la vista declara y el estado actual no cumple. */
-export function requisitosPendientes(vista: Vista, estado: EstadoPrecondiciones): Requisito[] {
+/** De una lista de requisitos, los que el estado actual no cumple. */
+export function pendientesDe(requisitos: Requisito[], estado: EstadoPrecondiciones): Requisito[] {
   const cumple: Record<Requisito, boolean> = {
     proyecto: estado.hayProyecto,
     red: estado.hayRed,
   }
-  return REQUISITOS_VISTA[vista].filter(r => !cumple[r])
+  return requisitos.filter(r => !cumple[r])
+}
+
+/** Requisitos que la vista declara y el estado actual no cumple. */
+export function requisitosPendientes(vista: Vista, estado: EstadoPrecondiciones): Requisito[] {
+  return pendientesDe(REQUISITOS_VISTA[vista], estado)
 }
 
 export function vistaDisponible(vista: Vista, estado: EstadoPrecondiciones): boolean {

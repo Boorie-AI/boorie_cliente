@@ -30,7 +30,17 @@
     "projects": "Proyectos",
     "calculator": "Calculadora",
     "wntr": "Red WNTR",
-    "wisdom": "Wisdom Center"
+    "wisdom": "Wisdom Center",
+    "bloqueProyectos": "Proyectos",
+    "bloqueHerramientas": "Herramientas",
+    "bloqueSistema": "Sistema",
+    "simulaciones": "Simulaciones",
+    "chatProyecto": "Chat del proyecto",
+    "chatGeneral": "Chat general",
+    "sinProyecto": "Sin proyecto activo",
+    "proyectoActivo": "Proyecto activo",
+    "chatsDelProyecto": "Chats del proyecto",
+    "nuevaConversacion": "Nueva conversación"
   },
   "chat": {
     "newConversation": "Nueva Conversación",

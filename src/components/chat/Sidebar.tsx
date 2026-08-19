@@ -1,11 +1,11 @@
-import { logger } from '@/utils/logger'
 import { useAppStore } from '@/stores/appStore'
 import { useChatStore } from '@/stores/chatStore'
+import { useProjectStore } from '@/stores/projectStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { useTranslation } from 'react-i18next'
-import { useState, useEffect } from 'react'
 import {
   MessageSquare,
+  MessagesSquare,
   Settings,
   FileText,
   ChevronLeft,
@@ -13,71 +13,119 @@ import {
   FolderOpen,
   Calculator,
   Network,
-  ChevronDown,
+  Play,
   Lock
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { usePrecondiciones } from '@/hooks/usePrecondiciones'
+import {
+  BLOQUES,
+  itemsDelBloque,
+  itemActivo,
+  pendientesItem,
+  type ItemNavegacion,
+} from '@/config/navegacion'
+import { claveMotivo } from '@/config/precondiciones'
 import * as Tooltip from '@radix-ui/react-tooltip'
-import * as Collapsible from '@radix-ui/react-collapsible'
-import { hydraulicService } from '@/services/hydraulic/hydraulicService'
-import { HydraulicProject } from '@/types/hydraulic'
 import boorieIconDark from '@/assets/boorie_icon_dark.png'
 import boorieIconLight from '@/assets/boorie_icon_light.png'
 
+const ICONOS: Record<string, typeof MessageSquare> = {
+  projects: FolderOpen,
+  red: Network,
+  simulaciones: Play,
+  chatProyecto: MessageSquare,
+  calculator: Calculator,
+  chatGeneral: MessagesSquare,
+  wisdom: FileText,
+  settings: Settings,
+}
+
 export function Sidebar() {
   const { t } = useTranslation()
-  const precondiciones = usePrecondiciones()
+  const { estado } = usePrecondiciones()
   const {
     currentView,
+    ambitoChat,
+    seccionRed,
     setCurrentView,
     sidebarCollapsed,
     toggleSidebar
   } = useAppStore()
 
-  const { conversations, setActiveConversation } = useChatStore()
+  const { conversations, setActiveConversation, activeConversationId } = useChatStore()
+  const currentProjectId = useProjectStore(s => s.currentProjectId)
+  const nombreProyecto = useProjectStore(s => s.currentProject?.name)
   const { theme } = usePreferencesStore()
-  const [projects, setProjects] = useState<HydraulicProject[]>([])
-  const [projectsOpen, setProjectsOpen] = useState<Record<string, boolean>>({})
-  const [generalOpen, setGeneralOpen] = useState(true)
 
-  useEffect(() => {
-    if (currentView === 'chat') {
-      loadProjects()
-    }
-  }, [currentView])
+  const donde = { vista: currentView, ambitoChat, seccionRed }
 
-  const loadProjects = async () => {
-    try {
-      const projectList = await hydraulicService.listProjects()
-      setProjects(projectList)
-    } catch (error) {
-      logger.error('Failed to load projects:', error)
-    }
+  // Las conversaciones que se listan son las del ámbito en el que estás, no
+  // todas: el proyecto activo es global (#31), así que un árbol con todos los
+  // proyectos ofrecía un atajo para trabajar fuera del proyecto activo.
+  const conversacionesDelAmbito = conversations.filter(conv =>
+    ambitoChat === 'proyecto'
+      ? conv.projectId === currentProjectId
+      : !conv.projectId
+  )
+
+  const irA = (item: ItemNavegacion) => {
+    setCurrentView(item.vista, {
+      ambitoChat: item.ambitoChat,
+      seccionRed: item.seccion ?? null,
+    })
   }
 
-  // Group conversations by project
-  const conversationsByProject = conversations.reduce((acc, conv) => {
-    const projectId = conv.projectId || 'general'
-    if (!acc[projectId]) {
-      acc[projectId] = []
-    }
-    acc[projectId].push(conv)
-    return acc
-  }, {} as Record<string, typeof conversations>)
+  const ItemBoton = ({ item }: { item: ItemNavegacion }) => {
+    const Icono = ICONOS[item.id] ?? FileText
+    const activo = itemActivo(item, donde)
+    const etiqueta = t(item.etiqueta)
+    // Se atenúa, no se oculta ni se bloquea: ocultarlo haría la aplicación
+    // menos descubrible, y bloquearlo dejaría al usuario sin forma de llegar a
+    // la pantalla que le explica qué falta (#33).
+    const motivo = claveMotivo(pendientesItem(item, estado))
+    const bloqueada = motivo !== null
+    const ayuda = bloqueada ? `${etiqueta} — ${t(motivo)}` : etiqueta
 
-  const toggleProject = (projectId: string) => {
-    setProjectsOpen(prev => ({ ...prev, [projectId]: !prev[projectId] }))
+    return (
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+          <button
+            onClick={() => irA(item)}
+            // Sin aria-disabled: el ítem sigue siendo accionable a propósito y
+            // marcarlo como deshabilitado sería mentir al lector de pantalla.
+            title={bloqueada ? ayuda : undefined}
+            aria-label={bloqueada ? ayuda : undefined}
+            className={cn(
+              "w-full flex items-center rounded-lg transition-all duration-200",
+              "hover:bg-accent hover:text-accent-foreground",
+              item.hijoDelProyecto && !sidebarCollapsed ? "py-2 pl-6 pr-3" : "p-3",
+              activo
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground",
+              bloqueada && !activo && "opacity-50",
+              sidebarCollapsed && "justify-center"
+            )}
+          >
+            <Icono size={item.hijoDelProyecto ? 16 : 20} />
+            {!sidebarCollapsed && (
+              <span className={cn("ml-3", item.hijoDelProyecto ? "text-sm" : "font-medium")}>
+                {etiqueta}
+              </span>
+            )}
+            {!sidebarCollapsed && bloqueada && (
+              <Lock size={12} className="ml-auto opacity-70" aria-hidden />
+            )}
+          </button>
+        </Tooltip.Trigger>
+        {(sidebarCollapsed || bloqueada) && (
+          <Tooltip.Content side="right" className="px-2 py-1 bg-popover text-popover-foreground text-sm rounded-md border border-border shadow-md max-w-xs">
+            {ayuda}
+          </Tooltip.Content>
+        )}
+      </Tooltip.Root>
+    )
   }
-
-  const menuItems = [
-    { id: 'chat', icon: MessageSquare, label: t('sidebar.chat'), view: 'chat' as const },
-    { id: 'projects', icon: FolderOpen, label: t('sidebar.projects'), view: 'projects' as const },
-    { id: 'calculator', icon: Calculator, label: t('sidebar.calculator'), view: 'calculator' as const },
-    { id: 'wntr', icon: Network, label: t('sidebar.wntr'), view: 'wntr' as const },
-    { id: 'rag', icon: FileText, label: t('sidebar.wisdom'), view: 'rag' as const },
-    { id: 'settings', icon: Settings, label: t('sidebar.settings'), view: 'settings' as const },
-  ]
 
   return (
     <Tooltip.Provider>
@@ -130,159 +178,77 @@ export function Sidebar() {
           </Tooltip.Root>
         </div>
 
-        {/* Navigation */}
-        <div className="p-3 space-y-1 flex-shrink-0">
-          {menuItems.map((item) => {
-            const isActive = currentView === item.view
-            // Se atenúa, no se oculta ni se bloquea: ocultarlo haría la
-            // aplicación menos descubrible, y bloquearlo dejaría al usuario sin
-            // forma de llegar a la pantalla que le explica qué falta.
-            const motivo = precondiciones.motivo(item.view)
-            const bloqueada = motivo !== null
-            const ayuda = bloqueada ? `${item.label} — ${t(motivo)}` : item.label
-            return (
-              <Tooltip.Root key={item.id}>
-                <Tooltip.Trigger asChild>
-                  <button
-                    onClick={() => setCurrentView(item.view)}
-                    // Sin aria-disabled: el ítem sigue siendo accionable a
-                    // propósito y marcarlo como deshabilitado sería mentir al
-                    // lector de pantalla. El motivo va en el título accesible.
-                    title={bloqueada ? ayuda : undefined}
-                    aria-label={bloqueada ? ayuda : undefined}
-                    className={cn(
-                      "w-full flex items-center p-3 rounded-lg transition-all duration-200",
-                      "hover:bg-accent hover:text-accent-foreground",
-                      isActive
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground",
-                      bloqueada && !isActive && "opacity-50",
-                      sidebarCollapsed && "justify-center"
+        {/* Navegación en tres bloques: lo que pertenece al proyecto, lo que es
+            independiente de él y lo que es del sistema (#35). */}
+        <div className="p-3 space-y-4 flex-shrink-0">
+          {BLOQUES.map(bloque => (
+            <div key={bloque.id} className="space-y-1">
+              {!sidebarCollapsed && (
+                <h2 className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider px-3 pb-1">
+                  {t(bloque.titulo)}
+                </h2>
+              )}
+
+              {itemsDelBloque(bloque.id)
+                .filter(item => !item.hijoDelProyecto)
+                .map(item => <ItemBoton key={item.id} item={item} />)}
+
+              {bloque.id === 'proyectos' && (
+                currentProjectId ? (
+                  <>
+                    {/* El nombre del proyecto activo es visible desde cualquier
+                        vista, que es un criterio de aceptación del issue. */}
+                    {!sidebarCollapsed && (
+                      <div className="px-3 pt-1 pb-0.5 text-xs font-medium text-foreground/80 truncate"
+                        title={nombreProyecto}>
+                        {nombreProyecto ?? t('sidebar.proyectoActivo')}
+                      </div>
                     )}
-                  >
-                    <item.icon size={20} />
-                    {!sidebarCollapsed && <span className="ml-3 font-medium">{item.label}</span>}
-                    {!sidebarCollapsed && bloqueada && (
-                      <Lock size={12} className="ml-auto opacity-70" aria-hidden />
-                    )}
-                  </button>
-                </Tooltip.Trigger>
-                {(sidebarCollapsed || bloqueada) && (
-                  <Tooltip.Content side="right" className="px-2 py-1 bg-popover text-popover-foreground text-sm rounded-md border border-border shadow-md max-w-xs">
-                    {ayuda}
-                  </Tooltip.Content>
-                )}
-              </Tooltip.Root>
-            )
-          })}
+                    {itemsDelBloque('proyectos')
+                      .filter(item => item.hijoDelProyecto)
+                      .map(item => <ItemBoton key={item.id} item={item} />)}
+                  </>
+                ) : (
+                  !sidebarCollapsed && (
+                    <p className="px-3 py-1 text-xs text-muted-foreground/70">
+                      {t('sidebar.sinProyecto')}
+                    </p>
+                  )
+                )
+              )}
+            </div>
+          ))}
         </div>
 
-        {/* Chat History (only show when chat is active and sidebar is expanded) */}
+        {/* Conversaciones del ámbito en el que está el chat */}
         {currentView === 'chat' && !sidebarCollapsed && (
-          <div className="flex-1 flex flex-col p-3 overflow-hidden">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-3 mb-3 flex-shrink-0">
-              {t('sidebar.recentChats')}
+          <div className="flex-1 flex flex-col p-3 overflow-hidden border-t border-border/50">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-3 mb-3 mt-2 flex-shrink-0">
+              {t(ambitoChat === 'proyecto' ? 'sidebar.chatsDelProyecto' : 'sidebar.recentChats')}
             </h3>
             <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-border">
-              <div className="space-y-2">
-                {/* General conversations (no project) */}
-                {conversationsByProject.general && conversationsByProject.general.length > 0 && (
-                  <Collapsible.Root open={generalOpen} onOpenChange={setGeneralOpen}>
-                    <Collapsible.Trigger className={cn(
-                      "w-full flex items-center justify-between p-2 rounded-lg",
-                      "text-sm font-medium text-muted-foreground",
-                      "hover:bg-accent/50 transition-colors"
-                    )}>
-                      <span>General Chats</span>
-                      <ChevronDown
-                        size={14}
-                        className={cn("transition-transform", generalOpen && "rotate-180")}
-                      />
-                    </Collapsible.Trigger>
-                    <Collapsible.Content className="mt-1">
-                      <div className="ml-2 space-y-1">
-                        {conversationsByProject.general.map((conversation) => (
-                          <button
-                            key={conversation.id}
-                            onClick={() => setActiveConversation(conversation.id)}
-                            className={cn(
-                              "w-full text-left p-2 pl-4 rounded-lg transition-all duration-200",
-                              "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                              "hover:shadow-sm text-sm"
-                            )}
-                          >
-                            <div className="truncate">
-                              {conversation.title || 'New Conversation'}
-                            </div>
-                            <div className="text-xs text-muted-foreground/70 mt-0.5">
-                              {new Date(conversation.updatedAt).toLocaleDateString()}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </Collapsible.Content>
-                  </Collapsible.Root>
-                )}
+              <div className="space-y-1">
+                {conversacionesDelAmbito.map((conversation) => (
+                  <button
+                    key={conversation.id}
+                    onClick={() => setActiveConversation(conversation.id)}
+                    className={cn(
+                      "w-full text-left p-2 pl-3 rounded-lg transition-all duration-200 text-sm",
+                      conversation.id === activeConversationId
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    )}
+                  >
+                    <div className="truncate">
+                      {conversation.title || t('sidebar.nuevaConversacion')}
+                    </div>
+                    <div className="text-xs text-muted-foreground/70 mt-0.5">
+                      {new Date(conversation.updatedAt).toLocaleDateString()}
+                    </div>
+                  </button>
+                ))}
 
-                {/* Project-specific conversations */}
-                {projects.map((project) => {
-                  const projectConversations = conversationsByProject[project.id] || []
-                  if (projectConversations.length === 0) return null
-
-                  const isOpen = projectsOpen[project.id] ?? false
-
-                  return (
-                    <Collapsible.Root
-                      key={project.id}
-                      open={isOpen}
-                      onOpenChange={() => toggleProject(project.id)}
-                    >
-                      <Collapsible.Trigger className={cn(
-                        "w-full flex items-center justify-between p-2 rounded-lg",
-                        "text-sm font-medium text-muted-foreground",
-                        "hover:bg-accent/50 transition-colors"
-                      )}>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <FolderOpen size={14} />
-                          <span className="truncate">{project.name}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                            {projectConversations.length}
-                          </span>
-                          <ChevronDown
-                            size={14}
-                            className={cn("transition-transform", isOpen && "rotate-180")}
-                          />
-                        </div>
-                      </Collapsible.Trigger>
-                      <Collapsible.Content className="mt-1">
-                        <div className="ml-2 space-y-1">
-                          {projectConversations.map((conversation) => (
-                            <button
-                              key={conversation.id}
-                              onClick={() => setActiveConversation(conversation.id)}
-                              className={cn(
-                                "w-full text-left p-2 pl-8 rounded-lg transition-all duration-200",
-                                "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                                "hover:shadow-sm text-sm"
-                              )}
-                            >
-                              <div className="truncate">
-                                {conversation.title || 'New Conversation'}
-                              </div>
-                              <div className="text-xs text-muted-foreground/70 mt-0.5">
-                                {new Date(conversation.updatedAt).toLocaleDateString()}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </Collapsible.Content>
-                    </Collapsible.Root>
-                  )
-                })}
-
-                {conversations.length === 0 && (
+                {conversacionesDelAmbito.length === 0 && (
                   <div className="px-3 py-6 text-center">
                     <div className="text-muted-foreground/60 text-sm">
                       {t('sidebar.noConversations')}

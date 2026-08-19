@@ -13,7 +13,7 @@ const TODO = { hayProyecto: true, hayRed: true }
 
 describe('precondiciones de navegación', () => {
   it('deja pasar a chat, proyectos, wisdom y ajustes sin nada cargado', () => {
-    for (const vista of ['chat', 'projects', 'rag', 'settings'] as Vista[]) {
+    for (const vista of ['chat', 'projects', 'wisdom', 'settings'] as Vista[]) {
       expect(vistaDisponible(vista, SIN_NADA)).toBe(true)
     }
   })
@@ -53,7 +53,7 @@ describe('precondiciones de navegación', () => {
   it('cubre todas las vistas declaradas en el store', () => {
     // Si alguien añade una vista nueva y olvida su fila, la tabla deja de ser
     // la fuente única y volvemos a las guardas dispersas.
-    const vistas: Vista[] = ['chat', 'settings', 'rag', 'projects', 'calculator', 'wntr']
+    const vistas: Vista[] = ['chat', 'settings', 'wisdom', 'projects', 'calculator', 'wntr']
     for (const vista of vistas) {
       expect(REQUISITOS_VISTA[vista]).toBeDefined()
     }

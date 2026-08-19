@@ -26,7 +26,7 @@ describe('recorrido de primer uso', () => {
   })
 
   it('todos los pasos apuntan a una vista real de la aplicación', () => {
-    const vistas = ['chat', 'settings', 'rag', 'projects', 'calculator', 'wntr']
+    const vistas = ['chat', 'settings', 'wisdom', 'projects', 'calculator', 'wntr']
     for (const paso of ONBOARDING_STEPS) {
       if (paso.action) expect(vistas).toContain(paso.action)
     }

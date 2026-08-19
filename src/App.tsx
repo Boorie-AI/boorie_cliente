@@ -22,16 +22,22 @@ function App() {
   const [setupSkipped, setSetupSkipped] = useState(false)
   const [informeMigracion, setInformeMigracion] = useState<Awaited<ReturnType<typeof migrateProjectAssets>> | null>(null)
 
-  useEffect(() => {
-    initializeApp()
-  }, [initializeApp])
-
   // El proyecto activo se restaura aquí, y no en el store, porque hace falta
   // que window.electronAPI exista para releerlo de la base de datos. Si el
   // proyecto se borró entre sesiones, el store descarta el id sin romper nada.
+  //
+  // Las dos cargas van juntas porque la vista restaurada sólo se puede validar
+  // cuando ya se sabe si hay proyecto: sin él, arrancar en la red hidráulica
+  // dejaría al usuario en un aviso en vez de en Proyectos (#35).
   useEffect(() => {
-    restoreActiveProject()
-  }, [restoreActiveProject])
+    Promise.all([initializeApp(), restoreActiveProject()]).then(() => {
+      const proyecto = useProjectStore.getState()
+      useAppStore.getState().ajustarVistaInicial({
+        hayProyecto: proyecto.currentProjectId !== null,
+        hayRed: (proyecto.currentProject?.networkCount ?? 0) > 0,
+      })
+    })
+  }, [initializeApp, restoreActiveProject])
 
   // Las redes y calculos que vivian en localStorage pasan a la base de datos
   // (#31). Se hace despues de restaurar el proyecto y una sola vez: el modulo

@@ -30,7 +30,17 @@
     "projects": "Projectes",
     "calculator": "Calculadora",
     "wntr": "Xarxa WNTR",
-    "wisdom": "Wisdom Center"
+    "wisdom": "Wisdom Center",
+    "bloqueProyectos": "Projectes",
+    "bloqueHerramientas": "Eines",
+    "bloqueSistema": "Sistema",
+    "simulaciones": "Simulacions",
+    "chatProyecto": "Xat del projecte",
+    "chatGeneral": "Xat general",
+    "sinProyecto": "Sense projecte actiu",
+    "proyectoActivo": "Projecte actiu",
+    "chatsDelProyecto": "Xats del projecte",
+    "nuevaConversacion": "Nova conversa"
   },
   "chat": {
     "newConversation": "Nova Conversa",

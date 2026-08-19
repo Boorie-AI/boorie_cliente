@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react'
 import { useChatStore } from '@/stores/chatStore'
 import { useProjectStore } from '@/stores/projectStore'
+import { useAppStore } from '@/stores/appStore'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { ChatHeader } from './ChatHeader'
@@ -17,6 +18,11 @@ export function ChatArea() {
   const selectedProjectId = useProjectStore(s => s.currentProjectId) ?? undefined
   const selectProject = useProjectStore(s => s.selectProject)
   const clearProject = useProjectStore(s => s.clearProject)
+  // El chat del proyecto y el chat general son la misma pantalla mirando a
+  // conversaciones distintas (#35): lo que cambia es a qué proyecto queda atada
+  // la conversación que se cree aquí.
+  const ambitoChat = useAppStore(s => s.ambitoChat)
+  const proyectoDeLaNueva = ambitoChat === 'proyecto' ? selectedProjectId : undefined
   const onProjectSelect = (projectId: string | undefined) => {
     if (projectId) selectProject(projectId)
     else clearProject()
@@ -55,14 +61,16 @@ export function ChatArea() {
             </div>
 
             <div className="space-y-4 flex flex-col items-center">
-              <ProjectSelector
-                selectedProjectId={selectedProjectId}
-                onProjectSelect={onProjectSelect}
-                className="justify-center"
-              />
+              {ambitoChat === 'proyecto' && (
+                <ProjectSelector
+                  selectedProjectId={selectedProjectId}
+                  onProjectSelect={onProjectSelect}
+                  className="justify-center"
+                />
+              )}
 
               <button
-                onClick={() => useChatStore.getState().createNewConversation(selectedProjectId)}
+                onClick={() => useChatStore.getState().createNewConversation(proyectoDeLaNueva)}
                 className={cn(
                   "px-8 py-3 bg-primary text-primary-foreground rounded-xl font-medium",
                   "hover:bg-primary/90 transition-all duration-200 shadow-lg hover:shadow-xl",
@@ -74,9 +82,9 @@ export function ChatArea() {
             </div>
 
             <div className="text-sm text-muted-foreground/70">
-              {selectedProjectId ?
+              {proyectoDeLaNueva ?
                 "This conversation will be linked to the selected project" :
-                "Select a project to link conversations or start without one"
+                "General chat: this conversation is not linked to any project"
               }
             </div>
           </div>
