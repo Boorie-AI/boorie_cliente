@@ -15,7 +15,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `./dev-start.sh` - Full development setup with complete build
 
 ### Testing
-- No formal test framework configured in package.json
+- `npm test` - Run the full Vitest suite once
+- `npm run test:watch` - Vitest in watch mode
+- `npm run test:ui` - Vitest UI
+- `npm run test:coverage` - Coverage report (v8 provider, text + html)
+- Run a single file with `npx vitest run <path>`
+- Config lives in the `test` block of `vite.config.ts`: `happy-dom` environment,
+  globals enabled, setup in `src/test/setup.ts`, and it picks up
+  `src/**/*.{test,spec}.{ts,tsx}` plus `backend/**/*.{test,spec}.ts`
+- Tests sit next to the code they cover (e.g. `backend/services/hydraulic/networkContext.test.ts`)
+- Suites that need a real resource (the SQLite database, a Python install) guard
+  themselves with `describe.skipIf(...)` so they skip instead of failing where it is absent
 - `test-files/` directory contains EPANET .inp files and test results for hydraulic simulations
 - Manual testing scripts in root directory for system verification:
   - `test-*.js` - Various functionality tests (RAG, WNTR, IPC, database, etc.)
