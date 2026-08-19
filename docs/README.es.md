@@ -39,15 +39,23 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.8.0
+### 🚀 Última Versión - v1.9.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.8.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.8.0/Boorie-1.8.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.8.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.8.0/Boorie-Setup-1.8.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.8.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.8.0/Boorie-1.8.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.9.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.9.0/Boorie-1.9.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.9.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.9.0/Boorie-Setup-1.9.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.9.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.9.0/Boorie-1.9.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.9.0
+- El menú se organiza en tres bloques: lo que pertenece al proyecto activo, las herramientas que funcionan sin él y lo del sistema. Antes era una lista plana donde «Red WNTR» estaba al mismo nivel que «Configuración».
+- El nombre del proyecto en el que trabajas está siempre a la vista, y de él cuelgan su red, sus simulaciones y su chat. Sin proyecto activo esos ítems no aparecen y el menú lo dice.
+- «Proyectos» te enseña siempre tu lista, con el activo marcado. Antes, con un proyecto abierto, esa pantalla mostraba lo mismo que «Red WNTR» y no había forma de volver a la lista sin cerrar el proyecto.
+- El chat general y el chat del proyecto son dos entradas distintas, cada una con sus conversaciones.
+- Sin proyecto activo, Boorie abre en Proyectos; con proyecto, sigue abriendo donde lo dejaste.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.9.0).
 
 ### 📝 Novedades en v1.8.0
 - El agente recibe los datos reales de la red cargada —nudos, depósitos, tuberías, longitud total, demanda y rango de diámetros— en lugar de un escueto «hay una red cargada». Antes, a «¿cómo mejoro el flujo en el nudo J3?» respondía consejos genéricos sobre limpiar una junta mecánica, sin enterarse de que J3 es un nudo de tu red.
@@ -128,12 +136,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.8.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.8.0.AppImage`
-3. Ejecuta: `./Boorie-1.8.0.AppImage`
+1. Descarga `Boorie-1.9.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.9.0.AppImage`
+3. Ejecuta: `./Boorie-1.9.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.8.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.9.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 

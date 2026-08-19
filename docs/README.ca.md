@@ -39,15 +39,23 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.8.0
+### 🚀 Última Versió - v1.9.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.8.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.8.0/Boorie-1.8.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.8.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.8.0/Boorie-Setup-1.8.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.8.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.8.0/Boorie-1.8.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.9.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.9.0/Boorie-1.9.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.9.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.9.0/Boorie-Setup-1.9.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.9.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.9.0/Boorie-1.9.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.9.0
+- El menú s'organitza en tres blocs: el que pertany al projecte actiu, les eines que funcionen sense ell i el del sistema. Abans era una llista plana on «Xarxa WNTR» era al mateix nivell que «Configuració».
+- El nom del projecte on treballes és sempre a la vista, i d'ell pengen la seva xarxa, les seves simulacions i el seu xat. Sense projecte actiu aquests ítems no apareixen i el menú ho diu.
+- «Projectes» t'ensenya sempre la teva llista, amb l'actiu marcat. Abans, amb un projecte obert, aquella pantalla mostrava el mateix que «Xarxa WNTR» i no hi havia manera de tornar a la llista sense tancar el projecte.
+- El xat general i el xat del projecte són dues entrades diferents, cadascuna amb les seves converses.
+- Sense projecte actiu, Boorie obre a Projectes; amb projecte, continua obrint on el vas deixar.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.9.0).
 
 ### 📝 Novetats a v1.8.0
 - L'agent rep les dades reals de la xarxa carregada —nusos, dipòsits, canonades, longitud total, demanda i rang de diàmetres— en lloc d'un escarit «hi ha una xarxa carregada». Abans, a «com puc millorar el cabal al nus J3?» responia consells genèrics sobre netejar una junta mecànica, sense adonar-se que J3 és un nus de la teva xarxa.
@@ -128,12 +136,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.8.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.8.0.AppImage`
-3. Executa: `./Boorie-1.8.0.AppImage`
+1. Descarrega `Boorie-1.9.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.9.0.AppImage`
+3. Executa: `./Boorie-1.9.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.8.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.9.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
