@@ -227,6 +227,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
               highlightedNodes={highlightedNodes}
               showLabels={visualizationSettings.showLabels}
               escala={escala}
+              capas={visualizationSettings.capas}
             />
           )}
 

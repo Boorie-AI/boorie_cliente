@@ -106,7 +106,7 @@ export function useSimulationTimeline({
     linea,
     etiqueta: etiquetaDe(paso),
     duracion: duracionTotal(linea),
-    marcas: useMemo(() => marcasEje(linea, 9, opcionesTiempo), [linea, opcionesTiempo]),
+    marcas: useMemo(() => marcasEje(linea, 7, opcionesTiempo), [linea, opcionesTiempo]),
     etiquetaDe,
   }
 }

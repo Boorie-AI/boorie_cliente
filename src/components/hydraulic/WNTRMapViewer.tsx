@@ -16,6 +16,7 @@ import { cn } from '@/utils/cn'
 import { useMapboxToken } from '@/hooks/useMapboxToken'
 import { comprobarSoporteSatelite } from '@/utils/webgl'
 import { construirEscala, type Simbologia } from '@/services/network/simbologia'
+import { nudoVisible, tramoVisible, type CapasVisibles } from '@/services/network/capas'
 import { valorEnPaso } from '@/services/network/topologia'
 import { useProjectStore } from '@/stores/projectStore'
 import { CRSSelector } from './CRSSelector'
@@ -85,6 +86,8 @@ export interface MapSettings {
   linkWidth: number
   /** Qué magnitud de la simulación colorea la red. */
   simbologia: Simbologia
+  /** Qué tipos de elemento se dibujan. */
+  capas: CapasVisibles
 }
 
 interface WNTRMapViewerProps {
@@ -619,7 +622,7 @@ export function WNTRMapViewer({
     // Create GeoJSON for nodes
     const nodesGeoJSON: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
-      features: networkData.nodes.map(node => {
+      features: networkData.nodes.filter(node => nudoVisible(node, mapSettings.capas)).map(node => {
         const coords = geoConversion.transformar(
           node.x || node.coordinates?.[0] || 0,
           node.y || node.coordinates?.[1] || 0
@@ -671,7 +674,7 @@ export function WNTRMapViewer({
     // Create GeoJSON for links
     const linksGeoJSON: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
-      features: networkData.links.map(link => {
+      features: networkData.links.filter(link => tramoVisible(link, mapSettings.capas)).map(link => {
         const fromNode = networkData.nodes.find(n => n.id === link.from)
         const toNode = networkData.nodes.find(n => n.id === link.to)
 

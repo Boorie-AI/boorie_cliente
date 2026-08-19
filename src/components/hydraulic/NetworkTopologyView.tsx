@@ -21,6 +21,7 @@ interface NetworkTopologyViewProps {
   showLabels?: boolean
   /** Escala de color vigente, para pintar la misma magnitud que el mapa. */
   escala?: Parameters<typeof construirGrafo>[3]
+  capas?: Parameters<typeof construirGrafo>[4]
 }
 
 export function NetworkTopologyView({
@@ -30,13 +31,14 @@ export function NetworkTopologyView({
   highlightedNodes,
   showLabels = false,
   escala,
+  capas,
 }: NetworkTopologyViewProps) {
   const visRef = useRef<{ fit: () => void } | null>(null)
   const [seleccion, setSeleccion] = useState<{ tipo: 'nudo' | 'tramo'; texto: string } | null>(null)
 
   const grafo = useMemo(
-    () => construirGrafo(networkData, simulationResults, activeTimeStep, escala),
-    [networkData, simulationResults, activeTimeStep, escala]
+    () => construirGrafo(networkData, simulationResults, activeTimeStep, escala, capas),
+    [networkData, simulationResults, activeTimeStep, escala, capas]
   )
 
   const datosVis = useMemo(() => {

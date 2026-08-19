@@ -7,6 +7,7 @@
  * en un estado propio del panel lateral que no llegaba al mapa.
  */
 
+import { CAPAS_TODAS } from '@/services/network/capas'
 import type { MapSettings } from './WNTRMapViewer'
 
 export type VistaVisor = 'mapa' | 'topologia'
@@ -33,6 +34,7 @@ export function soloAjustesDelMapa(ajustes: AjustesVisor): MapSettings {
     nodeSize: ajustes.nodeSize,
     linkWidth: ajustes.linkWidth,
     simbologia: ajustes.simbologia,
+    capas: ajustes.capas,
   }
 }
 
@@ -44,6 +46,7 @@ export const AJUSTES_INICIALES: AjustesVisor = {
   nodeSize: 8,
   linkWidth: 2,
   simbologia: 'presion',
+  capas: CAPAS_TODAS,
   timeStep: 0,
   isPlaying: false,
   playbackSpeed: 1,

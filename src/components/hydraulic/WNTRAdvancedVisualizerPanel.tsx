@@ -9,6 +9,7 @@ import type { AjustesVisor, VistaVisor } from './ajustesVisor';
 import { comprobarSoporteSatelite } from '@/utils/webgl';
 import { etiquetaCorta, type Timeline } from '@/hooks/useSimulationTimeline';
 import { ETIQUETAS_SIMBOLOGIA, type Escala } from '@/services/network/simbologia';
+import { CAPAS, CAPAS_TODAS, contarPorTipo, hayCapasOcultas } from '@/services/network/capas';
 
 // Función pura del entorno, no estado: se resuelve una vez al cargar el módulo.
 const SOPORTE_SATELITE = comprobarSoporteSatelite();
@@ -124,6 +125,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
   escala
 }) => {
   const settings = ajustes;
+  const cuentas = React.useMemo(() => contarPorTipo(networkData), [networkData]);
 
   const handleSettingChange = <K extends keyof AjustesVisor>(key: K, value: AjustesVisor[K]) => {
     onCambio({ ...ajustes, [key]: value });
@@ -258,6 +260,62 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                 step={1}
               />
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Capas. La ofrecía uno de los visores que retiró el #37 y se fue con él
+          sin que nadie la portara; con miles de nudos es lo que permite mirar
+          sólo las bombas, o el trazado sin la nube de acometidas. */}
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-white text-base flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Layers className="h-4 w-4" />
+              Capas
+            </div>
+            {hayCapasOcultas(settings.capas) && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-auto px-2 py-0.5 text-xs text-blue-400 hover:text-blue-300"
+                onClick={() => handleSettingChange('capas', CAPAS_TODAS)}
+              >
+                Ver todo
+              </Button>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {CAPAS.map(capa => (
+            <div key={capa.tipo} className="flex items-center justify-between">
+              <span
+                className={cn(
+                  'text-sm',
+                  cuentas[capa.tipo] === 0 && 'text-gray-500'
+                )}
+              >
+                {capa.etiqueta}
+                <span className="ml-2 text-xs text-gray-500">{cuentas[capa.tipo]}</span>
+              </span>
+              <Switch
+                // Un tipo que la red no tiene se deshabilita en vez de esconderse:
+                // así se ve que existe y que esta red no lo usa.
+                disabled={cuentas[capa.tipo] === 0}
+                checked={settings.capas[capa.tipo]}
+                onCheckedChange={checked =>
+                  handleSettingChange('capas', { ...settings.capas, [capa.tipo]: checked })
+                }
+              />
+            </div>
+          ))}
+
+          {hayCapasOcultas(settings.capas) && (
+            <p className="pt-1 text-[11px] text-yellow-500/90">
+              No estás viendo la red completa.
+              {settings.vista === 'topologia' &&
+                ' En el esquema, ocultar un tipo de nudo se lleva también los tramos que lo tocan: un tramo necesita sus dos extremos para dibujarse.'}
+            </p>
           )}
         </CardContent>
       </Card>

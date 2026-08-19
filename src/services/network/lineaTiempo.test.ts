@@ -114,6 +114,16 @@ describe('marcas del eje', () => {
     expect(etiquetaCorta(linea, 1, OPCIONES_15)).toBe('+00:15')
   })
 
+  it('una simulación de días también pierde los segundos en el eje', () => {
+    // 168 h son tres dígitos de hora: con el recorte anterior el eje mezclaba
+    // «+21:00» con «+105:00:00».
+    const semana = Array.from({ length: 673 }, (_, i) => i * 900)
+    const linea = construirLineaTiempo(semana, { report_timestep: 900 })
+
+    expect(etiquetaCorta(linea, 672)).toBe('+168:00')
+    expect(marcasEje(linea, 9).every(m => !/:\d{2}:\d{2}$/.test(m.texto))).toBe(true)
+  })
+
   it('la duración total sale del último paso, no de la opción declarada', () => {
     // Una simulación que se corta antes de tiempo debe decir lo que duró.
     const linea = construirLineaTiempo([0, 3600, 7200], { duration: 86400 })

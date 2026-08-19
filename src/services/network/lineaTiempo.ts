@@ -120,7 +120,10 @@ export function etiquetaCorta(
   opciones?: OpcionesTiempo | null
 ): string {
   const completa = etiquetaPaso(linea, paso, opciones)
-  return completa.replace(/^(\+?\d{2}:\d{2}):\d{2}/, '$1')
+  // `\d{2,}`, no `\d{2}`: una simulación de una semana llega a las 168 horas y
+  // con dos dígitos la etiqueta se quedaba con los segundos puestos, así que el
+  // eje mezclaba «+21:00» con «+105:00:00».
+  return completa.replace(/^(\+?\d{2,}:\d{2}):\d{2}/, '$1')
 }
 
 /**

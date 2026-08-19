@@ -123,15 +123,30 @@ explique.
 
 ## Lo que se rescató de los visores retirados
 
-Al revisar si los componentes que retiró #37 merecían volver, la respuesta fue que
-no —`WNTRSimulationViewer` era un segundo visor Mapbox con sus propias
-definiciones `proj4` codificadas a mano, y `WNTRNetworkVisualization` dibujaba a
-mano sobre un `canvas` 2D sin desplazamiento ni zoom—, pero sí tenían **una
-capacidad que faltaba**: colorear por más magnitudes que presión y caudal.
+### La lección, primero
 
-Vuelve como `src/services/network/simbologia.ts`, con cinco opciones —tipo de
-elemento, presión, demanda, caudal y velocidad— compartidas por el mapa, el
-esquema y la leyenda del panel.
+La auditoría de #37 clasificó los nueve visores por si alguien los importaba, y
+esa pregunta estaba bien: ninguno se renderizaba. Pero **clasificar un componente
+no es inventariar lo que sabe hacer**, y se borraron 4.700 líneas sin repasar
+capacidad por capacidad qué se iba con ellas. Que fueran inalcanzables para el
+usuario no significa que no tuvieran nada dentro.
+
+Se vio porque el issue #45 nombraba cinco componentes y dos ya no existían, y al
+ir a mirar qué hacían aparecieron dos capacidades que el visor canónico no tenía.
+La regla que queda: antes de retirar código muerto, listar sus capacidades y
+decidir una por una, no en bloque.
+
+### El resultado
+
+Al revisar si los componentes merecían volver, la respuesta fue que no —`WNTRSimulationViewer` era un segundo visor Mapbox con sus propias
+definiciones `proj4` codificadas a mano, y `WNTRNetworkVisualization` dibujaba a
+mano sobre un `canvas` 2D sin desplazamiento ni zoom—, pero sí tenían **capacidades que
+faltaban**.
+
+Vuelven dos: la **simbología** (`src/services/network/simbologia.ts`), con cinco
+opciones —tipo de elemento, presión, demanda, caudal y velocidad— compartidas por
+el mapa, el esquema y la leyenda del panel; y el **filtrado por tipo de elemento**
+(`src/services/network/capas.ts`).
 
 **Lo que no vuelve es cómo calculaban la escala.** Usaban máximos fijos escritos a
 mano: caudal 0–200 L/s, velocidad 0–2 m/s, demanda 0–50 L/s. Es el mismo defecto
@@ -141,6 +156,18 @@ del paso mostrado, y la leyenda declara el rango real —comprobado con `Net3 2`
 «Escala de esta red en este paso: 0.00 a 2.84 m/s», que con el máximo fijo de 2
 habría quedado plana por arriba—.
 
+**Filtrar por tipo de elemento vuelve también.** `src/services/network/capas.ts`
+enciende y apaga nudos de consumo, depósitos, embalses, tuberías, bombas y
+válvulas, con el contador de cada tipo al lado; un tipo que la red no tiene sale
+deshabilitado en vez de escondido, para que se vea que existe y que esta red no
+lo usa. Con miles de nudos es lo que permite mirar sólo las bombas, o el trazado
+sin la nube de acometidas.
+
+En el mapa, nudos y tramos se filtran de forma independiente. En el esquema no
+puede ser: un tramo necesita sus dos extremos para dibujarse, así que ocultar un
+tipo de nudo se lleva los tramos que lo tocan. El panel lo dice cuando estás en
+esa vista, en lugar de dejar que parezca un fallo.
+
 **La presión es la excepción, a propósito.** Sus cortes siguen siendo absolutos
 —20 y 80 m— porque tienen un criterio de servicio que no depende de la red:
 escalarla al máximo de cada modelo escondería justamente los nudos por debajo del
@@ -148,12 +175,7 @@ mínimo. La leyenda distingue los dos casos.
 
 ## Fuera de alcance
 
-****Filtrar capas por tipo de elemento** (bombas, válvulas, depósitos…), que
-`WNTRNetworkVisualization` ofrecía y aquí no vuelve. Con una red de 3.358 nudos es
-la capacidad más útil de las que tenía, pero es funcionalidad nueva, no un
-rescate, y no cabe dentro de un cambio de dos bugs.
-
-**El acumulado de retraso en el repintado.**** El issue #45 lo dejaba como
+****El acumulado de retraso en el repintado.**** El issue #45 lo dejaba como
 «revisión adicional pendiente». La reproducción por reloj real lo elimina como
 causa —el paso ya no depende de cuántos ticks se hayan podido servir—, pero no se
 ha medido el coste de repintar una red grande paso a paso. Si aparece, es un
