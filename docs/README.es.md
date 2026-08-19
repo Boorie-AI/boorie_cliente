@@ -39,15 +39,23 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.6.0
+### 🚀 Última Versión - v1.7.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.6.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.6.0/Boorie-1.6.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.6.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.6.0/Boorie-Setup-1.6.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.6.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.6.0/Boorie-1.6.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.7.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.7.0/Boorie-1.7.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.7.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.7.0/Boorie-Setup-1.7.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.7.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.7.0/Boorie-1.7.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.7.0
+- Si entras en la red hidráulica sin un proyecto activo, Boorie te lo dice y te ofrece elegir uno. Antes te cambiaba la pantalla por la lista de proyectos sin explicar por qué.
+- Los ítems del menú que necesitan algo aparecen atenuados y con un candado, y te dicen qué les falta. Siguen pudiéndose pulsar, para que llegues a la pantalla que te lo resuelve.
+- El tutorial de primer uso te lleva ahora a crear un proyecto y cargar tu red, en vez de terminar en la calculadora.
+- La calculadora sigue funcionando sola, sin pedirte ningún proyecto.
+- Los nombres del menú ya salen en tu idioma: «Projects», «Calculator» y «WNTR Network» estaban en inglés.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.7.0).
 
 ### 📝 Novedades en v1.6.0
 - La simulación de interrupción del servicio dice ahora a cuánta gente deja sin agua: habitantes afectados, en qué nudos, cuánto dura el déficit y cuánta agua no llega a entregarse.
@@ -112,12 +120,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.6.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.6.0.AppImage`
-3. Ejecuta: `./Boorie-1.6.0.AppImage`
+1. Descarga `Boorie-1.7.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.7.0.AppImage`
+3. Ejecuta: `./Boorie-1.7.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.6.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.7.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
