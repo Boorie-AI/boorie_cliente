@@ -7,6 +7,23 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.10.0] - 2026-08-19
+
+Tu red se sitúa en el mapa donde tú digas, no donde Boorie se imagine.
+
+- Boorie ya no adivina el sistema de coordenadas de tu red: te lo pregunta. Un selector nuevo te
+  deja declarar el EPSG —los 120 husos UTM, MAGNA-SIRGAS de Colombia, ETRS89 y ED50 de España,
+  ITRF2008 de México, o cualquier código que escribas— y te enseña dónde va a caer el centro de la
+  red antes de que aceptes.
+- Una red sin sistema declarado ya no se dibuja en un sitio inventado: el mapa te dice que falta
+  declararlo y te da el botón para hacerlo. Antes, cualquier red que no encajara en los rangos con
+  los que se programó acababa pintada en el Caribe colombiano sin avisar de nada.
+- Cambiar el EPSG recoloca la red al instante, sin volver a cargar el `.inp`.
+- Si la red reproyectada cae fuera del país de tu proyecto, Boorie te avisa. Es la forma de cazar
+  un huso equivocado antes de ponerte a trabajar sobre una ubicación falsa.
+- Las coordenadas de tu `.inp` no se tocan nunca: la reproyección existe sólo para pintar el mapa,
+  así que el fichero que guardaste sigue siendo exactamente el tuyo.
+
 ## [1.9.0] - 2026-08-19
 
 Boorie empieza por tus proyectos, y lo del proyecto cuelga de ahí.
