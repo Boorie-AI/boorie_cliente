@@ -189,6 +189,8 @@ const electronAPI = {
 
     // Simulation results
     saveSimulation: (data: { networkId: string; results: any }) => ipcRenderer.invoke('network-repo:save-simulation', data),
+    /** Resumen de la red activa para el agente del chat (#34) */
+    context: (projectId: string, proveedor?: string) => ipcRenderer.invoke('network-repo:context', projectId, proveedor),
 
     // Statistics
     getStats: (projectId: string) => ipcRenderer.invoke('network-repo:stats', projectId),

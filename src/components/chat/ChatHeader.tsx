@@ -8,6 +8,7 @@ import { ModelSelector } from './ModelSelector'
 import { WisdomSelector } from './WisdomSelector'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { ProjectSelector } from './ProjectSelector'
+import { RedEnContexto } from './RedEnContexto'
 import { NewProjectDialog } from '@/components/hydraulic/NewProjectDialog'
 import * as Dialog from '@radix-ui/react-dialog'
 
@@ -142,6 +143,10 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
           selectedProjectId={conversation.projectId}
           onProjectSelect={handleProjectChange}
         />
+
+        {/* Qué red está viendo el agente (#34): sin esto el usuario no puede
+            saber si el chat responde sobre su red o de memoria. */}
+        <RedEnContexto />
         
         {isEditing ? (
           <input

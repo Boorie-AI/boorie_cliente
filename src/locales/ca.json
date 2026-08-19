@@ -45,7 +45,13 @@
     "copyToClipboard": "Copiar al portapapers",
     "exportAsJSON": "Exportar com JSON",
     "deleteConversation": "Eliminar conversa",
-    "confirmDelete": "Estàs segur que vols eliminar aquesta conversa? Aquesta acció no es pot desfer."
+    "confirmDelete": "Estàs segur que vols eliminar aquesta conversa? Aquesta acció no es pot desfer.",
+    "redEnContexto": {
+      "viendo": "L'agent veu: {{red}}",
+      "ninguna": "L'agent no veu cap xarxa",
+      "ningunaAyuda": "Carrega un fitxer .inp al projecte perquè el xat pugui respondre sobre la teva xarxa.",
+      "detalle": "{{nudos}} nusos · {{tuberias}} canonades · {{km}} km de canonada"
+    }
   },
   "settings": {
     "title": "Configuració",
