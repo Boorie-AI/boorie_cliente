@@ -64,11 +64,17 @@ describe('pythonDetector', () => {
     expect(second).toBe('/second/python3')
   })
 
+  // Es el unico test que deja sondear el sistema de verdad, y sondear cuesta:
+  // el detector lanza execSync por cada candidato con timeouts propios de 5 s y
+  // de 30 s, asi que con los 5 s por defecto de vitest una sola sonda lenta ya
+  // se pasa de largo. En CI tardaba 4,07 s -de 5- antes de que un fichero de
+  // test mas de carga en paralelo lo tumbara. El limite va por encima de lo que
+  // el propio detector se permite; lo que se comprueba aqui no es la rapidez.
   it('should return a string path when no PYTHON_PATH is set', () => {
     const result = findPythonPath()
     expect(typeof result).toBe('string')
     expect(result.length).toBeGreaterThan(0)
-  })
+  }, 60_000)
 
   it('resolves the managed venv directory inside userData', () => {
     vi.stubEnv('BOORIE_USER_DATA', USER_DATA)
