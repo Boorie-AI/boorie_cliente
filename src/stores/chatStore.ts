@@ -299,11 +299,13 @@ export const useChatStore = create<ChatState>()(
             // generalidades pasaría a depender de la disposición del modelo de
             // turno en lugar del prompt. Con llama3.2 la respuesta era pedir
             // más datos, pero incluía un «Ejemplo» con cifras inventadas.
+            let hayRedEnContexto = false
             try {
               const red = await window.electronAPI.networkRepository.context(proyectoParaContexto ?? '')
               if (red?.success && red.data?.texto) {
                 enhancedPrompt = red.data.texto + enhancedPrompt
               }
+              hayRedEnContexto = !!red?.data?.resumen
             } catch (error) {
               logger.warn('Failed to build network context:', error)
             }
@@ -349,7 +351,11 @@ export const useChatStore = create<ChatState>()(
             const MAX_RETRIES = 1
             let lastError: Error | null = null
 
-            const isOllama = conversation.provider.toLowerCase() === 'ollama'
+            // Ollama va por streaming salvo cuando hay red que consultar: las
+            // herramientas necesitan varias vueltas de peticion y respuesta, y
+            // eso vive en el handler IPC. Se cambia respuesta token a token por
+            // respuesta con datos de la red, que es el objeto de #34.
+            const isOllama = conversation.provider.toLowerCase() === 'ollama' && !hayRedEnContexto
 
             for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
               try {
@@ -378,7 +384,11 @@ export const useChatStore = create<ChatState>()(
                     provider: conversation.provider,
                     model: conversation.model,
                     messages: messages,
-                    apiKey: apiKey
+                    apiKey: apiKey,
+
+                    // Con proyecto el agente puede consultar la red por
+                    // herramientas, en vez de quedarse en el resumen (#34).
+                    projectId: proyectoParaContexto
                   })
                 }
 

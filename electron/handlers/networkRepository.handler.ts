@@ -4,6 +4,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { NetworkRepositoryService } from '../../backend/services/hydraulic/networkRepository'
 import { construirResumenRed, formatearContextoRed } from '../../backend/services/hydraulic/networkContext'
+import { leerRedActiva } from '../../backend/services/hydraulic/redActiva'
 import type { PrismaClient } from '@prisma/client'
 import { appLogger } from '../../backend/utils/logger'
 
@@ -302,10 +303,7 @@ export class NetworkRepositoryHandler {
           return { success: true, data: { resumen: null, texto: formatearContextoRed(null) } }
         }
 
-        const red = await this.prisma.hydraulicNetwork.findFirst({
-          where: { projectId, isActive: true },
-          orderBy: { updatedAt: 'desc' }
-        })
+        const red = await leerRedActiva(this.prisma, projectId)
 
         if (!red) {
           return { success: true, data: { resumen: null, texto: formatearContextoRed(null) } }
@@ -332,9 +330,9 @@ export class NetworkRepositoryHandler {
         })
 
         const resumen = construirResumenRed({
-          nombreRed: red.name,
-          contadores: JSON.parse(red.summary || '{}'),
-          datos: JSON.parse(red.networkData || '{}'),
+          nombreRed: red.nombre,
+          contadores: red.contadores,
+          datos: red.datos,
           ultimaSimulacion: ultima ? { nombre: ultima.name, fecha: ultima.createdAt } : null
         })
 
