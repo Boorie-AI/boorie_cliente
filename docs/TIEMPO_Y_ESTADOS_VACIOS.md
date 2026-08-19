@@ -120,9 +120,39 @@ mantiene: bloquear el botón dejaría al usuario sin forma de llegar a la pantal
 que le explica qué falta. Lo que se arregla es que esa pantalla, ahora sí,
 explique.
 
+## Lo que se rescató de los visores retirados
+
+Al revisar si los componentes que retiró #37 merecían volver, la respuesta fue que
+no —`WNTRSimulationViewer` era un segundo visor Mapbox con sus propias
+definiciones `proj4` codificadas a mano, y `WNTRNetworkVisualization` dibujaba a
+mano sobre un `canvas` 2D sin desplazamiento ni zoom—, pero sí tenían **una
+capacidad que faltaba**: colorear por más magnitudes que presión y caudal.
+
+Vuelve como `src/services/network/simbologia.ts`, con cinco opciones —tipo de
+elemento, presión, demanda, caudal y velocidad— compartidas por el mapa, el
+esquema y la leyenda del panel.
+
+**Lo que no vuelve es cómo calculaban la escala.** Usaban máximos fijos escritos a
+mano: caudal 0–200 L/s, velocidad 0–2 m/s, demanda 0–50 L/s. Es el mismo defecto
+que los husos codificados de #48: funciona con las redes con las que se probó y
+satura en el color más alto para cualquier otra. Aquí la escala sale de los datos
+del paso mostrado, y la leyenda declara el rango real —comprobado con `Net3 2`:
+«Escala de esta red en este paso: 0.00 a 2.84 m/s», que con el máximo fijo de 2
+habría quedado plana por arriba—.
+
+**La presión es la excepción, a propósito.** Sus cortes siguen siendo absolutos
+—20 y 80 m— porque tienen un criterio de servicio que no depende de la red:
+escalarla al máximo de cada modelo escondería justamente los nudos por debajo del
+mínimo. La leyenda distingue los dos casos.
+
 ## Fuera de alcance
 
-**El acumulado de retraso en el repintado.** El issue #45 lo dejaba como
+****Filtrar capas por tipo de elemento** (bombas, válvulas, depósitos…), que
+`WNTRNetworkVisualization` ofrecía y aquí no vuelve. Con una red de 3.358 nudos es
+la capacidad más útil de las que tenía, pero es funcionalidad nueva, no un
+rescate, y no cabe dentro de un cambio de dos bugs.
+
+**El acumulado de retraso en el repintado.**** El issue #45 lo dejaba como
 «revisión adicional pendiente». La reproducción por reloj real lo elimina como
 causa —el paso ya no depende de cuántos ticks se hayan podido servir—, pero no se
 ha medido el coste de repintar una red grande paso a paso. Si aparece, es un

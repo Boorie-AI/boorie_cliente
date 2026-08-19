@@ -5,6 +5,7 @@ import { WNTRAdvancedVisualizerPanel } from './WNTRAdvancedVisualizerPanel';
 import { AJUSTES_INICIALES, soloAjustesDelMapa, type AjustesVisor } from './ajustesVisor';
 import type { MapSettings } from './WNTRMapViewer';
 import { tieneCoordenadasUtiles } from '@/services/network/topologia';
+import { construirEscala } from '@/services/network/simbologia';
 import { useSimulationTimeline } from '@/hooks/useSimulationTimeline';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -142,6 +143,17 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
     setVisualizationSettings(prev => ({ ...prev, ...mapSettings }));
   }, []);
 
+  /** Una sola escala para el mapa, el esquema y la leyenda del panel. */
+  const escala = useMemo(
+    () => construirEscala(
+      visualizationSettings.simbologia,
+      networkData,
+      simulationResults,
+      visualizationSettings.timeStep
+    ),
+    [visualizationSettings.simbologia, visualizationSettings.timeStep, networkData, simulationResults]
+  );
+
   const ajustesDelMapa = useMemo(
     () => soloAjustesDelMapa(visualizationSettings),
     [visualizationSettings]
@@ -214,6 +226,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
               activeTimeStep={visualizationSettings.timeStep}
               highlightedNodes={highlightedNodes}
               showLabels={visualizationSettings.showLabels}
+              escala={escala}
             />
           )}
 
@@ -355,6 +368,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
             onCambio={handleSettingsChange}
             mapaDisponible={mapaDisponible}
             timeline={timeline}
+            escala={escala}
           />
         </div>
       </div>

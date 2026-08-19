@@ -163,7 +163,13 @@ function colorPorPresion(presion: number | undefined, base: string): string {
 export function construirGrafo(
   datos: DatosRed | null | undefined,
   resultados?: ResultadosSimulacion | null,
-  paso = 0
+  paso = 0,
+  /**
+   * Escala de color vigente. Se pasa desde fuera para que el esquema y el mapa
+   * pinten la misma magnitud: si el esquema coloreara siempre por presión
+   * mientras el panel dice «velocidad», estaría mintiendo (#37).
+   */
+  escala?: { aplicaA: 'nudos' | 'tramos'; parametro: string; color: (v: number | undefined) => string | null } | null
 ): GrafoRed {
   if (!datos || datos.nodes.length === 0) {
     return { nodes: [], edges: [], usaFisica: false, motivo: 'La red no tiene nudos.' }
@@ -178,6 +184,10 @@ export function construirGrafo(
 
     const res = resultados?.node_results?.[n.id]
     const presion = valorEnPaso(res?.pressure, paso)
+    const porEscala =
+      escala?.aplicaA === 'nudos'
+        ? escala.color(valorEnPaso(res?.[escala.parametro === 'presion' ? 'pressure' : 'demand'], paso))
+        : null
 
     const detalles = [`${tipo}: ${n.label ?? n.id}`]
     if (typeof n.elevation === 'number') detalles.push(`Cota: ${n.elevation}`)
@@ -191,7 +201,7 @@ export function construirGrafo(
       id: n.id,
       label: String(n.label ?? n.id),
       title: detalles.join('\n'),
-      color: colorPorPresion(presion, estilo.color),
+      color: porEscala ?? colorPorPresion(presion, estilo.color),
       shape: estilo.shape,
       size: estilo.size,
       ...(xy ? { x: xy[0], y: xy[1], fixed: true } : {}),
@@ -211,6 +221,11 @@ export function construirGrafo(
       const res = resultados?.link_results?.[l.id]
       const caudal = valorEnPaso(res?.flowrate, paso)
       const velocidad = valorEnPaso(res?.velocity, paso)
+
+      const porEscalaTramo =
+        escala?.aplicaA === 'tramos'
+          ? escala.color(valorEnPaso(res?.[escala.parametro === 'caudal' ? 'flowrate' : 'velocity'], paso))
+          : null
 
       const detalles = [`${tipo}: ${l.label ?? l.id}`]
       if (typeof l.length === 'number') detalles.push(`Longitud: ${l.length}`)
@@ -232,7 +247,7 @@ export function construirGrafo(
         from: invertido ? l.to : l.from,
         to: invertido ? l.from : l.to,
         title: detalles.join('\n'),
-        color: estilo.color,
+        color: porEscalaTramo ?? estilo.color,
         width: grosor,
         dashes: tipo === 'valve' && String(l.status ?? '').toUpperCase() === 'CLOSED',
         ...(typeof caudal === 'number' || tipo === 'pump' ? { arrows: 'to' } : {}),

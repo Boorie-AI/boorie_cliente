@@ -15,6 +15,8 @@ import {
 import { cn } from '@/utils/cn'
 import { useMapboxToken } from '@/hooks/useMapboxToken'
 import { comprobarSoporteSatelite } from '@/utils/webgl'
+import { construirEscala, type Simbologia } from '@/services/network/simbologia'
+import { valorEnPaso } from '@/services/network/topologia'
 import { useProjectStore } from '@/stores/projectStore'
 import { CRSSelector } from './CRSSelector'
 // Las definiciones proj4 viven en `@/services/geo/crs`, no aqui: cuando cada
@@ -82,7 +84,7 @@ export interface MapSettings {
   nodeSize: number
   linkWidth: number
   /** Qué magnitud de la simulación colorea la red. */
-  simbologia: 'ninguna' | 'presion' | 'caudal'
+  simbologia: Simbologia
 }
 
 interface WNTRMapViewerProps {
@@ -538,6 +540,16 @@ export function WNTRMapViewer({
   const crs = useMemo(() => resolverCRS(epsgDeclarado, limitesRed), [epsgDeclarado, limitesRed])
 
   /**
+   * Escala de color del paso que se está mostrando. Sale de los datos: los
+   * visores retirados usaban máximos fijos escritos a mano y saturaban en
+   * cuanto la red se salía del rango con el que se probaron.
+   */
+  const escala = useMemo(
+    () => construirEscala(mapSettings.simbologia, networkData, simulationResults, currentTimeStep),
+    [mapSettings.simbologia, networkData, simulationResults, currentTimeStep]
+  )
+
+  /**
    * Reproyeccion a WGS84. `null` cuando no hay sistema con el que reproyectar:
    * quien pinta comprueba esto y no dibuja, en lugar de recibir un transformador
    * de mentira que devuelva un punto cualquiera.
@@ -622,20 +634,14 @@ export function WNTRMapViewer({
         if (node.type === 'tank') color = '#EF4444'
         else if (node.type === 'reservoir') color = '#10B981'
 
-        // La presión colorea los nudos sólo cuando el panel lo pide. Antes lo
-        // hacía siempre y el interruptor «mapa de presiones» no llegaba al mapa:
-        // encendido o apagado, se pintaba igual (#37).
-        if (mapSettings.simbologia === 'presion' && simulationResults?.node_results?.[node.id]) {
-          const pressureArray = simulationResults.node_results[node.id].pressure
-          // Access specific time step if it exists, otherwise use 0 or default
-          const pressure = Array.isArray(pressureArray) && currentTimeStep !== undefined
-            ? pressureArray[currentTimeStep] ?? pressureArray[0]
-            : pressureArray
-
-          if (typeof pressure === 'number') {
-            if (pressure < 20) color = '#DC2626' // Red for low pressure
-            else if (pressure > 80) color = '#F97316' // Orange for high pressure
-          }
+        // El color de la magnitud elegida manda sobre el del tipo. Un nudo sin
+        // dato en este paso conserva el suyo en vez de recibir uno inventado.
+        if (escala?.aplicaA === 'nudos') {
+          const valor = valorEnPaso(
+            simulationResults?.node_results?.[node.id]?.[escala.parametro === 'presion' ? 'pressure' : 'demand'],
+            currentTimeStep
+          )
+          color = escala.color(valor) ?? color
         }
 
         return {
@@ -691,16 +697,17 @@ export function WNTRMapViewer({
           width = mapSettings.linkWidth * 1.5
         }
 
-        // Igual que con la presión: el caudal engorda el tramo sólo si es la
-        // simbología elegida.
-        if (mapSettings.simbologia === 'caudal' && simulationResults?.link_results?.[link.id]) {
-          const flowArray = simulationResults.link_results[link.id].flowrate
-          const flowValue = Array.isArray(flowArray) && currentTimeStep !== undefined
-            ? flowArray[currentTimeStep] ?? flowArray[0]
-            : flowArray
-
-          const flow = Math.abs(flowValue || 0)
-          width = Math.min(flow * 0.5 + mapSettings.linkWidth, mapSettings.linkWidth * 4)
+        if (escala?.aplicaA === 'tramos') {
+          const valor = valorEnPaso(
+            simulationResults?.link_results?.[link.id]?.[escala.parametro === 'caudal' ? 'flowrate' : 'velocity'],
+            currentTimeStep
+          )
+          color = escala.color(valor) ?? color
+          // El caudal, además del color, engorda el tramo: es la lectura que un
+          // ingeniero espera de un esquema de red.
+          if (escala.parametro === 'caudal' && typeof valor === 'number' && escala.max > 0) {
+            width = mapSettings.linkWidth * (1 + (3 * Math.abs(valor)) / escala.max)
+          }
         }
 
         return {
@@ -880,7 +887,7 @@ export function WNTRMapViewer({
   // `currentTimeStep` en las dependencias: sin él, la simbología se quedaba
   // congelada en el paso que hubiera cuando se creó el callback y mover la barra
   // no repintaba el mapa (#45).
-  }, [networkData, simulationResults, mapSettings, conversion, crs.motivo, currentTimeStep])
+  }, [networkData, simulationResults, mapSettings, conversion, crs.motivo, currentTimeStep, escala])
 
   useEffect(() => { repintarRedRef.current = addNetworkToMap }, [addNetworkToMap])
 

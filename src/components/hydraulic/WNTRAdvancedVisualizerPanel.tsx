@@ -8,6 +8,7 @@ import { cn } from '@/utils/cn';
 import type { AjustesVisor, VistaVisor } from './ajustesVisor';
 import { comprobarSoporteSatelite } from '@/utils/webgl';
 import { etiquetaCorta, type Timeline } from '@/hooks/useSimulationTimeline';
+import { ETIQUETAS_SIMBOLOGIA, type Escala } from '@/services/network/simbologia';
 
 // Función pura del entorno, no estado: se resuelve una vez al cargar el módulo.
 const SOPORTE_SATELITE = comprobarSoporteSatelite();
@@ -109,6 +110,8 @@ interface WNTRAdvancedVisualizerPanelProps {
    * así que un modelo de 24 h salía con marcas de «86400:00» (#45).
    */
   timeline: Timeline;
+  /** Escala vigente; su leyenda sale de los datos, no de umbrales escritos a mano. */
+  escala: Escala | null;
 }
 
 export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelProps> = ({
@@ -117,7 +120,8 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
   ajustes,
   onCambio,
   mapaDisponible = true,
-  timeline
+  timeline,
+  escala
 }) => {
   const settings = ajustes;
 
@@ -277,11 +281,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
           ) : (
             <>
               <div className="space-y-1">
-                {([
-                  { valor: 'ninguna' as const, etiqueta: 'Por tipo de elemento' },
-                  { valor: 'presion' as const, etiqueta: 'Presión en los nudos' },
-                  { valor: 'caudal' as const, etiqueta: 'Caudal en los tramos' },
-                ]).map(op => (
+                {ETIQUETAS_SIMBOLOGIA.map(op => (
                   <button
                     key={op.valor}
                     onClick={() => handleSettingChange('simbologia', op.valor)}
@@ -292,31 +292,37 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                         : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
                     )}
                   >
-                    {op.etiqueta}
+                    {op.texto}
                   </button>
                 ))}
               </div>
 
-              {settings.simbologia === 'presion' && (
+              {/* La leyenda declara los tramos que hay en esta red y en este
+                  paso. Los visores retirados los tenían escritos a mano —caudal
+                  0-200 L/s, velocidad 0-2 m/s—, así que mentían en cuanto la red
+                  se salía de ese rango. */}
+              {escala && (
                 <div className="space-y-1 text-xs text-gray-400">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-block h-2 w-4 rounded" style={{ background: '#DC2626' }} />
-                    Menos de 20 m
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-block h-2 w-4 rounded" style={{ background: '#3B82F6' }} />
-                    Entre 20 y 80 m
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-block h-2 w-4 rounded" style={{ background: '#F97316' }} />
-                    Más de 80 m
-                  </div>
+                  {escala.leyenda.map(tramo => (
+                    <div key={tramo.etiqueta} className="flex items-center gap-2">
+                      <span
+                        className="inline-block h-2 w-4 shrink-0 rounded"
+                        style={{ background: tramo.color }}
+                      />
+                      {tramo.etiqueta}
+                    </div>
+                  ))}
+                  <p className="pt-1 text-[11px] text-gray-500">
+                    {escala.absoluta
+                      ? 'Cortes de servicio, iguales en cualquier red.'
+                      : `Escala de esta red en este paso: ${escala.min.toFixed(2)} a ${escala.max.toFixed(2)} ${escala.unidad}.`}
+                  </p>
                 </div>
               )}
 
-              {settings.simbologia === 'caudal' && (
+              {settings.simbologia !== 'ninguna' && !escala && (
                 <p className="text-xs text-gray-400">
-                  El grosor del tramo crece con el caudal que circula por él en el paso mostrado.
+                  La simulación no trae esa magnitud, así que la red se dibuja por tipo de elemento.
                 </p>
               )}
             </>
