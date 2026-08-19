@@ -11,6 +11,8 @@ interface ProjectData {
   location: any
   regulations: any[]
   network?: any
+  /** Contador que devuelve el IPC de proyectos; lo consumen las precondiciones (#33). */
+  networkCount?: number
   calculations: any[]
   documents: any[]
   team: any[]

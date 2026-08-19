@@ -13,9 +13,11 @@ import {
   FolderOpen,
   Calculator,
   Network,
-  ChevronDown
+  ChevronDown,
+  Lock
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
+import { usePrecondiciones } from '@/hooks/usePrecondiciones'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { hydraulicService } from '@/services/hydraulic/hydraulicService'
@@ -25,6 +27,7 @@ import boorieIconLight from '@/assets/boorie_icon_light.png'
 
 export function Sidebar() {
   const { t } = useTranslation()
+  const precondiciones = usePrecondiciones()
   const {
     currentView,
     setCurrentView,
@@ -69,10 +72,10 @@ export function Sidebar() {
 
   const menuItems = [
     { id: 'chat', icon: MessageSquare, label: t('sidebar.chat'), view: 'chat' as const },
-    { id: 'projects', icon: FolderOpen, label: 'Projects', view: 'projects' as const },
-    { id: 'calculator', icon: Calculator, label: 'Calculator', view: 'calculator' as const },
-    { id: 'wntr', icon: Network, label: 'WNTR Network', view: 'wntr' as const },
-    { id: 'rag', icon: FileText, label: 'Wisdom Center', view: 'rag' as const },
+    { id: 'projects', icon: FolderOpen, label: t('sidebar.projects'), view: 'projects' as const },
+    { id: 'calculator', icon: Calculator, label: t('sidebar.calculator'), view: 'calculator' as const },
+    { id: 'wntr', icon: Network, label: t('sidebar.wntr'), view: 'wntr' as const },
+    { id: 'rag', icon: FileText, label: t('sidebar.wisdom'), view: 'rag' as const },
     { id: 'settings', icon: Settings, label: t('sidebar.settings'), view: 'settings' as const },
   ]
 
@@ -131,27 +134,42 @@ export function Sidebar() {
         <div className="p-3 space-y-1 flex-shrink-0">
           {menuItems.map((item) => {
             const isActive = currentView === item.view
+            // Se atenúa, no se oculta ni se bloquea: ocultarlo haría la
+            // aplicación menos descubrible, y bloquearlo dejaría al usuario sin
+            // forma de llegar a la pantalla que le explica qué falta.
+            const motivo = precondiciones.motivo(item.view)
+            const bloqueada = motivo !== null
+            const ayuda = bloqueada ? `${item.label} — ${t(motivo)}` : item.label
             return (
               <Tooltip.Root key={item.id}>
                 <Tooltip.Trigger asChild>
                   <button
                     onClick={() => setCurrentView(item.view)}
+                    // Sin aria-disabled: el ítem sigue siendo accionable a
+                    // propósito y marcarlo como deshabilitado sería mentir al
+                    // lector de pantalla. El motivo va en el título accesible.
+                    title={bloqueada ? ayuda : undefined}
+                    aria-label={bloqueada ? ayuda : undefined}
                     className={cn(
                       "w-full flex items-center p-3 rounded-lg transition-all duration-200",
                       "hover:bg-accent hover:text-accent-foreground",
                       isActive
                         ? "bg-primary text-primary-foreground shadow-sm"
                         : "text-muted-foreground",
+                      bloqueada && !isActive && "opacity-50",
                       sidebarCollapsed && "justify-center"
                     )}
                   >
                     <item.icon size={20} />
                     {!sidebarCollapsed && <span className="ml-3 font-medium">{item.label}</span>}
+                    {!sidebarCollapsed && bloqueada && (
+                      <Lock size={12} className="ml-auto opacity-70" aria-hidden />
+                    )}
                   </button>
                 </Tooltip.Trigger>
-                {sidebarCollapsed && (
-                  <Tooltip.Content side="right" className="px-2 py-1 bg-popover text-popover-foreground text-sm rounded-md border border-border shadow-md">
-                    {item.label}
+                {(sidebarCollapsed || bloqueada) && (
+                  <Tooltip.Content side="right" className="px-2 py-1 bg-popover text-popover-foreground text-sm rounded-md border border-border shadow-md max-w-xs">
+                    {ayuda}
                   </Tooltip.Content>
                 )}
               </Tooltip.Root>

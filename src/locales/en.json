@@ -26,7 +26,11 @@
     "collapseSidebar": "Collapse sidebar",
     "recentChats": "Recent Chats",
     "noConversations": "No conversations yet",
-    "startNewChat": "Start a new chat to begin"
+    "startNewChat": "Start a new chat to begin",
+    "projects": "Projects",
+    "calculator": "Calculator",
+    "wntr": "WNTR Network",
+    "wisdom": "Wisdom Center"
   },
   "chat": {
     "newConversation": "New Conversation",
@@ -207,6 +211,10 @@
     "calculator": {
       "title": "Engineering Tools",
       "desc": "Access integrated hydraulic calculators and network analysis with WNTR directly."
+    },
+    "red": {
+      "title": "Create a project and load your network",
+      "desc": "Networks, simulations and calculations live inside a project. Create one and import your EPANET .inp file: that is what unlocks network simulation and analysis."
     }
   },
   "project": {
@@ -217,5 +225,16 @@
       "keep": "Stay in “{{project}}”",
       "bodyNoActive": "The conversation you opened belongs to “{{conversationProject}}” and there is no active project right now."
     }
+  },
+  "precondiciones": {
+    "faltaProyecto": "Needs an active project",
+    "faltaRed": "Needs a loaded network",
+    "tituloProyecto": "The hydraulic network needs an active project",
+    "descProyecto": "Pick one of your projects or create a new one. Networks, simulations and calculations are stored inside the project.",
+    "accionElegirProyecto": "Pick a project",
+    "accionCrearProyecto": "Create a project",
+    "tituloRed": "This module needs a loaded network",
+    "descRed": "Import an EPANET .inp file to run simulations and analyses.",
+    "accionImportarRed": "Import .inp"
   }
 }
