@@ -96,7 +96,7 @@ export function useClarityTracking() {
 
   // Feature usage tracking
   const trackFeatureUsage = (
-    feature: 'calculator' | 'wntr' | 'chat' | 'rag' | 'projects' | 'settings',
+    feature: 'calculator' | 'wntr' | 'chat' | 'wisdom' | 'projects' | 'settings',
     action: 'open' | 'close' | 'use' | 'configure',
     details?: Record<string, any>
   ) => {

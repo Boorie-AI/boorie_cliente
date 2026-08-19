@@ -31,7 +31,7 @@ export function ChatLayout() {
         return <ChatArea />
       case 'settings':
         return <SettingsPanel />
-      case 'rag':
+      case 'wisdom':
         return <UnifiedWisdomPanel />
       case 'projects':
         return <HydraulicProjectsPanel />
@@ -40,7 +40,7 @@ export function ChatLayout() {
       case 'wntr':
         return <WNTRMainInterface />
       default:
-        return <ChatArea />
+        return <HydraulicProjectsPanel />
     }
   }
 

@@ -32,7 +32,7 @@ export const ONBOARDING_STEPS = [
         description: 'onboarding.rag.desc',
         icon: <Database className="w-12 h-12 text-amber-500" />,
         color: 'from-amber-500/20 to-orange-500/20',
-        action: 'rag',
+        action: 'wisdom',
     },
     {
         title: 'onboarding.projects.title',

@@ -3,10 +3,31 @@ import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import { databaseService } from '@/services/database'
 import { useChatStore } from './chatStore'
+import type { AmbitoChat, SeccionRed } from '@/config/navegacion'
+import { requisitosPendientes } from '@/config/precondiciones'
+
+export const VISTAS = ['chat', 'settings', 'wisdom', 'projects', 'calculator', 'wntr'] as const
+
+/**
+ * La vista del Wisdom Center se llamaba 'rag' en el enrutado mientras la
+ * etiqueta visible decía «Wisdom Center» (issue #35). El valor viejo sigue
+ * guardado en la base de datos de quien ya usaba la aplicacion.
+ */
+const VISTAS_RENOMBRADAS: Record<string, AppState['currentView']> = { rag: 'wisdom' }
+
+export function migrarVista(valor: string): AppState['currentView'] | null {
+  const renombrada = VISTAS_RENOMBRADAS[valor]
+  if (renombrada) return renombrada
+  return (VISTAS as readonly string[]).includes(valor) ? (valor as AppState['currentView']) : null
+}
 
 export interface AppState {
   isInitialized: boolean
-  currentView: 'chat' | 'settings' | 'rag' | 'projects' | 'calculator' | 'wntr'
+  currentView: typeof VISTAS[number]
+  /** Con qué conversaciones trabaja el chat: las del proyecto activo o las generales. */
+  ambitoChat: AmbitoChat
+  /** Pestaña de la vista de red a la que se ha entrado desde el menú, si se pidió una. */
+  seccionRed: SeccionRed | null
   theme: 'dark' | 'light'
   sidebarCollapsed: boolean
   showOnboarding: boolean
@@ -25,7 +46,15 @@ export interface AppState {
 
   // Actions
   initializeApp: () => Promise<void>
-  setCurrentView: (view: AppState['currentView']) => void
+  setCurrentView: (
+    view: AppState['currentView'],
+    opciones?: { ambitoChat?: AmbitoChat; seccionRed?: SeccionRed | null }
+  ) => void
+  /**
+   * Corrige la vista restaurada cuando su precondición no se cumple al
+   * arrancar. La llama la raíz de la aplicación cuando ya sabe si hay proyecto.
+   */
+  ajustarVistaInicial: (estado: { hayProyecto: boolean; hayRed: boolean }) => void
   toggleSidebar: () => void
   setTheme: (theme: AppState['theme']) => void
   setActiveAIProvider: (provider: AppState['activeAIProvider']) => void
@@ -43,7 +72,11 @@ export const useAppStore = create<AppState>()(
     persist(
       (set, get) => ({
         isInitialized: false,
-        currentView: 'chat',
+        // La navegación empieza por Proyectos: todo lo demás cuelga de saber en
+        // qué proyecto estás (issue #35).
+        currentView: 'projects',
+        ambitoChat: 'general',
+        seccionRed: null,
         theme: 'light',
         sidebarCollapsed: false,
         showOnboarding: false,
@@ -106,11 +139,11 @@ export const useAppStore = create<AppState>()(
                     set({ theme: setting.value })
                   }
                   break
-                case 'currentView':
-                  if (['chat', 'settings', 'rag', 'projects', 'calculator', 'wntr'].includes(setting.value)) {
-                    set({ currentView: setting.value as any })
-                  }
+                case 'currentView': {
+                  const vista = migrarVista(setting.value)
+                  if (vista) set({ currentView: vista })
                   break
+                }
                 case 'sidebarCollapsed':
                   set({ sidebarCollapsed: setting.value === 'true' })
                   break
@@ -129,9 +162,24 @@ export const useAppStore = create<AppState>()(
           }
         },
 
-        setCurrentView: async (view) => {
-          set({ currentView: view })
+        setCurrentView: async (view, opciones) => {
+          set({
+            currentView: view,
+            ...(opciones?.ambitoChat !== undefined ? { ambitoChat: opciones.ambitoChat } : {}),
+            // La sección se limpia siempre que no se pida una: si no, entrar en
+            // la red desde el menú te dejaría en la pestaña del último enlace.
+            seccionRed: opciones?.seccionRed ?? null,
+          })
           await databaseService.setSetting('currentView', view, 'general')
+        },
+
+        // No se persiste: es una corrección de arranque, no una elección del
+        // usuario. Si mañana abre con proyecto, recupera la vista que dejó.
+        ajustarVistaInicial: (estado) => {
+          const vista = get().currentView
+          if (requisitosPendientes(vista, estado).length > 0) {
+            set({ currentView: 'projects' })
+          }
         },
 
         toggleSidebar: async () => {
