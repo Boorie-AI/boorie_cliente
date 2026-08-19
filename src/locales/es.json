@@ -26,7 +26,11 @@
     "collapseSidebar": "Contraer barra lateral",
     "recentChats": "Chats Recientes",
     "noConversations": "No hay conversaciones aún",
-    "startNewChat": "Inicia un nuevo chat para comenzar"
+    "startNewChat": "Inicia un nuevo chat para comenzar",
+    "projects": "Proyectos",
+    "calculator": "Calculadora",
+    "wntr": "Red WNTR",
+    "wisdom": "Wisdom Center"
   },
   "chat": {
     "newConversation": "Nueva Conversación",
@@ -207,6 +211,10 @@
     "calculator": {
       "title": "Herramientas de Ingeniería",
       "desc": "Accede a calculadoras hidráulicas integradas y análisis de redes con WNTR de forma directa."
+    },
+    "red": {
+      "title": "Crea un proyecto y carga tu red",
+      "desc": "Las redes, simulaciones y cálculos viven dentro de un proyecto. Crea uno e importa tu archivo .inp de EPANET: es lo que desbloquea la simulación y el análisis de red."
     }
   },
   "project": {
@@ -217,5 +225,16 @@
       "keep": "Seguir en «{{project}}»",
       "bodyNoActive": "La conversación que has abierto pertenece a «{{conversationProject}}» y ahora mismo no hay ningún proyecto activo."
     }
+  },
+  "precondiciones": {
+    "faltaProyecto": "Necesita un proyecto activo",
+    "faltaRed": "Necesita una red cargada",
+    "tituloProyecto": "La red hidráulica necesita un proyecto activo",
+    "descProyecto": "Elige uno de tus proyectos o crea uno nuevo. Las redes, simulaciones y cálculos se guardan dentro del proyecto.",
+    "accionElegirProyecto": "Elegir un proyecto",
+    "accionCrearProyecto": "Crear un proyecto",
+    "tituloRed": "Este módulo necesita una red cargada",
+    "descRed": "Importa un archivo .inp de EPANET para poder simular y analizar.",
+    "accionImportarRed": "Importar .inp"
   }
 }

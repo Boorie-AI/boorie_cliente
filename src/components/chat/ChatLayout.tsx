@@ -8,6 +8,7 @@ import { UnifiedWisdomPanel } from '@/components/wisdom/UnifiedWisdomPanel'
 import { HydraulicProjectsPanel } from '@/components/hydraulic/HydraulicProjectsPanel'
 import { HydraulicCalculator } from '@/components/hydraulic/HydraulicCalculator'
 import { WNTRMainInterface } from '@/components/hydraulic/WNTRMainInterface'
+import { PrecondicionAviso } from '@/components/PrecondicionAviso'
 import { cn } from '@/utils/cn'
 
 export function ChatLayout() {
@@ -53,6 +54,9 @@ export function ChatLayout() {
           sidebarCollapsed ? "ml-16" : "ml-64"
         )}
       >
+        {/* Ninguna vista queda inerte por falta de precondiciones: si algo
+            falta, se dice cuál y se ofrece la acción (#33). */}
+        <PrecondicionAviso vista={currentView} />
         {renderMainContent()}
       </div>
     </div>

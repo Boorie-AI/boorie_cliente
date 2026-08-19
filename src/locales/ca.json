@@ -26,7 +26,11 @@
     "collapseSidebar": "Contraer barra lateral",
     "recentChats": "Xats Recents",
     "noConversations": "Encara no hi ha converses",
-    "startNewChat": "Inicia un nou xat per començar"
+    "startNewChat": "Inicia un nou xat per començar",
+    "projects": "Projectes",
+    "calculator": "Calculadora",
+    "wntr": "Xarxa WNTR",
+    "wisdom": "Wisdom Center"
   },
   "chat": {
     "newConversation": "Nova Conversa",
@@ -207,6 +211,10 @@
     "calculator": {
       "title": "Eines d'Enginyeria",
       "desc": "Accedeix a calculadores hidràuliques integrades i anàlisi de xarxes amb WNTR de forma directa."
+    },
+    "red": {
+      "title": "Crea un projecte i carrega la teva xarxa",
+      "desc": "Les xarxes, simulacions i càlculs viuen dins d'un projecte. Crea'n un i importa el teu fitxer .inp d'EPANET: és el que desbloqueja la simulació i l'anàlisi de xarxa."
     }
   },
   "project": {
@@ -217,5 +225,16 @@
       "keep": "Continuar a «{{project}}»",
       "bodyNoActive": "La conversa que has obert pertany a «{{conversationProject}}» i ara mateix no hi ha cap projecte actiu."
     }
+  },
+  "precondiciones": {
+    "faltaProyecto": "Necessita un projecte actiu",
+    "faltaRed": "Necessita una xarxa carregada",
+    "tituloProyecto": "La xarxa hidràulica necessita un projecte actiu",
+    "descProyecto": "Tria un dels teus projectes o crea'n un de nou. Les xarxes, simulacions i càlculs es desen dins del projecte.",
+    "accionElegirProyecto": "Triar un projecte",
+    "accionCrearProyecto": "Crear un projecte",
+    "tituloRed": "Aquest mòdul necessita una xarxa carregada",
+    "descRed": "Importa un fitxer .inp d'EPANET per poder simular i analitzar.",
+    "accionImportarRed": "Importar .inp"
   }
 }
