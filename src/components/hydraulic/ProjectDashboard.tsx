@@ -9,13 +9,16 @@ interface ProjectDashboardProps {
     onSelectProject: (project: Project) => void;
     onCreateProject: (name: string, description: string) => void;
     onDeleteProject: (projectId: string) => void;
+    /** Marca cuál es el proyecto activo cuando la lista se ve desde la raíz (#35). */
+    activeProjectId?: string | null;
 }
 
 export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
     projects,
     onSelectProject,
     onCreateProject,
-    onDeleteProject
+    onDeleteProject,
+    activeProjectId
 }) => {
     const [isCreating, setIsCreating] = useState(false);
     const [newName, setNewName] = useState('');
@@ -211,13 +214,21 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                         sortedProjects.map(project => (
                             <Card
                                 key={project.id}
-                                className="bg-slate-800 border-slate-700 hover:border-blue-500 transition-all cursor-pointer group flex flex-col"
+                                className={`bg-slate-800 transition-all cursor-pointer group flex flex-col ${project.id === activeProjectId
+                                    ? 'border-blue-500 ring-1 ring-blue-500/40'
+                                    : 'border-slate-700 hover:border-blue-500'
+                                    }`}
                                 onClick={() => onSelectProject(project)}
                             >
                                 <CardHeader className="pb-3">
                                     <div className="flex justify-between items-start">
                                         <CardTitle className="text-white text-xl group-hover:text-blue-400 transition-colors">
                                             {project.name}
+                                            {project.id === activeProjectId && (
+                                                <span className="ml-2 align-middle rounded bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-medium text-blue-300">
+                                                    Activo
+                                                </span>
+                                            )}
                                         </CardTitle>
                                         <div className="flex gap-1 -mr-2 -mt-2">
                                             <Button

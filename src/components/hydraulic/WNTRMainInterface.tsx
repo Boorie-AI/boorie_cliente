@@ -2,6 +2,7 @@ import { logger } from '@/utils/logger'
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useClarity } from '@/components/ClarityProvider';
 import { useProjectStore } from '@/stores/projectStore';
+import { useAppStore } from '@/stores/appStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -49,6 +50,13 @@ interface WNTRMainInterfaceProps {
   onSimulationCompleted?: (results: any) => void;
   onAnalysisComplete?: (results: any) => void;
   onSimulationComplete?: (results: any) => void;
+  /**
+   * 'proyectos' es la raíz de la navegación y enseña siempre la lista de
+   * proyectos; 'red' es la vista de trabajo sobre el proyecto activo (#35).
+   * Antes las dos entradas del menú mostraban exactamente lo mismo, así que con
+   * un proyecto abierto no había forma de volver a la lista para cambiarlo.
+   */
+  modo?: 'red' | 'proyectos';
 }
 
 interface NetworkData {
@@ -101,7 +109,8 @@ const AvisoDuracion: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   projectId: _projectId,
   onAnalysisComplete,
-  onSimulationComplete
+  onSimulationComplete,
+  modo = 'red'
 }) => {
   // Clarity tracking
   const { trackEvent, isReady: clarityReady } = useClarity();
@@ -353,6 +362,12 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   const [simulationDuration, setSimulationDuration] = useState<number>(24);
   const [simulationTimestep, setSimulationTimestep] = useState<number>(60); // minutes
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
+  // «Simulaciones» en el menú entra en esta vista pidiendo su pestaña (#35).
+  const seccionPedida = useAppStore(s => s.seccionRed);
+  const [pestana, setPestana] = useState('simulate');
+  useEffect(() => {
+    if (seccionPedida) setPestana(seccionPedida);
+  }, [seccionPedida]);
 
   // --- Resilience routines (epic #26): skeletonization, service interruption,
   // resilience indicators, fragility curve ---
@@ -853,14 +868,15 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
   // Dashboard Layout Render
   const renderDashboard = () => {
-    // 1. NO PROJECT SELECTED: Show Project Dashboard
-    if (!currentProject) {
+    // 1. RAÍZ DE PROYECTOS, O NINGUNO SELECCIONADO: la lista de proyectos
+    if (modo === 'proyectos' || !currentProject) {
       return (
         <ProjectDashboard
           projects={projects}
           onSelectProject={handleSelectProject}
           onCreateProject={handleCreateProject}
           onDeleteProject={handleDeleteProject}
+          activeProjectId={activeProjectId}
         />
       );
     }
@@ -1009,7 +1025,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
             </Button>
           </div>
 
-          <Tabs defaultValue="simulate" className="flex-1 flex flex-col min-h-0">
+          <Tabs value={pestana} onValueChange={setPestana} className="flex-1 flex flex-col min-h-0">
             <div className="px-4 pt-2 border-b bg-muted/10">
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="simulate" title="Simulation">
