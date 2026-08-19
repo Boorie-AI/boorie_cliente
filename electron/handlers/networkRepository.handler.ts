@@ -192,6 +192,30 @@ export class NetworkRepositoryHandler {
       }
     })
 
+    /**
+     * Declara el sistema de coordenadas de una red (#36). `epsg: null` la marca
+     * como no georreferenciada, que es un estado legitimo: mejor decirlo que
+     * pintarla en un sitio inventado.
+     */
+    ipcMain.handle('network-repo:declare-crs', async (_, data: {
+      networkId: string
+      epsg: string | null
+    }) => {
+      try {
+        appLogger.info('Declaring network CRS', { networkId: data.networkId, epsg: data.epsg })
+
+        const coordinateSystem = await this.networkRepo.declararCRS(data.networkId, data.epsg)
+
+        return { success: true, data: coordinateSystem }
+      } catch (error) {
+        appLogger.error('Failed to declare network CRS', error as Error)
+        return {
+          success: false,
+          error: (error as Error).message
+        }
+      }
+    })
+
     // Get network details
     ipcMain.handle('network-repo:get', async (_, networkId: string) => {
       try {

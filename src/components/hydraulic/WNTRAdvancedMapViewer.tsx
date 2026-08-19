@@ -68,6 +68,8 @@ interface WNTRAdvancedMapViewerProps {
   onDataLoaded?: (data: NetworkData) => void;
   onSimulationCompleted?: (results: SimulationResults) => void;
   highlightedNodes?: string[];
+  /** Red guardada que se muestra; el visor persiste ahí el EPSG declarado (#36). */
+  networkId?: string | null;
 }
 
 export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
@@ -75,7 +77,8 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
   simulationResults: externalSimulationResults,
   onDataLoaded: _onDataLoaded,
   onSimulationCompleted: _onSimulationCompleted,
-  highlightedNodes
+  highlightedNodes,
+  networkId
 }) => {
   const [networkData, setNetworkData] = useState<NetworkData | null>(externalNetworkData || null);
   const [simulationResults, setSimulationResults] = useState<SimulationResults | null>(externalSimulationResults || null);
@@ -209,6 +212,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
             simulationResults={simulationResults}
             activeTimeStep={visualizationSettings.timeStep}
             highlightedNodes={highlightedNodes}
+            networkId={networkId}
           />
 
           {/* Overlay info - Empty for now as requested */}

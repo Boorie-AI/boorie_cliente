@@ -327,6 +327,17 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
   // Core state
   const [networkData, setNetworkData] = useState<NetworkData | null>(null);
+
+  /**
+   * Red guardada que corresponde a lo que se está mostrando. La declaración del
+   * sistema de coordenadas se persiste sobre ella (#36); una red recién
+   * importada y todavía sin guardar no tiene dónde recordarlo.
+   */
+  const redGuardadaId = useMemo(
+    () => activeNetworks.find(n => n.name === networkData?.name)?.id ?? null,
+    [activeNetworks, networkData]
+  );
+
   /**
    * Ruta del .inp que el backend de WNTR tiene cargado. Antes se buscaba la red
    * guardada por nombre para recuperarla, lo que falla con dos redes homonimas o
@@ -1920,6 +1931,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
             {isLeftSidebarCollapsed ? ">>" : "<<"}
           </button >
           <WNTRAdvancedMapViewer
+            networkId={redGuardadaId}
             networkData={networkData}
             simulationResults={simulationResults?.hydraulic?.data}
             highlightedNodes={highlightedComponents}
