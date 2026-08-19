@@ -13,7 +13,7 @@ import type { Vista, Requisito, EstadoPrecondiciones } from './precondiciones'
 import { REQUISITOS_VISTA, pendientesDe } from './precondiciones'
 
 /** Pestaña de la vista de red a la que puede apuntar un ítem del menú. */
-export type SeccionRed = 'simulate' | 'analyze' | 'resilience' | 'layers'
+export type SeccionRed = 'simulate' | 'analyze' | 'resilience'
 
 /**
  * Con qué conversaciones trabaja el chat. No es una vista distinta: es la misma
