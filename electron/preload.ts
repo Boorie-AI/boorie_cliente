@@ -178,6 +178,13 @@ const electronAPI = {
       description?: string
     }) => ipcRenderer.invoke('network-repo:update', data),
 
+    /**
+     * Declara el sistema de coordenadas de la red (#36). `epsg: null` la deja
+     * marcada como no georreferenciada.
+     */
+    declareCRS: (data: { networkId: string; epsg: string | null }) =>
+      ipcRenderer.invoke('network-repo:declare-crs', data),
+
     // Load and get networks
     load: (networkId: string) => ipcRenderer.invoke('network-repo:load', networkId),
     get: (networkId: string) => ipcRenderer.invoke('network-repo:get', networkId),

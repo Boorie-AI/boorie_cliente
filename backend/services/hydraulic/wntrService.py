@@ -416,10 +416,15 @@ class WNTRService:
             coord_info = {
                 'type': 'unknown',  # 'geographic' or 'projected'
                 'bounds': None,
+                # El lector no adivina el EPSG: solo lo afirma cuando las
+                # coordenadas lo demuestran (rango lon/lat). Para todo lo demas
+                # queda en None y lo declara el ingeniero desde la interfaz (#36).
                 'epsg': None,
+                'requires_user_crs': False,
+                'detection_note': '',
                 'units': 'feet'  # default EPANET units
             }
-            
+
             # Read the INP file to look for coordinate information
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                 lines = f.readlines()
@@ -467,6 +472,11 @@ class WNTRService:
                         except ValueError:
                             continue
             
+            if not coordinates:
+                coord_info['requires_user_crs'] = True
+                coord_info['detection_note'] = 'El fichero no trae seccion [COORDINATES]: la red no se puede situar en el mapa.'
+                return coord_info
+
             # Analyze coordinates to determine if they're geographic
             if coordinates:
                 x_coords = [c[0] for c in coordinates]
@@ -502,64 +512,32 @@ class WNTRService:
                         'maxY': max_y
                     }
                 
-                # Try to detect specific coordinate systems
-                # Check for UTM-like coordinates (large positive numbers)
+                # El sistema concreto no se deduce de las coordenadas.
+                #
+                # La X de una coordenada UTM es la distancia al meridiano central
+                # de su huso y vale lo mismo en los 60: 842.913 m es un punto
+                # valido en Cartagena, en Valencia y en Sidney. Hasta la v1.9
+                # aqui habia una escalera de rangos de X por pais, con un caso
+                # codificado a mano para Cartagena, que acertaba con las redes de
+                # prueba y fallaba en silencio con el resto (#48). Se retiro: lo
+                # que no se puede demostrar, se pregunta.
                 if coord_info['type'] == 'projected':
-                    if min_x > 100000 and min_x < 1000000:
+                    coord_info['requires_user_crs'] = True
+                    if 100000 < min_x < 1000000 and 0 <= min_y <= 10000000:
                         coord_info['possible_system'] = 'UTM'
-                        
-                        # Detect UTM zone based on X coordinate ranges
-                        # UTM zones for Latin America:
-                        # Zone 14N: Mexico Pacific (500,000-900,000)
-                        # Zone 15N: Mexico/Guatemala (200,000-800,000)
-                        # Zone 16N: Guatemala/Belize (200,000-800,000)
-                        # Zone 17N: Colombia west (200,000-800,000)
-                        # Zone 18N: Colombia Caribbean coast including Cartagena (200,000-800,000)
-                        # Zone 19N: Colombia interior (200,000-800,000)
-                        
-                        # Check for filename hints to help with detection
-                        filename_lower = file_path.lower()
-                        
-                        if 'cartagena' in filename_lower or 'tk-lomas' in filename_lower:
-                            # Cartagena is in UTM Zone 18N
-                            coord_info['possible_utm_zone'] = '18N'
-                            coord_info['region_hint'] = 'Colombia Caribbean (Cartagena)'
-                            coord_info['epsg'] = 'EPSG:32618'  # WGS84 UTM Zone 18N
-                        elif 200000 <= min_x <= 800000:
-                            # Standard UTM zone detection for the Americas
-                            if min_x < 350000:
-                                coord_info['possible_utm_zone'] = '17N'
-                                coord_info['region_hint'] = 'Colombia Pacific coast'
-                                coord_info['epsg'] = 'EPSG:32617'
-                            elif min_x < 650000:
-                                coord_info['possible_utm_zone'] = '18N'
-                                coord_info['region_hint'] = 'Colombia Caribbean (Cartagena, Barranquilla)'
-                                coord_info['epsg'] = 'EPSG:32618'
-                            else:
-                                coord_info['possible_utm_zone'] = '19N'
-                                coord_info['region_hint'] = 'Colombia interior (Bogotá)'
-                                coord_info['epsg'] = 'EPSG:32619'
-                        elif 160000 <= min_x <= 840000:
-                            # Mexico and Central America
-                            if min_x < 400000:
-                                coord_info['possible_utm_zone'] = '14N'
-                                coord_info['region_hint'] = 'Mexico Pacific'
-                                coord_info['epsg'] = 'EPSG:32614'
-                            elif min_x < 600000:
-                                coord_info['possible_utm_zone'] = '15N'
-                                coord_info['region_hint'] = 'Mexico/Guatemala'
-                                coord_info['epsg'] = 'EPSG:32615'
-                            else:
-                                coord_info['possible_utm_zone'] = '16N'
-                                coord_info['region_hint'] = 'Guatemala/Belize'
-                                coord_info['epsg'] = 'EPSG:32616'
-                        else:
-                            # Generic UTM zone calculation for other areas
-                            estimated_zone = int((min_x + 500000) / 1000000 * 6 + 31)
-                            if 1 <= estimated_zone <= 60:
-                                coord_info['possible_utm_zone'] = f'{estimated_zone}N'
-                                coord_info['epsg'] = f'EPSG:326{estimated_zone:02d}'
-                
+                        coord_info['detection_note'] = (
+                            'Las coordenadas encajan con una proyeccion UTM, pero el huso '
+                            'no se puede deducir de ellas. Declara el EPSG del proyecto.'
+                        )
+                    else:
+                        coord_info['detection_note'] = (
+                            'Coordenadas proyectadas de sistema desconocido. Declara el EPSG '
+                            'del proyecto para situar la red sobre el mapa.'
+                        )
+                else:
+                    coord_info['epsg'] = 'EPSG:4326'
+                    coord_info['detection_note'] = 'Coordenadas geograficas (longitud/latitud) WGS84.'
+
                 # print(f"Coordinate detection: type={coord_info['type']}, bounds={coord_info['bounds']}, system={coord_info.get('possible_system', 'unknown')}")  # Debug only
                 
             return coord_info

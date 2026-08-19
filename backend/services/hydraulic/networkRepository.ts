@@ -13,14 +13,29 @@ export interface NetworkData {
   nodes: any[]
   links: any[]
   options: any
-  coordinate_system?: {
-    type: 'geographic' | 'projected' | 'unknown'
-    bounds?: any
-    epsg?: string
-    units?: string
-    possible_system?: string
-    region_hint?: string
-  }
+  coordinate_system?: CoordinateSystemInfo
+}
+
+/**
+ * Sistema de coordenadas de la red (#36).
+ *
+ * `epsg` es lo que el lector del .inp pudo demostrar mirando las coordenadas —en
+ * la practica, solo reconoce las geograficas—. `declared_epsg` es lo que el
+ * ingeniero declaro en la interfaz, y es lo que manda al pintar: adivinar el huso
+ * a partir de la X es imposible, asi que sin declaracion la red no se dibuja.
+ */
+export interface CoordinateSystemInfo {
+  type: 'geographic' | 'projected' | 'unknown'
+  bounds?: any
+  epsg?: string | null
+  units?: string
+  possible_system?: string
+  region_hint?: string
+  /** EPSG confirmado por el usuario. `null` explicito = declarado como desconocido. */
+  declared_epsg?: string | null
+  declared_at?: string
+  /** El lector no pudo determinar el CRS y hace falta que lo declare el usuario. */
+  requires_user_crs?: boolean
 }
 
 export interface SavedNetwork {
@@ -192,6 +207,49 @@ export class NetworkRepositoryService {
       networkData,
       fileContent: network.fileContent
     }
+  }
+
+  /**
+   * Declara el sistema de coordenadas de la red (#36).
+   *
+   * Escribe en la columna `coordinateSystem` y dentro de `networkData`, que
+   * lleva su propia copia: el mapa lee la de `networkData` y el repositorio la
+   * de la columna, y si solo se actualizara una, la red se seguiria pintando con
+   * el sistema anterior hasta la siguiente recarga.
+   *
+   * No toca `fileContent`: el .inp guardado conserva sus coordenadas originales,
+   * que es lo que permite que un ciclo importar-exportar no pierda nada.
+   */
+  async declararCRS(networkId: string, epsg: string | null): Promise<CoordinateSystemInfo> {
+    const network = await this.prisma.hydraulicNetwork.findUnique({
+      where: { id: networkId }
+    })
+    if (!network) throw new Error('Red no encontrada')
+
+    const previo: CoordinateSystemInfo = network.coordinateSystem
+      ? JSON.parse(network.coordinateSystem)
+      : { type: 'unknown' }
+
+    const coordinateSystem: CoordinateSystemInfo = {
+      ...previo,
+      declared_epsg: epsg,
+      declared_at: new Date().toISOString(),
+      requires_user_crs: epsg === null
+    }
+
+    const networkData = JSON.parse(network.networkData || '{}')
+    networkData.coordinate_system = { ...(networkData.coordinate_system || {}), ...coordinateSystem }
+
+    await this.prisma.hydraulicNetwork.update({
+      where: { id: networkId },
+      data: {
+        coordinateSystem: JSON.stringify(coordinateSystem),
+        networkData: JSON.stringify(networkData),
+        updatedAt: new Date()
+      }
+    })
+
+    return coordinateSystem
   }
 
   /**

@@ -1,8 +1,7 @@
 import { logger } from '@/utils/logger'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import proj4 from 'proj4'
 import {
   FileUp,
   Play,
@@ -11,23 +10,24 @@ import {
   Loader2,
   AlertCircle,
   MapPin,
+  Globe2,
   Settings2
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import * as Dialog from '@radix-ui/react-dialog'
 import { useMapboxToken } from '@/hooks/useMapboxToken'
-
-// Define coordinate systems for Latin America
-proj4.defs('EPSG:4326', '+proj=longlat +datum=WGS84 +no_defs') // WGS84 Geographic
-// Mexico
-proj4.defs('EPSG:32614', '+proj=utm +zone=14 +datum=WGS84 +units=m +no_defs') // UTM Zone 14N (Mexico City)
-proj4.defs('EPSG:32615', '+proj=utm +zone=15 +datum=WGS84 +units=m +no_defs') // UTM Zone 15N (Mexico)
-proj4.defs('EPSG:32616', '+proj=utm +zone=16 +datum=WGS84 +units=m +no_defs') // UTM Zone 16N (Mexico)
-// Colombia
-proj4.defs('EPSG:32617', '+proj=utm +zone=17 +datum=WGS84 +units=m +no_defs') // UTM Zone 17N
-proj4.defs('EPSG:32618', '+proj=utm +zone=18 +datum=WGS84 +units=m +no_defs') // UTM Zone 18N (Cartagena)
-proj4.defs('EPSG:32619', '+proj=utm +zone=19 +datum=WGS84 +units=m +no_defs') // UTM Zone 19N
-proj4.defs('EPSG:3116', '+proj=tmerc +lat_0=4.596200416666666 +lon_0=-74.07750791666666 +k=1 +x_0=1000000 +y_0=1000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs') // MAGNA-SIRGAS Bogotá
+import { useProjectStore } from '@/stores/projectStore'
+import { CRSSelector } from './CRSSelector'
+// Las definiciones proj4 viven en `@/services/geo/crs`, no aqui: cuando cada
+// visor registraba las suyas, dos visores podian pintar la misma red con
+// definiciones distintas del mismo EPSG (#36).
+import {
+  calcularLimites,
+  nombreCRS,
+  reproyectarLimites,
+  resolverCRS,
+  validarCordura,
+} from '@/services/geo/crs'
 
 interface NetworkData {
   name: string
@@ -54,9 +54,13 @@ interface NetworkData {
       minY?: number
       maxY?: number
     }
-    epsg?: string
+    epsg?: string | null
     units?: string
     possible_system?: string
+    /** EPSG confirmado por el ingeniero; manda sobre cualquier deteccion (#36). */
+    declared_epsg?: string | null
+    requires_user_crs?: boolean
+    detection_note?: string
   }
 }
 
@@ -84,6 +88,11 @@ interface WNTRMapViewerProps {
   activeTimeStep?: number
   /** IDs de nudos a destacar sobre el resto (p. ej. los afectados por una interrupción). */
   highlightedNodes?: string[]
+  /**
+   * Red guardada que se está mostrando. Es donde se persiste el EPSG declarado;
+   * sin ella la declaración vale sólo para la sesión en curso.
+   */
+  networkId?: string | null
 }
 
 // `in` sobre una lista literal: si está vacía la expresión es siempre falsa, así
@@ -104,7 +113,8 @@ export function WNTRMapViewer({
   networkData: propNetworkData,
   simulationResults: propSimulationResults,
   activeTimeStep: propActiveTimeStep,
-  highlightedNodes
+  highlightedNodes,
+  networkId
 }: WNTRMapViewerProps) {
   // Priority: token pasted in Settings → General (persisted, works in the
   // packaged app) over the VITE_MAPBOX_ACCESS_TOKEN build-time env var.
@@ -549,301 +559,52 @@ export function WNTRMapViewer({
     }
   }, [showSettingsDialog, networkData])
 
-  // Smart coordinate system detection and conversion
-  const detectCoordinateSystem = useCallback((networkData: NetworkData) => {
-    // Find bounds of network
-    const xCoords = networkData.nodes.map(n => n.x || n.coordinates?.[0] || 0)
-    const yCoords = networkData.nodes.map(n => n.y || n.coordinates?.[1] || 0)
+  // Sistema de coordenadas de la red (#36, #48)
+  //
+  // Lo declarado por el ingeniero manda sobre cualquier deteccion. La deteccion
+  // solo reconoce coordenadas geograficas, que es lo unico que las coordenadas
+  // demuestran por si solas: el huso de una UTM no se puede deducir de la X.
+  // Hasta la v1.9 aqui habia 200 lineas de rangos codificados a mano por pais y
+  // un `else` final que asumia UTM 18N, asi que una red de un pais no
+  // contemplado se pintaba en el Caribe colombiano sin avisar de nada.
+  const [epsgDeclarado, setEpsgDeclarado] = useState<string | null>(null)
+  const [mostrarSelectorCRS, setMostrarSelectorCRS] = useState(false)
+  const paisProyecto = useProjectStore(s => s.currentProject?.location?.country ?? null)
 
-    const minX = Math.min(...xCoords)
-    const maxX = Math.max(...xCoords)
-    const minY = Math.min(...yCoords)
-    const maxY = Math.max(...yCoords)
+  useEffect(() => {
+    setEpsgDeclarado(networkData?.coordinate_system?.declared_epsg ?? null)
+  }, [networkData])
 
-    // Get file name for detection
-    const fileName = networkData.name?.toLowerCase() || ''
+  const limitesRed = useMemo(
+    () => (networkData ? calcularLimites(networkData.nodes) : null),
+    [networkData]
+  )
 
-    logger.debug('=== COORDINATE ANALYSIS ===')
-    logger.debug('File name:', fileName)
-    logger.debug('Coordinate bounds:', { minX, maxX, minY, maxY })
-    logger.debug('Coordinate ranges:', { rangeX: maxX - minX, rangeY: maxY - minY })
-    logger.debug('First 5 node coordinates:', networkData.nodes.slice(0, 5).map(n => ({ id: n.id, x: n.x, y: n.y })))
-    logger.debug('Network coordinate_system from backend:', networkData.coordinate_system)
-    logger.debug('Sample coordinate values:', {
-      sampleX: [minX, (minX + maxX) / 2, maxX],
-      sampleY: [minY, (minY + maxY) / 2, maxY]
-    })
-    logger.debug('TK-Lomas detected:', fileName.includes('tk-lomas'))
-    logger.debug('Cartagena detected:', fileName.includes('cartagena'))
+  const crs = useMemo(() => resolverCRS(epsgDeclarado, limitesRed), [epsgDeclarado, limitesRed])
 
-    // Check if already geographic
-    if (minX >= -180 && maxX <= 180 && minY >= -90 && maxY <= 90 &&
-      Math.abs(maxX - minX) < 10 && Math.abs(maxY - minY) < 10) {
-      return {
-        isGeographic: true,
-        epsgCode: 'EPSG:4326',
-        region: 'Geographic coordinates'
-      }
-    }
-
-    // Analyze for UTM zones (multiple regions)
-    if (minX > 100000 && minX < 1000000) {
-
-      // Special handling for TK-Lomas Cartagena file (highest priority)
-      if (fileName.includes('tk-lomas') || fileName.includes('cartagena')) {
-        logger.debug('🎯 Detected TK-Lomas/Cartagena file')
-
-        // Test different coordinate systems for these specific coordinates
-        // Current coordinates: ~842913, 1641804
-        // These don't match typical Cartagena UTM coordinates
-
-        // Try MAGNA-SIRGAS Colombia Bogotá zone (EPSG:3116)
-        if (minX > 800000 && minX < 1200000 && minY > 1600000 && minY < 1700000) {
-          logger.debug('Using MAGNA-SIRGAS Bogotá zone for TK-Lomas')
-          return {
-            isGeographic: false,
-            epsgCode: 'EPSG:3116',
-            region: 'MAGNA-SIRGAS Colombia Bogotá zone (TK-Lomas)',
-            centerApprox: [-75.5, 10.4]
-          }
-        }
-
-        // Try UTM Zone 17N (western Colombia)
-        if (minX > 800000 && minX < 900000) {
-          logger.debug('Using UTM Zone 17N for TK-Lomas (western coordinates)')
-          return {
-            isGeographic: false,
-            epsgCode: 'EPSG:32617',
-            region: 'UTM Zone 17N - Colombia west (TK-Lomas)',
-            centerApprox: [-75.5, 10.4]
-          }
-        }
-
-        // Fallback to UTM Zone 18N
-        logger.debug('Using UTM Zone 18N for TK-Lomas (fallback)')
-        return {
-          isGeographic: false,
-          epsgCode: 'EPSG:32618',
-          region: 'UTM Zone 18N - Colombia Caribbean (Cartagena)',
-          centerApprox: [-75.5, 10.4]
-        }
-      }
-
-      // Colombia Caribbean coast (Cartagena zone) - typical coordinates
-      if (minX > 200000 && minX < 900000 && minY > 1000000 && minY < 1300000) {
-        return {
-          isGeographic: false,
-          epsgCode: 'EPSG:32618',
-          region: 'UTM Zone 18N - Colombia Caribbean (Cartagena)',
-          centerApprox: [-75.5, 10.4]
-        }
-      }
-
-      // Mexico zones (but NOT for TK-Lomas which is Cartagena)
-      if ((fileName.includes('mexico') || fileName.includes('mx')) ||
-        (minX > 200000 && minX < 900000 && minY > 1800000 && minY < 2600000)) {
-
-        // Mexico City area (Zone 14N)
-        if (minX > 400000 && minX < 700000 && minY > 2000000 && minY < 2300000) {
-          return {
-            isGeographic: false,
-            epsgCode: 'EPSG:32614',
-            region: 'UTM Zone 14N - Mexico (Mexico City area)',
-            centerApprox: [-99.1, 19.4] // Mexico City
-          }
-        }
-
-        // Generic Mexico
-        return {
-          isGeographic: false,
-          epsgCode: 'EPSG:32614',
-          region: 'UTM Zone 14N - Mexico',
-          centerApprox: [-99.1, 19.4]
-        }
-      }
-
-      // Colombia interior
-      if (minX > 200000 && minX < 900000 && minY > 400000 && minY < 700000) {
-        return {
-          isGeographic: false,
-          epsgCode: 'EPSG:32619',
-          region: 'UTM Zone 19N - Colombia interior (Bogotá)',
-          centerApprox: [-74.1, 4.6]
-        }
-      }
-
-      // MAGNA-SIRGAS Bogotá
-      if (minX > 900000 && minX < 1200000 && minY > 900000 && minY < 1200000) {
-        return {
-          isGeographic: false,
-          epsgCode: 'EPSG:3116',
-          region: 'MAGNA-SIRGAS Bogotá zone',
-          centerApprox: [-74.1, 4.6]
-        }
-      }
-
-      // Generic UTM detection - try to guess by Y coordinate
-      if (minY > 1800000) {
-        // Likely Mexico/North America
-        return {
-          isGeographic: false,
-          epsgCode: 'EPSG:32614',
-          region: 'UTM (estimated Mexico Zone 14N)',
-          centerApprox: [-99.1, 19.4]
-        }
-      } else if (minY > 1400000 && minY < 1800000) {
-        // Likely Central America (Guatemala, Honduras, etc.) - Zone 15N or 16N
-        if (minX > 600000) {
-          // Zone 15N
-          return {
-            isGeographic: false,
-            epsgCode: 'EPSG:32615',
-            region: 'UTM Zone 15N - Central America (Guatemala, Honduras)',
-            centerApprox: [-90.0, 15.0] // Guatemala approximate
-          }
-        } else {
-          // Zone 16N
-          return {
-            isGeographic: false,
-            epsgCode: 'EPSG:32616',
-            region: 'UTM Zone 16N - Central America',
-            centerApprox: [-84.0, 15.0] // Central America
-          }
-        }
-      } else if (minY > 1000000) {
-        // Likely Colombia Caribbean
-        return {
-          isGeographic: false,
-          epsgCode: 'EPSG:32618',
-          region: 'UTM (estimated Colombia Zone 18N)',
-          centerApprox: [-75.5, 10.4]
-        }
-      } else {
-        // Likely Colombia interior
-        return {
-          isGeographic: false,
-          epsgCode: 'EPSG:32619',
-          region: 'UTM (estimated Colombia Zone 19N)',
-          centerApprox: [-74.1, 4.6]
-        }
-      }
-    }
-
-    // Fallback
-    return {
-      isGeographic: false,
-      epsgCode: 'EPSG:32618',
-      region: 'Unknown coordinate system, assuming UTM 18N',
-      centerApprox: [-75.5, 10.4]
-    }
-  }, [])
-
-  // Convert network coordinates to geographic coordinates using proj4
-  const convertToGeoCoordinates = useCallback((networkData: NetworkData) => {
-    const coordSystem = detectCoordinateSystem(networkData)
-
-    logger.debug('Detected coordinate system:', coordSystem)
-
-    // If already geographic, no conversion needed
-    if (coordSystem.isGeographic) {
-      const xCoords = networkData.nodes.map(n => n.x || n.coordinates?.[0] || 0)
-      const yCoords = networkData.nodes.map(n => n.y || n.coordinates?.[1] || 0)
-
-      return {
-        bounds: {
-          minLon: Math.min(...xCoords),
-          maxLon: Math.max(...xCoords),
-          minLat: Math.min(...yCoords),
-          maxLat: Math.max(...yCoords)
-        },
-        transform: (x: number, y: number) => [x, y],
-        coordinateSystem: coordSystem
-      }
-    }
-
-    // Use proj4 for accurate coordinate transformation
+  /**
+   * Reproyeccion a WGS84. `null` cuando no hay sistema con el que reproyectar:
+   * quien pinta comprueba esto y no dibuja, en lugar de recibir un transformador
+   * de mentira que devuelva un punto cualquiera.
+   *
+   * Depende del EPSG y de los nudos, no del .inp: cambiar el sistema en el
+   * selector recoloca la red sin volver a cargar el fichero.
+   */
+  const conversion = useMemo(() => {
+    if (!crs.epsg || !limitesRed) return null
     try {
-      const sourceProjection = coordSystem.epsgCode
-      const targetProjection = 'EPSG:4326' // WGS84
-
-      logger.debug(`Converting from ${sourceProjection} to ${targetProjection}`)
-
-      // Get sample coordinates to establish bounds
-      const sampleCoords = networkData.nodes.slice(0, Math.min(100, networkData.nodes.length))
-        .map(node => {
-          const x = node.x || node.coordinates?.[0] || 0
-          const y = node.y || node.coordinates?.[1] || 0
-
-          try {
-            const [lon, lat] = proj4(sourceProjection, targetProjection, [x, y])
-            return { lon, lat, valid: true }
-          } catch (e) {
-            logger.warn(`Failed to convert coordinate [${x}, ${y}]:`, e)
-            return { lon: 0, lat: 0, valid: false }
-          }
-        })
-        .filter(coord => coord.valid)
-
-      if (sampleCoords.length === 0) {
-        throw new Error('No valid coordinates could be converted')
-      }
-
-      // Calculate bounds from converted coordinates
-      const lons = sampleCoords.map(c => c.lon)
-      const lats = sampleCoords.map(c => c.lat)
-
-      const bounds = {
-        minLon: Math.min(...lons),
-        maxLon: Math.max(...lons),
-        minLat: Math.min(...lats),
-        maxLat: Math.max(...lats)
-      }
-
-      logger.debug('=== COORDINATE CONVERSION RESULTS ===')
-      logger.debug('Source projection:', sourceProjection)
-      logger.debug('Target projection:', targetProjection)
-      logger.debug('Geographic bounds after conversion:', bounds)
-      logger.debug('Sample original -> converted coordinates:')
-      networkData.nodes.slice(0, 3).forEach((node, i) => {
-        const original = [node.x || 0, node.y || 0]
-        const converted = sampleCoords[i]
-        logger.debug(`  Node ${node.id}: [${original[0]}, ${original[1]}] -> [${converted?.lon}, ${converted?.lat}]`)
-      })
-
+      const { transformar, limites, centroide } = reproyectarLimites(limitesRed, crs.epsg)
       return {
-        bounds,
-        transform: (x: number, y: number) => {
-          try {
-            return proj4(sourceProjection, targetProjection, [x, y])
-          } catch {
-            logger.warn(`Failed to convert [${x}, ${y}], using fallback`)
-            // Fallback to center of detected bounds
-            return [coordSystem.centerApprox?.[0] || -75.5, coordSystem.centerApprox?.[1] || 10.4]
-          }
-        },
-        coordinateSystem: coordSystem
+        transformar,
+        limites,
+        centroide,
+        cordura: validarCordura(centroide, paisProyecto),
       }
-
-    } catch (error) {
-      logger.error('Coordinate conversion failed:', error)
-
-      // Fallback to approximate conversion
-      const centerLon = coordSystem.centerApprox?.[0] || -75.5
-      const centerLat = coordSystem.centerApprox?.[1] || 10.4
-
-      return {
-        bounds: {
-          minLon: centerLon - 0.05,
-          maxLon: centerLon + 0.05,
-          minLat: centerLat - 0.05,
-          maxLat: centerLat + 0.05
-        },
-        transform: (_x: number, _y: number) => [centerLon, centerLat],
-        coordinateSystem: coordSystem,
-        error: `Coordinate conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      }
+    } catch (e) {
+      logger.error('No se pudo reproyectar la red:', e)
+      return null
     }
-  }, [detectCoordinateSystem])
+  }, [crs.epsg, limitesRed, paisProyecto])
 
   // En una ref, no en las dependencias de addNetworkToMap: si entrara ahí, cada
   // cambio de selección recrearía capas y fuentes (y con ellas el encuadre). La
@@ -878,14 +639,21 @@ export function WNTRMapViewer({
       }
     })
 
-    const geoConversion = convertToGeoCoordinates(networkData)
-    logger.debug('GeoConversion result:', geoConversion)
+    // Sin sistema de coordenadas no se pinta nada: dibujar la red en un sitio
+    // inventado es peor que no dibujarla, porque el ingeniero no tiene forma de
+    // saber que la posicion es falsa (#48). El aviso de la cabecera explica que
+    // falta declarar el EPSG.
+    if (!conversion) {
+      logger.warn('Red sin sistema de coordenadas resuelto: no se dibuja', { motivo: crs.motivo })
+      return
+    }
+    const geoConversion = conversion
 
     // Create GeoJSON for nodes
     const nodesGeoJSON: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
       features: networkData.nodes.map(node => {
-        const coords = geoConversion.transform(
+        const coords = geoConversion.transformar(
           node.x || node.coordinates?.[0] || 0,
           node.y || node.coordinates?.[1] || 0
         )
@@ -946,11 +714,11 @@ export function WNTRMapViewer({
 
         if (!fromNode || !toNode) return null
 
-        const fromCoords = geoConversion.transform(
+        const fromCoords = geoConversion.transformar(
           fromNode.x || fromNode.coordinates?.[0] || 0,
           fromNode.y || fromNode.coordinates?.[1] || 0
         )
-        const toCoords = geoConversion.transform(
+        const toCoords = geoConversion.transformar(
           toNode.x || toNode.coordinates?.[0] || 0,
           toNode.y || toNode.coordinates?.[1] || 0
         )
@@ -1149,7 +917,7 @@ export function WNTRMapViewer({
       logger.warn('Could not fit bounds:', e)
     }
 
-  }, [networkData, simulationResults, mapSettings, convertToGeoCoordinates])
+  }, [networkData, simulationResults, mapSettings, conversion, crs.motivo])
 
   // Resaltar es sólo cambiar el paint de la capa ya montada: nada de rehacer
   // fuentes ni volver a encuadrar.
@@ -1159,6 +927,19 @@ export function WNTRMapViewer({
     map.current.setPaintProperty('network-nodes', 'circle-stroke-width', highlightStrokeWidth(highlightedNodes))
     map.current.setPaintProperty('network-nodes', 'circle-stroke-color', highlightStrokeColor(highlightedNodes))
   }, [highlightedNodes, mapSettings.nodeSize, networkData])
+
+  // Al perder el sistema de coordenadas hay que retirar lo pintado: si no, la
+  // red seguiria dibujada en su posicion anterior mientras el aviso dice que no
+  // se puede situar.
+  useEffect(() => {
+    if (conversion || !map.current) return
+    for (const capa of ['node-labels', 'network-nodes', 'network-links']) {
+      if (map.current.getLayer(capa)) map.current.removeLayer(capa)
+    }
+    for (const fuente of ['network-nodes', 'network-links']) {
+      if (map.current.getSource(fuente)) map.current.removeSource(fuente)
+    }
+  }, [conversion])
 
   // Update network overlay when data or settings change
   useEffect(() => {
@@ -1225,14 +1006,19 @@ export function WNTRMapViewer({
   const handleExportGeoJSON = () => {
     if (!networkData) return
 
-    const geoConversion = convertToGeoCoordinates(networkData)
-    logger.debug('GeoConversion result:', geoConversion)
+    // El GeoJSON es WGS84 por definicion, asi que exportar sin CRS declarado
+    // produciria un fichero con coordenadas falsas.
+    if (!conversion) {
+      setError('Declara el sistema de coordenadas de la red antes de exportar a GeoJSON.')
+      return
+    }
+    const geoConversion = conversion
 
     const exportData = {
       type: 'FeatureCollection',
       features: [
         ...networkData.nodes.map(node => {
-          const coords = geoConversion.transform(
+          const coords = geoConversion.transformar(
             node.x || node.coordinates?.[0] || 0,
             node.y || node.coordinates?.[1] || 0
           )
@@ -1255,11 +1041,11 @@ export function WNTRMapViewer({
 
           if (!fromNode || !toNode) return null
 
-          const fromCoords = geoConversion.transform(
+          const fromCoords = geoConversion.transformar(
             fromNode.x || fromNode.coordinates?.[0] || 0,
             fromNode.y || fromNode.coordinates?.[1] || 0
           )
-          const toCoords = geoConversion.transform(
+          const toCoords = geoConversion.transformar(
             toNode.x || toNode.coordinates?.[0] || 0,
             toNode.y || toNode.coordinates?.[1] || 0
           )
@@ -1350,21 +1136,21 @@ export function WNTRMapViewer({
               <>
                 <button
                   onClick={() => {
-                    if (map.current && networkData) {
-                      const geoConversion = convertToGeoCoordinates(networkData)
+                    if (map.current && networkData && conversion) {
+                      const geoConversion = conversion
 
                       // Get the first few nodes to check their coordinates
                       const firstNodes = networkData.nodes.slice(0, 5)
                       logger.debug('Checking first nodes:')
                       firstNodes.forEach(node => {
-                        const coords = geoConversion.transform(node.x, node.y)
+                        const coords = geoConversion.transformar(node.x, node.y)
                         logger.debug(`${node.id}: [${coords[0]}, ${coords[1]}]`)
                       })
 
                       // Try to fit bounds again
                       const bounds = new mapboxgl.LngLatBounds()
                       networkData.nodes.forEach(node => {
-                        const coords = geoConversion.transform(node.x, node.y)
+                        const coords = geoConversion.transformar(node.x, node.y)
                         bounds.extend(coords as [number, number])
                       })
 
@@ -1407,30 +1193,17 @@ export function WNTRMapViewer({
                 </button>
 
                 <button
-                  onClick={() => {
-                    if (networkData) {
-                      const coordSystem = detectCoordinateSystem(networkData)
-                      const geoConversion = convertToGeoCoordinates(networkData)
-                      logger.debug('=== DEBUG COORDINATE INFO ===')
-                      logger.debug('Network name:', networkData.name)
-                      logger.debug('Detected system:', coordSystem)
-                      logger.debug('Conversion result:', geoConversion)
-                      logger.debug('First 3 nodes with coordinates:')
-                      networkData.nodes.slice(0, 3).forEach(node => {
-                        const converted = geoConversion.transform(node.x || 0, node.y || 0)
-                        logger.debug(`${node.id}: [${node.x}, ${node.y}] -> [${converted[0]}, ${converted[1]}]`)
-                      })
-                      alert(`Debug info logged to console. Check F12 > Console for details.\n\nDetected: ${coordSystem.region}`)
-                    }
-                  }}
+                  onClick={() => setMostrarSelectorCRS(true)}
                   className={cn(
-                    "p-2 rounded-lg",
-                    "bg-yellow-500 text-white hover:bg-yellow-600",
-                    "transition-colors"
+                    "flex items-center gap-2 px-4 py-2 rounded-lg transition-colors",
+                    crs.epsg
+                      ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      : "bg-yellow-500 text-white hover:bg-yellow-600"
                   )}
-                  title="Debug Coordinates"
+                  title="Sistema de coordenadas de la red"
                 >
-                  🐛
+                  <Globe2 className="w-4 h-4" />
+                  {crs.epsg ?? 'Declarar EPSG'}
                 </button>
 
                 <button
@@ -1473,31 +1246,58 @@ export function WNTRMapViewer({
               </span>
             </div>
 
-            {/* Coordinate System Info */}
-            {networkData && (
-              <div className="text-xs text-muted-foreground space-y-1">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-3 h-3" />
+            {/* Sistema de coordenadas: estado explícito, nunca un dato inventado (#36) */}
+            <div className="text-xs space-y-1">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <MapPin className="w-3 h-3" />
+                <span>
+                  Coordenadas del fichero:{' '}
+                  {networkData.coordinate_system?.type === 'geographic'
+                    ? 'geográficas (lon/lat)'
+                    : networkData.coordinate_system?.type === 'projected'
+                      ? 'proyectadas'
+                      : 'sin determinar'}
+                  {networkData.coordinate_system?.units && ` • unidades: ${networkData.coordinate_system.units}`}
+                </span>
+              </div>
+
+              {crs.epsg ? (
+                <div className="flex items-center gap-2 ml-5 text-muted-foreground">
+                  <Globe2 className="w-3 h-3" />
                   <span>
-                    Coordinate System: {networkData.coordinate_system?.type === 'geographic' ? 'Geographic (Lat/Lon)' :
-                      networkData.coordinate_system?.type === 'projected' ? 'Projected' : 'Auto-detected'}
-                    {networkData.coordinate_system?.units && ` • Units: ${networkData.coordinate_system.units}`}
+                    {crs.origen === 'declarado' ? 'Declarado' : 'Sugerido'}: {crs.epsg} —{' '}
+                    {nombreCRS(crs.epsg)}
+                    {crs.origen === 'sugerido' && ' (sin confirmar)'}
+                  </span>
+                  <button
+                    onClick={() => setMostrarSelectorCRS(true)}
+                    className="underline hover:text-foreground"
+                  >
+                    cambiar
+                  </button>
+                </div>
+              ) : (
+                <div className="ml-5 flex items-start gap-2 rounded-md border border-yellow-500/50 bg-yellow-500/10 px-3 py-2 text-yellow-700 dark:text-yellow-400">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    Esta red no se puede situar en el mapa: {crs.motivo}{' '}
+                    <button
+                      onClick={() => setMostrarSelectorCRS(true)}
+                      className="font-medium underline"
+                    >
+                      Declarar sistema de coordenadas
+                    </button>
                   </span>
                 </div>
-                {(() => {
-                  const detectedSystem = detectCoordinateSystem(networkData)
-                  return (
-                    <div className="flex items-center gap-2 ml-5">
-                      <span className="text-green-600">🎯</span>
-                      <span>
-                        Detected: {detectedSystem.region}
-                        {detectedSystem.epsgCode && ` (${detectedSystem.epsgCode})`}
-                      </span>
-                    </div>
-                  )
-                })()}
-              </div>
-            )}
+              )}
+
+              {conversion && !conversion.cordura.ok && (
+                <div className="ml-5 flex items-start gap-2 rounded-md border border-yellow-500/50 bg-yellow-500/10 px-3 py-2 text-yellow-700 dark:text-yellow-400">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>{conversion.cordura.aviso}</span>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -1812,6 +1612,15 @@ export function WNTRMapViewer({
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
+
+      <CRSSelector
+        abierto={mostrarSelectorCRS}
+        onCerrar={() => setMostrarSelectorCRS(false)}
+        limites={limitesRed}
+        epsgActual={crs.epsg}
+        networkId={networkId}
+        onDeclarado={setEpsgDeclarado}
+      />
 
       {/* Error Display */}
       {error && (
