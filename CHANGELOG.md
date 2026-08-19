@@ -7,6 +7,30 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.11.0] - 2026-08-19
+
+Un solo visor, y una red que se puede ver aunque no se sepa dónde está.
+
+- Tu red se puede ver como **esquema** aunque no se pueda situar en el mapa. Una red sin
+  coordenadas, o con un sistema que nadie ha declarado, ya no se queda sin ninguna vista: el
+  aviso del mapa te ofrece verla como esquema, con sus depósitos, embalses y bombas, y puedes
+  pinchar un nudo o un tramo para ver sus datos.
+- Si tu `.inp` trae coordenadas de dibujo en vez de coordenadas reales —las que van de 19 a 335
+  en lugar de rondar el millón—, Boorie te lo dice en vez de invitarte a declarar un EPSG que
+  plantaría tu red en otro continente sin avisar.
+- Todos los ajustes del mapa están en un solo panel: vista, mapa base, etiquetas, opacidad,
+  tamaño de nudo, grosor de tramo y simbología. Antes estaban repartidos en tres sitios y la
+  mayoría no llegaba al dibujo: la opacidad, los dos interruptores de presiones, los rangos y
+  el «coloca tu red pinchando el mapa» no hacían nada.
+- La vista de satélite vuelve. Estaba desactivada para todos los equipos y el mensaje decía
+  «no compatible con su sistema» sin haber mirado el sistema.
+- Cambiar el mapa base ya no borra tu red del mapa.
+- Con la ventana maximizada ya no se corta la fila de botones del visor.
+- El botón «Abrir» de la lista de proyectos abre el proyecto. Antes sólo lo marcaba como activo,
+  así que si ya lo era no ocurría nada.
+- Por dentro se retiran diez visores que no usaba nadie —unas 4.700 líneas— y queda uno solo
+  documentado como canónico.
+
 ## [1.10.0] - 2026-08-19
 
 Tu red se sitúa en el mapa donde tú digas, no donde Boorie se imagine.
