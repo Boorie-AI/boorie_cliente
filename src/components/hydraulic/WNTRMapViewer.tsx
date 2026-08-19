@@ -877,7 +877,10 @@ export function WNTRMapViewer({
       logger.warn('Could not fit bounds:', e)
     }
 
-  }, [networkData, simulationResults, mapSettings, conversion, crs.motivo])
+  // `currentTimeStep` en las dependencias: sin él, la simbología se quedaba
+  // congelada en el paso que hubiera cuando se creó el callback y mover la barra
+  // no repintaba el mapa (#45).
+  }, [networkData, simulationResults, mapSettings, conversion, crs.motivo, currentTimeStep])
 
   useEffect(() => { repintarRedRef.current = addNetworkToMap }, [addNetworkToMap])
 
@@ -931,7 +934,7 @@ export function WNTRMapViewer({
         })
       }
     }
-  }, [networkData, simulationResults, showNetworkOverlay, mapSettings, addNetworkToMap])
+  }, [networkData, simulationResults, showNetworkOverlay, mapSettings, currentTimeStep, addNetworkToMap])
 
   const handleFileUpload = async () => {
     try {

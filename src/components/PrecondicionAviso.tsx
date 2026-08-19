@@ -3,6 +3,7 @@ import { FolderOpen, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/stores/appStore'
 import { usePrecondiciones } from '@/hooks/usePrecondiciones'
+import { NAVEGACION, itemActivo, pendientesItem } from '@/config/navegacion'
 import type { Vista } from '@/config/precondiciones'
 
 /**
@@ -16,10 +17,22 @@ import type { Vista } from '@/config/precondiciones'
  */
 export function PrecondicionAviso({ vista }: { vista: Vista }) {
   const { t } = useTranslation()
-  const { pendientes } = usePrecondiciones()
+  const { estado, pendientes } = usePrecondiciones()
   const setCurrentView = useAppStore(s => s.setCurrentView)
+  const ambitoChat = useAppStore(s => s.ambitoChat)
+  const seccionRed = useAppStore(s => s.seccionRed)
 
-  const faltan = pendientes(vista)
+  /**
+   * Se mira lo que pidió el usuario, no sólo la vista a la que llegó (#46).
+   *
+   * «Simulaciones» y «Red WNTR» llevan a la misma vista, y sólo la primera exige
+   * una red. Como el aviso miraba la vista, quien pulsaba «Simulaciones» sin red
+   * —el ítem sale con candado, pero sigue siendo accionable a propósito para que
+   * pueda llegar a la explicación— aterrizaba en la pantalla de importar sin que
+   * nada dijera qué había pasado ni por qué no estaba en simulaciones.
+   */
+  const item = NAVEGACION.find(i => itemActivo(i, { vista, ambitoChat, seccionRed }))
+  const faltan = item ? pendientesItem(item, estado) : pendientes(vista)
   if (faltan.length === 0) return null
 
   const faltaProyecto = faltan.includes('proyecto')
@@ -29,7 +42,9 @@ export function PrecondicionAviso({ vista }: { vista: Vista }) {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-foreground">
-            {t(faltaProyecto ? 'precondiciones.tituloProyecto' : 'precondiciones.tituloRed')}
+            {faltaProyecto
+              ? t('precondiciones.tituloProyecto')
+              : t('precondiciones.tituloRedDe', { modulo: t(item?.etiqueta ?? 'precondiciones.esteModulo') })}
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             {t(faltaProyecto ? 'precondiciones.descProyecto' : 'precondiciones.descRed')}

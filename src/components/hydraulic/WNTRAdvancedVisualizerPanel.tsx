@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/utils/cn';
 import type { AjustesVisor, VistaVisor } from './ajustesVisor';
 import { comprobarSoporteSatelite } from '@/utils/webgl';
+import { etiquetaCorta, type Timeline } from '@/hooks/useSimulationTimeline';
 
 // Función pura del entorno, no estado: se resuelve una vez al cargar el módulo.
 const SOPORTE_SATELITE = comprobarSoporteSatelite();
@@ -102,6 +103,12 @@ interface WNTRAdvancedVisualizerPanelProps {
   onCambio: (ajustes: AjustesVisor) => void;
   /** `false` cuando la red no se puede situar en el mapa: el esquema es la única vista posible. */
   mapaDisponible?: boolean;
+  /**
+   * Eje temporal de la simulación. Lo construye el armazón y se comparte: las
+   * gráficas rotulaban sus etiquetas tratando los segundos de WNTR como horas,
+   * así que un modelo de 24 h salía con marcas de «86400:00» (#45).
+   */
+  timeline: Timeline;
 }
 
 export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelProps> = ({
@@ -109,7 +116,8 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
   simulationResults,
   ajustes,
   onCambio,
-  mapaDisponible = true
+  mapaDisponible = true,
+  timeline
 }) => {
   const settings = ajustes;
 
@@ -354,10 +362,9 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
             <CardContent className="h-40">
               <Line
                 data={{
-                  labels: simulationResults.timestamps.map((t: number) => {
-                    const hours = Math.floor(t);
-                    return `${hours}:00`;
-                  }),
+                  labels: timeline.linea.segundos.map((_, i) =>
+                    etiquetaCorta(timeline.linea, i)
+                  ),
                   datasets: [
                     {
                       label: 'Demanda Total (L/s)',
@@ -408,10 +415,9 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
               <CardContent className="h-40">
                 <Line
                   data={{
-                    labels: simulationResults.timestamps.map((t: number) => {
-                      const hours = Math.floor(t);
-                      return `${hours}:00`;
-                    }),
+                    labels: timeline.linea.segundos.map((_, i) =>
+                      etiquetaCorta(timeline.linea, i)
+                    ),
                     datasets: networkData.links
                       .filter((l: any) => l.type?.toLowerCase() === 'pump')
                       .map((pump: any, idx: number) => ({
@@ -443,7 +449,9 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
               </CardContent>
               {/* Pump Status List */}
               <div className="px-4 pb-4 border-t border-slate-700 pt-3">
-                <div className="text-xs font-semibold text-gray-400 mb-2">Estado Actual (Paso {settings.timeStep})</div>
+                <div className="text-xs font-semibold text-gray-400 mb-2">
+                  Estado en {timeline.etiqueta}
+                </div>
                 <div className="space-y-2">
                   {networkData.links
                     .filter((l: any) => l.type?.toLowerCase() === 'pump')

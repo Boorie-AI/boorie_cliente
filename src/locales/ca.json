@@ -251,6 +251,8 @@
     "accionCrearProyecto": "Crear un projecte",
     "tituloRed": "Aquest mòdul necessita una xarxa carregada",
     "descRed": "Importa un fitxer .inp d'EPANET per poder simular i analitzar.",
-    "accionImportarRed": "Importar .inp"
+    "accionImportarRed": "Importar .inp",
+    "tituloRedDe": "«{{modulo}}» necessita una xarxa carregada",
+    "esteModulo": "Aquest mòdul"
   }
 }

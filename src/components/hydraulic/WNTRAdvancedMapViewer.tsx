@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { WNTRMapViewer } from './WNTRMapViewer';
 import { NetworkTopologyView } from './NetworkTopologyView';
 import { WNTRAdvancedVisualizerPanel } from './WNTRAdvancedVisualizerPanel';
 import { AJUSTES_INICIALES, soloAjustesDelMapa, type AjustesVisor } from './ajustesVisor';
 import type { MapSettings } from './WNTRMapViewer';
 import { tieneCoordenadasUtiles } from '@/services/network/topologia';
+import { useSimulationTimeline } from '@/hooks/useSimulationTimeline';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -16,7 +17,7 @@ import {
   SkipForward,
   ChevronLeft,
   ChevronRight,
-  Calendar
+  Clock
 } from 'lucide-react';
 
 interface NetworkData {
@@ -80,8 +81,6 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
   // aquí. Antes cada uno tenía su copia y el panel no llegaba al mapa (#37).
   const [visualizationSettings, setVisualizationSettings] = useState<AjustesVisor>(AJUSTES_INICIALES);
 
-  const [currentTime, setCurrentTime] = useState(new Date('2025-10-09T05:42:00'));
-  const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Handle external data changes
   useEffect(() => {
@@ -96,45 +95,42 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
     }
   }, [externalSimulationResults]);
 
-  // Handle playback
+  const irAPaso = useCallback((paso: number) => {
+    setVisualizationSettings(prev => ({ ...prev, timeStep: paso }));
+  }, []);
+
+  /**
+   * El eje temporal sale de los datos: los `timestamps` que devuelve WNTR —en
+   * segundos— y la hora de arranque que declara el `.inp`. Antes salía de una
+   * fecha base inventada y de una hora fija por paso, así que un modelo que
+   * reporta cada 15 minutos veía correr su reloj cuatro veces más rápido (#45).
+   */
+  const timeline = useSimulationTimeline({
+    timestamps: simulationResults?.timestamps,
+    opcionesTiempo: networkData?.options?.time,
+    paso: visualizationSettings.timeStep,
+    reproduciendo: visualizationSettings.isPlaying,
+    velocidad: visualizationSettings.playbackSpeed,
+    onPaso: irAPaso,
+  });
+
+  // Un modelo de un solo paso no tiene nada que reproducir: la barra desaparece
+  // en lugar de ofrecer un reproductor inútil.
+  const hayLineaTiempo = !timeline.linea.estacionaria;
+
+  // Un paso que ya no existe —cambio de red, o simulación más corta— se recorta
+  // en lugar de dejar la barra apuntando fuera de los resultados.
   useEffect(() => {
-    if (visualizationSettings.isPlaying && simulationResults) {
-      const maxSteps = simulationResults.timestamps?.length || 1;
-      const interval = 1000 / visualizationSettings.playbackSpeed;
-
-      playbackIntervalRef.current = setInterval(() => {
-        setVisualizationSettings(prev => {
-          const nextStep = prev.timeStep + 1;
-          if (nextStep >= maxSteps) {
-            return { ...prev, timeStep: 0 }; // Loop back to start
-          }
-          return { ...prev, timeStep: nextStep };
-        });
-      }, interval);
-
-      return () => {
-        if (playbackIntervalRef.current) {
-          clearInterval(playbackIntervalRef.current);
-          playbackIntervalRef.current = null;
-        }
-      };
-    } else {
-      if (playbackIntervalRef.current) {
-        clearInterval(playbackIntervalRef.current);
-        playbackIntervalRef.current = null;
-      }
+    if (visualizationSettings.timeStep >= timeline.linea.pasos) {
+      irAPaso(timeline.linea.pasos - 1);
     }
-  }, [visualizationSettings.isPlaying, visualizationSettings.playbackSpeed, simulationResults]);
+  }, [timeline.linea.pasos, visualizationSettings.timeStep, irAPaso]);
 
-  // Update time based on time step
   useEffect(() => {
-    if (simulationResults?.timestamps) {
-      const baseTime = new Date('2025-10-09T00:00:00');
-      const hoursToAdd = visualizationSettings.timeStep;
-      const newTime = new Date(baseTime.getTime() + hoursToAdd * 60 * 60 * 1000);
-      setCurrentTime(newTime);
+    if (!hayLineaTiempo && visualizationSettings.isPlaying) {
+      setVisualizationSettings(prev => ({ ...prev, isPlaying: false }));
     }
-  }, [visualizationSettings.timeStep, simulationResults]);
+  }, [hayLineaTiempo, visualizationSettings.isPlaying]);
 
   const handleSettingsChange = useCallback((settings: AjustesVisor) => {
     setVisualizationSettings(settings);
@@ -184,42 +180,9 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
     setVisualizationSettings(prev => ({ ...prev, isPlaying: false, timeStep: 0 }));
   };
 
-  const skipToStart = () => {
-    setVisualizationSettings(prev => ({ ...prev, timeStep: 0 }));
-  };
+  const skipToStart = () => irAPaso(0);
 
-  const skipToEnd = () => {
-    const maxSteps = simulationResults?.timestamps?.length || 1;
-    setVisualizationSettings(prev => ({ ...prev, timeStep: maxSteps - 1 }));
-  };
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('es-ES', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('es-ES', {
-      weekday: 'long',
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
-  const generateTimeLabels = () => {
-    const labels = [];
-    for (let i = 0; i <= 22; i += 2) {
-      labels.push(`${i.toString().padStart(2, '0')}:00`);
-    }
-    return labels;
-  };
-
-  const timeLabels = generateTimeLabels();
-  const maxTimeSteps = simulationResults?.timestamps?.length || 24;
+  const skipToEnd = () => irAPaso(timeline.linea.pasos - 1);
 
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
 
@@ -258,22 +221,24 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
 
         </div>
 
-        {/* Timeline Control Bar */}
+        {/* Barra de transporte. Sólo aparece si la simulación tiene más de un
+            paso: un estado estacionario no tiene nada que reproducir (#45). */}
+        {hayLineaTiempo && (
         <Card className="m-0 rounded-none bg-slate-800 border-t border-slate-600 z-10">
           <CardContent className="p-4">
             <div className="space-y-3">
-              {/* Date and Time Display */}
-              <div className="flex items-center justify-center gap-4 text-white">
-                <div className="flex items-center gap-2">
-                  <ChevronLeft className="h-4 w-4 cursor-pointer hover:text-blue-400" />
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    <span className="text-sm font-medium">
-                      {formatDate(currentTime).charAt(0).toUpperCase() + formatDate(currentTime).slice(1)}, {formatTime(currentTime)} AEST
-                    </span>
-                  </div>
-                  <ChevronRight className="h-4 w-4 cursor-pointer hover:text-blue-400" />
-                </div>
+              {/* Momento de la simulación. Antes decía una fecha fija con zona
+                  horaria australiana, que no salía de ningún dato. */}
+              <div className="flex items-center justify-center gap-3 text-white">
+                <Clock className="h-4 w-4" />
+                <span className="text-sm font-medium tabular-nums">{timeline.etiqueta}</span>
+                <span className="text-xs text-gray-400">
+                  paso {visualizationSettings.timeStep + 1} de {timeline.linea.pasos}
+                  {' · '}
+                  {timeline.linea.intervalo > 0 && `cada ${Math.round(timeline.linea.intervalo / 60)} min · `}
+                  duración {timeline.duracion}
+                  {!timeline.linea.conReloj && ' · tiempo transcurrido'}
+                </span>
               </div>
 
               {/* Controls and Timeline */}
@@ -323,34 +288,24 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                   <div className="relative">
                     <Slider
                       value={[visualizationSettings.timeStep]}
-                      onValueChange={([value]) =>
-                        setVisualizationSettings(prev => ({ ...prev, timeStep: value }))
-                      }
-                      max={maxTimeSteps - 1}
+                      onValueChange={([value]) => irAPaso(value)}
+                      max={timeline.linea.pasos - 1}
                       step={1}
                       className="w-full"
                     />
-                    {/* Time position indicator */}
-                    <div
-                      className="absolute top-0 w-2 h-6 bg-blue-500 rounded transform -translate-x-1/2 -translate-y-1"
-                      style={{
-                        left: `${(visualizationSettings.timeStep / (maxTimeSteps - 1)) * 100}%`
-                      }}
-                    />
                   </div>
 
-                  {/* Time Labels */}
-                  <div className="flex justify-between text-xs text-gray-400 px-1">
-                    {timeLabels.map((label, index) => (
-                      <span key={index}>{label}</span>
+                  {/* Marcas del eje, repartidas sobre los pasos que hay de
+                      verdad. Antes eran 00:00 a 22:00 fijas, al margen de la
+                      duración y del paso de reporte del modelo. */}
+                  <div className="flex justify-between text-xs text-gray-400 px-1 tabular-nums">
+                    {timeline.marcas.map(marca => (
+                      <span key={marca.paso}>{marca.texto}</span>
                     ))}
                   </div>
                 </div>
 
-                {/* Current Time Display */}
-                <div className="text-white text-sm font-mono min-w-[60px] text-right">
-                  {formatTime(currentTime)}
-                </div>
+
 
                 {/* Velocidad de reproducción: estaba sólo en la tarjeta que el
                     panel duplicaba, y al retirarla baja aquí, junto al resto de
@@ -371,6 +326,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
             </div>
           </CardContent>
         </Card>
+        )}
       </div>
 
       {/* Right Sidebar Panel */}
@@ -398,6 +354,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
             ajustes={visualizationSettings}
             onCambio={handleSettingsChange}
             mapaDisponible={mapaDisponible}
+            timeline={timeline}
           />
         </div>
       </div>
