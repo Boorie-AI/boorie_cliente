@@ -280,14 +280,41 @@ export const useChatStore = create<ChatState>()(
             const conversation = get().conversations.find(c => c.id === conversationId)
             if (!conversation) throw new Error('Conversation not found')
 
-            // Prepend hydraulic project context when the conversation is linked to a project
-            if (conversation.projectId) {
+            // El contexto sale del proyecto de la conversación o, si no tiene,
+            // del proyecto activo global (#31). Antes se exigía el enlace
+            // explícito, así que un chat «General» no recibía nada aunque
+            // hubiera una red cargada delante (#34).
+            // Import dinámico por la misma razón que arriba: evitar la
+            // dependencia circular entre stores.
+            const proyectoActivo = conversation.projectId
+              ? null
+              : await import('./projectStore')
+                  .then(({ useProjectStore }) => useProjectStore.getState().currentProjectId)
+                  .catch(() => null)
+            const proyectoParaContexto = conversation.projectId ?? proyectoActivo ?? undefined
+
+            // El contexto de red se inyecta SIEMPRE, haya proyecto o no. Si se
+            // omitiera al no haber proyecto, el modelo se quedaría sin la
+            // instrucción de no describir ninguna red, y responder con
+            // generalidades pasaría a depender de la disposición del modelo de
+            // turno en lugar del prompt. Con llama3.2 la respuesta era pedir
+            // más datos, pero incluía un «Ejemplo» con cifras inventadas.
+            try {
+              const red = await window.electronAPI.networkRepository.context(proyectoParaContexto ?? '')
+              if (red?.success && red.data?.texto) {
+                enhancedPrompt = red.data.texto + enhancedPrompt
+              }
+            } catch (error) {
+              logger.warn('Failed to build network context:', error)
+            }
+
+            if (proyectoParaContexto) {
               try {
                 const projectContextTimeout = new Promise<string>((resolve) =>
                   setTimeout(() => resolve(''), 10000)
                 )
                 const projectContext = await Promise.race([
-                  get().buildProjectContext(conversation.projectId),
+                  get().buildProjectContext(proyectoParaContexto),
                   projectContextTimeout
                 ])
                 if (projectContext) {
@@ -777,10 +804,6 @@ export const useChatStore = create<ChatState>()(
           if (project.status) context += `Status: ${project.status}\n`
           if (project.location?.country || project.location?.region) {
             context += `Location: ${[project.location?.city, project.location?.region, project.location?.country].filter(Boolean).join(', ')}\n`
-          }
-
-          if (project.network) {
-            context += `\nNetwork model: loaded (EPANET .inp data available for this project)\n`
           }
 
           if (project.calculations && project.calculations.length > 0) {

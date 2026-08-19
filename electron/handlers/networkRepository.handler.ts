@@ -3,13 +3,16 @@ import { readFile, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { NetworkRepositoryService } from '../../backend/services/hydraulic/networkRepository'
+import { construirResumenRed, formatearContextoRed } from '../../backend/services/hydraulic/networkContext'
 import type { PrismaClient } from '@prisma/client'
 import { appLogger } from '../../backend/utils/logger'
 
 export class NetworkRepositoryHandler {
   private networkRepo: NetworkRepositoryService
+  private prisma: PrismaClient
 
   constructor(prisma: PrismaClient) {
+    this.prisma = prisma
     this.networkRepo = new NetworkRepositoryService(prisma)
     this.setupHandlers()
   }
@@ -289,6 +292,58 @@ export class NetworkRepositoryHandler {
           success: false,
           error: (error as Error).message
         }
+      }
+    })
+
+    // Resumen de la red activa para el agente del chat (#34)
+    ipcMain.handle('network-repo:context', async (_, projectId: string) => {
+      try {
+        if (!projectId) {
+          return { success: true, data: { resumen: null, texto: formatearContextoRed(null) } }
+        }
+
+        const red = await this.prisma.hydraulicNetwork.findFirst({
+          where: { projectId, isActive: true },
+          orderBy: { updatedAt: 'desc' }
+        })
+
+        if (!red) {
+          return { success: true, data: { resumen: null, texto: formatearContextoRed(null) } }
+        }
+
+        // La última simulación no sale de HydraulicNetwork.simulationResults:
+        // esa columna está vacía en todas las redes porque el handler que la
+        // escribe (network-repo:save-simulation) no lo llama nadie. Los datos
+        // reales están en HydraulicCalculation, con el id de la red dentro del
+        // JSON de `inputs`.
+        const calculos = await this.prisma.hydraulicCalculation.findMany({
+          where: { projectId },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+          select: { name: true, createdAt: true, inputs: true }
+        })
+
+        const ultima = calculos.find(c => {
+          try {
+            return JSON.parse(c.inputs ?? '{}')?.networkId === red.id
+          } catch {
+            return false
+          }
+        })
+
+        const resumen = construirResumenRed({
+          nombreRed: red.name,
+          contadores: JSON.parse(red.summary || '{}'),
+          datos: JSON.parse(red.networkData || '{}'),
+          ultimaSimulacion: ultima ? { nombre: ultima.name, fecha: ultima.createdAt } : null
+        })
+
+        return { success: true, data: { resumen, texto: formatearContextoRed(resumen) } }
+      } catch (error) {
+        appLogger.error('Failed to build network context', error as Error)
+        // Sin contexto es mejor no decir nada que decir que hay una red y no
+        // dar ni una cifra, que es justo lo que hacía antes.
+        return { success: false, error: (error as Error).message }
       }
     })
   }

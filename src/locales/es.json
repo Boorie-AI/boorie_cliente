@@ -45,7 +45,13 @@
     "copyToClipboard": "Copiar al portapapeles",
     "exportAsJSON": "Exportar como JSON",
     "deleteConversation": "Eliminar conversación",
-    "confirmDelete": "¿Estás seguro de que quieres eliminar esta conversación? Esta acción no se puede deshacer."
+    "confirmDelete": "¿Estás seguro de que quieres eliminar esta conversación? Esta acción no se puede deshacer.",
+    "redEnContexto": {
+      "viendo": "El agente ve: {{red}}",
+      "ninguna": "El agente no ve ninguna red",
+      "ningunaAyuda": "Carga un archivo .inp en el proyecto para que el chat pueda responder sobre tu red.",
+      "detalle": "{{nudos}} nudos · {{tuberias}} tuberías · {{km}} km de tubería"
+    }
   },
   "settings": {
     "title": "Configuración",
