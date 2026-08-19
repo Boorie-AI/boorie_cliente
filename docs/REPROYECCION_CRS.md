@@ -168,6 +168,32 @@ proyectadas de 8 a 45 unidades) y sobre una red geográfica:
 | Ida y vuelta del `.inp` sin pérdida | Hecho por construcción: el `fileContent` guardado no se modifica al declarar el CRS. |
 | Retirar los casos codificados a mano | Hecho en los dos lados (Python y visor de mapa). |
 
+## Coordenadas de esquema: el tercer caso
+
+Añadido tras probar con `Net6-EPANET-2p2-pump38x1p32-ok.inp`, cuyos nudos van de
+19,25 a 335 en X y de 17 a 233,59 en Y. Eso no es un sistema proyectado: es un
+esquema dibujado en unidades propias. Ninguna proyección real sitúa una red en la
+coordenada 19 —el este de un UTM arranca en 100.000 y los orígenes nacionales se
+desplazan a 1.000.000 justamente para evitar valores pequeños—.
+
+El lector las clasificaba como `projected` y la interfaz invitaba a declarar un
+EPSG. Al declarar MAGNA-SIRGAS Bogotá, Boorie hacía lo que se le pedía: interpretar
+«19 metros al este del falso origen», que cae a unos 1.000 km al suroeste. La red
+aterrizaba en la frontera Perú-Ecuador ocupando 316 m, y como el encuadre la
+llevaba a zoom 16 sobre un descampado sin nada cartografiado, el fondo salía en
+blanco. El resultado era indistinguible de un mapa averiado.
+
+`pareceEsquematico()` reconoce ahora el caso por la magnitud de las coordenadas, y
+la interfaz responde de otra manera: ofrece primero la vista de esquema (#37),
+avisa dentro del selector de que ningún EPSG va a situar la red donde toca, y
+mantiene el aviso mientras haya un EPSG declarado sobre coordenadas de esquema,
+diciendo que la red se está dibujando donde ese EPSG manda para esos números y no
+donde está.
+
+No se bloquea la declaración: si el ingeniero sabe lo que hace —por ejemplo para
+componer un montaje— puede declararla igual. Lo que ya no ocurre es que pase en
+silencio.
+
 ## Fuera de alcance
 
 **Los visores muertos.** `WNTRIntermediateViewer` y `WNTRSimulationViewer`

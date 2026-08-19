@@ -66,9 +66,6 @@ interface Window {
     };
     [key: string]: any;
   };
-  // One-shot guard used by `WNTRSimulationViewer` to make sure the
-  // "projected coordinates detected" warning fires only once per session.
-  projectedCoordsWarningShown?: boolean;
 }
 
 interface ImportMeta {

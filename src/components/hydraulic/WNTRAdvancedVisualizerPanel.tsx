@@ -1,15 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/utils/cn';
+import type { AjustesVisor, VistaVisor } from './ajustesVisor';
+import { comprobarSoporteSatelite } from '@/utils/webgl';
+
+// Función pura del entorno, no estado: se resuelve una vez al cargar el módulo.
+const SOPORTE_SATELITE = comprobarSoporteSatelite();
 import {
   Activity,
   Gauge,
-  Play,
-  Pause,
-  Square,
+  Layers,
+  Map as MapIcon,
+  Palette,
+  Share2,
   TrendingUp
 } from 'lucide-react';
 import { Line } from 'react-chartjs-2';
@@ -56,15 +63,6 @@ ChartJS.register(
   verticalLinePlugin
 );
 
-interface VisualizationSettings {
-  showPressureMap: boolean;
-  showFlowMap: boolean;
-  pressureRange: [number, number];
-  flowRange: [number, number];
-  timeStep: number;
-  isPlaying: boolean;
-  playbackSpeed: number;
-}
 
 interface NetworkData {
   nodes: any[];
@@ -96,54 +94,27 @@ interface SimulationResults {
 interface WNTRAdvancedVisualizerPanelProps {
   networkData: NetworkData | null;
   simulationResults: SimulationResults | null;
-  onSettingsChange: (settings: VisualizationSettings) => void;
-  coordinates?: {
-    lat: number;
-    lon: number;
-  };
+  /**
+   * Panel controlado: los ajustes son del armazón. Cuando tenía estado propio,
+   * sus interruptores no llegaban al mapa y quedaban como controles inertes (#37).
+   */
+  ajustes: AjustesVisor;
+  onCambio: (ajustes: AjustesVisor) => void;
+  /** `false` cuando la red no se puede situar en el mapa: el esquema es la única vista posible. */
+  mapaDisponible?: boolean;
 }
 
 export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelProps> = ({
   networkData,
   simulationResults,
-  onSettingsChange,
-  coordinates: _coordinates
+  ajustes,
+  onCambio,
+  mapaDisponible = true
 }) => {
-  const [settings, setSettings] = useState<VisualizationSettings>({
-    showPressureMap: true,
-    showFlowMap: false,
-    pressureRange: [0, 100],
-    flowRange: [0, 10],
-    timeStep: 0,
-    isPlaying: false,
-    playbackSpeed: 1
-  });
+  const settings = ajustes;
 
-  // Update settings when simulation results change
-  useEffect(() => {
-    if (simulationResults?.stats) {
-      const pressureStats = simulationResults.stats.pressure;
-      const flowStats = simulationResults.stats.flow;
-
-      setSettings(prev => ({
-        ...prev,
-        pressureRange: pressureStats ? [pressureStats.minimum, pressureStats.maximum] : prev.pressureRange,
-        flowRange: flowStats ? [flowStats.minimum, flowStats.maximum] : prev.flowRange
-      }));
-    }
-  }, [simulationResults]);
-
-  // Notify parent of settings changes
-  useEffect(() => {
-    onSettingsChange(settings);
-  }, [settings, onSettingsChange]);
-
-  const handleSettingChange = (key: keyof VisualizationSettings, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-  };
-
-  const togglePlayback = () => {
-    handleSettingChange('isPlaying', !settings.isPlaying);
+  const handleSettingChange = <K extends keyof AjustesVisor>(key: K, value: AjustesVisor[K]) => {
+    onCambio({ ...ajustes, [key]: value });
   };
 
 
@@ -151,120 +122,199 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
     <div className="w-80 h-full bg-slate-900 text-white p-4 space-y-4 overflow-y-auto">
 
 
-      {/* Simulation Controls */}
-      {simulationResults && (
-        <Card className="bg-slate-800 border-slate-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-white text-base flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Control Temporal
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {/* Playback Controls */}
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={togglePlayback}
-                className="relative overflow-hidden bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-              >
-                {/* Progress Bar Background */}
-                <div
-                  className="absolute left-0 top-0 bottom-0 bg-blue-500/30 transition-all duration-300 ease-in-out"
-                  style={{
-                    width: `${((settings.timeStep) / ((simulationResults.timestamps?.length || 1) - 1)) * 100}%`
-                  }}
-                />
-
-                <span className="relative z-10 flex items-center">
-                  {settings.isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                </span>
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleSettingChange('isPlaying', false)}
-                className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-              >
-                <Square className="h-4 w-4" />
-              </Button>
-              <div className="text-sm text-gray-400">
-                Paso: {settings.timeStep + 1} / {simulationResults.timestamps?.length || 1}
-              </div>
-            </div>
-
-            {/* Time Slider */}
-            <div className="space-y-2">
-              <Slider
-                value={[settings.timeStep]}
-                onValueChange={([value]) => handleSettingChange('timeStep', value)}
-                max={(simulationResults.timestamps?.length || 1) - 1}
-                step={1}
-                className="w-full"
-              />
-              <div className="flex justify-between text-xs text-gray-400">
-                <span>00:00</span>
-                <span>12:00</span>
-                <span>24:00</span>
-              </div>
-            </div>
-
-            {/* Speed Control */}
-            <div className="space-y-2">
-              <div className="text-sm text-gray-400">Velocidad de reproducción</div>
-              <Slider
-                value={[settings.playbackSpeed]}
-                onValueChange={([value]) => handleSettingChange('playbackSpeed', value)}
-                min={0.1}
-                max={5}
-                step={0.1}
-                className="w-full"
-              />
-              <div className="text-center text-xs text-gray-400">
-                {settings.playbackSpeed}x
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Pressure Section */}
+      {/* Vista: mapa o esquema. La red sin sistema de coordenadas declarado no se
+          puede situar sobre la ortofoto (#36), pero su esquema siempre se puede
+          dibujar: por eso el esquema no es un visor aparte, es la otra vista de
+          este (#37). */}
       <Card className="bg-slate-800 border-slate-700">
         <CardHeader className="pb-3">
-          <CardTitle className="text-white text-base flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Gauge className="h-4 w-4" />
-              Presiones
-            </div>
-            <Switch
-              checked={settings.showPressureMap}
-              onCheckedChange={(checked) => handleSettingChange('showPressureMap', checked)}
-            />
+          <CardTitle className="text-white text-base flex items-center gap-2">
+            <Layers className="h-4 w-4" />
+            Vista
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* No selection message */}
-          <div className="text-sm text-gray-400 text-center">
-            No hay puntos de suministro seleccionados
+        <CardContent className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              { valor: 'mapa' as VistaVisor, etiqueta: 'Mapa', icono: <MapIcon className="h-3.5 w-3.5" /> },
+              { valor: 'topologia' as VistaVisor, etiqueta: 'Esquema', icono: <Share2 className="h-3.5 w-3.5" /> },
+            ]).map(op => (
+              <Button
+                key={op.valor}
+                size="sm"
+                variant="outline"
+                disabled={op.valor === 'mapa' && !mapaDisponible}
+                onClick={() => handleSettingChange('vista', op.valor)}
+                className={cn(
+                  'flex items-center gap-2 border-slate-600 bg-slate-700 text-white hover:bg-slate-600',
+                  settings.vista === op.valor && 'border-blue-500 bg-blue-600 hover:bg-blue-600'
+                )}
+              >
+                {op.icono}
+                {op.etiqueta}
+              </Button>
+            ))}
           </div>
-
-
-
-          {/* Toggle for pressure map */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Mostrar capa de presiones en el mapa</span>
-            <Switch
-              checked={settings.showPressureMap}
-              onCheckedChange={(checked) => handleSettingChange('showPressureMap', checked)}
-            />
-          </div>
+          {!mapaDisponible && (
+            <p className="text-xs text-yellow-400">
+              Esta red no se puede situar en el mapa hasta que declares su sistema de coordenadas.
+              El esquema sí muestra su trazado.
+            </p>
+          )}
         </CardContent>
       </Card>
 
+      {/* Ajustes del dibujo. Vivían en un diálogo dentro del propio mapa, que
+          competía con este panel; ahora hay un solo sitio donde tocarlos. */}
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-white text-base flex items-center gap-2">
+            <Palette className="h-4 w-4" />
+            Dibujo
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {settings.vista === 'mapa' && (
+            <div className="space-y-2">
+              <div className="text-sm text-gray-400">Mapa base</div>
+              <select
+                value={settings.baseMap}
+                onChange={e => handleSettingChange('baseMap', e.target.value as AjustesVisor['baseMap'])}
+                // En Chromium, un <select> con el foco cambia de opción al girar
+                // la rueda: quien creía estar haciendo zoom se encontraba con
+                // otro mapa base, y con «Satélite» si giraba lo suficiente.
+                onWheel={e => e.currentTarget.blur()}
+                className="w-full rounded-md border border-slate-600 bg-slate-700 px-2 py-1.5 text-sm text-white"
+              >
+                <option value="streets">Calles</option>
+                <option value="outdoors">Terreno</option>
+                <option value="light">Claro</option>
+                <option value="dark">Oscuro</option>
+                {/* Deshabilitada, no escondida: si el equipo no puede con las
+                    teselas satelitales, es mejor que se vea que existe y por qué
+                    no está, que no ofrecerla y que parezca que Boorie no la tiene. */}
+                <option value="satellite" disabled={!SOPORTE_SATELITE.disponible}>
+                  Satélite{SOPORTE_SATELITE.disponible ? '' : ' (no disponible en este equipo)'}
+                </option>
+              </select>
+              {!SOPORTE_SATELITE.disponible && (
+                <p className="text-xs text-gray-500">{SOPORTE_SATELITE.motivo}</p>
+              )}
+            </div>
+          )}
 
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Etiquetas de los nudos</span>
+            <Switch
+              checked={settings.showLabels}
+              onCheckedChange={checked => handleSettingChange('showLabels', checked)}
+            />
+          </div>
 
+          {settings.vista === 'mapa' && (
+            <div className="space-y-2">
+              <div className="text-sm text-gray-400">Opacidad: {settings.opacity.toFixed(1)}</div>
+              <Slider
+                value={[settings.opacity]}
+                onValueChange={([v]) => handleSettingChange('opacity', v)}
+                min={0.1}
+                max={1}
+                step={0.1}
+              />
+            </div>
+          )}
 
+          <div className="space-y-2">
+            <div className="text-sm text-gray-400">Tamaño de nudo: {settings.nodeSize}</div>
+            <Slider
+              value={[settings.nodeSize]}
+              onValueChange={([v]) => handleSettingChange('nodeSize', v)}
+              min={2}
+              max={20}
+              step={1}
+            />
+          </div>
+
+          {settings.vista === 'mapa' && (
+            <div className="space-y-2">
+              <div className="text-sm text-gray-400">Grosor de tramo: {settings.linkWidth}</div>
+              <Slider
+                value={[settings.linkWidth]}
+                onValueChange={([v]) => handleSettingChange('linkWidth', v)}
+                min={1}
+                max={10}
+                step={1}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Simbología. Sustituye a los dos interruptores de «mapa de presiones»
+          que cambiaban un estado que nadie leía: la red se coloreaba por presión
+          estuvieran encendidos o apagados. */}
+      <Card className="bg-slate-800 border-slate-700">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-white text-base flex items-center gap-2">
+            <Gauge className="h-4 w-4" />
+            Simbología
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {!simulationResults ? (
+            <p className="text-sm text-gray-400">
+              Sin resultados de simulación no hay nada que representar: la red se dibuja por tipo
+              de elemento.
+            </p>
+          ) : (
+            <>
+              <div className="space-y-1">
+                {([
+                  { valor: 'ninguna' as const, etiqueta: 'Por tipo de elemento' },
+                  { valor: 'presion' as const, etiqueta: 'Presión en los nudos' },
+                  { valor: 'caudal' as const, etiqueta: 'Caudal en los tramos' },
+                ]).map(op => (
+                  <button
+                    key={op.valor}
+                    onClick={() => handleSettingChange('simbologia', op.valor)}
+                    className={cn(
+                      'w-full rounded-md px-3 py-1.5 text-left text-sm transition-colors',
+                      settings.simbologia === op.valor
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                    )}
+                  >
+                    {op.etiqueta}
+                  </button>
+                ))}
+              </div>
+
+              {settings.simbologia === 'presion' && (
+                <div className="space-y-1 text-xs text-gray-400">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block h-2 w-4 rounded" style={{ background: '#DC2626' }} />
+                    Menos de 20 m
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block h-2 w-4 rounded" style={{ background: '#3B82F6' }} />
+                    Entre 20 y 80 m
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block h-2 w-4 rounded" style={{ background: '#F97316' }} />
+                    Más de 80 m
+                  </div>
+                </div>
+              )}
+
+              {settings.simbologia === 'caudal' && (
+                <p className="text-xs text-gray-400">
+                  El grosor del tramo crece con el caudal que circula por él en el paso mostrado.
+                </p>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Model Info */}
       <Card className="bg-slate-800 border-slate-700">

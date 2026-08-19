@@ -8,6 +8,7 @@ import {
   esEPSGSoportado,
   nombreCRS,
   normalizarEPSG,
+  pareceEsquematico,
   pareceGeografico,
   reproyectarLimites,
   resolverCRS,
@@ -175,5 +176,43 @@ describe('límites de la red', () => {
       { x: undefined, y: undefined },
     ])
     expect(limites).toEqual({ minX: 10, maxX: 30, minY: 5, maxY: 20 })
+  })
+})
+
+describe('coordenadas de esquema frente a coordenadas proyectadas', () => {
+  // El caso real que lo destapó: un .inp de banco de pruebas cuyos nudos van de
+  // 19 a 335. Declararle EPSG:3116 lo mandaba a la frontera Perú-Ecuador,
+  // ocupando 316 m, y el mapa parecía roto porque allí no hay nada cartografiado.
+  const ESQUEMA = { minX: 19.25, maxX: 335, minY: 17, maxY: 233.59 }
+
+  it('reconoce las unidades de dibujo y no las trata como proyectadas', () => {
+    expect(pareceEsquematico(ESQUEMA)).toBe(true)
+
+    const sugerencia = sugerirCRS(ESQUEMA)
+    expect(sugerencia.epsg).toBeNull()
+    expect(sugerencia.esquematico).toBe(true)
+    expect(sugerencia.motivo).toMatch(/unidades de dibujo/i)
+  })
+
+  it('unas coordenadas UTM de verdad no se confunden con un esquema', () => {
+    expect(pareceEsquematico({ minX: 842000, maxX: 843500, minY: 1151000, maxY: 1152500 })).toBe(false)
+    expect(pareceEsquematico({ minX: 1_012_345, maxX: 1_013_000, minY: 998_000, maxY: 999_000 })).toBe(false)
+  })
+
+  it('unas coordenadas geográficas no son un esquema, aunque sean números pequeños', () => {
+    expect(pareceEsquematico({ minX: -75.52, maxX: -75.48, minY: 10.38, maxY: 10.42 })).toBe(false)
+  })
+
+  it('el aviso sigue puesto aunque el ingeniero declare un EPSG', () => {
+    // Es el fallo que se vio: con EPSG:3116 declarado, la red se dibujaba en Perú
+    // sin que nada lo señalara.
+    const r = resolverCRS('EPSG:3116', ESQUEMA)
+    expect(r.epsg).toBe('EPSG:3116')
+    expect(r.esquematico).toBe(true)
+  })
+
+  it('con coordenadas proyectadas de verdad, el EPSG declarado no arrastra el aviso', () => {
+    const r = resolverCRS('EPSG:32618', { minX: 842000, maxX: 843500, minY: 1151000, maxY: 1152500 })
+    expect(r.esquematico).toBe(false)
   })
 })

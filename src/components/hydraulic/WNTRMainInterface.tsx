@@ -14,7 +14,7 @@ import { ProjectDashboard } from './ProjectDashboard';
 import { Project, NetworkAsset, CalculationAsset } from '../../types/project';
 import { hydraulicService } from '@/services/hydraulic/hydraulicService';
 import {
-  FileUp, Play, Map, Network,
+  FileUp, Play, Network,
   RefreshCw, AlertCircle,
   Activity, Database,
   Target, FolderOpen, ChevronDown,
@@ -136,6 +136,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   // deriva más abajo del catálogo y del overlay.
   const activeProjectId = useProjectStore(s => s.currentProjectId);
   const selectProjectGlobal = useProjectStore(s => s.selectProject);
+  const setCurrentView = useAppStore(s => s.setCurrentView);
   const clearProjectGlobal = useProjectStore(s => s.clearProject);
   // Lazy-initialized from localStorage so there's no load/save race on mount
   // (a load-then-save effect pair would briefly overwrite storage with the
@@ -256,6 +257,17 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   const handleSelectProject = useCallback((project: Project) => {
     selectProjectGlobal(project.id);
   }, [selectProjectGlobal]);
+
+  /**
+   * «Abrir» entra en el proyecto; pinchar la tarjeta sólo lo activa (#35). Se
+   * espera a que el proyecto esté cargado antes de navegar: la vista de red
+   * exige proyecto activo, y entrar antes de tiempo la dejaría bloqueada por su
+   * propia precondición (#33).
+   */
+  const handleOpenProject = useCallback(async (project: Project) => {
+    const listo = await selectProjectGlobal(project.id);
+    if (listo) setCurrentView('wntr');
+  }, [selectProjectGlobal, setCurrentView]);
 
   const handleDeleteProject = useCallback(async (projectId: string) => {
     try {
@@ -885,6 +897,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
         <ProjectDashboard
           projects={projects}
           onSelectProject={handleSelectProject}
+          onOpenProject={handleOpenProject}
           onCreateProject={handleCreateProject}
           onDeleteProject={handleDeleteProject}
           activeProjectId={activeProjectId}
@@ -1038,7 +1051,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
           <Tabs value={pestana} onValueChange={setPestana} className="flex-1 flex flex-col min-h-0">
             <div className="px-4 pt-2 border-b bg-muted/10">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="simulate" title="Simulation">
                   <Play className="h-4 w-4" />
                 </TabsTrigger>
@@ -1049,9 +1062,6 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                   <ShieldAlert className="h-4 w-4" />
                 </TabsTrigger>
 
-                <TabsTrigger value="layers" title="Layers">
-                  <Map className="h-4 w-4" />
-                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -1905,16 +1915,6 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
               </TabsContent>
 
               {/* LAYERS / VIEW SETTINGS TAB */}
-              <TabsContent value="layers" className="mt-0 space-y-4">
-                <h3 className="font-semibold text-sm">Map Layers & Visualization</h3>
-                <p className="text-xs text-muted-foreground">
-                  Detailed layer control is available directly on the Advanced Map Viewer.
-                </p>
-                {/* We could duplicate controls here or just rely on the map's own UI */}
-                <Button variant="outline" size="sm" className="w-full" onClick={handleLoadNetwork}>
-                  <RefreshCw className="h-3 w-3 mr-2" /> Reset View
-                </Button>
-              </TabsContent>
 
             </div>
           </Tabs>

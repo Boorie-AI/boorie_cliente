@@ -10,12 +10,11 @@ import {
   Loader2,
   AlertCircle,
   MapPin,
-  Globe2,
-  Settings2
+  Globe2
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
-import * as Dialog from '@radix-ui/react-dialog'
 import { useMapboxToken } from '@/hooks/useMapboxToken'
+import { comprobarSoporteSatelite } from '@/utils/webgl'
 import { useProjectStore } from '@/stores/projectStore'
 import { CRSSelector } from './CRSSelector'
 // Las definiciones proj4 viven en `@/services/geo/crs`, no aqui: cuando cada
@@ -25,6 +24,7 @@ import {
   calcularLimites,
   nombreCRS,
   reproyectarLimites,
+  motivoEsquematico,
   resolverCRS,
   validarCordura,
 } from '@/services/geo/crs'
@@ -70,16 +70,19 @@ interface SimulationResults {
   timestamps: number[]
 }
 
-interface MapSettings {
+/**
+ * Ajustes del mapa. Los posee el visor canónico (`WNTRAdvancedMapViewer`) y
+ * viajan hasta aquí como props, para que haya un único panel donde tocarlos
+ * (#37) en lugar de un diálogo propio compitiendo con el panel lateral.
+ */
+export interface MapSettings {
   baseMap: 'streets' | 'satellite' | 'outdoors' | 'light' | 'dark'
   showLabels: boolean
   opacity: number
   nodeSize: number
   linkWidth: number
-  manualPosition?: {
-    lat: number
-    lon: number
-  }
+  /** Qué magnitud de la simulación colorea la red. */
+  simbologia: 'ninguna' | 'presion' | 'caudal'
 }
 
 interface WNTRMapViewerProps {
@@ -93,6 +96,19 @@ interface WNTRMapViewerProps {
    * sin ella la declaración vale sólo para la sesión en curso.
    */
   networkId?: string | null
+  mapSettings: MapSettings
+  onMapSettingsChange: (ajustes: MapSettings) => void
+  /**
+   * La red cargada desde el propio mapa tiene que subir al armazón: mientras se
+   * quedaba aquí, el panel lateral seguía contando los nudos de la red anterior
+   * y las dos vistas podían enseñar redes distintas (#37).
+   */
+  onNetworkLoaded?: (datos: NetworkData) => void
+  /**
+   * Salida hacia la vista topológica. La ofrece el aviso de «esta red no se
+   * puede situar en el mapa»: es la respuesta a esa situación, no un modo suelto.
+   */
+  onVerTopologia?: () => void
 }
 
 // `in` sobre una lista literal: si está vacía la expresión es siempre falsa, así
@@ -114,7 +130,11 @@ export function WNTRMapViewer({
   simulationResults: propSimulationResults,
   activeTimeStep: propActiveTimeStep,
   highlightedNodes,
-  networkId
+  networkId,
+  mapSettings,
+  onMapSettingsChange,
+  onVerTopologia,
+  onNetworkLoaded
 }: WNTRMapViewerProps) {
   // Priority: token pasted in Settings → General (persisted, works in the
   // packaged app) over the VITE_MAPBOX_ACCESS_TOKEN build-time env var.
@@ -146,94 +166,39 @@ export function WNTRMapViewer({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [styleChanging, setStyleChanging] = useState(false)
-  const [satelliteDisabled, setSatelliteDisabled] = useState(false)
   // Network overlay is always visible
   const showNetworkOverlay = true
   const [selectedNode, setSelectedNode] = useState<any>(null)
   const [selectedLink, setSelectedLink] = useState<any>(null)
 
   // Check WebGL capabilities and satellite compatibility
-  const checkSatelliteCompatibility = useCallback(() => {
-    try {
-      // Check if WebGL is available and working
-      const canvas = document.createElement('canvas')
-      const gl = (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null
+  // El satélite se comprueba de verdad, una vez, en lugar de desactivarse para
+  // todo el mundo. `satelliteDisabled` sigue existiendo porque el estilo puede
+  // fallar también en marcha, y entonces se cae a calles.
+  const soporteSatelite = useMemo(() => comprobarSoporteSatelite(), [])
+  // Clave nueva a proposito: la anterior («satellite-disabled-by-system») la
+  // escribia el codigo viejo en el primer arranque de cualquier equipo, asi que
+  // su valor no distingue una caida real de la desactivacion universal.
+  const [satelliteDisabled, setSatelliteDisabled] = useState(
+    () => !soporteSatelite.disponible || localStorage.getItem('satelite-tumbo-la-app') === 'true'
+  )
 
-      if (!gl) {
-        // logger.warn('WebGL not available - disabling satellite mode')
-        setSatelliteDisabled(true)
-        return false
-      }
 
-      // Check for known problematic renderer strings
-      const renderer = gl.getParameter(gl.RENDERER) || ''
-      const vendor = gl.getParameter(gl.VENDOR) || ''
+  // El mapa sigue necesitando cambiar sus propios ajustes en un caso —cuando el
+  // estilo satélite falla y hay que caer a calles—, así que en vez de dejar de
+  // poder hacerlo, avisa al dueño del estado. La ref evita que este shim tenga
+  // que entrar en las dependencias de todos los callbacks que lo usan.
+  const mapSettingsRef = useRef(mapSettings)
+  useEffect(() => { mapSettingsRef.current = mapSettings }, [mapSettings])
 
-      // logger.debug('WebGL Renderer:', renderer)
-      // logger.debug('WebGL Vendor:', vendor)
-
-      // Known problematic configurations that cause crashes with satellite imagery
-      const problematicPatterns = [
-        /software/i,
-        /mesa/i,
-        /llvmpipe/i,
-        /microsoft basic render driver/i
-      ]
-
-      const isProblematic = problematicPatterns.some(pattern =>
-        pattern.test(renderer) || pattern.test(vendor)
+  const setMapSettings = useCallback(
+    (siguiente: MapSettings | ((previo: MapSettings) => MapSettings)) => {
+      onMapSettingsChange(
+        typeof siguiente === 'function' ? siguiente(mapSettingsRef.current) : siguiente
       )
-
-      if (isProblematic) {
-        // logger.warn('Problematic WebGL renderer detected - disabling satellite mode')
-        setSatelliteDisabled(true)
-        return false
-      }
-
-      // Test WebGL context loss recovery
-      const ext = gl.getExtension('WEBGL_lose_context')
-      if (ext) {
-        // This is just a capability check, not actually losing context
-        logger.debug('WebGL context loss recovery available')
-      }
-
-      return true
-    } catch (error) {
-      logger.error('Error checking WebGL compatibility:', error)
-      setSatelliteDisabled(true)
-      return false
-    }
-  }, [])
-
-  // Check satellite compatibility on mount
-  useEffect(() => {
-    // Check if satellite was previously disabled due to crashes
-    const satelliteDisabledBySystem = localStorage.getItem('satellite-disabled-by-system')
-    if (satelliteDisabledBySystem === 'true') {
-      logger.debug('Satellite mode was previously disabled by system')
-      setSatelliteDisabled(true)
-      // setError('Modo satélite deshabilitado debido a incompatibilidad del sistema.')
-    } else {
-      // For now, disable satellite mode completely to prevent crashes
-      // TODO: Remove this when satellite mode is stable
-      logger.warn('Satellite mode disabled preventively due to known crash issues')
-      setSatelliteDisabled(true)
-      localStorage.setItem('satellite-disabled-by-system', 'true')
-      // setError('Modo satélite temporalmente deshabilitado para prevenir crashes del sistema.')
-
-      // Uncomment this line when satellite mode is stable:
-      // checkSatelliteCompatibility()
-    }
-  }, [checkSatelliteCompatibility])
-
-  const [showSettingsDialog, setShowSettingsDialog] = useState(false)
-  const [mapSettings, setMapSettings] = useState<MapSettings>({
-    baseMap: 'streets',
-    showLabels: true,
-    opacity: 0.8,
-    nodeSize: 8,
-    linkWidth: 2
-  })
+    },
+    [onMapSettingsChange]
+  )
 
   // Listen for crash recovery messages from main process
   useEffect(() => {
@@ -243,7 +208,7 @@ export function WNTRMapViewer({
       setError(`${data.message} - Modo satélite ha sido deshabilitado permanentemente.`)
 
       // Persist the disable state
-      localStorage.setItem('satellite-disabled-by-system', 'true')
+      localStorage.setItem('satelite-tumbo-la-app', 'true')
 
       // If currently on satellite, switch to streets
       if (mapSettings.baseMap === 'satellite') {
@@ -363,6 +328,7 @@ export function WNTRMapViewer({
             // Prevent infinite error loops
             if (map.current) {
               map.current.setStyle('mapbox://styles/mapbox/streets-v11')
+              setSatelliteDisabled(true)
               setMapSettings(prev => ({ ...prev, baseMap: 'streets' }))
               setError('Las imágenes satelitales fallaron. Se cambió a vista de calles automáticamente.')
             }
@@ -422,6 +388,15 @@ export function WNTRMapViewer({
     // from Settings (DB) and may not be available yet on first mount.
   }, [MAPBOX_ACCESS_TOKEN])
 
+  /**
+   * `setStyle` de Mapbox se lleva por delante todas las fuentes y capas propias,
+   * asi que al cambiar el mapa base hay que volver a pintar la red. Vive en una
+   * ref porque el efecto que cambia el estilo se declara antes que
+   * `addNetworkToMap`, y meterlo en sus dependencias reiniciaria el estilo cada
+   * vez que cambiara cualquier ajuste del dibujo.
+   */
+  const repintarRedRef = useRef<() => void>(() => {})
+
   // Update map style
   useEffect(() => {
     if (!map.current || styleChanging) return
@@ -442,13 +417,11 @@ export function WNTRMapViewer({
     }
 
     // Check satellite compatibility before switching
-    if (mapSettings.baseMap === 'satellite') {
-      if (satelliteDisabled || !checkSatelliteCompatibility()) {
-        logger.warn('Satellite mode not compatible with current system')
-        setError('Modo satélite no compatible con su sistema. Use otro estilo de mapa.')
-        setMapSettings(prev => ({ ...prev, baseMap: 'streets' }))
-        return
-      }
+    if (mapSettings.baseMap === 'satellite' && satelliteDisabled) {
+      logger.warn('Satellite mode not available:', soporteSatelite.motivo)
+      setError(soporteSatelite.motivo || 'Las imágenes satelitales no están disponibles en este equipo.')
+      setMapSettings(prev => ({ ...prev, baseMap: 'streets' }))
+      return
     }
 
     // Prevent multiple simultaneous style changes
@@ -520,6 +493,8 @@ export function WNTRMapViewer({
         setStyleChanging(false)
         clearTimeout(timeoutId)
         map.current?.off('error', handleStyleError)
+        // El estilo nuevo llega sin la red: hay que volver a ponerla.
+        repintarRedRef.current()
       })
 
     } catch (error) {
@@ -534,30 +509,10 @@ export function WNTRMapViewer({
     }
   }, [mapSettings.baseMap, styleChanging])
 
-  // Handle click events for manual positioning
-  useEffect(() => {
-    if (!map.current) return
+  // El posicionamiento manual —pinchar el mapa para colocar la red a ojo— se
+  // retira con #37: guardaba el punto y no lo usaba para nada, y desde #36 la
+  // posición sale del EPSG declarado, no de una estimación del usuario.
 
-    const handleMapClick = (e: mapboxgl.MapMouseEvent) => {
-      if (showSettingsDialog && networkData && networkData.coordinate_system?.type !== 'geographic') {
-        setMapSettings(prev => ({
-          ...prev,
-          manualPosition: {
-            lat: e.lngLat.lat,
-            lon: e.lngLat.lng
-          }
-        }))
-      }
-    }
-
-    map.current.on('click', handleMapClick)
-
-    return () => {
-      if (map.current) {
-        map.current.off('click', handleMapClick)
-      }
-    }
-  }, [showSettingsDialog, networkData])
 
   // Sistema de coordenadas de la red (#36, #48)
   //
@@ -667,8 +622,10 @@ export function WNTRMapViewer({
         if (node.type === 'tank') color = '#EF4444'
         else if (node.type === 'reservoir') color = '#10B981'
 
-        // Apply simulation results if available
-        if (simulationResults?.node_results?.[node.id]) {
+        // La presión colorea los nudos sólo cuando el panel lo pide. Antes lo
+        // hacía siempre y el interruptor «mapa de presiones» no llegaba al mapa:
+        // encendido o apagado, se pintaba igual (#37).
+        if (mapSettings.simbologia === 'presion' && simulationResults?.node_results?.[node.id]) {
           const pressureArray = simulationResults.node_results[node.id].pressure
           // Access specific time step if it exists, otherwise use 0 or default
           const pressure = Array.isArray(pressureArray) && currentTimeStep !== undefined
@@ -734,8 +691,9 @@ export function WNTRMapViewer({
           width = mapSettings.linkWidth * 1.5
         }
 
-        // Apply simulation results if available
-        if (simulationResults?.link_results?.[link.id]) {
+        // Igual que con la presión: el caudal engorda el tramo sólo si es la
+        // simbología elegida.
+        if (mapSettings.simbologia === 'caudal' && simulationResults?.link_results?.[link.id]) {
           const flowArray = simulationResults.link_results[link.id].flowrate
           const flowValue = Array.isArray(flowArray) && currentTimeStep !== undefined
             ? flowArray[currentTimeStep] ?? flowArray[0]
@@ -809,7 +767,8 @@ export function WNTRMapViewer({
         },
         paint: {
           'line-color': ['get', 'color'],
-          'line-width': ['get', 'width']
+          'line-width': ['get', 'width'],
+          'line-opacity': mapSettings.opacity
         }
       });
     }
@@ -828,6 +787,7 @@ export function WNTRMapViewer({
           // encuadre del mapa) cada vez que cambia la selección.
           'circle-radius': highlightRadius(highlightedNodesRef.current, mapSettings.nodeSize),
           'circle-color': ['get', 'color'],
+          'circle-opacity': mapSettings.opacity,
           'circle-stroke-width': highlightStrokeWidth(highlightedNodesRef.current),
           'circle-stroke-color': highlightStrokeColor(highlightedNodesRef.current)
         }
@@ -919,6 +879,8 @@ export function WNTRMapViewer({
 
   }, [networkData, simulationResults, mapSettings, conversion, crs.motivo])
 
+  useEffect(() => { repintarRedRef.current = addNetworkToMap }, [addNetworkToMap])
+
   // Resaltar es sólo cambiar el paint de la capa ya montada: nada de rehacer
   // fuentes ni volver a encuadrar.
   useEffect(() => {
@@ -927,6 +889,20 @@ export function WNTRMapViewer({
     map.current.setPaintProperty('network-nodes', 'circle-stroke-width', highlightStrokeWidth(highlightedNodes))
     map.current.setPaintProperty('network-nodes', 'circle-stroke-color', highlightStrokeColor(highlightedNodes))
   }, [highlightedNodes, mapSettings.nodeSize, networkData])
+
+  // La opacidad se aplica sobre las capas ya montadas: `addNetworkToMap` sólo
+  // las crea si no existen, así que sin esto mover el deslizador no haría nada
+  // hasta la siguiente reconstrucción. Antes no hacía nada nunca: el valor se
+  // guardaba y no llegaba al mapa (#37).
+  useEffect(() => {
+    if (!map.current) return
+    if (map.current.getLayer('network-nodes')) {
+      map.current.setPaintProperty('network-nodes', 'circle-opacity', mapSettings.opacity)
+    }
+    if (map.current.getLayer('network-links')) {
+      map.current.setPaintProperty('network-links', 'line-opacity', mapSettings.opacity)
+    }
+  }, [mapSettings.opacity, networkData])
 
   // Al perder el sistema de coordenadas hay que retirar lo pintado: si no, la
   // red seguiria dibujada en su posicion anterior mientras el aviso dice que no
@@ -967,6 +943,7 @@ export function WNTRMapViewer({
       if (result.success && result.data) {
         logger.debug('Network loaded:', result.data)
         setNetworkData(result.data)
+        onNetworkLoaded?.(result.data)
         // Network overlay is always visible
       } else {
         setError(result.error || 'Failed to load file')
@@ -1088,37 +1065,6 @@ export function WNTRMapViewer({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Test button to add sample network */}
-            <button
-              onClick={() => {
-                const testNetwork = {
-                  name: 'Test Network',
-                  summary: { junctions: 3, tanks: 0, reservoirs: 1, pipes: 3, pumps: 0, valves: 0 },
-                  nodes: [
-                    { id: 'J1', label: 'J1', type: 'junction', x: -99.133, y: 19.433 },
-                    { id: 'J2', label: 'J2', type: 'junction', x: -99.132, y: 19.432 },
-                    { id: 'J3', label: 'J3', type: 'junction', x: -99.134, y: 19.432 },
-                    { id: 'R1', label: 'R1', type: 'reservoir', x: -99.133, y: 19.431 }
-                  ],
-                  links: [
-                    { id: 'P1', label: 'P1', type: 'pipe', from: 'R1', to: 'J1' },
-                    { id: 'P2', label: 'P2', type: 'pipe', from: 'J1', to: 'J2' },
-                    { id: 'P3', label: 'P3', type: 'pipe', from: 'J1', to: 'J3' }
-                  ],
-                  options: {},
-                  coordinate_system: { type: 'geographic' }
-                }
-                setNetworkData(testNetwork as any)
-              }}
-              className={cn(
-                "px-4 py-2 rounded-lg",
-                "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-                "transition-colors text-sm"
-              )}
-            >
-              Test Network
-            </button>
-
             <button
               onClick={handleFileUpload}
               disabled={loading}
@@ -1205,18 +1151,6 @@ export function WNTRMapViewer({
                   <Globe2 className="w-4 h-4" />
                   {crs.epsg ?? 'Declarar EPSG'}
                 </button>
-
-                <button
-                  onClick={() => setShowSettingsDialog(true)}
-                  className={cn(
-                    "p-2 rounded-lg",
-                    "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-                    "transition-colors"
-                  )}
-                  title="Map Settings"
-                >
-                  <Settings2 className="w-4 h-4" />
-                </button>
               </>
             )}
           </div>
@@ -1281,12 +1215,54 @@ export function WNTRMapViewer({
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>
                     Esta red no se puede situar en el mapa: {crs.motivo}{' '}
-                    <button
-                      onClick={() => setMostrarSelectorCRS(true)}
-                      className="font-medium underline"
-                    >
-                      Declarar sistema de coordenadas
-                    </button>
+                    {/* Con coordenadas de esquema la salida buena es el esquema, no
+                        declarar un EPSG: se ofrece primero. */}
+                    {crs.esquematico && onVerTopologia ? (
+                      <>
+                        <button onClick={onVerTopologia} className="font-medium underline">
+                          Ver el esquema de la red
+                        </button>
+                        {' · '}
+                        <button
+                          onClick={() => setMostrarSelectorCRS(true)}
+                          className="underline"
+                        >
+                          declarar un EPSG de todos modos
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setMostrarSelectorCRS(true)}
+                          className="font-medium underline"
+                        >
+                          Declarar sistema de coordenadas
+                        </button>
+                        {onVerTopologia && (
+                          <>
+                            {' · '}
+                            <button onClick={onVerTopologia} className="font-medium underline">
+                              Ver el esquema de la red
+                            </button>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </span>
+                </div>
+              )}
+
+              {crs.epsg && crs.esquematico && (
+                <div className="ml-5 flex items-start gap-2 rounded-md border border-yellow-500/50 bg-yellow-500/10 px-3 py-2 text-yellow-700 dark:text-yellow-400">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    Ojo: {limitesRed && motivoEsquematico(limitesRed)} Se está dibujando donde{' '}
+                    {crs.epsg} manda para esos números, que no tiene por qué ser dónde está.{' '}
+                    {onVerTopologia && (
+                      <button onClick={onVerTopologia} className="font-medium underline">
+                        Ver el esquema
+                      </button>
+                    )}
                   </span>
                 </div>
               )}
@@ -1438,180 +1414,6 @@ export function WNTRMapViewer({
           </div>
         )}
       </div>
-
-      {/* Settings Dialog */}
-      <Dialog.Root open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-          <Dialog.Content className={cn(
-            "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-            "w-full max-w-md bg-background rounded-lg shadow-xl",
-            "p-6 z-50"
-          )}>
-            <Dialog.Title className="text-xl font-semibold mb-4">Map Settings</Dialog.Title>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Base Map Style
-                  {styleChanging && (
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      (Cambiando estilo...)
-                    </span>
-                  )}
-                </label>
-                <select
-                  value={mapSettings.baseMap}
-                  onChange={(e) => setMapSettings({
-                    ...mapSettings,
-                    baseMap: e.target.value as MapSettings['baseMap']
-                  })}
-                  disabled={styleChanging}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg bg-input border border-border",
-                    styleChanging && "opacity-50 cursor-not-allowed"
-                  )}
-                >
-                  <option value="streets">Streets</option>
-                  <option value="satellite" disabled={satelliteDisabled}>
-                    Satellite {satelliteDisabled ? '(No compatible)' : ''}
-                  </option>
-                  <option value="outdoors">Outdoors</option>
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
-                </select>
-                {satelliteDisabled && (
-                  <div className="mt-2 p-2 bg-muted/20 rounded text-xs">
-                    <p className="text-muted-foreground mb-2">
-                      ⚠️ Modo satélite deshabilitado para prevenir errores del sistema
-                    </p>
-                    <button
-                      onClick={() => {
-                        setSatelliteDisabled(false)
-                        localStorage.removeItem('satellite-disabled-by-system')
-                        setError(null)
-                        checkSatelliteCompatibility()
-                      }}
-                      className="text-primary hover:text-primary/80 underline text-xs"
-                    >
-                      Volver a intentar habilitar satélite
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Network Opacity: {mapSettings.opacity}
-                </label>
-                <input
-                  type="range"
-                  min="0.1"
-                  max="1"
-                  step="0.1"
-                  value={mapSettings.opacity}
-                  onChange={(e) => setMapSettings({
-                    ...mapSettings,
-                    opacity: parseFloat(e.target.value)
-                  })}
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Node Size: {mapSettings.nodeSize}
-                </label>
-                <input
-                  type="range"
-                  min="4"
-                  max="20"
-                  step="1"
-                  value={mapSettings.nodeSize}
-                  onChange={(e) => setMapSettings({
-                    ...mapSettings,
-                    nodeSize: parseInt(e.target.value)
-                  })}
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Link Width: {mapSettings.linkWidth}
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  step="1"
-                  value={mapSettings.linkWidth}
-                  onChange={(e) => setMapSettings({
-                    ...mapSettings,
-                    linkWidth: parseInt(e.target.value)
-                  })}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="showLabels"
-                  checked={mapSettings.showLabels}
-                  onChange={(e) => setMapSettings({
-                    ...mapSettings,
-                    showLabels: e.target.checked
-                  })}
-                  className="rounded"
-                />
-                <label htmlFor="showLabels" className="text-sm">Show node labels</label>
-              </div>
-
-              {/* Manual Position Adjustment */}
-              {networkData && networkData.coordinate_system?.type !== 'geographic' && (
-                <div className="pt-4 border-t border-border">
-                  <h4 className="text-sm font-medium mb-3">Network Position Adjustment</h4>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Click on the map to set the center point for your network
-                  </p>
-
-                  {mapSettings.manualPosition && (
-                    <div className="space-y-2">
-                      <div className="text-xs">
-                        <span className="text-muted-foreground">Latitude:</span>
-                        <span className="ml-2 font-mono">{mapSettings.manualPosition.lat.toFixed(6)}</span>
-                      </div>
-                      <div className="text-xs">
-                        <span className="text-muted-foreground">Longitude:</span>
-                        <span className="ml-2 font-mono">{mapSettings.manualPosition.lon.toFixed(6)}</span>
-                      </div>
-                      <button
-                        onClick={() => setMapSettings({
-                          ...mapSettings,
-                          manualPosition: undefined
-                        })}
-                        className="text-xs text-primary hover:underline"
-                      >
-                        Reset to default position
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-2 mt-6">
-              <button
-                onClick={() => setShowSettingsDialog(false)}
-                className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                Done
-              </button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
 
       <CRSSelector
         abierto={mostrarSelectorCRS}

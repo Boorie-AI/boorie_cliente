@@ -90,6 +90,19 @@ const C = {
     ));
   },
 
+  // Rueda real de Playwright: Mapbox y los <select> nativos responden a eventos
+  // de confianza, y un WheelEvent despachado a mano no siempre basta.
+  // Sintaxis: wheel <x> <y> <deltaY> [veces]
+  async wheel(arg) {
+    const [x, y, dy, veces = '1'] = arg.trim().split(/\s+/);
+    await page.mouse.move(Number(x), Number(y));
+    for (let i = 0; i < Number(veces); i++) {
+      await page.mouse.wheel(0, Number(dy));
+      await new Promise(r => setTimeout(r, 120));
+    }
+    log('wheel', arg, '-> OK');
+  },
+
   async waitfor(sel) {
     try { await page.waitForSelector(sel, { timeout: 30_000 }); log('presente:', sel); }
     catch { log('TIMEOUT esperando', sel); }

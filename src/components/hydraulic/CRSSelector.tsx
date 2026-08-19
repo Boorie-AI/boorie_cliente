@@ -24,7 +24,9 @@ import {
   catalogoCRS,
   esEPSGSoportado,
   nombreCRS,
+  motivoEsquematico,
   normalizarEPSG,
+  pareceEsquematico,
   reproyectarLimites,
   validarCordura,
   type LimitesProyectados,
@@ -61,6 +63,10 @@ export function CRSSelector({
   const paisProyecto = useProjectStore(s => s.currentProject?.location?.country ?? null)
 
   const catalogo = useMemo(() => catalogoCRS(), [])
+
+  // Coordenadas de esquema: ningún EPSG las sitúa bien, así que conviene decirlo
+  // antes de que el ingeniero elija uno y se lleve la red a otro continente.
+  const esquematico = useMemo(() => (limites ? pareceEsquematico(limites) : false), [limites])
 
   const resultados = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
@@ -133,6 +139,16 @@ export function CRSSelector({
         </DialogHeader>
 
         <div className="space-y-3">
+          {esquematico && (
+            <div className="flex items-start gap-2 rounded-md border border-yellow-500/50 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-400">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>
+                {motivoEsquematico(limites!)} Elijas el que elijas, la red acabará en un punto
+                arbitrario del planeta. Para verla, usa la vista de esquema.
+              </span>
+            </div>
+          )}
+
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input

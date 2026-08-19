@@ -1,6 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { WNTRMapViewer } from './WNTRMapViewer';
+import { NetworkTopologyView } from './NetworkTopologyView';
 import { WNTRAdvancedVisualizerPanel } from './WNTRAdvancedVisualizerPanel';
+import { AJUSTES_INICIALES, soloAjustesDelMapa, type AjustesVisor } from './ajustesVisor';
+import type { MapSettings } from './WNTRMapViewer';
+import { tieneCoordenadasUtiles } from '@/services/network/topologia';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
@@ -52,16 +56,6 @@ interface SimulationResults {
   };
 }
 
-interface VisualizationSettings {
-  showPressureMap: boolean;
-  showFlowMap: boolean;
-  pressureRange: [number, number];
-  flowRange: [number, number];
-  timeStep: number;
-  isPlaying: boolean;
-  playbackSpeed: number;
-}
-
 interface WNTRAdvancedMapViewerProps {
   networkData?: NetworkData | null;
   simulationResults?: SimulationResults | null;
@@ -75,26 +69,18 @@ interface WNTRAdvancedMapViewerProps {
 export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
   networkData: externalNetworkData,
   simulationResults: externalSimulationResults,
-  onDataLoaded: _onDataLoaded,
+  onDataLoaded,
   onSimulationCompleted: _onSimulationCompleted,
   highlightedNodes,
   networkId
 }) => {
   const [networkData, setNetworkData] = useState<NetworkData | null>(externalNetworkData || null);
   const [simulationResults, setSimulationResults] = useState<SimulationResults | null>(externalSimulationResults || null);
-  const [visualizationSettings, setVisualizationSettings] = useState<VisualizationSettings>({
-    showPressureMap: true,
-    showFlowMap: false,
-    pressureRange: [0, 100],
-    flowRange: [0, 10],
-    timeStep: 0,
-    isPlaying: false,
-    playbackSpeed: 1
-  });
+  // Dueño único de los ajustes del visor: el mapa, el esquema y el panel leen de
+  // aquí. Antes cada uno tenía su copia y el panel no llegaba al mapa (#37).
+  const [visualizationSettings, setVisualizationSettings] = useState<AjustesVisor>(AJUSTES_INICIALES);
 
   const [currentTime, setCurrentTime] = useState(new Date('2025-10-09T05:42:00'));
-  // Default coordinates for the map; not currently mutated at runtime.
-  const [coordinates] = useState({ lat: -19.15995, lon: 146.88143 });
   const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Handle external data changes
@@ -150,9 +136,45 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
     }
   }, [visualizationSettings.timeStep, simulationResults]);
 
-  const handleSettingsChange = useCallback((settings: VisualizationSettings) => {
+  const handleSettingsChange = useCallback((settings: AjustesVisor) => {
     setVisualizationSettings(settings);
   }, []);
+
+  // Sólo se aceptan de vuelta las claves del mapa: el resto de los ajustes no son
+  // suyos y devolverlos pisaría la vista o el paso de tiempo vigentes.
+  const handleMapSettingsChange = useCallback((mapSettings: MapSettings) => {
+    setVisualizationSettings(prev => ({ ...prev, ...mapSettings }));
+  }, []);
+
+  const ajustesDelMapa = useMemo(
+    () => soloAjustesDelMapa(visualizationSettings),
+    [visualizationSettings]
+  );
+
+  // Una red cargada desde el mapa es la red del visor y la de la pantalla que lo
+  // contiene: se propaga en lugar de quedarse en el mapa.
+  const handleNetworkLoaded = useCallback((datos: NetworkData) => {
+    setNetworkData(datos);
+    onDataLoaded?.(datos);
+  }, [onDataLoaded]);
+
+  const verTopologia = useCallback(() => {
+    setVisualizationSettings(prev => ({ ...prev, vista: 'topologia' }));
+  }, []);
+
+  /**
+   * Sin nudos con coordenadas no hay nada que situar sobre la ortofoto, así que
+   * el mapa deja de ofrecerse y el esquema pasa a ser la vista por defecto. El
+   * caso de coordenadas presentes pero con sistema sin declarar lo resuelve el
+   * propio mapa, que avisa y ofrece la salida al esquema.
+   */
+  const mapaDisponible = !networkData || tieneCoordenadasUtiles(networkData.nodes);
+
+  useEffect(() => {
+    if (!mapaDisponible) {
+      setVisualizationSettings(prev => (prev.vista === 'mapa' ? { ...prev, vista: 'topologia' } : prev));
+    }
+  }, [mapaDisponible]);
 
   const togglePlayback = () => {
     setVisualizationSettings(prev => ({ ...prev, isPlaying: !prev.isPlaying }));
@@ -202,18 +224,35 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
 
   return (
-    <div className="flex h-screen bg-gray-900 overflow-hidden">
+    // `h-full`, no `h-screen`: este visor vive dentro del hueco que deja la barra
+    // superior de la aplicación, así que pedir 100 vh lo hace sobresalir por
+    // arriba y se come la fila de botones (visible al maximizar la ventana).
+    <div className="flex h-full bg-gray-900 overflow-hidden">
       {/* Main Map Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Map Container */}
         <div className="flex-1 relative">
-          <WNTRMapViewer
-            networkData={networkData}
-            simulationResults={simulationResults}
-            activeTimeStep={visualizationSettings.timeStep}
-            highlightedNodes={highlightedNodes}
-            networkId={networkId}
-          />
+          {visualizationSettings.vista === 'mapa' ? (
+            <WNTRMapViewer
+              networkData={networkData}
+              simulationResults={simulationResults}
+              activeTimeStep={visualizationSettings.timeStep}
+              highlightedNodes={highlightedNodes}
+              networkId={networkId}
+              mapSettings={ajustesDelMapa}
+              onMapSettingsChange={handleMapSettingsChange}
+              onVerTopologia={verTopologia}
+              onNetworkLoaded={handleNetworkLoaded}
+            />
+          ) : (
+            <NetworkTopologyView
+              networkData={networkData}
+              simulationResults={simulationResults}
+              activeTimeStep={visualizationSettings.timeStep}
+              highlightedNodes={highlightedNodes}
+              showLabels={visualizationSettings.showLabels}
+            />
+          )}
 
           {/* Overlay info - Empty for now as requested */}
 
@@ -312,6 +351,22 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                 <div className="text-white text-sm font-mono min-w-[60px] text-right">
                   {formatTime(currentTime)}
                 </div>
+
+                {/* Velocidad de reproducción: estaba sólo en la tarjeta que el
+                    panel duplicaba, y al retirarla baja aquí, junto al resto de
+                    controles de transporte. */}
+                <select
+                  value={visualizationSettings.playbackSpeed}
+                  onChange={e =>
+                    setVisualizationSettings(prev => ({ ...prev, playbackSpeed: Number(e.target.value) }))
+                  }
+                  className="rounded-md border border-slate-600 bg-slate-700 px-2 py-1 text-xs text-white"
+                  title="Velocidad de reproducción"
+                >
+                  {[0.5, 1, 2, 4].map(v => (
+                    <option key={v} value={v}>{v}x</option>
+                  ))}
+                </select>
               </div>
             </div>
           </CardContent>
@@ -340,8 +395,9 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
           <WNTRAdvancedVisualizerPanel
             networkData={networkData}
             simulationResults={simulationResults}
-            onSettingsChange={handleSettingsChange}
-            coordinates={coordinates}
+            ajustes={visualizationSettings}
+            onCambio={handleSettingsChange}
+            mapaDisponible={mapaDisponible}
           />
         </div>
       </div>
