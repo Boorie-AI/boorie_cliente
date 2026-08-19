@@ -7,6 +7,25 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.9.0] - 2026-08-19
+
+Boorie empieza por tus proyectos, y lo del proyecto cuelga de ahí.
+
+- El menú se organiza en tres bloques: lo que pertenece al proyecto activo, las herramientas
+  que funcionan sin él y lo del sistema. Antes era una lista plana donde «Red WNTR» —que sin
+  proyecto no lleva a ninguna parte— estaba al mismo nivel que «Configuración».
+- El nombre del proyecto en el que trabajas está siempre a la vista en el menú, y de él cuelgan
+  su red, sus simulaciones y su chat. Sin proyecto activo, esos ítems no aparecen y el menú lo
+  dice.
+- «Proyectos» te enseña siempre tu lista, con el proyecto activo marcado. Antes, con un proyecto
+  abierto, esa pantalla mostraba lo mismo que «Red WNTR» y no había forma de volver a la lista
+  para cambiar de proyecto sin cerrarlo primero.
+- El chat general y el chat del proyecto son dos entradas distintas: el general para preguntar
+  de ingeniería sin proyecto delante, el del proyecto para hablar de tu red. Cada uno lista sus
+  propias conversaciones, y la que empieces queda atada al proyecto sólo si es la del proyecto.
+- Si abres Boorie sin proyecto activo, entra en Proyectos en vez de dejarte en una pantalla que
+  necesita uno. Si lo tienes, sigue abriendo donde lo dejaste.
+
 ## [1.8.0] - 2026-08-19
 
 El chat deja de hablar de tu red de oídas: ahora la tiene delante y puede consultarla.
