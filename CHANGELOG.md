@@ -7,6 +7,31 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.12.0] - 2026-08-19
+
+El reloj de la simulación es el de tu modelo, y puedes elegir qué miras.
+
+- **El control temporal marca el tiempo real de tu simulación.** Si tu modelo reporta cada
+  15 minutos, el reloj avanza 15 minutos por paso; antes sumaba una hora fija, así que corría
+  cuatro veces más rápido, y la fecha que enseñaba —un jueves de octubre con hora australiana—
+  no salía de ningún dato. Ahora te dice el momento, el paso, cada cuánto reporta el modelo y
+  cuánto dura, todo leído de tu `.inp` y de los resultados de WNTR.
+- **Sin hora declarada en el `.inp`, el tiempo se muestra transcurrido** (`+04:15:00`) en vez de
+  fingir una hora del día. Si tu modelo declara su hora de arranque, se usa la suya.
+- **Mover la barra repinta el mapa.** Antes cambiaba el reloj y los colores se quedaban en el
+  primer paso.
+- **Una simulación de un solo paso ya no enseña reproductor**, que no llevaba a ninguna parte.
+- **Puedes colorear la red por presión, demanda, caudal o velocidad**, y la leyenda te dice el
+  rango real de tu red en ese paso en lugar de un máximo fijo que saturaba en cuanto la red se
+  salía de él.
+- **Puedes encender y apagar la red por tipo de elemento**: nudos de consumo, depósitos, embalses,
+  tuberías, bombas y válvulas, con el contador de cada uno al lado. Con miles de nudos es lo que
+  permite mirar sólo las bombas, o el trazado sin la nube de acometidas.
+- **Al pulsar «Simulaciones» sin una red cargada, Boorie te dice que hace falta una y te da el
+  botón para importarla.** Antes te dejaba en la pantalla de importar sin explicar nada.
+- **«Abrir» en la lista de proyectos abre el proyecto.** Antes sólo lo marcaba como activo, así
+  que si ya lo era no ocurría nada.
+
 ## [1.11.0] - 2026-08-19
 
 Un solo visor, y una red que se puede ver aunque no se sepa dónde está.
