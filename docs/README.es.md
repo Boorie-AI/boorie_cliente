@@ -39,15 +39,23 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.7.0
+### 🚀 Última Versión - v1.8.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.7.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.7.0/Boorie-1.7.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.7.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.7.0/Boorie-Setup-1.7.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.7.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.7.0/Boorie-1.7.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.8.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.8.0/Boorie-1.8.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.8.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.8.0/Boorie-Setup-1.8.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.8.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.8.0/Boorie-1.8.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.8.0
+- El agente recibe los datos reales de la red cargada —nudos, depósitos, tuberías, longitud total, demanda y rango de diámetros— en lugar de un escueto «hay una red cargada». Antes, a «¿cómo mejoro el flujo en el nudo J3?» respondía consejos genéricos sobre limpiar una junta mecánica, sin enterarse de que J3 es un nudo de tu red.
+- Puede consultar un nudo o un tramo concreto cuando se lo preguntas, en vez de responder con cifras aproximadas. En una red de 92 nudos el resumen no cabe entero en la conversación, así que mira sólo lo que necesita para responderte.
+- La cabecera del chat indica qué red está viendo el agente. Si no ve ninguna, lo dice y te explica que cargues un archivo .inp en el proyecto.
+- Sin proyecto abierto, el chat responde con conocimiento general de ingeniería hidráulica y con tu base de conocimiento, pero ya no describe redes que no tiene delante ni suelta ejemplos numéricos que puedan confundirse con la tuya.
+- Cuando el modelo que usas no admite consultas a la red, el agente lo sabe y te dice que no puede mirarlo, en lugar de estimarlo.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.8.0).
 
 ### 📝 Novedades en v1.7.0
 - Si entras en la red hidráulica sin un proyecto activo, Boorie te lo dice y te ofrece elegir uno. Antes te cambiaba la pantalla por la lista de proyectos sin explicar por qué.
@@ -120,12 +128,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.7.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.7.0.AppImage`
-3. Ejecuta: `./Boorie-1.7.0.AppImage`
+1. Descarga `Boorie-1.8.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.8.0.AppImage`
+3. Ejecuta: `./Boorie-1.8.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.7.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.8.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
