@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { useMapboxToken } from '@/hooks/useMapboxToken'
+import { comprobarSoporteSatelite } from '@/utils/webgl'
 import { useProjectStore } from '@/stores/projectStore'
 import { CRSSelector } from './CRSSelector'
 // Las definiciones proj4 viven en `@/services/geo/crs`, no aqui: cuando cada
@@ -165,85 +166,23 @@ export function WNTRMapViewer({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [styleChanging, setStyleChanging] = useState(false)
-  const [satelliteDisabled, setSatelliteDisabled] = useState(false)
   // Network overlay is always visible
   const showNetworkOverlay = true
   const [selectedNode, setSelectedNode] = useState<any>(null)
   const [selectedLink, setSelectedLink] = useState<any>(null)
 
   // Check WebGL capabilities and satellite compatibility
-  const checkSatelliteCompatibility = useCallback(() => {
-    try {
-      // Check if WebGL is available and working
-      const canvas = document.createElement('canvas')
-      const gl = (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null
+  // El satélite se comprueba de verdad, una vez, en lugar de desactivarse para
+  // todo el mundo. `satelliteDisabled` sigue existiendo porque el estilo puede
+  // fallar también en marcha, y entonces se cae a calles.
+  const soporteSatelite = useMemo(() => comprobarSoporteSatelite(), [])
+  // Clave nueva a proposito: la anterior («satellite-disabled-by-system») la
+  // escribia el codigo viejo en el primer arranque de cualquier equipo, asi que
+  // su valor no distingue una caida real de la desactivacion universal.
+  const [satelliteDisabled, setSatelliteDisabled] = useState(
+    () => !soporteSatelite.disponible || localStorage.getItem('satelite-tumbo-la-app') === 'true'
+  )
 
-      if (!gl) {
-        // logger.warn('WebGL not available - disabling satellite mode')
-        setSatelliteDisabled(true)
-        return false
-      }
-
-      // Check for known problematic renderer strings
-      const renderer = gl.getParameter(gl.RENDERER) || ''
-      const vendor = gl.getParameter(gl.VENDOR) || ''
-
-      // logger.debug('WebGL Renderer:', renderer)
-      // logger.debug('WebGL Vendor:', vendor)
-
-      // Known problematic configurations that cause crashes with satellite imagery
-      const problematicPatterns = [
-        /software/i,
-        /mesa/i,
-        /llvmpipe/i,
-        /microsoft basic render driver/i
-      ]
-
-      const isProblematic = problematicPatterns.some(pattern =>
-        pattern.test(renderer) || pattern.test(vendor)
-      )
-
-      if (isProblematic) {
-        // logger.warn('Problematic WebGL renderer detected - disabling satellite mode')
-        setSatelliteDisabled(true)
-        return false
-      }
-
-      // Test WebGL context loss recovery
-      const ext = gl.getExtension('WEBGL_lose_context')
-      if (ext) {
-        // This is just a capability check, not actually losing context
-        logger.debug('WebGL context loss recovery available')
-      }
-
-      return true
-    } catch (error) {
-      logger.error('Error checking WebGL compatibility:', error)
-      setSatelliteDisabled(true)
-      return false
-    }
-  }, [])
-
-  // Check satellite compatibility on mount
-  useEffect(() => {
-    // Check if satellite was previously disabled due to crashes
-    const satelliteDisabledBySystem = localStorage.getItem('satellite-disabled-by-system')
-    if (satelliteDisabledBySystem === 'true') {
-      logger.debug('Satellite mode was previously disabled by system')
-      setSatelliteDisabled(true)
-      // setError('Modo satélite deshabilitado debido a incompatibilidad del sistema.')
-    } else {
-      // For now, disable satellite mode completely to prevent crashes
-      // TODO: Remove this when satellite mode is stable
-      logger.warn('Satellite mode disabled preventively due to known crash issues')
-      setSatelliteDisabled(true)
-      localStorage.setItem('satellite-disabled-by-system', 'true')
-      // setError('Modo satélite temporalmente deshabilitado para prevenir crashes del sistema.')
-
-      // Uncomment this line when satellite mode is stable:
-      // checkSatelliteCompatibility()
-    }
-  }, [checkSatelliteCompatibility])
 
   // El mapa sigue necesitando cambiar sus propios ajustes en un caso —cuando el
   // estilo satélite falla y hay que caer a calles—, así que en vez de dejar de
@@ -269,7 +208,7 @@ export function WNTRMapViewer({
       setError(`${data.message} - Modo satélite ha sido deshabilitado permanentemente.`)
 
       // Persist the disable state
-      localStorage.setItem('satellite-disabled-by-system', 'true')
+      localStorage.setItem('satelite-tumbo-la-app', 'true')
 
       // If currently on satellite, switch to streets
       if (mapSettings.baseMap === 'satellite') {
@@ -389,6 +328,7 @@ export function WNTRMapViewer({
             // Prevent infinite error loops
             if (map.current) {
               map.current.setStyle('mapbox://styles/mapbox/streets-v11')
+              setSatelliteDisabled(true)
               setMapSettings(prev => ({ ...prev, baseMap: 'streets' }))
               setError('Las imágenes satelitales fallaron. Se cambió a vista de calles automáticamente.')
             }
@@ -448,6 +388,15 @@ export function WNTRMapViewer({
     // from Settings (DB) and may not be available yet on first mount.
   }, [MAPBOX_ACCESS_TOKEN])
 
+  /**
+   * `setStyle` de Mapbox se lleva por delante todas las fuentes y capas propias,
+   * asi que al cambiar el mapa base hay que volver a pintar la red. Vive en una
+   * ref porque el efecto que cambia el estilo se declara antes que
+   * `addNetworkToMap`, y meterlo en sus dependencias reiniciaria el estilo cada
+   * vez que cambiara cualquier ajuste del dibujo.
+   */
+  const repintarRedRef = useRef<() => void>(() => {})
+
   // Update map style
   useEffect(() => {
     if (!map.current || styleChanging) return
@@ -468,13 +417,11 @@ export function WNTRMapViewer({
     }
 
     // Check satellite compatibility before switching
-    if (mapSettings.baseMap === 'satellite') {
-      if (satelliteDisabled || !checkSatelliteCompatibility()) {
-        logger.warn('Satellite mode not compatible with current system')
-        setError('Modo satélite no compatible con su sistema. Use otro estilo de mapa.')
-        setMapSettings(prev => ({ ...prev, baseMap: 'streets' }))
-        return
-      }
+    if (mapSettings.baseMap === 'satellite' && satelliteDisabled) {
+      logger.warn('Satellite mode not available:', soporteSatelite.motivo)
+      setError(soporteSatelite.motivo || 'Las imágenes satelitales no están disponibles en este equipo.')
+      setMapSettings(prev => ({ ...prev, baseMap: 'streets' }))
+      return
     }
 
     // Prevent multiple simultaneous style changes
@@ -546,6 +493,8 @@ export function WNTRMapViewer({
         setStyleChanging(false)
         clearTimeout(timeoutId)
         map.current?.off('error', handleStyleError)
+        // El estilo nuevo llega sin la red: hay que volver a ponerla.
+        repintarRedRef.current()
       })
 
     } catch (error) {
@@ -929,6 +878,8 @@ export function WNTRMapViewer({
     }
 
   }, [networkData, simulationResults, mapSettings, conversion, crs.motivo])
+
+  useEffect(() => { repintarRedRef.current = addNetworkToMap }, [addNetworkToMap])
 
   // Resaltar es sólo cambiar el paint de la capa ya montada: nada de rehacer
   // fuentes ni volver a encuadrar.

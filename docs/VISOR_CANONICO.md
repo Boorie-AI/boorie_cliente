@@ -174,6 +174,32 @@ ajustes entero, y su copia incluía `vista`. Cuando el mapa se corrige a sí mis
 que tuviera capturado, deshaciendo el cambio a esquema que el usuario acababa de
 hacer. Ahora se le entrega y se le acepta sólo su trozo (`soloAjustesDelMapa`).
 
+## Lo que salió al probarlo maximizado y con el mapa base
+
+**El visor se salía de su hueco.** `WNTRAdvancedMapViewer` pedía `h-screen`, es
+decir 100 vh, dentro del hueco que deja la barra superior de la aplicación
+—`h-[calc(100vh-65px)]`, 935 px en una ventana de 1000—. Se salía 33 px por
+arriba, y ahí es justo donde está la fila de botones: al maximizar, desaparecían.
+Medido en la aplicación antes y después. Ahora es `h-full`.
+
+**Cambiar el mapa base se llevaba la red.** `setStyle` de Mapbox retira todas las
+fuentes y capas propias, y nadie las volvía a poner: el `style.load` sólo
+reiniciaba la bandera de «cambio en curso». Con el selector de mapa base metido en
+el panel, el fallo pasó de escondido a estar a un clic. Ahora se repinta la red al
+cargar el estilo nuevo.
+
+**El satélite no era «incompatible con su sistema».** El visor lo desactivaba
+para todo el mundo en el arranque, con la comprobación real comentada y un TODO
+al lado, y luego mostraba ese mensaje. Además la comprobación que había —cuando
+se activase— trataba `mesa` como renderizado por software, y Mesa es la pila
+gráfica estándar de Linux: habría dejado sin satélite a cualquier equipo Linux con
+aceleración de verdad. Ahora se comprueba de verdad
+(`src/utils/webgl.ts`), sólo se descartan los renderizadores por software de
+verdad (`llvmpipe`, `swrast`, `softpipe`), la opción se deshabilita con su motivo
+cuando no puede ser, y la marca que se guardaba se escribe sólo si el satélite
+tumba la aplicación de verdad —con clave nueva, porque la anterior la escribía el
+código viejo en el primer arranque de cualquier equipo—.
+
 ## Fuera de alcance
 
 **El control temporal no refleja el tiempo real del modelo.** La barra rotula las

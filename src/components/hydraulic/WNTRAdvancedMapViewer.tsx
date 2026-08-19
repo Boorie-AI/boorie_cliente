@@ -224,7 +224,10 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
 
   return (
-    <div className="flex h-screen bg-gray-900 overflow-hidden">
+    // `h-full`, no `h-screen`: este visor vive dentro del hueco que deja la barra
+    // superior de la aplicación, así que pedir 100 vh lo hace sobresalir por
+    // arriba y se come la fila de botones (visible al maximizar la ventana).
+    <div className="flex h-full bg-gray-900 overflow-hidden">
       {/* Main Map Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Map Container */}

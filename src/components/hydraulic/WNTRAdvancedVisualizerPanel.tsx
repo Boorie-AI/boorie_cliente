@@ -6,6 +6,10 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/utils/cn';
 import type { AjustesVisor, VistaVisor } from './ajustesVisor';
+import { comprobarSoporteSatelite } from '@/utils/webgl';
+
+// Función pura del entorno, no estado: se resuelve una vez al cargar el módulo.
+const SOPORTE_SATELITE = comprobarSoporteSatelite();
 import {
   Activity,
   Gauge,
@@ -176,14 +180,26 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
               <select
                 value={settings.baseMap}
                 onChange={e => handleSettingChange('baseMap', e.target.value as AjustesVisor['baseMap'])}
+                // En Chromium, un <select> con el foco cambia de opción al girar
+                // la rueda: quien creía estar haciendo zoom se encontraba con
+                // otro mapa base, y con «Satélite» si giraba lo suficiente.
+                onWheel={e => e.currentTarget.blur()}
                 className="w-full rounded-md border border-slate-600 bg-slate-700 px-2 py-1.5 text-sm text-white"
               >
                 <option value="streets">Calles</option>
                 <option value="outdoors">Terreno</option>
                 <option value="light">Claro</option>
                 <option value="dark">Oscuro</option>
-                <option value="satellite">Satélite</option>
+                {/* Deshabilitada, no escondida: si el equipo no puede con las
+                    teselas satelitales, es mejor que se vea que existe y por qué
+                    no está, que no ofrecerla y que parezca que Boorie no la tiene. */}
+                <option value="satellite" disabled={!SOPORTE_SATELITE.disponible}>
+                  Satélite{SOPORTE_SATELITE.disponible ? '' : ' (no disponible en este equipo)'}
+                </option>
               </select>
+              {!SOPORTE_SATELITE.disponible && (
+                <p className="text-xs text-gray-500">{SOPORTE_SATELITE.motivo}</p>
+              )}
             </div>
           )}
 
