@@ -39,15 +39,23 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.9.0
+### 🚀 Última Versión - v1.10.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.9.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.9.0/Boorie-1.9.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.9.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.9.0/Boorie-Setup-1.9.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.9.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.9.0/Boorie-1.9.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.10.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.10.0/Boorie-1.10.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.10.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.10.0/Boorie-Setup-1.10.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.10.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.10.0/Boorie-1.10.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.10.0
+- Boorie ya no adivina el sistema de coordenadas de tu red: te lo pregunta. Un selector nuevo te deja declarar el EPSG —los 120 husos UTM, MAGNA-SIRGAS de Colombia, ETRS89 y ED50 de España, ITRF2008 de México, o cualquier código que escribas— y te enseña dónde va a caer el centro de la red antes de que aceptes.
+- Una red sin sistema declarado ya no se dibuja en un sitio inventado: el mapa te dice que falta declararlo y te da el botón. Antes, cualquier red que no encajara en los rangos con los que se programó acababa pintada en el Caribe colombiano sin avisar.
+- Cambiar el EPSG recoloca la red al instante, sin volver a cargar el `.inp`.
+- Si la red reproyectada cae fuera del país de tu proyecto, Boorie te avisa: es la forma de cazar un huso equivocado antes de trabajar sobre una ubicación falsa.
+- Las coordenadas de tu `.inp` no se tocan nunca: la reproyección existe sólo para pintar el mapa.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.10.0).
 
 ### 📝 Novedades en v1.9.0
 - El menú se organiza en tres bloques: lo que pertenece al proyecto activo, las herramientas que funcionan sin él y lo del sistema. Antes era una lista plana donde «Red WNTR» estaba al mismo nivel que «Configuración».
@@ -136,12 +144,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.9.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.9.0.AppImage`
-3. Ejecuta: `./Boorie-1.9.0.AppImage`
+1. Descarga `Boorie-1.10.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.10.0.AppImage`
+3. Ejecuta: `./Boorie-1.10.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.9.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.10.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 

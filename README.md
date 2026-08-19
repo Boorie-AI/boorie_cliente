@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.9.0
+### 🚀 Latest Release - v1.10.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.9.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.9.0/Boorie-1.9.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.9.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.9.0/Boorie-Setup-1.9.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.9.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.9.0/Boorie-1.9.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.10.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.10.0/Boorie-1.10.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.10.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.10.0/Boorie-Setup-1.10.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.10.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.10.0/Boorie-1.10.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.10.0**: Your network sits on the map where **you** say it does, not where Boorie imagines. Boorie no longer guesses your network's coordinate system — it asks. A new selector lets you declare the EPSG (all 120 UTM zones, Colombia's MAGNA-SIRGAS, Spain's ETRS89 and ED50, Mexico's ITRF2008, or any code you type) and shows you where the centre of the network will land before you accept. A network with no declared system is no longer drawn in an invented place: the map tells you it is missing and gives you the button — before, any network that did not fit the ranges it was programmed with ended up painted in the Colombian Caribbean without a word. Changing the EPSG repositions the network instantly, without reloading the `.inp`, and Boorie warns you if the reprojected network falls outside your project's country, which is how you catch a wrong zone before working on a false location. The coordinates in your `.inp` are never touched: reprojection exists only to draw the map. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.10.0).
 - **v1.9.0**: Boorie now starts from your projects, and everything that belongs to a project hangs from it. The menu is organised in three blocks — what belongs to the active project, the tools that work without one, and system settings — instead of a flat list where «WNTR Network», which goes nowhere without a project, sat at the same level as «Settings». The name of the project you are working on is always visible in the menu, with its network, its simulations and its chat underneath; with no active project those items are gone and the menu says so. «Projects» always shows your list with the active one marked — before, with a project open, that screen showed the same thing as «WNTR Network» and there was no way back to the list to switch projects without closing the current one first. General chat and project chat are now two separate entries, each listing its own conversations, so a conversation is tied to the project only when you start it from the project chat. And opening Boorie with no active project lands you in Projects instead of a screen that needs one; with a project, it still opens where you left off. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.9.0).
 - **v1.8.0**: The chat no longer talks about your network second-hand — it has it in front of it and can query it. The agent now receives the real figures of the loaded network — junctions, tanks, reservoirs, pipes, total length, demand and diameter range — instead of a bare «a network is loaded». Asked «how do I improve flow at node J3?» it used to answer generic advice about cleaning a mechanical joint, unaware that J3 is a node of your network. It can now look up a specific node or pipe when you ask about it, instead of answering with approximate figures: in a 92-node network the whole network does not fit in the conversation, so it reads only what it needs. The chat header shows which network the agent is seeing, and when it sees none it says so and tells you to load an .inp file into the project. With no project open the chat answers from general hydraulic engineering knowledge and your knowledge base, but no longer describes networks it does not have in front of it nor offers numeric examples that could be mistaken for yours. When the model you use does not support network queries, the agent knows it and tells you it cannot look, instead of estimating. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.8.0).
 - **v1.7.0**: Boorie now tells you **what is missing and gives you the button that fixes it**. Entering the hydraulic network without an active project used to swap your screen for the project list with no explanation — the menu said «WNTR Network» and the content was something else. Now it says so and offers to pick one. Menu items that need something appear dimmed with a lock and explain what they are waiting for on hover, and they stay clickable so you reach the screen that resolves it instead of hitting a dead button. The first-run tour no longer ends at the calculator: it leads you to create a project and load your network. The calculator still works on its own, with no project required. Menu labels are finally translated — «Projects», «Calculator» and «WNTR Network» stayed in English even with the app in Spanish or Catalan. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.7.0).
@@ -78,12 +79,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.9.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.9.0.AppImage`
-3. Run: `./Boorie-1.9.0.AppImage`
+1. Download `Boorie-1.10.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.10.0.AppImage`
+3. Run: `./Boorie-1.10.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.9.0.exe` from the link above
+1. Download `Boorie-Setup-1.10.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 
