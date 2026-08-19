@@ -39,15 +39,24 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.10.0
+### 🚀 Última Versió - v1.11.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.10.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.10.0/Boorie-1.10.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.10.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.10.0/Boorie-Setup-1.10.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.10.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.10.0/Boorie-1.10.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.11.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.11.0/Boorie-1.11.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.11.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.11.0/Boorie-Setup-1.11.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.11.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.11.0/Boorie-1.11.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.11.0
+- La teva xarxa es pot veure com a **esquema** encara que no es pugui situar al mapa: una xarxa sense coordenades, o amb un sistema que ningú ha declarat, ja no es queda sense cap vista.
+- Si el teu `.inp` porta coordenades de dibuix en comptes de coordenades reals, Boorie t'ho diu en comptes de convidar-te a declarar un EPSG que plantaria la teva xarxa en un altre continent.
+- Tots els ajustos del mapa són en un sol tauler. Abans eren en tres llocs i la majoria no arribava al dibuix.
+- La vista de satèl·lit torna: estava desactivada per a tots els equips i el missatge culpava el teu sistema sense haver-lo mirat.
+- Canviar el mapa base ja no esborra la teva xarxa, i amb la finestra maximitzada ja no es talla la fila de botons.
+- El botó «Obrir» de la llista de projectes obre el projecte.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.11.0).
 
 ### 📝 Novetats a v1.10.0
 - Boorie ja no endevina el sistema de coordenades de la teva xarxa: te'l pregunta. Un selector nou et deixa declarar l'EPSG —els 120 fusos UTM, MAGNA-SIRGAS de Colòmbia, ETRS89 i ED50 d'Espanya, ITRF2008 de Mèxic, o qualsevol codi que escriguis— i t'ensenya on caurà el centre de la xarxa abans que acceptis.
@@ -144,12 +153,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.10.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.10.0.AppImage`
-3. Executa: `./Boorie-1.10.0.AppImage`
+1. Descarrega `Boorie-1.11.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.11.0.AppImage`
+3. Executa: `./Boorie-1.11.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.10.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.11.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
