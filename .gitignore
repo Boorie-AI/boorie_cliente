@@ -79,6 +79,8 @@ rag-knowledge/
 # Temporary files
 *.tmp
 temp.inp
+temp.rpt
+temp.bin
 app_log.txt
 
 # Bug reports
