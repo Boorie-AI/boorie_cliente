@@ -39,15 +39,24 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.11.0
+### 🚀 Última Versión - v1.12.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.11.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.11.0/Boorie-1.11.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.11.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.11.0/Boorie-Setup-1.11.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.11.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.11.0/Boorie-1.11.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.12.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.12.0/Boorie-1.12.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.12.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.12.0/Boorie-Setup-1.12.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.12.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.12.0/Boorie-1.12.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.12.0
+- El control temporal marca el tiempo real de tu simulación: si tu modelo reporta cada 15 minutos, el reloj avanza 15 minutos por paso. Antes sumaba una hora fija y la fecha no salía de ningún dato.
+- Sin hora declarada en el `.inp`, el tiempo se muestra transcurrido (`+04:15:00`) en vez de fingir una hora del día.
+- Mover la barra repinta el mapa; antes los colores se quedaban en el primer paso.
+- Puedes colorear la red por presión, demanda, caudal o velocidad, con la leyenda del rango real de tu red.
+- Puedes encender y apagar la red por tipo de elemento, con el contador de cada uno.
+- Al pulsar «Simulaciones» sin red, Boorie te dice que hace falta una y te da el botón para importarla.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.12.0).
 
 ### 📝 Novedades en v1.11.0
 - Tu red se puede ver como **esquema** aunque no se pueda situar en el mapa: una red sin coordenadas, o con un sistema que nadie ha declarado, ya no se queda sin ninguna vista.
@@ -153,12 +162,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.11.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.11.0.AppImage`
-3. Ejecuta: `./Boorie-1.11.0.AppImage`
+1. Descarga `Boorie-1.12.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.12.0.AppImage`
+3. Ejecuta: `./Boorie-1.12.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.11.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.12.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 

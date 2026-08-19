@@ -39,15 +39,24 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.11.0
+### 🚀 Última Versió - v1.12.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.11.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.11.0/Boorie-1.11.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.11.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.11.0/Boorie-Setup-1.11.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.11.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.11.0/Boorie-1.11.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.12.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.12.0/Boorie-1.12.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.12.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.12.0/Boorie-Setup-1.12.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.12.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.12.0/Boorie-1.12.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.12.0
+- El control temporal marca el temps real de la teva simulació: si el teu model reporta cada 15 minuts, el rellotge avança 15 minuts per pas. Abans sumava una hora fixa i la data no sortia de cap dada.
+- Sense hora declarada al `.inp`, el temps es mostra transcorregut (`+04:15:00`) en comptes de fingir una hora del dia.
+- Moure la barra repinta el mapa; abans els colors es quedaven al primer pas.
+- Pots acolorir la xarxa per pressió, demanda, cabal o velocitat, amb la llegenda del rang real de la teva xarxa.
+- Pots encendre i apagar la xarxa per tipus d'element, amb el comptador de cadascun.
+- En prémer «Simulacions» sense xarxa, Boorie et diu que en cal una i et dona el botó per importar-la.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.12.0).
 
 ### 📝 Novetats a v1.11.0
 - La teva xarxa es pot veure com a **esquema** encara que no es pugui situar al mapa: una xarxa sense coordenades, o amb un sistema que ningú ha declarat, ja no es queda sense cap vista.
@@ -153,12 +162,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.11.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.11.0.AppImage`
-3. Executa: `./Boorie-1.11.0.AppImage`
+1. Descarrega `Boorie-1.12.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.12.0.AppImage`
+3. Executa: `./Boorie-1.12.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.11.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.12.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 

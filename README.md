@@ -39,15 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.11.0
+### 🚀 Latest Release - v1.12.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.11.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.11.0/Boorie-1.11.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.11.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.11.0/Boorie-Setup-1.11.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.11.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.11.0/Boorie-1.11.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.12.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.12.0/Boorie-1.12.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.12.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.12.0/Boorie-Setup-1.12.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.12.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.12.0/Boorie-1.12.0.AppImage) |
 
 ### 📝 What's New
+
+- **v1.12.0**: The simulation clock is your model's clock, and you choose what you look at. If your model reports every 15 minutes, the clock advances 15 minutes per step — before it added a fixed hour, so it ran four times faster than the simulation, and the date it showed (a Thursday in October, in Australian time) came from no data at all. It now tells you the moment, the step, how often the model reports and how long it lasts, all read from your `.inp` and from WNTR's results; with no start time declared in the `.inp` it shows elapsed time (`+04:15:00`) instead of faking a time of day. Dragging the bar now repaints the map — before it changed the clock and left the colours on the first step — and a single-step simulation no longer shows a player that goes nowhere. You can colour the network by pressure, demand, flow or velocity, with a legend that states your network's real range at that step instead of a fixed maximum that saturated as soon as the network fell outside it; and you can switch the network on and off by element type — junctions, tanks, reservoirs, pipes, pumps and valves, each with its count — which is what lets you look at just the pumps, or at the layout without the cloud of service connections. Finally: pressing «Simulations» with no loaded network now tells you one is needed and gives you the import button, and «Open» in the project list actually opens the project. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.12.0).
 
 - **v1.11.0**: One viewer, and a network you can see even when nobody knows where it is. Your network can now be shown as a **schematic** even when it cannot be placed on the map: a network with no coordinates, or with a system nobody has declared, is no longer left with no view at all — the map's notice offers to show it as a schematic, with its tanks, reservoirs and pumps, and you can click a node or a pipe for its data. If your `.inp` carries drawing coordinates instead of real ones — the kind that run from 19 to 335 rather than around a million — Boorie says so, instead of inviting you to declare an EPSG that would plant your network on another continent without a word. Every map setting now lives in a single panel — view, base map, labels, opacity, node size, link width and symbology — where before they were spread across three places and most of them reached nothing: opacity, the two pressure switches, the ranges and «place your network by clicking the map» all did nothing at all. Satellite view is back: it had been switched off for every machine while the message claimed it was «not compatible with your system», without ever looking at the system. Changing the base map no longer wipes your network off it, the viewer's button row is no longer clipped when the window is maximised, and «Open» in the project list actually opens the project. Under the hood, ten viewers nobody used —about 4,700 lines— are retired, leaving one documented as canonical. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.11.0).
 - **v1.10.0**: Your network sits on the map where **you** say it does, not where Boorie imagines. Boorie no longer guesses your network's coordinate system — it asks. A new selector lets you declare the EPSG (all 120 UTM zones, Colombia's MAGNA-SIRGAS, Spain's ETRS89 and ED50, Mexico's ITRF2008, or any code you type) and shows you where the centre of the network will land before you accept. A network with no declared system is no longer drawn in an invented place: the map tells you it is missing and gives you the button — before, any network that did not fit the ranges it was programmed with ended up painted in the Colombian Caribbean without a word. Changing the EPSG repositions the network instantly, without reloading the `.inp`, and Boorie warns you if the reprojected network falls outside your project's country, which is how you catch a wrong zone before working on a false location. The coordinates in your `.inp` are never touched: reprojection exists only to draw the map. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.10.0).
@@ -80,12 +82,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.11.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.11.0.AppImage`
-3. Run: `./Boorie-1.11.0.AppImage`
+1. Download `Boorie-1.12.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.12.0.AppImage`
+3. Run: `./Boorie-1.12.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.11.0.exe` from the link above
+1. Download `Boorie-Setup-1.12.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 
