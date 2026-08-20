@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { MilvusService } from '../milvus.service'
 import { EmbeddingService } from '../embedding.service'
+import { duenosPermitidos, filtroPrisma, filtroVectorial, type Ambito } from './ambitos'
 
 export interface SearchResult {
   id: string
@@ -15,6 +16,14 @@ export interface HybridSearchOptions {
   category?: string
   region?: string
   language?: string
+  /**
+   * Ámbito de la búsqueda (#39). Esta es la ruta del agente del chat, y hasta
+   * ahora no filtraba por nada: un documento interno del proyecto A podía
+   * acabar citado en una conversación del proyecto B. El valor por defecto es
+   * el general, que es lo único que se puede servir sin saber quién pregunta.
+   */
+  ambito?: Ambito
+  projectId?: string | null
 }
 
 export class HybridSearchService {
@@ -164,7 +173,8 @@ export class HybridSearchService {
     query: string,
     options: HybridSearchOptions = {}
   ): Promise<SearchResult[]> {
-    const { topK = 10 } = options
+    const { topK = 10, ambito = 'general', projectId = null } = options
+    const permitidos = duenosPermitidos(ambito, projectId)
 
     try {
       console.log(`[HybridSearchService] Generating embedding for query: "${query}"`);
@@ -183,13 +193,18 @@ export class HybridSearchService {
         filters.push(`metadata["language"] == "${options.language}"`)
       }
 
+      const filtroAmbito = filtroVectorial(permitidos)
+      if (filtroAmbito) filters.push(`(${filtroAmbito})`)
+
       const filterExpr = filters.length > 0 ? filters.join(' and ') : undefined
       console.log(`[HybridSearchService] executing Milvus search. Filter: "${filterExpr || 'NONE'}"`);
 
       const searchRes = await this.milvusService.search(
         MilvusService.COLLECTIONS.KNOWLEDGE,
         vector,
-        topK,
+        // Con ámbito de proyecto se piden más candidatos: parte de lo que
+        // devuelva el almacén se descarta al comprobar de quién es.
+        permitidos.length > 1 ? topK * 6 : topK * 3,
         filterExpr
       )
 
@@ -197,18 +212,49 @@ export class HybridSearchService {
 
       if (!searchRes.results) return []
 
-      return searchRes.results.map((hit: any) => ({
-        id: hit.id,
-        content: hit.content,
-        score: hit.score,
-        method: 'semantic',
-        metadata: hit.metadata
-      }))
+      return (await this.filtrarPorAmbito(searchRes.results, permitidos)).slice(0, topK)
 
     } catch (error) {
       console.error('Search error:', error)
       return []
     }
+  }
+
+  /**
+   * Deja pasar sólo los fragmentos cuyos documentos permite el ámbito.
+   *
+   * La garantía se pone aquí y no en el filtro del almacén vectorial (#39): el
+   * almacén puede ignorar el filtro o devolver de más, y falla en silencio. La
+   * base es la autoridad sobre de quién es cada documento, y un fragmento cuyo
+   * documento no aparece en esta consulta no llega a ser una cita.
+   */
+  private async filtrarPorAmbito(hits: any[], permitidos: (string | null)[]): Promise<SearchResult[]> {
+    const docIds = [...new Set(hits.map(h => h.metadata?.docId).filter(Boolean))]
+
+    // Sin docId no se puede comprobar de quién es el fragmento. Se descarta:
+    // ante la duda, se ve de menos.
+    if (docIds.length === 0) return []
+
+    const permitidosEnBase = await this.prisma.hydraulicKnowledge.findMany({
+      where: { id: { in: docIds as string[] }, ...filtroPrisma(permitidos) },
+      select: { id: true },
+    })
+    const visibles = new Set(permitidosEnBase.map(d => d.id))
+
+    return hits
+      .filter(h => h.metadata?.docId && visibles.has(h.metadata.docId))
+      .map(hit => ({
+        // Milvus Lite no devuelve la clave primaria en los resultados de
+        // búsqueda, ni pidiéndola en `output_fields`, así que `hit.id` viene
+        // vacío. Sin identificador, el nodo de recuperación mete todos los
+        // resultados en el mismo `undefined` al desempatar y se queda con uno.
+        // El `chunkId` de la metainformación es esa misma clave.
+        id: hit.id ?? hit.metadata?.chunkId,
+        content: hit.content,
+        score: hit.score,
+        method: 'semantic' as const,
+        metadata: hit.metadata,
+      }))
   }
 
   // Helper methods

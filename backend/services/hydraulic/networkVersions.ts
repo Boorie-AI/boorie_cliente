@@ -55,6 +55,9 @@ export interface DatosSimulacion {
   engineVersion?: string
   marcada: boolean
   createdAt: Date
+  /** Cómo va su indexación en el RAG (#41), para poder decirlo en la lista. */
+  estadoIndexacion?: string
+  errorIndexacion?: string | null
 }
 
 const formatearVersion = (v: any, simulaciones = 0): DatosVersion => ({
@@ -227,6 +230,8 @@ export class NetworkVersionService {
       engineVersion: run.engineVersion ?? undefined,
       marcada: run.marcada,
       createdAt: run.createdAt,
+      estadoIndexacion: run.estadoIndexacion,
+      errorIndexacion: run.errorIndexacion,
     }
   }
 
@@ -246,6 +251,8 @@ export class NetworkVersionService {
       engineVersion: r.engineVersion ?? undefined,
       marcada: r.marcada,
       createdAt: r.createdAt,
+      estadoIndexacion: r.estadoIndexacion,
+      errorIndexacion: r.errorIndexacion,
     }))
   }
 
@@ -280,6 +287,17 @@ export class NetworkVersionService {
       politica
     )
     if (sobran.length === 0) return 0
+
+    // Antes de borrar, no después: en cuanto las versiones se van, la cascada
+    // se lleva sus ejecuciones y ya no hay forma de saber qué vectores
+    // quitar del índice, que se quedaría respondiendo con resúmenes de
+    // simulaciones inexistentes (#41).
+    try {
+      const { IndexacionSimulacionesService } = await import('./indexacionSimulaciones')
+      await new IndexacionSimulacionesService(this.prisma).limpiarIndicePorVersiones(sobran)
+    } catch (error) {
+      console.warn('[Versionado] No se pudo limpiar el índice de las versiones podadas:', (error as Error).message)
+    }
 
     await this.prisma.networkVersion.deleteMany({ where: { id: { in: sobran } } })
     return sobran.length

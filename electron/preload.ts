@@ -234,6 +234,21 @@ const electronAPI = {
     }) => ipcRenderer.invoke('network-version:record-simulation', data),
   },
 
+  /** Indexación de los resultados de cada simulación en el RAG del proyecto (#41) */
+  simulacionRAG: {
+    estado: (runId: string) => ipcRenderer.invoke('simulacion-rag:estado', runId),
+    reindexar: (runId: string) => ipcRenderer.invoke('simulacion-rag:reindexar', runId),
+    ajustes: (projectId: string | null) => ipcRenderer.invoke('simulacion-rag:ajustes', projectId),
+    guardarAjustes: (data: {
+      projectId: string | null
+      ajustes: {
+        automatica?: boolean
+        incluirCrudos?: boolean
+        umbrales?: { presionMinimaM?: number; presionMaximaM?: number; velocidadMaximaMs?: number }
+      }
+    }) => ipcRenderer.invoke('simulacion-rag:guardar-ajustes', data),
+  },
+
   /** Instantáneas de proyecto: qué versión de cada red estaba vigente (#38) */
   projectSnapshots: {
     list: (projectId: string) => ipcRenderer.invoke('project-snapshot:list', projectId),
@@ -405,6 +420,8 @@ const electronAPI = {
       useWebSearch?: boolean
       forceWebSearch?: boolean
       technicalLevel?: 'basic' | 'intermediate' | 'advanced'
+      projectId?: string | null
+      ambito?: 'general' | 'proyecto' | 'ambos'
     }) => ipcRenderer.invoke('agentic-rag-query', { question, options }),
 
     testConfig: () => ipcRenderer.invoke('agentic-rag-test-config'),

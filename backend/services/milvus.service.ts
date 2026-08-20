@@ -280,6 +280,13 @@ export class MilvusService {
             limit: limit,
             filter: filter,
             output_fields: ['content', 'metadata', 'timestamp'],
+            // Sin metric_type explícito, Milvus Lite devuelve unos resultados
+            // nulos que el SDK intenta leer y revienta con «Cannot read
+            // properties of null (reading 'scores')». El error lo recoge el
+            // llamante y la búsqueda semántica se quedaba en cero sin decir
+            // nada: el agente respondía sin ninguno de los documentos
+            // indexados. Es el mismo métrico con el que se crea el índice.
+            params: { metric_type: 'COSINE' },
             consistency_level: consistency ? ConsistencyLevelEnum.Strong : ConsistencyLevelEnum.Eventually
         });
     }

@@ -42,7 +42,15 @@ export class AgenticRAGService {
       },
       generation: {
         temperature: 0.3,
-        maxTokens: 2000,
+        /**
+         * 800 y no 2000: el tope nunca se aplicaba —se enviaba con el nombre
+         * que Ollama ignora— y al aplicarlo de verdad pasa a ser lo que decide
+         * cuánto espera el usuario. Con inferencia por CPU son unos 35 s de
+         * respuesta, frente a los más de tres minutos que tardaba en escribir
+         * 2000 y que se perdían al vencer la espera. 800 tokens son unas 600
+         * palabras: de sobra para una respuesta con sus citas.
+         */
+        maxTokens: 800,
         includeCitations: true,
         includeCalculations: true,
         responseLanguage: 'es',
@@ -100,6 +108,9 @@ export class AgenticRAGService {
       regions?: string[]
       forceWebSearch?: boolean
       technicalLevel?: 'basic' | 'intermediate' | 'advanced'
+      /** Proyecto desde el que se pregunta (#39, #41). */
+      projectId?: string | null
+      ambito?: 'general' | 'proyecto' | 'ambos'
     }
   ): Promise<{
     answer: string
@@ -125,6 +136,12 @@ export class AgenticRAGService {
         this.config.generation.technicalLevel = options.technicalLevel
       }
     }
+
+    // Fuera del `if`, y asignando también cuando no viene nada: el servicio es
+    // de vida larga y quedarse con el proyecto de la consulta anterior sería
+    // enseñar sus documentos en la siguiente (#39).
+    this.config.retrieval.projectId = options?.projectId ?? null
+    this.config.retrieval.ambito = options?.ambito ?? (options?.projectId ? 'ambos' : 'general')
 
     // Propagate config updates to nodes
     if (this.nodes.retrieve && typeof this.nodes.retrieve.setConfig === 'function') {

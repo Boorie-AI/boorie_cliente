@@ -71,7 +71,7 @@ interface ChatState {
 
   // Wisdom/RAG actions
   setWisdomConfig: (config: WisdomConfiguration | undefined) => void
-  enhancePromptWithRAG: (originalPrompt: string) => Promise<{ enhancedPrompt: string; sources?: any[] }>
+  enhancePromptWithRAG: (originalPrompt: string, projectId?: string | null) => Promise<{ enhancedPrompt: string; sources?: any[] }>
 
   // Hydraulic project context
   buildProjectContext: (projectId: string) => Promise<string>
@@ -256,6 +256,22 @@ export const useChatStore = create<ChatState>()(
         try {
           // Wrap the entire pipeline in a global timeout
           await Promise.race([globalTimeout, (async () => {
+            /**
+             * De qué proyecto es esta conversación, con el mismo criterio que
+             * el contexto de red (#31, #34): el suyo o, si es un chat general,
+             * el proyecto activo. Se calcula antes del RAG porque decide el
+             * ámbito de la búsqueda: sin él, el agente no ve lo indexado del
+             * proyecto —incluidas sus simulaciones (#41)— y sí podría citar
+             * documentos de otro (#39).
+             */
+            const conversacionActual = get().conversations.find(c => c.id === conversationId)
+            const proyectoActivo = conversacionActual?.projectId
+              ? null
+              : await import('./projectStore')
+                  .then(({ useProjectStore }) => useProjectStore.getState().currentProjectId)
+                  .catch(() => null)
+            const proyectoDeLaConversacion = conversacionActual?.projectId ?? proyectoActivo ?? null
+
             // Enhance prompt with RAG if enabled
             let enhancedPrompt = content
             let ragSources: any[] = []
@@ -268,7 +284,7 @@ export const useChatStore = create<ChatState>()(
                 }, 30000)
               )
               const ragResult = await Promise.race([
-                get().enhancePromptWithRAG(content),
+                get().enhancePromptWithRAG(content, proyectoDeLaConversacion),
                 ragTimeout
               ])
               enhancedPrompt = ragResult.enhancedPrompt
@@ -283,15 +299,9 @@ export const useChatStore = create<ChatState>()(
             // El contexto sale del proyecto de la conversación o, si no tiene,
             // del proyecto activo global (#31). Antes se exigía el enlace
             // explícito, así que un chat «General» no recibía nada aunque
-            // hubiera una red cargada delante (#34).
-            // Import dinámico por la misma razón que arriba: evitar la
-            // dependencia circular entre stores.
-            const proyectoActivo = conversation.projectId
-              ? null
-              : await import('./projectStore')
-                  .then(({ useProjectStore }) => useProjectStore.getState().currentProjectId)
-                  .catch(() => null)
-            const proyectoParaContexto = conversation.projectId ?? proyectoActivo ?? undefined
+            // hubiera una red cargada delante (#34). Es el mismo proyecto que
+            // fijó el ámbito del RAG unas líneas más arriba.
+            const proyectoParaContexto = proyectoDeLaConversacion ?? undefined
 
             // El contexto de red se inyecta SIEMPRE, haya proyecto o no. Si se
             // omitiera al no haber proyecto, el modelo se quedaría sin la
@@ -735,7 +745,10 @@ export const useChatStore = create<ChatState>()(
         set({ wisdomConfig: config })
       },
 
-      enhancePromptWithRAG: async (originalPrompt: string): Promise<{ enhancedPrompt: string; sources?: any[] }> => {
+      enhancePromptWithRAG: async (
+        originalPrompt: string,
+        projectId?: string | null
+      ): Promise<{ enhancedPrompt: string; sources?: any[] }> => {
         const state = get()
 
         if (!state.wisdomConfig?.enabled) {
@@ -750,7 +763,12 @@ export const useChatStore = create<ChatState>()(
           const ragResult = await window.electronAPI.agenticRAG.query(originalPrompt, {
             categories: state.wisdomConfig.categories.length > 0 ? state.wisdomConfig.categories : undefined,
             searchTopK: state.wisdomConfig.searchTopK,
-            technicalLevel: 'intermediate'
+            technicalLevel: 'intermediate',
+            // Con proyecto se busca en los dos ámbitos: la normativa general y
+            // lo interno del proyecto, que incluye lo indexado de sus
+            // simulaciones (#41). Sin proyecto, sólo lo general (#39).
+            projectId: projectId ?? null,
+            ambito: projectId ? 'ambos' : 'general'
           })
 
           // `sources` is always returned as an array (possibly empty) once we've

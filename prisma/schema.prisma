@@ -286,9 +286,18 @@ model HydraulicKnowledge {
   projectId String?
   project   HydraulicProject? @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
+  /// Ejecución de la que salió este documento, si es un derivado de simulación
+  /// (#41). La cascada acompaña al borrado explícito de la poda: en una
+  /// instalación que actualiza, la columna se añade con ALTER TABLE y SQLite no
+  /// admite añadir con ella la clave foránea, así que la cascada puede no estar
+  /// y el ciclo de vida no puede descansar sólo en ella.
+  simulationRunId String?
+  simulationRun   SimulationRun? @relation(fields: [simulationRunId], references: [id], onDelete: Cascade)
+
   chunks KnowledgeChunk[]
 
   @@index([projectId])
+  @@index([simulationRunId])
   @@map("hydraulic_knowledge")
 }
 
@@ -424,7 +433,17 @@ model SimulationRun {
   engineVersion String?
   marcada       Boolean @default(false)
 
+  /// Cómo va la indexación en el RAG (#41): 'pendiente' | 'indexando' |
+  /// 'indexada' | 'fallida' | 'omitida'. La simulación se da por terminada
+  /// aunque esto siga en curso; el estado existe para poder decirlo y para
+  /// poder reintentarlo.
+  estadoIndexacion String  @default("pendiente")
+  errorIndexacion  String?
+
   createdAt DateTime @default(now())
+
+  /// Documentos derivados que se indexaron de esta ejecución (#41).
+  documentos HydraulicKnowledge[]
 
   @@index([networkVersionId])
   @@map("simulation_runs")

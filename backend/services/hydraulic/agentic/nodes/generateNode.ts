@@ -1,17 +1,15 @@
 import { AgenticRAGState, GenerationResult, GenerationConfig, Citation, GradedDocument } from '../types'
 import { StateManager } from '../stateManager'
 import axios from 'axios'
+import { modeloLocal } from '../modeloLocal'
 
 export class GenerateNode {
   private config: GenerationConfig
   private ollamaUrl: string
-  private model: string
 
   constructor(config: GenerationConfig) {
     this.config = config
     this.ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434'
-    // Force using the available model to prevent swapping
-    this.model = 'llama3.2:3b'; // Was: process.env.OLLAMA_MODEL || 'nemotron-3-nano'
   }
 
   public setConfig(config: GenerationConfig) {
@@ -44,16 +42,23 @@ export class GenerateNode {
       } else {
         // Default to local Ollama
         const response = await axios.post(`${this.ollamaUrl}/api/generate`, {
-          model: this.model,
+          model: await modeloLocal(),
           prompt,
           stream: false,
           options: {
             temperature: this.config.temperature,
             top_p: 0.9,
-            max_tokens: this.config.maxTokens,
+            // Ollama ignora `max_tokens`: su opción es `num_predict` (ver el
+            // mismo caso en gradeNode). Sin tope, el modelo escribía hasta
+            // pasarse del minuto de espera y la respuesta terminada se perdía
+            // en el `catch`, que devolvía el texto de «no encontré nada» aunque
+            // hubiera documentos. Con el tope aplicado: 106 s antes, 36 s ahora.
+            num_predict: this.config.maxTokens,
             repeat_penalty: 1.1
           }
-        }, { timeout: 60000 })
+          // El margen es para la máquina lenta, no para el caso normal: aquí la
+          // inferencia va por CPU y la primera llamada carga además el modelo.
+        }, { timeout: 180000 })
         generation = response.data.response
       }
 

@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { Activity, AlertTriangle, GitCompare, History, RotateCcw, Share2, Star, Plus } from 'lucide-react'
+import { Activity, AlertTriangle, GitCompare, History, RotateCcw, Share2, Star, Plus, BrainCircuit, RefreshCw } from 'lucide-react'
 import { logger } from '@/utils/logger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,6 +42,26 @@ interface Simulacion {
   versionNumber: number
   tipo: string
   createdAt: string
+  /** Cómo va su indexación en el RAG del proyecto (#41). */
+  estadoIndexacion?: EstadoIndexacion
+  errorIndexacion?: string | null
+}
+
+type EstadoIndexacion = 'pendiente' | 'indexando' | 'indexada' | 'fallida' | 'omitida'
+
+/**
+ * Cómo se cuenta el estado de la indexación.
+ *
+ * Se dice también cuando va bien: el criterio del issue es que un fallo se
+ * comunique, y un indicador que sólo aparece al fallar no se entiende cuando
+ * aparece —no hay con qué compararlo—, así que el estado normal también se ve.
+ */
+const INDEXACION: Record<EstadoIndexacion, { texto: string; clase: string }> = {
+  pendiente: { texto: 'sin indexar', clase: 'text-muted-foreground' },
+  indexando: { texto: 'indexando…', clase: 'text-muted-foreground' },
+  indexada: { texto: 'en el conocimiento', clase: 'text-emerald-600' },
+  fallida: { texto: 'no se pudo indexar', clase: 'text-amber-600' },
+  omitida: { texto: 'indexación desactivada', clase: 'text-muted-foreground' },
 }
 
 interface HistorialRedProps {
@@ -70,6 +90,8 @@ export function HistorialRed({
   /** Las dos ejecuciones elegidas para comparar. */
   const [elegidas, setElegidas] = useState<string[]>([])
   const [comparaSims, setComparaSims] = useState<string | null>(null)
+  /** Ejecución que se está reindexando ahora, para deshabilitar su botón. */
+  const [reindexando, setReindexando] = useState<string | null>(null)
 
   const recargar = useCallback(async () => {
     setCargando(true)
@@ -166,6 +188,20 @@ export function HistorialRed({
       setComparaSims(r.data.resumen)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudieron comparar')
+    }
+  }
+
+  /** Reintento manual de la indexación, que ignora el ajuste de automática. */
+  const reindexar = async (sim: Simulacion) => {
+    setReindexando(sim.id)
+    try {
+      const r = await window.electronAPI.simulacionRAG.reindexar(sim.id)
+      if (!r?.success) throw new Error(r?.error || 'No se pudo indexar')
+      await recargar()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo indexar')
+    } finally {
+      setReindexando(null)
     }
   }
 
@@ -313,22 +349,52 @@ export function HistorialRed({
             </div>
 
             <div className="max-h-40 divide-y divide-border overflow-y-auto rounded-md border border-border">
-              {simulaciones.map(sim => (
-                <button
-                  key={sim.id}
-                  onClick={() => alternarEleccion(sim.id)}
-                  className={cn(
-                    'flex w-full items-center justify-between px-3 py-1.5 text-left text-xs hover:bg-muted',
-                    elegidas.includes(sim.id) && 'bg-primary/10'
-                  )}
-                >
-                  <span>
-                    {sim.tipo}
-                    <span className="ml-2 text-muted-foreground">versión {sim.versionNumber}</span>
-                  </span>
-                  <span className="text-muted-foreground">{fecha(sim.createdAt)}</span>
-                </button>
-              ))}
+              {simulaciones.map(sim => {
+                const estado = INDEXACION[sim.estadoIndexacion ?? 'pendiente']
+                const reintentable = sim.estadoIndexacion === 'fallida' || sim.estadoIndexacion === 'pendiente' || sim.estadoIndexacion === 'omitida'
+
+                return (
+                  <div
+                    key={sim.id}
+                    className={cn(
+                      'flex w-full items-center gap-2 px-3 py-1.5 text-xs',
+                      elegidas.includes(sim.id) && 'bg-primary/10'
+                    )}
+                  >
+                    <button
+                      onClick={() => alternarEleccion(sim.id)}
+                      className="flex min-w-0 flex-1 items-center justify-between text-left hover:opacity-80"
+                    >
+                      <span className="truncate">
+                        {sim.tipo}
+                        <span className="ml-2 text-muted-foreground">versión {sim.versionNumber}</span>
+                      </span>
+                      <span className="ml-2 shrink-0 text-muted-foreground">{fecha(sim.createdAt)}</span>
+                    </button>
+
+                    <span
+                      className={cn('flex shrink-0 items-center gap-1', estado.clase)}
+                      title={sim.errorIndexacion ?? undefined}
+                    >
+                      <BrainCircuit className="h-3 w-3" />
+                      {estado.texto}
+                    </span>
+
+                    {reintentable && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 shrink-0 px-1.5"
+                        disabled={reindexando === sim.id}
+                        onClick={() => reindexar(sim)}
+                        title="Indexar esta simulación en el conocimiento del proyecto"
+                      >
+                        <RefreshCw className={cn('h-3 w-3', reindexando === sim.id && 'animate-spin')} />
+                      </Button>
+                    )}
+                  </div>
+                )
+              })}
             </div>
 
             {comparaSims && (

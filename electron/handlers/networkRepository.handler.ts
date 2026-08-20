@@ -4,6 +4,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { NetworkRepositoryService } from '../../backend/services/hydraulic/networkRepository'
 import { NetworkVersionService } from '../../backend/services/hydraulic/networkVersions'
+import { IndexacionSimulacionesService, type AjustesIndexacion } from '../../backend/services/hydraulic/indexacionSimulaciones'
 import { construirResumenRed, formatearContextoRed } from '../../backend/services/hydraulic/networkContext'
 import { leerRedActiva } from '../../backend/services/hydraulic/redActiva'
 import { proveedorSoportaHerramientas } from '../../backend/services/ai/toolWire'
@@ -13,12 +14,14 @@ import { appLogger } from '../../backend/utils/logger'
 export class NetworkRepositoryHandler {
   private networkRepo: NetworkRepositoryService
   private versiones: NetworkVersionService
+  private indexacion: IndexacionSimulacionesService
   private prisma: PrismaClient
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma
     this.networkRepo = new NetworkRepositoryService(prisma)
     this.versiones = new NetworkVersionService(prisma)
+    this.indexacion = new IndexacionSimulacionesService(prisma)
     this.setupHandlers()
   }
 
@@ -377,9 +380,54 @@ export class NetworkRepositoryHandler {
           results: data.results,
           engineVersion: data.engineVersion,
         })
+
+        // Se indexa por detrás y sin esperar (#41): la simulación está
+        // registrada y eso es lo que se le contesta a quien la lanzó. Si la
+        // indexación falla, la ejecución lo recuerda y se puede reintentar.
+        this.indexacion.encolar(run.id)
+
         return { success: true, data: run }
       } catch (error) {
         appLogger.error('Failed to record simulation run', error as Error)
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    // --- Indexación de simulaciones en el RAG (#41) ---
+
+    ipcMain.handle('simulacion-rag:estado', async (_, runId: string) => {
+      try {
+        return { success: true, data: await this.indexacion.estado(runId) }
+      } catch (error) {
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    ipcMain.handle('simulacion-rag:reindexar', async (_, runId: string) => {
+      try {
+        return { success: true, data: await this.indexacion.reindexar(runId) }
+      } catch (error) {
+        appLogger.error('Failed to reindex simulation', error as Error)
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    ipcMain.handle('simulacion-rag:ajustes', async (_, projectId: string | null) => {
+      try {
+        return { success: true, data: await this.indexacion.ajustesDe(projectId) }
+      } catch (error) {
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    ipcMain.handle('simulacion-rag:guardar-ajustes', async (_, data: {
+      projectId: string | null
+      ajustes: Partial<AjustesIndexacion>
+    }) => {
+      try {
+        return { success: true, data: await this.indexacion.guardarAjustes(data.projectId, data.ajustes) }
+      } catch (error) {
+        appLogger.error('Failed to save indexing settings', error as Error)
         return { success: false, error: (error as Error).message }
       }
     })
@@ -670,7 +718,11 @@ export class NetworkRepositoryHandler {
       'network-repo:delete',
       'network-repo:save-simulation',
       'network-repo:search',
-      'network-repo:stats'
+      'network-repo:stats',
+      'simulacion-rag:estado',
+      'simulacion-rag:reindexar',
+      'simulacion-rag:ajustes',
+      'simulacion-rag:guardar-ajustes'
     ]
 
     handlers.forEach(handler => {

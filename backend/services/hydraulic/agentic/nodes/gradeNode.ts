@@ -1,17 +1,15 @@
 import { AgenticRAGState, GradedDocument, GradingResult, GradingConfig, Document } from '../types'
 import { StateManager } from '../stateManager'
 import axios from 'axios'
+import { modeloLocal } from '../modeloLocal'
 
 export class GradeNode {
   private config: GradingConfig
   private ollamaUrl: string
-  private model: string
 
   constructor(config: GradingConfig) {
     this.config = config
     this.ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434'
-    // Force using the available model
-    this.model = 'llama3.2:3b'; // Was: process.env.OLLAMA_MODEL || 'nemotron-3-nano'
   }
 
   public setConfig(config: GradingConfig) {
@@ -22,16 +20,42 @@ export class GradeNode {
     const startTime = Date.now()
 
     try {
-      // Grade each document for relevance
-      const gradedDocuments: GradedDocument[] = []
-
-      for (const doc of state.retrievedDocuments) {
-        const graded = await this.gradeDocument(doc, state)
-        gradedDocuments.push(graded)
-      }
+      /**
+       * En tandas, no de uno en uno.
+       *
+       * Cada documento es una llamada al modelo local, y la fase se recorría en
+       * serie: con diez documentos recuperados y hasta tres vueltas del ciclo,
+       * una pregunta tardaba minutos y la respuesta buena llegaba después de que
+       * el usuario se hubiera ido. El límite no es caprichoso: Ollama atiende
+       * unas pocas peticiones a la vez y el resto las encola, así que pedir las
+       * diez de golpe no acelera y sí compite con la generación por la CPU.
+       */
+      const gradedDocuments = await this.gradeInBatches(state.retrievedDocuments, state)
 
       // Calculate metrics
-      const relevantDocs = gradedDocuments.filter(doc => doc.relevant)
+      let relevantDocs = gradedDocuments.filter(doc => doc.relevant)
+
+      /**
+       * Que el juez descarte todo no puede dejar la respuesta sin contexto.
+       *
+       * El graduado es un modelo pequeño corriendo en local y se equivoca de una
+       * forma concreta: cuando falla, falla en bloque, y entonces el agente
+       * contesta «No se pudo generar una respuesta» sobre un corpus que sí
+       * contenía la respuesta. Los documentos que llegan hasta aquí ya pasaron
+       * el umbral de similitud y el filtro de ámbito, así que se conservan los
+       * mejores y se deja que la respuesta salga con la confianza baja que le
+       * corresponde, en lugar de no salir.
+       */
+      if (relevantDocs.length === 0 && gradedDocuments.length > 0) {
+        relevantDocs = [...gradedDocuments]
+          .sort((a, b) => b.relevanceScore - a.relevanceScore)
+          .slice(0, 3)
+        relevantDocs.forEach(doc => {
+          doc.relevant = true
+          doc.reason = `Ninguno pasó el filtro; se conserva por similitud (${doc.reason})`
+        })
+        console.log(`[GradeNode] El juez descartó los ${gradedDocuments.length} documentos; se conservan los ${relevantDocs.length} mejores por similitud.`)
+      }
       const averageRelevance = gradedDocuments.length > 0
         ? gradedDocuments.reduce((sum, doc) => sum + doc.relevanceScore, 0) / gradedDocuments.length
         : 0
@@ -87,18 +111,37 @@ export class GradeNode {
     }
   }
 
+  /** Cuántas peticiones de graduado van a la vez contra el modelo local. */
+  private static readonly EN_PARALELO = 4
+
+  private async gradeInBatches(docs: Document[], state: AgenticRAGState): Promise<GradedDocument[]> {
+    const graduados: GradedDocument[] = []
+
+    for (let i = 0; i < docs.length; i += GradeNode.EN_PARALELO) {
+      const tanda = docs.slice(i, i + GradeNode.EN_PARALELO)
+      graduados.push(...await Promise.all(tanda.map(doc => this.gradeDocument(doc, state))))
+    }
+
+    return graduados
+  }
+
   private async gradeDocument(doc: Document, state: AgenticRAGState): Promise<GradedDocument> {
     try {
       const prompt = this.buildGradingPrompt(doc, state)
 
       const response = await axios.post(`${this.ollamaUrl}/api/generate`, {
-        model: this.model,
+        model: await modeloLocal(),
         prompt,
         stream: false,
         options: {
           temperature: 0.1, // Low temperature for consistent grading
           top_p: 0.9,
-          max_tokens: 200
+          // `max_tokens` no existe en Ollama —su opción se llama `num_predict`—
+          // así que el tope nunca se aplicaba y el juez seguía escribiendo
+          // después del JSON que se le pedía. Medido sobre un documento real:
+          // 20.3 s sin tope contra 2.2 s con él, y esto se llama una vez por
+          // fragmento recuperado. La respuesta útil son dos líneas de JSON.
+          num_predict: 200
         }
       }, { timeout: 30000 })
 
@@ -121,49 +164,61 @@ export class GradeNode {
     } catch (error) {
       console.error('[GradeNode] Document grading error:', error)
 
-      // Fallback to simple scoring
+      /**
+       * Sin juez manda el buscador, no el silencio.
+       *
+       * Antes un fallo aquí marcaba el documento como no relevante, y como el
+       * fallo típico es que el modelo no esté —Ollama parado, una etiqueta que
+       * no existe— le pasaba a todos los documentos a la vez: el agente se
+       * quedaba sin contexto y contestaba que no podía responder, sin que nada
+       * dijera que el juez estaba caído. Lo que llega hasta aquí ya pasó el
+       * umbral de la búsqueda y el filtro de ámbito, así que se conserva.
+       */
       return {
         ...doc,
-        relevanceScore: 0.5,
-        relevant: false,
-        reason: 'Grading error - defaulted to not relevant'
+        relevanceScore: this.evaluateTechnicalRelevance(doc, state),
+        relevant: true,
+        reason: 'Juez no disponible: se conserva lo que encontró la búsqueda'
       }
     }
   }
 
+  /**
+   * El documento primero y la pregunta después.
+   *
+   * El orden no es cosmético. El prompt anterior abría con el rol, el contexto
+   * del dominio y una lista de criterios sobre normativa, fórmulas y región, y
+   * enterraba el documento en medio; con el modelo pequeño que corre en local
+   * eso bastaba para que contestara que «no contiene información» sobre un
+   * informe que empieza con «PROBLEMAS DETECTADOS» y enumera los nudos fuera de
+   * umbral. Medido sobre documentos reales de la base: el prompt anterior
+   * rechazaba 3 de 3 veces ese informe —y también un capítulo de hidrología ante
+   * una pregunta de hidrología—, y quitarle sólo la línea de contexto o sólo el
+   * ejemplo final le daba la vuelta al veredicto. Un criterio que se mueve al
+   * borrar un adorno no es un criterio.
+   *
+   * Con el documento delante y una sola instrucción al final acierta los tres
+   * casos que importan: acepta el informe cuando se pregunta por la simulación,
+   * y lo rechaza cuando se pregunta por normativa.
+   */
   private buildGradingPrompt(doc: Document, state: AgenticRAGState): string {
     const domainContext = this.getDomainContext(state.engineeringDomain)
+    const seccion = doc.metadata.section ? `Sección: ${doc.metadata.section}\n` : ''
+    const estandar = doc.metadata.standard ? `Estándar: ${doc.metadata.standard}\n` : ''
+    const calculo = state.calculationType
+      ? ` Ten en cuenta que la pregunta trata sobre ${this.getCalculationTypeSpanish(state.calculationType)}.`
+      : ''
 
-    return `Eres un experto evaluador de documentos técnicos de ingeniería hidráulica.
-Tu tarea es evaluar si el siguiente documento es relevante para responder la pregunta del usuario.
-
-${domainContext}
+    return `Documento a evaluar
+Fuente: ${doc.metadata.source}
+${seccion}${estandar}${doc.content.substring(0, 1500)}
 
 Pregunta del usuario: "${state.originalQuestion}"
 
-Documento a evaluar:
-Fuente: ${doc.metadata.source}
-${doc.metadata.section ? `Sección: ${doc.metadata.section}` : ''}
-${doc.metadata.standard ? `Estándar: ${doc.metadata.standard}` : ''}
-Contenido: ${doc.content.substring(0, 1500)}...
+${domainContext}
+Decide si el documento sirve para responder esa pregunta. Sirve si contiene datos, procedimientos, normativa o resultados que respondan directamente a lo que se pregunta.${calculo}
 
-Criterios de evaluación:
-1. ¿Contiene información técnica directamente relacionada con la pregunta?
-2. ¿Los cálculos, fórmulas o procedimientos son aplicables?
-3. ¿La normativa o estándares mencionados son relevantes?
-4. ¿La región o contexto geográfico es apropiado?
-${state.calculationType ? `5. ¿Incluye información sobre ${this.getCalculationTypeSpanish(state.calculationType)}?` : ''}
-
-Responde ÚNICAMENTE con JSON válido. NO escribas texto antes ni después.
-Formato JSON requerido:
-{
-  "relevant": boolean,
-  "score": number (0.0 a 1.0),
-  "reason": "breve explicación"
-}
-
-Ejemplo:
-{"relevant": true, "score": 0.9, "reason": "Contiene datos de presión."}`
+Responde ÚNICAMENTE con JSON: {"relevant": boolean, "score": number entre 0.0 y 1.0, "reason": "breve"}`
   }
 
   private parseGradingResponse(response: string): { relevant: boolean; score: number; reason: string } {

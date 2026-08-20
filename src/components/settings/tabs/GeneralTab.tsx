@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/stores/appStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { databaseService } from '@/services/database'
-import { Moon, Sun, RotateCcw, Languages, Eye, EyeOff, Map, Check, Terminal, History } from 'lucide-react'
+import { Moon, Sun, RotateCcw, Languages, Eye, EyeOff, Map, Check, Terminal, History, BrainCircuit } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import * as Switch from '@radix-ui/react-switch'
 import * as Select from '@radix-ui/react-select'
@@ -30,6 +30,14 @@ export function GeneralTab() {
   const [mapboxSaved, setMapboxSaved] = useState(false)
   const [retencion, setRetencion] = useState(String(RETENCION_POR_DEFECTO))
   const [retencionSaved, setRetencionSaved] = useState(false)
+
+  /** Indexación de los resultados de cada simulación en el RAG (#41). */
+  const [indexacion, setIndexacion] = useState({
+    automatica: true,
+    incluirCrudos: false,
+    umbrales: { presionMinimaM: 14, presionMaximaM: 70, velocidadMaximaMs: 3 },
+  })
+  const [indexacionSaved, setIndexacionSaved] = useState(false)
 
   const [pythonPath, setPythonPath] = useState('')
   const [pythonDetected, setPythonDetected] = useState('')
@@ -67,6 +75,9 @@ export function GeneralTab() {
       if (value) setMapboxToken(value)
     })
     refreshPythonStatus()
+    ;(window as any).electronAPI?.simulacionRAG?.ajustes(null).then((r: any) => {
+      if (r?.success && r.data) setIndexacion(r.data)
+    })
   }, [loadPreferences])
 
   const handleBrowsePython = async () => {
@@ -105,6 +116,19 @@ export function GeneralTab() {
     if (ok) {
       setMapboxSaved(true)
       setTimeout(() => setMapboxSaved(false), 2000)
+    }
+  }
+
+  const guardarIndexacion = async (cambios: Partial<typeof indexacion>) => {
+    const siguiente = { ...indexacion, ...cambios }
+    setIndexacion(siguiente)
+    const r = await (window as any).electronAPI?.simulacionRAG?.guardarAjustes({
+      projectId: null,
+      ajustes: siguiente,
+    })
+    if (r?.success) {
+      setIndexacionSaved(true)
+      setTimeout(() => setIndexacionSaved(false), 2000)
     }
   }
 
@@ -389,6 +413,103 @@ export function GeneralTab() {
                 {retencionSaved ? <Check size={16} /> : null}
                 {retencionSaved ? 'Guardado' : 'Guardar'}
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Indexación de simulaciones en el RAG (#41) */}
+        <div className="bg-card rounded-xl border border-border p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <BrainCircuit size={20} className="text-muted-foreground" />
+            <h2 className="text-xl font-semibold text-card-foreground">
+              Simulaciones en el conocimiento
+            </h2>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border border-border rounded px-1.5 py-0.5">
+              Avanzado
+            </span>
+            {indexacionSaved && (
+              <span className="flex items-center gap-1 text-xs text-green-600">
+                <Check size={14} /> Guardado
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="pr-4">
+                <label className="text-sm font-medium text-card-foreground">
+                  Indexar cada simulación al terminar
+                </label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Deja en el conocimiento del proyecto un resumen de la ejecución, sus
+                  estadísticas, los elementos fuera de umbral y en qué cambió respecto a la
+                  anterior. Es lo que permite preguntarle al chat qué problemas encontró la última
+                  simulación.
+                </p>
+              </div>
+              <Switch.Root
+                checked={indexacion.automatica}
+                onCheckedChange={(v) => guardarIndexacion({ automatica: v })}
+                className="w-11 h-6 bg-muted rounded-full relative data-[state=checked]:bg-primary transition-colors shrink-0"
+              >
+                <Switch.Thumb className="block w-5 h-5 bg-background rounded-full transition-transform translate-x-0.5 data-[state=checked]:translate-x-[22px]" />
+              </Switch.Root>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="pr-4">
+                <label className="text-sm font-medium text-card-foreground">
+                  Indexar también las series completas
+                </label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Guarda además los resultados crudos, paso a paso. No mejora las respuestas del
+                  chat —para eso están los resúmenes— y ocupa mucho más; está para las etapas de
+                  ajuste fino.
+                </p>
+              </div>
+              <Switch.Root
+                checked={indexacion.incluirCrudos}
+                onCheckedChange={(v) => guardarIndexacion({ incluirCrudos: v })}
+                className="w-11 h-6 bg-muted rounded-full relative data-[state=checked]:bg-primary transition-colors shrink-0"
+              >
+                <Switch.Thumb className="block w-5 h-5 bg-background rounded-full transition-transform translate-x-0.5 data-[state=checked]:translate-x-[22px]" />
+              </Switch.Root>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-card-foreground">
+                Umbrales que marcan una anomalía
+              </label>
+              <p className="text-xs text-muted-foreground mt-1 mb-2">
+                La referencia normativa cambia con el país. Por defecto, los valores de uso común:
+                presión entre 14 y 70 m —en acueductos rurales la mínima baja a 7— y velocidad
+                máxima de 3 m/s.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {([
+                  ['presionMinimaM', 'Presión mínima (m)'],
+                  ['presionMaximaM', 'Presión máxima (m)'],
+                  ['velocidadMaximaMs', 'Velocidad máxima (m/s)'],
+                ] as const).map(([clave, etiqueta]) => (
+                  <div key={clave}>
+                    <span className="text-xs text-muted-foreground">{etiqueta}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.5"
+                      value={indexacion.umbrales[clave]}
+                      onChange={(e) =>
+                        setIndexacion({
+                          ...indexacion,
+                          umbrales: { ...indexacion.umbrales, [clave]: Number(e.target.value) },
+                        })
+                      }
+                      onBlur={() => guardarIndexacion({ umbrales: indexacion.umbrales })}
+                      className="block w-28 px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:border-ring focus:outline-none text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

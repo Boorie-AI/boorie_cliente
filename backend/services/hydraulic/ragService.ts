@@ -342,7 +342,13 @@ export class HydraulicRAGService {
      * que subir algo al ámbito equivocado tenga que ser una decisión, no un
      * descuido del valor por defecto.
      */
-    projectId?: string | null
+    projectId?: string | null,
+    /**
+     * De dónde sale el documento cuando no lo sube una persona (#41). Ata el
+     * derivado a la ejecución que lo generó: la cascada de la base lo borra con
+     * ella, y la metainformación permite citar la simulación de origen.
+     */
+    origen?: { simulationRunId?: string | null; networkVersionId?: string | null }
   ): Promise<string> {
     try {
       const { chunks: successfulChunks } = await this.buildIndexedChunks(document.content, onProgress)
@@ -369,6 +375,7 @@ export class HydraulicRAGService {
           language: document.metadata.language,
           version: document.version,
           projectId: projectId ?? null,
+          simulationRunId: origen?.simulationRunId ?? null,
           chunks: {
             create: successfulChunks.map(item => ({
               content: item.content,
@@ -395,7 +402,13 @@ export class HydraulicRAGService {
             chunkId: chunk.id,
             docId: created.id,
             title: created.title,
-            category: created.category
+            category: created.category,
+            // El ámbito viaja con el fragmento (#39): el filtro vectorial no es
+            // la garantía —esa la da la base— pero sin el dato no se puede ni
+            // intentar, y era lo único que faltaba para poder aplicarlo.
+            projectId: created.projectId ?? null,
+            simulationRunId: origen?.simulationRunId ?? null,
+            networkVersionId: origen?.networkVersionId ?? null
           },
           timestamp: created.createdAt.getTime()
         }))

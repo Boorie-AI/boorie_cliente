@@ -47,6 +47,9 @@ export function registerAgenticRAGHandlers(prismaClient: PrismaClient) {
       searchTopK?: number
       forceWebSearch?: boolean
       technicalLevel?: 'basic' | 'intermediate' | 'advanced'
+      /** Proyecto desde el que se pregunta (#39, #41). */
+      projectId?: string | null
+      ambito?: 'general' | 'proyecto' | 'ambos'
     }
   }) => {
     try {
