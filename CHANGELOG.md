@@ -7,6 +7,24 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.14.0] - 2026-08-19
+
+Los documentos de un cliente se quedan en su proyecto.
+
+- **El Wisdom Center distingue dos ámbitos**: lo **general** —normativa, buenas prácticas, el
+  catálogo, compartido por todos tus proyectos— y lo **del proyecto**, que son los documentos
+  internos de ese cliente. Eliges dónde buscar: sólo general, sólo del proyecto, o ambos.
+- **Un documento de un proyecto no aparece en las búsquedas de otro.** En ningún modo. Es lo que
+  antes no se podía garantizar: todo vivía en un único espacio sin noción de proyecto.
+- **Desde un proyecto sigues viendo la normativa general**, que es lo que no debe perderse nunca.
+  La herencia va en un solo sentido.
+- **Cada documento dice de dónde viene**, para que una cita de una norma no se confunda con un
+  documento interno de tu cliente.
+- **Subir al ámbito de un proyecto es una decisión explícita**: sólo ocurre si has elegido ese
+  ámbito. Que un documento interno acabe visible para todos no puede ser un descuido.
+- Tus documentos actuales quedan en el ámbito general —que es lo que son— sin perder nada ni
+  reindexar.
+
 ## [1.13.0] - 2026-08-19
 
 Tu red tiene historia, y puedes volver a cualquier punto de ella.
