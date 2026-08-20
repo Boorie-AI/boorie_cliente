@@ -39,15 +39,24 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.13.0
+### 🚀 Última Versión - v1.14.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.13.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.13.0/Boorie-1.13.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.13.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.13.0/Boorie-Setup-1.13.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.13.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.13.0/Boorie-1.13.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.14.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.14.0/Boorie-1.14.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.14.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.14.0/Boorie-Setup-1.14.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.14.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.14.0/Boorie-1.14.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.14.0
+- El Wisdom Center distingue el ámbito **general** —normativa y buenas prácticas, compartidas— del **ámbito del proyecto**, con sus documentos internos.
+- Un documento de un proyecto no aparece en las búsquedas de otro, en ningún modo.
+- Desde un proyecto sigues viendo la normativa general: la herencia va en un solo sentido.
+- Cada documento dice de dónde viene, para no confundir una norma con un documento interno de tu cliente.
+- Subir al ámbito de un proyecto es una decisión explícita, no un descuido.
+- Tus documentos actuales quedan en el ámbito general sin perder nada ni reindexar.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.14.0).
 
 ### 📝 Novedades en v1.13.0
 - Reimportar un `.inp` corregido ya no destruye lo anterior: Boorie congela el estado que había y lo deja en el historial.
@@ -171,12 +180,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.13.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.13.0.AppImage`
-3. Ejecuta: `./Boorie-1.13.0.AppImage`
+1. Descarga `Boorie-1.14.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.14.0.AppImage`
+3. Ejecuta: `./Boorie-1.14.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.13.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.14.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
