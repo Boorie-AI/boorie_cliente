@@ -414,8 +414,24 @@ export class NetworkRepositoryHandler {
 
     ipcMain.handle('simulacion-rag:ajustes', async (_, projectId: string | null) => {
       try {
+        // `propios` distingue heredar de haberse desenganchado, que es lo que la
+        // pantalla necesita decir y no se puede deducir de los valores.
+        const [efectivos, propios] = await Promise.all([
+          this.indexacion.ajustesDe(projectId),
+          projectId ? this.indexacion.ajustesPropiosDe(projectId) : Promise.resolve(null),
+        ])
+        return { success: true, data: { ajustes: efectivos, propios: propios !== null } }
+      } catch (error) {
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    ipcMain.handle('simulacion-rag:olvidar-ajustes', async (_, projectId: string) => {
+      try {
+        await this.indexacion.olvidarAjustes(projectId)
         return { success: true, data: await this.indexacion.ajustesDe(projectId) }
       } catch (error) {
+        appLogger.error('Failed to clear project indexing settings', error as Error)
         return { success: false, error: (error as Error).message }
       }
     })
@@ -722,7 +738,8 @@ export class NetworkRepositoryHandler {
       'simulacion-rag:estado',
       'simulacion-rag:reindexar',
       'simulacion-rag:ajustes',
-      'simulacion-rag:guardar-ajustes'
+      'simulacion-rag:guardar-ajustes',
+      'simulacion-rag:olvidar-ajustes'
     ]
 
     handlers.forEach(handler => {

@@ -111,6 +111,28 @@ export class IndexacionSimulacionesService {
     return AJUSTES_POR_DEFECTO
   }
 
+  /**
+   * Los ajustes **propios** de un proyecto, o `null` si todavía hereda.
+   *
+   * La diferencia importa para poder decirla: un proyecto que hereda sigue los
+   * cambios que se hagan en los generales, y uno con ajustes propios ya no. Sin
+   * distinguirlas, la pantalla enseñaría los mismos números en los dos casos sin
+   * avisar de que uno se ha desenganchado.
+   */
+  async ajustesPropiosDe(projectId: string): Promise<AjustesIndexacion | null> {
+    try {
+      const fila = await this.prisma.appSetting.findUnique({ where: { key: claveDe(projectId) } })
+      return fila?.value ? normalizarAjustes(JSON.parse(fila.value)) : null
+    } catch {
+      return null
+    }
+  }
+
+  /** Devuelve el proyecto a heredar de los ajustes generales. */
+  async olvidarAjustes(projectId: string): Promise<void> {
+    await this.prisma.appSetting.deleteMany({ where: { key: claveDe(projectId) } })
+  }
+
   async guardarAjustes(projectId: string | null, ajustes: Partial<AjustesIndexacion>): Promise<AjustesIndexacion> {
     const key = claveDe(projectId)
     const fusionados = normalizarAjustes({ ...(await this.ajustesDe(projectId)), ...ajustes })

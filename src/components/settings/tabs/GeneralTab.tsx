@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/stores/appStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
+import { useProjectStore } from '@/stores/projectStore'
 import { databaseService } from '@/services/database'
 import { Moon, Sun, RotateCcw, Languages, Eye, EyeOff, Map, Check, Terminal, History, BrainCircuit } from 'lucide-react'
 import { cn } from '@/utils/cn'
@@ -38,6 +39,16 @@ export function GeneralTab() {
     umbrales: { presionMinimaM: 14, presionMaximaM: 70, velocidadMaximaMs: 3 },
   })
   const [indexacionSaved, setIndexacionSaved] = useState(false)
+  /**
+   * Sobre qué ajustes se está trabajando: los generales o los del proyecto
+   * activo. Un proyecto hereda de los generales hasta que se toca algo aquí;
+   * `indexacionPropios` dice si ya se desenganchó, que es lo que no se puede
+   * deducir mirando los valores.
+   */
+  const [indexacionAmbito, setIndexacionAmbito] = useState<'general' | 'proyecto'>('general')
+  const [indexacionPropios, setIndexacionPropios] = useState(false)
+  const { currentProject, currentProjectId } = useProjectStore()
+  const proyectoDeLosAjustes = indexacionAmbito === 'proyecto' ? currentProjectId : null
 
   const [pythonPath, setPythonPath] = useState('')
   const [pythonDetected, setPythonDetected] = useState('')
@@ -75,10 +86,17 @@ export function GeneralTab() {
       if (value) setMapboxToken(value)
     })
     refreshPythonStatus()
-    ;(window as any).electronAPI?.simulacionRAG?.ajustes(null).then((r: any) => {
-      if (r?.success && r.data) setIndexacion(r.data)
-    })
   }, [loadPreferences])
+
+  /** Relee los ajustes del ámbito elegido, y si el proyecto tiene los suyos. */
+  useEffect(() => {
+    const api = (window as any).electronAPI?.simulacionRAG
+    api?.ajustes(proyectoDeLosAjustes).then((r: any) => {
+      if (!r?.success || !r.data) return
+      setIndexacion(r.data.ajustes)
+      setIndexacionPropios(Boolean(r.data.propios))
+    })
+  }, [proyectoDeLosAjustes])
 
   const handleBrowsePython = async () => {
     const result = await setupApi?.browsePython()
@@ -123,10 +141,25 @@ export function GeneralTab() {
     const siguiente = { ...indexacion, ...cambios }
     setIndexacion(siguiente)
     const r = await (window as any).electronAPI?.simulacionRAG?.guardarAjustes({
-      projectId: null,
+      projectId: proyectoDeLosAjustes,
       ajustes: siguiente,
     })
     if (r?.success) {
+      // Con el ámbito de proyecto, este guardado es el que lo desengancha de los
+      // generales: hasta ahora sólo los estaba mostrando.
+      if (proyectoDeLosAjustes) setIndexacionPropios(true)
+      setIndexacionSaved(true)
+      setTimeout(() => setIndexacionSaved(false), 2000)
+    }
+  }
+
+  /** Borra los ajustes propios del proyecto para que vuelva a heredar. */
+  const volverAHeredar = async () => {
+    if (!currentProjectId) return
+    const r = await (window as any).electronAPI?.simulacionRAG?.olvidarAjustes(currentProjectId)
+    if (r?.success) {
+      setIndexacion(r.data)
+      setIndexacionPropios(false)
       setIndexacionSaved(true)
       setTimeout(() => setIndexacionSaved(false), 2000)
     }
@@ -430,6 +463,44 @@ export function GeneralTab() {
               <span className="flex items-center gap-1 text-xs text-green-600">
                 <Check size={14} /> {t('common.saved')}
               </span>
+            )}
+          </div>
+
+          {/* Ámbito: los generales o los del proyecto activo (#41) */}
+          <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
+            {([
+              ['general', t('settings.simulationIndexing.scopeGeneral')],
+              ['proyecto', currentProject?.name
+                ? t('settings.simulationIndexing.scopeProjectNamed', { project: currentProject.name })
+                : t('settings.simulationIndexing.scopeProject')],
+            ] as const).map(([valor, etiqueta]) => (
+              <button
+                key={valor}
+                type="button"
+                disabled={valor === 'proyecto' && !currentProjectId}
+                onClick={() => setIndexacionAmbito(valor)}
+                className={cn(
+                  'rounded-lg border px-3 py-1.5 transition-colors disabled:opacity-40',
+                  indexacionAmbito === valor
+                    ? 'border-primary bg-primary/10 text-foreground'
+                    : 'border-border text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {etiqueta}
+              </button>
+            ))}
+
+            {indexacionAmbito === 'proyecto' && currentProjectId && (
+              indexacionPropios ? (
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  {t('settings.simulationIndexing.ownSettings')}
+                  <button type="button" onClick={volverAHeredar} className="underline hover:text-foreground">
+                    {t('settings.simulationIndexing.backToInherited')}
+                  </button>
+                </span>
+              ) : (
+                <span className="text-muted-foreground">{t('settings.simulationIndexing.inherited')}</span>
+              )
             )}
           </div>
 

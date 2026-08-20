@@ -112,7 +112,13 @@
       "thresholdsDesc": "La referència normativa canvia segons el país. Per defecte, els valors d'ús comú: pressió entre 14 i 70 m —en aqüeductes rurals la mínima baixa a 7— i velocitat màxima de 3 m/s.",
       "minPressure": "Pressió mínima (m)",
       "maxPressure": "Pressió màxima (m)",
-      "maxVelocity": "Velocitat màxima (m/s)"
+      "maxVelocity": "Velocitat màxima (m/s)",
+      "scopeGeneral": "Ajustos generals",
+      "scopeProject": "Projecte actiu",
+      "scopeProjectNamed": "Projecte: {{project}}",
+      "inherited": "Heretats dels ajustos generals; se separen tan bon punt canviïs alguna cosa aquí.",
+      "ownSettings": "Aquest projecte té ajustos propis.",
+      "backToInherited": "Tornar a heretar"
     },
     "versionHistory": {
       "title": "Historial de versions",
