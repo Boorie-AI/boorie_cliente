@@ -7,6 +7,19 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.15.1] - 2026-08-20
+
+Corrige un fallo que dejaba las redes inaccesibles en instalaciones reales.
+
+- **Si Boorie no te dejaba abrir ni listar las redes de un proyecto, ya está resuelto.** A las
+  instalaciones les faltaban tres columnas que la aplicación daba por hechas desde la v1.6.0, y
+  cualquier pantalla que tocara redes fallaba. **Tus datos nunca se perdieron**: las redes, sus
+  versiones y sus simulaciones seguían guardadas, sólo que la aplicación no podía leerlas. Al
+  abrir esta versión se reparan solas.
+- Afectaba a quien instalara de cero y a quien actualizara desde una versión anterior a la
+  v1.6.0. Quien nunca vio el error no tiene nada que hacer.
+- La pestaña de guardrails vuelve a poder listar las violaciones registradas.
+
 ## [1.15.0] - 2026-08-20
 
 Ahora puedes preguntarle a Boorie qué encontró la última simulación.
