@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.14.0
+### 🚀 Latest Release - v1.15.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.14.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.14.0/Boorie-1.14.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.14.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.14.0/Boorie-Setup-1.14.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.14.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.14.0/Boorie-1.14.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.15.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.15.0/Boorie-1.15.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.15.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.15.0/Boorie-Setup-1.15.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.15.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.15.0/Boorie-1.15.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.15.0**: Now you can ask Boorie what the last simulation found. When a run finishes, Boorie writes and indexes into the project's knowledge base a summary of the execution, its statistics, the elements outside their thresholds and what changed since the previous run. Ask the chat "what problems did the last simulation find?" and it answers with the real anomalies of that run —which node, what pressure, for how many hours— citing the simulation they come from. Reservoirs and tanks are no longer judged on pressure, which by definition they do not have: the report used to open by denouncing the very source the network draws from. The thresholds are yours: pressure between 14 and 70 m and a maximum velocity of 3 m/s by default —the values in common use— adjustable because the regulatory reference varies by country. The simulation never waits for the indexing: if it fails, the run is still valid, the network history says how it went and you retry from there. Pruning a network version takes its indexed documents with it, so the knowledge base does not accumulate answers about networks that no longer exist. And the agent cites indexed knowledge again: semantic search had been silently returning nothing and the grader was discarding valid documents — four faults that masked one another. A question that used to take seven minutes to end in "I found nothing" is now answered in two or three, with its sources. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.15.0).
 - **v1.14.0**: A client's documents stay inside their project. The Wisdom Center now distinguishes two scopes: **general** —regulations, best practices, the catalogue, shared across all your projects— and **project**, the internal documents of that client. You choose where to search: general only, project only, or both. A document belonging to one project no longer appears in another project's searches, in any mode — which is what could not be guaranteed before, when everything lived in a single space with no notion of project. From inside a project you still see the general regulations, which is what must never be lost: inheritance runs one way only. Every document states where it comes from, so a citation from a standard is never confused with a client's internal file. And uploading into a project's scope is now an explicit decision, taken only if you selected that scope — an internal document ending up visible to everyone cannot be the result of not touching a dropdown. Your existing documents land in the general scope, which is what they are, with nothing lost and nothing reindexed. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.14.0).
 
 - **v1.13.0**: Your network has a history, and you can go back to any point in it. Re-importing a corrected `.inp` no longer destroys what was there: Boorie freezes the previous state and keeps it in the history, where before it simply refused to save if a network with that name already existed. Every network now has a version history — save a version with a note on what changed, mark it as a milestone so it is never pruned, compare it with the previous one (it tells you which nodes and pipes were added, removed or modified) and restore any of them; restoring saves the current state first, so going back never costs you today's work. Project-wide snapshots answer «how was this in the March delivery?», recording which version of each network was current and protecting them from automatic cleanup. Every simulation is now tied to the network version it ran on, and you can compare two runs: how far pressures, flows and velocities moved, and which elements changed most. You can export a version —or a whole snapshot— to a file and open it in another Boorie installation; the package is verified on import, so if it arrived truncated or someone edited it, nothing is imported. And history cleanup is configurable in Settings → General: milestones, anything held by a snapshot and the most recent version are always kept. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.13.0).
@@ -86,12 +87,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.14.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.14.0.AppImage`
-3. Run: `./Boorie-1.14.0.AppImage`
+1. Download `Boorie-1.15.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.15.0.AppImage`
+3. Run: `./Boorie-1.15.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.14.0.exe` from the link above
+1. Download `Boorie-Setup-1.15.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 

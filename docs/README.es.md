@@ -39,15 +39,26 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.14.0
+### 🚀 Última Versión - v1.15.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.14.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.14.0/Boorie-1.14.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.14.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.14.0/Boorie-Setup-1.14.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.14.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.14.0/Boorie-1.14.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.15.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.15.0/Boorie-1.15.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.15.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.15.0/Boorie-Setup-1.15.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.15.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.15.0/Boorie-1.15.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.15.0
+- Cada simulación deja constancia en el conocimiento del proyecto: resumen de la ejecución, estadísticas, elementos fuera de umbral y en qué cambió respecto a la anterior.
+- Pregúntale al chat «¿qué problemas encontró la última simulación?» y responde con las anomalías reales, citando la corrida de la que salen.
+- No se juzga la presión de embalses ni depósitos, que por definición no la tienen.
+- Los umbrales son ajustables —14 a 70 m de presión y 3 m/s de velocidad por defecto— porque la referencia normativa cambia con el país.
+- La simulación no espera a la indexación: si falla, la corrida sigue siendo válida y se reintenta desde el historial de la red.
+- Al podar una versión de red se van también sus documentos indexados.
+- El agente vuelve a citar el conocimiento indexado: se corrigieron cuatro fallos que dejaban la búsqueda en cero sin decirlo.
+- El historial de red y los ajustes que faltaban ya están en inglés y catalán, con las fechas en el formato de cada idioma.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.15.0).
 
 ### 📝 Novedades en v1.14.0
 - El Wisdom Center distingue el ámbito **general** —normativa y buenas prácticas, compartidas— del **ámbito del proyecto**, con sus documentos internos.
@@ -180,12 +191,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.14.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.14.0.AppImage`
-3. Ejecuta: `./Boorie-1.14.0.AppImage`
+1. Descarga `Boorie-1.15.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.15.0.AppImage`
+3. Ejecuta: `./Boorie-1.15.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.14.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.15.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
