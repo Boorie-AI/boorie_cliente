@@ -140,7 +140,7 @@ export function InstantaneasProyecto({
           />
           <Button size="sm" onClick={crear} disabled={!etiqueta.trim()} className="shrink-0">
             <Camera className="mr-2 h-3.5 w-3.5" />
-            Congelar el proyecto
+            Crear una Instantánea
           </Button>
         </div>
 

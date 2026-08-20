@@ -183,8 +183,8 @@ export function HistorialRed({
             Historial de {nombreRed}
           </DialogTitle>
           <DialogDescription>
-            Cada versión es una copia congelada de la red. No se modifican nunca: se añaden, se
-            marcan como hito y se pueden restaurar.
+            Cada versión es un escenario distinto de la red de la cual precede. No se modifican
+            nunca: se añaden, se marcan como hito y se pueden restaurar.
           </DialogDescription>
         </DialogHeader>
 
