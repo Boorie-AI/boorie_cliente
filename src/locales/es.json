@@ -112,7 +112,13 @@
       "thresholdsDesc": "La referencia normativa cambia con el país. Por defecto, los valores de uso común: presión entre 14 y 70 m —en acueductos rurales la mínima baja a 7— y velocidad máxima de 3 m/s.",
       "minPressure": "Presión mínima (m)",
       "maxPressure": "Presión máxima (m)",
-      "maxVelocity": "Velocidad máxima (m/s)"
+      "maxVelocity": "Velocidad máxima (m/s)",
+      "scopeGeneral": "Ajustes generales",
+      "scopeProject": "Proyecto activo",
+      "scopeProjectNamed": "Proyecto: {{project}}",
+      "inherited": "Heredados de los ajustes generales; se separan en cuanto cambies algo aquí.",
+      "ownSettings": "Este proyecto tiene ajustes propios.",
+      "backToInherited": "Volver a heredar"
     },
     "versionHistory": {
       "title": "Historial de versiones",

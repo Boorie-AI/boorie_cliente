@@ -55,6 +55,10 @@ function prismaFalso(overrides: Record<string, any> = {}) {
           estado.ajuste = { value: update.value }
           return estado.ajuste
         }),
+        deleteMany: vi.fn(async () => {
+          estado.ajuste = null
+          return { count: 1 }
+        }),
       },
       simulationRun: {
         findUnique: vi.fn(async () => estado.run),
@@ -98,6 +102,43 @@ describe('ajustes de indexación', () => {
     const servicio = new IndexacionSimulacionesService(prisma, ragFalso())
     expect((await servicio.ajustesDe('proy-1')).automatica).toBe(false)
     expect((await servicio.ajustesDe(null)).automatica).toBe(true)
+  })
+  it('un proyecto sin ajustes propios hereda, y lo dice', async () => {
+    // La distinción no se ve en los valores —son los mismos que los generales—,
+    // y es lo que decide si el proyecto seguirá los cambios de los generales.
+    const { prisma } = prismaFalso()
+    prisma.appSetting.findUnique = vi.fn(async ({ where }: any) =>
+      where.key === 'indexacion.simulaciones' ? { value: JSON.stringify({ automatica: false }) } : null
+    )
+    const servicio = new IndexacionSimulacionesService(prisma, ragFalso())
+
+    expect(await servicio.ajustesPropiosDe('proy-1')).toBeNull()
+    expect((await servicio.ajustesDe('proy-1')).automatica).toBe(false) // los generales
+  })
+
+  it('guardar en un proyecto lo desengancha de los generales', async () => {
+    const { prisma, estado } = prismaFalso()
+    const servicio = new IndexacionSimulacionesService(prisma, ragFalso())
+
+    await servicio.guardarAjustes('proy-1', { incluirCrudos: true })
+
+    expect(prisma.appSetting.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { key: 'indexacion.simulaciones.proy-1' } })
+    )
+    expect(JSON.parse(estado.ajuste!.value).incluirCrudos).toBe(true)
+  })
+
+  it('olvidar los ajustes de un proyecto lo devuelve a heredar', async () => {
+    const { prisma } = prismaFalso()
+    const servicio = new IndexacionSimulacionesService(prisma, ragFalso())
+
+    await servicio.guardarAjustes('proy-1', { incluirCrudos: true })
+    await servicio.olvidarAjustes('proy-1')
+
+    expect(prisma.appSetting.deleteMany).toHaveBeenCalledWith({
+      where: { key: 'indexacion.simulaciones.proy-1' },
+    })
+    expect(await servicio.ajustesPropiosDe('proy-1')).toBeNull()
   })
 })
 

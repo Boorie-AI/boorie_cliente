@@ -112,7 +112,13 @@
       "thresholdsDesc": "The regulatory reference varies by country. The defaults are the values in common use: pressure between 14 and 70 m —in rural water systems the minimum drops to 7— and a maximum velocity of 3 m/s.",
       "minPressure": "Minimum pressure (m)",
       "maxPressure": "Maximum pressure (m)",
-      "maxVelocity": "Maximum velocity (m/s)"
+      "maxVelocity": "Maximum velocity (m/s)",
+      "scopeGeneral": "General settings",
+      "scopeProject": "Active project",
+      "scopeProjectNamed": "Project: {{project}}",
+      "inherited": "Inherited from the general settings; they part ways as soon as you change something here.",
+      "ownSettings": "This project has its own settings.",
+      "backToInherited": "Back to inherited"
     },
     "versionHistory": {
       "title": "Version history",

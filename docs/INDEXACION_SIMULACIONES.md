@@ -73,6 +73,14 @@ categoría seleccionada desaparecería justo la respuesta que el issue pide. Su
 confidencialidad no depende de ese filtro: la garantiza el ámbito (#39), que se
 aplica antes y no se relaja nunca.
 
+**Los ajustes se heredan hasta que se tocan.** En Ajustes → General se elige el
+ámbito: los generales o los del proyecto activo. Un proyecto sin ajustes propios
+muestra los generales y los sigue cuando cambian; el primer cambio hecho con el
+ámbito de proyecto elegido crea su copia y lo desengancha, y «Volver a heredar»
+borra esa copia. La diferencia entre heredar y haberse desenganchado no se puede
+deducir de los valores —son los mismos hasta que uno cambia—, así que la pantalla
+la dice y el canal de ajustes la devuelve aparte.
+
 **Los umbrales son configurables porque la norma cambia con el país.** Los valores
 por defecto son los que fijó Luis Mora: velocidad máxima 3 m/s, presión entre 14 y
 70 m, y 7 m de mínima en acueductos rurales. No hay velocidad mínima a propósito
@@ -176,8 +184,6 @@ BOORIE_DATA_DIR=/ruta/datos BOORIE_E2E_DB=/ruta/fresh.db \
 
 ## Fuera de alcance
 
-- **Ajustes por proyecto en la interfaz.** El backend los resuelve por proyecto con
-  caída a los generales; la pantalla de Ajustes sólo escribe los generales.
 - **El estado no se refresca solo** mientras la indexación está en curso: el
   historial lo lee al abrirse.
 - **El tipo de simulación no se traduce.** Se guarda en la base al registrar la
