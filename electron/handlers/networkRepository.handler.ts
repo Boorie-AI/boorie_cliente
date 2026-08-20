@@ -3,6 +3,7 @@ import { readFile, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { NetworkRepositoryService } from '../../backend/services/hydraulic/networkRepository'
+import { NetworkVersionService } from '../../backend/services/hydraulic/networkVersions'
 import { construirResumenRed, formatearContextoRed } from '../../backend/services/hydraulic/networkContext'
 import { leerRedActiva } from '../../backend/services/hydraulic/redActiva'
 import { proveedorSoportaHerramientas } from '../../backend/services/ai/toolWire'
@@ -11,11 +12,13 @@ import { appLogger } from '../../backend/utils/logger'
 
 export class NetworkRepositoryHandler {
   private networkRepo: NetworkRepositoryService
+  private versiones: NetworkVersionService
   private prisma: PrismaClient
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma
     this.networkRepo = new NetworkRepositoryService(prisma)
+    this.versiones = new NetworkVersionService(prisma)
     this.setupHandlers()
   }
 
@@ -67,6 +70,42 @@ export class NetworkRepositoryHandler {
           throw new Error('Falta el contenido del .inp: envia fileContent o filePath')
         }
 
+        /**
+         * Reimportar un `.inp` con el mismo nombre ya no es un error (#38).
+         *
+         * Antes el repositorio lo rechazaba, porque la restricción única impedía
+         * dos redes con el mismo nombre en un proyecto. Ahora la red es el
+         * contenedor: se congela su estado como versión —automáticamente, que es
+         * justo el caso de «operación que pisaría datos»— y se actualiza encima.
+         */
+        const existente = await this.prisma.hydraulicNetwork.findFirst({
+          where: { projectId: data.projectId, name: data.networkData.name, isActive: true },
+          select: { id: true },
+        })
+
+        if (existente) {
+          const respaldo = await this.versiones.crearVersion(existente.id, {
+            origen: 'importacion',
+            changeNote: `Estado anterior a reimportar ${data.filename}`,
+          })
+          const actualizada = await this.networkRepo.updateNetwork(
+            existente.id,
+            data.networkData,
+            fileContent ?? '',
+            data.filename,
+            data.description
+          )
+          await this.versiones.crearVersion(existente.id, {
+            origen: 'importacion',
+            changeNote: `Importado ${data.filename}`,
+          })
+          appLogger.success('Network re-imported as a new version', {
+            networkId: existente.id,
+            respaldo: respaldo.versionNumber,
+          })
+          return { success: true, data: actualizada, versionada: true }
+        }
+
         const savedNetwork = await this.networkRepo.saveNetwork(
           data.projectId,
           data.networkData,
@@ -75,6 +114,13 @@ export class NetworkRepositoryHandler {
           data.description,
           data.scenario
         )
+
+        // Toda red guardada arranca con su versión 1: sin ella no habría nada
+        // sobre lo que registrar simulaciones ni a lo que volver.
+        await this.versiones.crearVersion(savedNetwork.id, {
+          origen: 'importacion',
+          changeNote: `Importado ${data.filename}`,
+        })
 
         appLogger.success('Network saved successfully', {
           networkId: savedNetwork.id,
@@ -213,6 +259,128 @@ export class NetworkRepositoryHandler {
           success: false,
           error: (error as Error).message
         }
+      }
+    })
+
+    // --- Historial inmutable de versiones (#38) ---
+
+    ipcMain.handle('network-version:list', async (_, networkId: string) => {
+      try {
+        return { success: true, data: await this.versiones.listarVersiones(networkId) }
+      } catch (error) {
+        appLogger.error('Failed to list network versions', error as Error)
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    ipcMain.handle('network-version:create', async (_, data: {
+      networkId: string
+      changeNote?: string
+      marcada?: boolean
+    }) => {
+      try {
+        const version = await this.versiones.crearVersion(data.networkId, {
+          changeNote: data.changeNote,
+          marcada: data.marcada,
+          origen: 'manual',
+        })
+        // La retención se aplica al añadir, que es cuando el historial crece.
+        const podadas = await this.versiones.podarSegunAjustes(data.networkId)
+        appLogger.success('Network version created', {
+          networkId: data.networkId,
+          version: version.versionNumber,
+          podadas,
+        })
+        return { success: true, data: version, podadas }
+      } catch (error) {
+        appLogger.error('Failed to create network version', error as Error)
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    /**
+     * Abre una versión: devuelve sus datos y materializa su `.inp` en un
+     * temporal, igual que `network-repo:load`, para poder simular sobre ella.
+     */
+    ipcMain.handle('network-version:open', async (_, versionId: string) => {
+      try {
+        const v = await this.versiones.leerVersion(versionId)
+        const filePath = join(tmpdir(), `boorie-version-${versionId}.inp`)
+        await writeFile(filePath, v.fileContent, 'utf-8')
+        return { success: true, data: v.networkData, version: v.version, filePath }
+      } catch (error) {
+        appLogger.error('Failed to open network version', error as Error)
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    ipcMain.handle('network-version:restore', async (_, versionId: string) => {
+      try {
+        const r = await this.versiones.restaurarVersion(versionId)
+        appLogger.success('Network version restored', { versionId, respaldo: r.respaldo.versionNumber })
+        return { success: true, data: r }
+      } catch (error) {
+        appLogger.error('Failed to restore network version', error as Error)
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    ipcMain.handle('network-version:mark', async (_, data: { versionId: string; marcada: boolean }) => {
+      try {
+        return { success: true, data: await this.versiones.marcarVersion(data.versionId, data.marcada) }
+      } catch (error) {
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    ipcMain.handle('network-version:compare', async (_, data: { versionA: string; versionB: string }) => {
+      try {
+        return { success: true, data: await this.versiones.compararVersiones(data.versionA, data.versionB) }
+      } catch (error) {
+        appLogger.error('Failed to compare network versions', error as Error)
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    ipcMain.handle('network-version:simulations', async (_, networkId: string) => {
+      try {
+        return { success: true, data: await this.versiones.listarSimulaciones(networkId) }
+      } catch (error) {
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    ipcMain.handle('network-version:simulation-results', async (_, runId: string) => {
+      try {
+        return { success: true, data: await this.versiones.leerSimulacion(runId) }
+      } catch (error) {
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    /** Registra una ejecución contra la versión vigente de la red. */
+    ipcMain.handle('network-version:record-simulation', async (_, data: {
+      networkId: string
+      tipo: string
+      parameters: unknown
+      results: unknown
+      engineVersion?: string
+    }) => {
+      try {
+        const versiones = await this.versiones.listarVersiones(data.networkId)
+        if (versiones.length === 0) {
+          return { success: false, error: 'La red no tiene ninguna versión sobre la que registrar la simulación' }
+        }
+        const run = await this.versiones.registrarSimulacion(versiones[0].id, {
+          tipo: data.tipo,
+          parameters: data.parameters,
+          results: data.results,
+          engineVersion: data.engineVersion,
+        })
+        return { success: true, data: run }
+      } catch (error) {
+        appLogger.error('Failed to record simulation run', error as Error)
+        return { success: false, error: (error as Error).message }
       }
     })
 

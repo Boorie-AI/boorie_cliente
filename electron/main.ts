@@ -446,6 +446,37 @@ async function ensureProductionSchema(prismaClient: any): Promise<void> {
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATETIME NOT NULL
     )`,
+    // Historial inmutable de redes y simulaciones (#38)
+    `CREATE TABLE IF NOT EXISTS "network_versions" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "networkId" TEXT NOT NULL,
+      "versionNumber" INTEGER NOT NULL,
+      "networkData" TEXT NOT NULL,
+      "fileContent" TEXT NOT NULL,
+      "coordinateSystem" TEXT,
+      "summary" TEXT NOT NULL,
+      "changeNote" TEXT,
+      "author" TEXT,
+      "origen" TEXT NOT NULL DEFAULT 'manual',
+      "marcada" INTEGER NOT NULL DEFAULT 0,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "network_versions_networkId_fkey" FOREIGN KEY ("networkId") REFERENCES "hydraulic_networks" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    )`,
+    `CREATE TABLE IF NOT EXISTS "simulation_runs" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "networkVersionId" TEXT NOT NULL,
+      "tipo" TEXT NOT NULL,
+      "parameters" TEXT NOT NULL,
+      "results" TEXT NOT NULL,
+      "engineVersion" TEXT,
+      "marcada" INTEGER NOT NULL DEFAULT 0,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "simulation_runs_networkVersionId_fkey" FOREIGN KEY ("networkVersionId") REFERENCES "network_versions" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    )`,
+    `CREATE INDEX IF NOT EXISTS "network_versions_networkId_idx" ON "network_versions"("networkId")`,
+    `CREATE INDEX IF NOT EXISTS "simulation_runs_networkVersionId_idx" ON "simulation_runs"("networkVersionId")`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "network_versions_networkId_versionNumber_key" ON "network_versions"("networkId", "versionNumber")`,
+
     // Unique indexes
     `CREATE UNIQUE INDEX IF NOT EXISTS "ai_providers_name_key" ON "ai_providers"("name")`,
     `CREATE UNIQUE INDEX IF NOT EXISTS "ai_models_providerId_modelId_key" ON "ai_models"("providerId", "modelId")`,

@@ -22,6 +22,7 @@ import { HydraulicHandler } from './hydraulic.handler'
 import { setupWNTRHandlers } from './wntr.handler'
 import { registerWisdomHandlers, registerVectorGraphHandlers, registerWisdomExtendedHandlers, registerChatAttachmentHandler } from './document.handler'
 import { NetworkRepositoryHandler } from './networkRepository.handler'
+import { NetworkVersionService } from '../../backend/services/hydraulic/networkVersions'
 import { registerAgenticRAGHandlers } from './agenticRAG.handler'
 import { registerGuardrailsHandlers } from './guardrails.handler'
 import { registerMilvusHandlers } from './milvus.handler'
@@ -49,6 +50,17 @@ export class HandlersManager {
     this.authHandler = new AuthHandler(services.database)
     this.hydraulicHandler = new HydraulicHandler(services)
     this.networkRepositoryHandler = new NetworkRepositoryHandler(services.database.prisma)
+
+    /**
+     * Las redes guardadas antes del historial arrancan con su versión inicial
+     * (#38). Es idempotente —sólo mira las que no tienen ninguna— así que puede
+     * correr en cada arranque, y no bloquea el inicio: una base grande no debe
+     * retrasar la ventana.
+     */
+    new NetworkVersionService(services.database.prisma)
+      .migrarRedesSinVersion()
+      .then(n => { if (n > 0) console.log(`Historial de versiones: ${n} redes migradas`) })
+      .catch(e => console.warn('No se pudo migrar el historial de versiones:', e?.message))
 
     // Setup WNTR handlers
     setupWNTRHandlers()

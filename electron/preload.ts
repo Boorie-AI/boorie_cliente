@@ -203,6 +203,30 @@ const electronAPI = {
     getStats: (projectId: string) => ipcRenderer.invoke('network-repo:stats', projectId),
   },
 
+  /** Historial inmutable de versiones y simulaciones (#38) */
+  networkVersions: {
+    list: (networkId: string) => ipcRenderer.invoke('network-version:list', networkId),
+    create: (data: { networkId: string; changeNote?: string; marcada?: boolean }) =>
+      ipcRenderer.invoke('network-version:create', data),
+    /** Abre una versión y materializa su .inp para poder simular sobre ella. */
+    open: (versionId: string) => ipcRenderer.invoke('network-version:open', versionId),
+    restore: (versionId: string) => ipcRenderer.invoke('network-version:restore', versionId),
+    mark: (data: { versionId: string; marcada: boolean }) =>
+      ipcRenderer.invoke('network-version:mark', data),
+    compare: (data: { versionA: string; versionB: string }) =>
+      ipcRenderer.invoke('network-version:compare', data),
+    simulations: (networkId: string) => ipcRenderer.invoke('network-version:simulations', networkId),
+    simulationResults: (runId: string) =>
+      ipcRenderer.invoke('network-version:simulation-results', runId),
+    recordSimulation: (data: {
+      networkId: string
+      tipo: string
+      parameters: unknown
+      results: unknown
+      engineVersion?: string
+    }) => ipcRenderer.invoke('network-version:record-simulation', data),
+  },
+
   // WNTR operations
   wntr: {
     // Python/WNTR status check

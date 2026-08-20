@@ -9,16 +9,16 @@ datasource db {
 }
 
 model Conversation {
-  id          String   @id @default(cuid())
-  title       String
-  model       String
-  provider    String
-  projectId   String?  // Optional link to hydraulic project
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  title     String
+  model     String
+  provider  String
+  projectId String? // Optional link to hydraulic project
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  messages    Message[]
-  project     HydraulicProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  messages Message[]
+  project  HydraulicProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@map("conversations")
 }
@@ -26,31 +26,31 @@ model Conversation {
 model Message {
   id             String   @id @default(cuid())
   conversationId String
-  role           String   // 'user' | 'assistant' | 'system'
+  role           String // 'user' | 'assistant' | 'system'
   content        String
   timestamp      DateTime @default(now())
-  metadata       String?  // JSON as string for additional data
+  metadata       String? // JSON as string for additional data
   createdAt      DateTime @default(now())
 
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@map("messages")
 }
 
 model AIProvider {
-  id               String   @id @default(cuid())
-  name             String   @unique
-  type             String   // 'local' | 'api'
-  apiKey           String?  // Encrypted API key
-  isActive         Boolean  @default(false) // Changed to default false
-  isConnected      Boolean  @default(false)
-  lastTestResult   String?  // 'success' | 'error' | null
-  lastTestMessage  String?  // Error message or success details
-  config           String?  // Additional configuration as JSON string
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id              String   @id @default(cuid())
+  name            String   @unique
+  type            String // 'local' | 'api'
+  apiKey          String? // Encrypted API key
+  isActive        Boolean  @default(false) // Changed to default false
+  isConnected     Boolean  @default(false)
+  lastTestResult  String? // 'success' | 'error' | null
+  lastTestMessage String? // Error message or success details
+  config          String? // Additional configuration as JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  models           AIModel[]
+  models AIModel[]
 
   @@map("ai_providers")
 }
@@ -63,12 +63,12 @@ model AIModel {
   isDefault   Boolean  @default(false)
   isAvailable Boolean  @default(true)
   isSelected  Boolean  @default(false) // New field for user selection
-  description String?  // Model description
-  metadata    String?  // Model-specific metadata as JSON string
+  description String? // Model description
+  metadata    String? // Model-specific metadata as JSON string
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  provider    AIProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  provider AIProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, modelId])
   @@map("ai_models")
@@ -78,7 +78,7 @@ model AppSetting {
   id        String   @id @default(cuid())
   key       String   @unique
   value     String
-  category  String?  // 'general', 'ai', 'theme', etc.
+  category  String? // 'general', 'ai', 'theme', etc.
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -86,14 +86,14 @@ model AppSetting {
 }
 
 model Document {
-  id          String   @id @default(cuid())
-  filename    String
-  filepath    String
-  content     String
-  metadata    String?  // JSON as string
-  embeddings  String?  // JSON as string
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  filename   String
+  filepath   String
+  content    String
+  metadata   String? // JSON as string
+  embeddings String? // JSON as string
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   chunks DocumentChunk[]
 
@@ -104,8 +104,8 @@ model DocumentChunk {
   id         String   @id @default(cuid())
   documentId String
   content    String
-  embedding  String?  // JSON as string
-  metadata   String?  // JSON as string
+  embedding  String? // JSON as string
+  metadata   String? // JSON as string
   startPos   Int?
   endPos     Int?
   createdAt  DateTime @default(now())
@@ -116,14 +116,14 @@ model DocumentChunk {
 }
 
 model AuthToken {
-  id          String   @id @default(cuid())
-  provider    String
-  tokenType   String
-  accessToken String
+  id           String    @id @default(cuid())
+  provider     String
+  tokenType    String
+  accessToken  String
   refreshToken String?
-  expiresAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@unique([provider, tokenType])
   @@map("auth_tokens")
@@ -135,12 +135,12 @@ model EmailMessage {
   messageId   String
   subject     String
   from        String
-  to          String   // JSON as string
-  cc          String?  // JSON as string
-  bcc         String?  // JSON as string
+  to          String // JSON as string
+  cc          String? // JSON as string
+  bcc         String? // JSON as string
   body        String
   htmlBody    String?
-  attachments String?  // JSON as string
+  attachments String? // JSON as string
   isRead      Boolean  @default(false)
   isImportant Boolean  @default(false)
   receivedAt  DateTime
@@ -161,7 +161,7 @@ model CalendarEvent {
   startTime   DateTime
   endTime     DateTime
   isAllDay    Boolean  @default(false)
-  attendees   String?  // JSON as string
+  attendees   String? // JSON as string
   organizer   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -171,16 +171,16 @@ model CalendarEvent {
 }
 
 model UserProfile {
-  id          String   @id @default(cuid())
-  provider    String   // 'microsoft' | 'google'
-  providerId  String   // User ID from provider
-  email       String
-  name        String?
-  pictureUrl  String?
-  isActive    Boolean  @default(true)
-  metadata    String?  // Additional profile data as JSON
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  provider   String // 'microsoft' | 'google'
+  providerId String // User ID from provider
+  email      String
+  name       String?
+  pictureUrl String?
+  isActive   Boolean  @default(true)
+  metadata   String? // Additional profile data as JSON
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@unique([provider, providerId])
   @@map("user_profiles")
@@ -188,18 +188,18 @@ model UserProfile {
 
 // Hydraulic Engineering Models
 model HydraulicProject {
-  id            String   @id @default(cuid())
-  name          String
-  description   String?
-  type          String   // 'design' | 'analysis' | 'optimization' | 'troubleshooting'
-  networkType   String   // 'distribution' | 'transmission' | 'collection'
-  location      String   // JSON with country, region, city, coordinates
-  status        String   // 'planning' | 'design' | 'review' | 'approved' | 'construction' | 'completed'
-  regulations   String   // JSON array of regulation IDs
-  wntrModel     String?  // JSON serialized WNTR model
-  metadata      String?  // Additional project metadata
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  type        String // 'design' | 'analysis' | 'optimization' | 'troubleshooting'
+  networkType String // 'distribution' | 'transmission' | 'collection'
+  location    String // JSON with country, region, city, coordinates
+  status      String // 'planning' | 'design' | 'review' | 'approved' | 'construction' | 'completed'
+  regulations String // JSON array of regulation IDs
+  wntrModel   String? // JSON serialized WNTR model
+  metadata    String? // Additional project metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   calculations  HydraulicCalculation[]
   documents     ProjectDocument[]
@@ -211,20 +211,20 @@ model HydraulicProject {
 }
 
 model HydraulicCalculation {
-  id          String   @id @default(cuid())
-  projectId   String
-  type        String   // 'pipe_sizing' | 'pump_selection' | 'head_loss' | 'water_hammer' | etc
-  name        String
-  inputs      String   // JSON with calculation inputs
-  results     String   // JSON with calculation results
-  formulas    String   // JSON array of formulas used
-  verified    Boolean  @default(false)
-  verifiedBy  String?
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  projectId  String
+  type       String // 'pipe_sizing' | 'pump_selection' | 'head_loss' | 'water_hammer' | etc
+  name       String
+  inputs     String // JSON with calculation inputs
+  results    String // JSON with calculation results
+  formulas   String // JSON array of formulas used
+  verified   Boolean  @default(false)
+  verifiedBy String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  project     HydraulicProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project HydraulicProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("hydraulic_calculations")
 }
@@ -232,17 +232,17 @@ model HydraulicCalculation {
 model ProjectDocument {
   id          String   @id @default(cuid())
   projectId   String
-  type        String   // 'calculation_memory' | 'technical_spec' | 'report' | 'plan' | 'compliance'
+  type        String // 'calculation_memory' | 'technical_spec' | 'report' | 'plan' | 'compliance'
   title       String
-  content     String   // Document content (could be markdown, HTML, etc)
-  metadata    String   // JSON with author, version, status, etc
-  attachments String?  // JSON array of attachment info
+  content     String // Document content (could be markdown, HTML, etc)
+  metadata    String // JSON with author, version, status, etc
+  attachments String? // JSON array of attachment info
   version     String   @default("1.0")
   status      String   @default("draft") // 'draft' | 'review' | 'approved'
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  project     HydraulicProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project HydraulicProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("project_documents")
 }
@@ -250,12 +250,12 @@ model ProjectDocument {
 model ProjectTeamMember {
   id          String   @id @default(cuid())
   projectId   String
-  userId      String   // Reference to user (could be email or ID)
-  role        String   // 'project_manager' | 'design_engineer' | 'reviewer' | 'client'
-  permissions String   // JSON with specific permissions
+  userId      String // Reference to user (could be email or ID)
+  role        String // 'project_manager' | 'design_engineer' | 'reviewer' | 'client'
+  permissions String // JSON with specific permissions
   joinedAt    DateTime @default(now())
 
-  project     HydraulicProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project HydraulicProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
   @@map("project_team_members")
@@ -263,73 +263,73 @@ model ProjectTeamMember {
 
 // RAG Knowledge Base Models
 model HydraulicKnowledge {
-  id          String   @id @default(cuid())
-  category    String   // 'hydraulics' | 'regulations' | 'best-practices'
-  subcategory String
-  region      String   // JSON array of applicable regions
+  id                  String   @id @default(cuid())
+  category            String // 'hydraulics' | 'regulations' | 'best-practices'
+  subcategory         String
+  region              String // JSON array of applicable regions
   secondaryCategories String? // JSON array of additional categories
-  title       String
-  content     String   // Main content of the document
-  metadata    String   // JSON with formulas, tables, examples, references
-  keywords    String   // JSON array for search optimization
-  language    String   @default("es")
-  version     String   @default("1.0")
-  status      String   @default("active") // 'draft' | 'active' | 'deprecated'
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  title               String
+  content             String // Main content of the document
+  metadata            String // JSON with formulas, tables, examples, references
+  keywords            String // JSON array for search optimization
+  language            String   @default("es")
+  version             String   @default("1.0")
+  status              String   @default("active") // 'draft' | 'active' | 'deprecated'
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  chunks      KnowledgeChunk[]
+  chunks KnowledgeChunk[]
 
   @@map("hydraulic_knowledge")
 }
 
 model KnowledgeChunk {
-  id            String   @id @default(cuid())
-  knowledgeId   String
-  content       String
-  embedding     String?  // Vector embedding as JSON array (nullable until indexed)
-  metadata      String?  // Additional chunk metadata
-  chunkIndex    Int      // Order of chunk in document
-  createdAt     DateTime @default(now())
+  id          String   @id @default(cuid())
+  knowledgeId String
+  content     String
+  embedding   String? // Vector embedding as JSON array (nullable until indexed)
+  metadata    String? // Additional chunk metadata
+  chunkIndex  Int // Order of chunk in document
+  createdAt   DateTime @default(now())
 
-  knowledge     HydraulicKnowledge @relation(fields: [knowledgeId], references: [id], onDelete: Cascade)
+  knowledge HydraulicKnowledge @relation(fields: [knowledgeId], references: [id], onDelete: Cascade)
 
   @@map("knowledge_chunks")
 }
 
 // Hydraulic Components Catalog
 model HydraulicComponent {
-  id              String   @id @default(cuid())
-  type            String   // 'pipe' | 'pump' | 'valve' | 'tank' | 'fitting'
-  manufacturer    String?
-  model           String?
-  specifications  String   // JSON with technical specs
-  priceInfo       String?  // JSON with pricing data
-  availability    String?  // JSON with availability info
-  documentation   String?  // Links to technical docs
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(cuid())
+  type           String // 'pipe' | 'pump' | 'valve' | 'tank' | 'fitting'
+  manufacturer   String?
+  model          String?
+  specifications String // JSON with technical specs
+  priceInfo      String? // JSON with pricing data
+  availability   String? // JSON with availability info
+  documentation  String? // Links to technical docs
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@map("hydraulic_components")
 }
 
 // Hydraulic Network Storage
 model HydraulicNetwork {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   projectId         String
   name              String
   description       String?
-  filename          String   // Original filename (e.g., "network1.inp")
-  fileContent       String   // INP file content
-  networkData       String   // JSON serialized network data from WNTR
-  coordinateSystem  String?  // JSON with coordinate system info
-  summary           String   // JSON with network summary (nodes, pipes, etc.)
-  simulationResults String?  // JSON with last simulation results
-  version           String   @default("1.0")
-  isActive          Boolean  @default(true)
+  filename          String // Original filename (e.g., "network1.inp")
+  fileContent       String // INP file content
+  networkData       String // JSON serialized network data from WNTR
+  coordinateSystem  String? // JSON with coordinate system info
+  summary           String // JSON with network summary (nodes, pipes, etc.)
+  simulationResults String? // JSON with last simulation results
+  version           String    @default("1.0")
+  isActive          Boolean   @default(true)
   lastLoaded        DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   // Jerarquia madre/hija de escenarios (#31). La red importada es la "madre" y
   // cada escenario derivado (esqueletizacion, interrupcion de servicio...) es una
@@ -338,61 +338,124 @@ model HydraulicNetwork {
   // onDelete: SetNull y no Cascade a proposito: borrar la red original no debe
   // llevarse por delante los escenarios derivados de ella, que pueden tener
   // resultados que el usuario quiere conservar. Se quedan como raiz.
-  parentId          String?
-  parent            HydraulicNetwork?  @relation("EscenariosDeRed", fields: [parentId], references: [id], onDelete: SetNull)
-  scenarios         HydraulicNetwork[] @relation("EscenariosDeRed")
+  parentId  String?
+  parent    HydraulicNetwork?  @relation("EscenariosDeRed", fields: [parentId], references: [id], onDelete: SetNull)
+  scenarios HydraulicNetwork[] @relation("EscenariosDeRed")
 
   /// Etiqueta del escenario, p. ej. "esqueletizada 100 mm". Null en la red madre.
-  scenarioLabel     String?
+  scenarioLabel String?
   /// Carpeta de resultados del escenario, validada por el usuario.
-  resultsPath       String?
+  resultsPath   String?
 
-  project           HydraulicProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project HydraulicProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  @@index([parentId])
+  /// Versiones inmutables de esta red (#38). La fila de arriba es el estado
+  /// vigente —lo que se abre y se simula—; el historial vive aparte y no se
+  /// modifica nunca, sólo se le añaden entradas.
+  versions NetworkVersion[]
+
   @@unique([projectId, name])
+  @@index([parentId])
   @@map("hydraulic_networks")
+}
+
+/// Una versión de una red, inmutable (#38).
+///
+/// La restricción `@@unique([projectId, name])` se queda, pero cambia de
+/// significado: pasa a ser del contenedor. Antes impedía que coexistieran dos
+/// estados de la misma red y obligaba a pisar el anterior o a inventarse un
+/// nombre; ahora los estados viven aquí y el nombre identifica la red, no una
+/// de sus versiones.
+model NetworkVersion {
+  id        String           @id @default(cuid())
+  networkId String
+  network   HydraulicNetwork @relation(fields: [networkId], references: [id], onDelete: Cascade)
+
+  /// Correlativo por red, empezando en 1. Es lo que ve el ingeniero.
+  versionNumber    Int
+  /// Copia completa del estado en ese momento; nunca se reescribe.
+  networkData      String
+  fileContent      String
+  coordinateSystem String?
+  summary          String
+
+  /// Qué cambió, en palabras del ingeniero.
+  changeNote String?
+  author     String?
+  /// Cómo nació: 'manual' | 'importacion' | 'escenario' | 'migracion'
+  origen     String  @default("manual")
+  /// Hito: la retención no la poda nunca.
+  marcada    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  simulations SimulationRun[]
+
+  @@unique([networkId, versionNumber])
+  @@index([networkId])
+  @@map("network_versions")
+}
+
+/// Una ejecución de simulación, atada a la versión exacta con la que se corrió (#38).
+model SimulationRun {
+  id               String         @id @default(cuid())
+  networkVersionId String
+  networkVersion   NetworkVersion @relation(fields: [networkVersionId], references: [id], onDelete: Cascade)
+
+  /// 'hydraulic' | 'quality' | 'scenario' | 'resilience' ...
+  tipo          String
+  /// Parámetros con los que se lanzó, para poder repetirla.
+  parameters    String
+  results       String
+  /// Versión del motor, para saber con qué se calculó.
+  engineVersion String?
+  marcada       Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([networkVersionId])
+  @@map("simulation_runs")
 }
 
 // RLHF Feedback System
 model Feedback {
-  id            String   @id @default(cuid())
-  query         String   // Original user query
-  response      String   // System response
-  rating        Int      // 1 (thumbs up) or -1 (thumbs down)
-  correction    String?  // Optional user correction text
-  context       String?  // JSON with retrieved documents IDs or content
-  modelUsed     String?  // Name of the model used (e.g., 'gpt-4', 'llama3')
-  category      String?  // 'hydraulics', 'regulations', etc.
-  userId        String?  // Optional user ID
-  createdAt     DateTime @default(now())
-  
+  id         String   @id @default(cuid())
+  query      String // Original user query
+  response   String // System response
+  rating     Int // 1 (thumbs up) or -1 (thumbs down)
+  correction String? // Optional user correction text
+  context    String? // JSON with retrieved documents IDs or content
+  modelUsed  String? // Name of the model used (e.g., 'gpt-4', 'llama3')
+  category   String? // 'hydraulics', 'regulations', etc.
+  userId     String? // Optional user ID
+  createdAt  DateTime @default(now())
+
   @@map("feedback")
 }
 
 model LongTermMemory {
-  id          String   @id @default(cuid())
-  key         String   // Subject or Topic
-  value       String   // The fact or summary
-  category    String?  // 'summary', 'fact', 'user_preference'
-  confidence  Float    @default(1.0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  key        String // Subject or Topic
+  value      String // The fact or summary
+  category   String? // 'summary', 'fact', 'user_preference'
+  confidence Float    @default(1.0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@map("long_term_memory")
 }
 
 model GuardrailViolation {
   id             String   @id @default(cuid())
-  conversationId String?  // Optional link to conversation
-  messageId      String?  // Optional link to message that triggered the rail
-  rail           String   // 'input' | 'retrieval' | 'output' | 'execution'
-  severity       String   // 'low' | 'medium' | 'high' | 'critical'
-  reason         String   // Human-readable reason from the rail
-  blocked        Boolean  @default(true)  // false when in advisory/warn mode
-  judgeModel     String?  // Model used to evaluate (e.g. 'nemotron-mini', 'nemoguard')
-  judgeProvider  String?  // 'ollama' | 'nvidia-api'
-  payload        String?  // JSON: input snippet, retrieved chunks, output snippet
+  conversationId String? // Optional link to conversation
+  messageId      String? // Optional link to message that triggered the rail
+  rail           String // 'input' | 'retrieval' | 'output' | 'execution'
+  severity       String // 'low' | 'medium' | 'high' | 'critical'
+  reason         String // Human-readable reason from the rail
+  blocked        Boolean  @default(true) // false when in advisory/warn mode
+  judgeModel     String? // Model used to evaluate (e.g. 'nemotron-mini', 'nemoguard')
+  judgeProvider  String? // 'ollama' | 'nvidia-api'
+  payload        String? // JSON: input snippet, retrieved chunks, output snippet
   createdAt      DateTime @default(now())
 
   @@index([conversationId])

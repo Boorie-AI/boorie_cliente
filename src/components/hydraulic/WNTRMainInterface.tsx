@@ -11,10 +11,11 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { WNTRAdvancedMapViewer } from './WNTRAdvancedMapViewer';
 import { ProjectDashboard } from './ProjectDashboard';
+import { HistorialRed } from './HistorialRed';
 import { Project, NetworkAsset, CalculationAsset } from '../../types/project';
 import { hydraulicService } from '@/services/hydraulic/hydraulicService';
 import {
-  FileUp, Play, Network,
+  FileUp, Play, Network, History,
   RefreshCw, AlertCircle,
   Activity, Database,
   Target, FolderOpen, ChevronDown,
@@ -335,10 +336,28 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
         else refreshCurrentProject();
       })
       .catch((e: unknown) => logger.error('Error guardando el calculo:', e));
+
+    /**
+     * Y además, atado a la versión de la red con la que se corrió (#38). Es lo
+     * que hace interpretable un resultado: sin saber sobre qué estado de la red
+     * se calculó, un informe de presiones no dice nada. El guardado anterior se
+     * mantiene porque `hydraulic_calculations` es el histórico que ya existía y
+     * del que la vista lee sus listas.
+     */
+    if (networkId && networkId !== 'unknown') {
+      window.electronAPI.networkVersions
+        .recordSimulation({ networkId, tipo: name, parameters: {}, results })
+        .then((res: any) => {
+          if (!res?.success) logger.warn('No se pudo atar la simulacion a su version:', res?.error);
+        })
+        .catch((e: unknown) => logger.error('Error registrando la simulacion:', e));
+    }
   }, [activeProjectId, refreshCurrentProject]);
 
   // Core state
   const [networkData, setNetworkData] = useState<NetworkData | null>(null);
+  /** Red cuyo historial de versiones se está mirando (#38). */
+  const [historialDe, setHistorialDe] = useState<{ id: string; nombre: string } | null>(null);
 
   /**
    * Red guardada que corresponde a lo que se está mostrando. La declaración del
@@ -977,11 +996,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     <h4 className="text-sm font-medium mb-2">Redes Guardadas</h4>
                     <div className="space-y-2">
                       {currentProject.networks.map((net) => (
+                        <div key={net.id} className={`flex items-center gap-1 ${net.parentId ? 'ml-4' : ''}`}>
                         <Button
-                          key={net.id}
                           variant="outline"
                           size="sm"
-                          className={`w-full justify-start text-xs ${net.parentId ? 'ml-4 w-[calc(100%-1rem)]' : ''}`}
+                          className="flex-1 justify-start text-xs min-w-0"
                           onClick={async () => {
                             // Datos y .inp desde la base de datos: la red se abre
                             // aunque el fichero original ya no este en disco.
@@ -1021,7 +1040,21 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           <span className="ml-auto text-muted-foreground">
                             {net.nodeCount} nudos
                           </span>
+                          {/* Dentro del botón de abrir la red iría anidado, así
+                              que el historial va como hermano: un botón dentro de
+                              otro no es HTML válido y el clic se volvería
+                              impredecible. */}
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          title={`Historial de versiones de ${net.name}`}
+                          onClick={() => setHistorialDe({ id: net.id, nombre: net.name })}
+                        >
+                          <History className="h-3.5 w-3.5" />
+                        </Button>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -1946,6 +1979,26 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   return (
     <div className="w-full h-full bg-background text-foreground overflow-hidden">
       {renderDashboard()}
+      {historialDe && (
+        <HistorialRed
+          abierto
+          onCerrar={() => setHistorialDe(null)}
+          networkId={historialDe.id}
+          nombreRed={historialDe.nombre}
+          onRestaurada={async () => {
+            const res = await window.electronAPI.networkRepository.load(historialDe.id);
+            if (res?.success) {
+              setNetworkData(res.data);
+              setLoadedNetworkPath(res.filePath ?? null);
+              if (res.filePath) {
+                try { await window.electronAPI.wntr.loadINPFromPath(res.filePath); }
+                catch (err) { logger.warn('No se pudo recargar el .inp restaurado:', err); }
+              }
+            }
+            await refreshActiveNetworks();
+          }}
+        />
+      )}
     </div>
   );
 };
