@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { HydraulicDocument } from '../../../src/types/hydraulic'
 import { EmbeddingService } from '../embedding.service'
+import { duenosPermitidos, filtroPrisma, filtroVectorial, origenDe, type Ambito, type Origen } from './ambitos'
 
 export interface RAGSearchOptions {
   category?: 'hydraulics' | 'regulations' | 'best-practices'
@@ -8,10 +9,16 @@ export interface RAGSearchOptions {
   language?: string
   limit?: number
   minScore?: number
+  /** Dónde buscar (#39). Por defecto, sólo lo general. */
+  ambito?: Ambito
+  /** Proyecto activo. Sin él no hay ámbito de proyecto posible. */
+  projectId?: string | null
 }
 
 export interface RAGSearchResult {
   document: HydraulicDocument
+  /** Si la cita viene de una norma general o de un documento interno del proyecto. */
+  origen?: Origen
   score: number
   relevantChunks: string[]
   highlights: string[]
@@ -33,8 +40,12 @@ export class HydraulicRAGService {
   ): Promise<RAGSearchResult[]> {
     const {
       limit = 5,
-      minScore = 0.6
+      minScore = 0.6,
+      ambito = 'general',
+      projectId = null,
     } = options
+
+    const permitidos = duenosPermitidos(ambito, projectId)
 
     try {
       const milvusService = (await import('../milvus.service')).MilvusService.getInstance()
@@ -46,7 +57,10 @@ export class HydraulicRAGService {
       const searchRes = await milvusService.search(
         'hydraulic_knowledge', // Hardcoded for now or use MilvusService.COLLECTIONS.KNOWLEDGE
         queryEmbedding,
-        limit * 3 // Fetch more chunks to aggregate
+        // Se piden más candidatos cuando hay ámbito de proyecto: parte de lo que
+        // devuelva el almacén se va a descartar al comprobar de quién es.
+        permitidos.length > 1 ? limit * 6 : limit * 3,
+        filtroVectorial(permitidos)
       )
 
       if (!searchRes.results || searchRes.results.length === 0) {
@@ -75,8 +89,18 @@ export class HydraulicRAGService {
       const docIds = Array.from(docMap.keys())
       if (docIds.length === 0) return []
 
+      /**
+       * Aquí se garantiza la confidencialidad, y no en el filtro del almacén
+       * vectorial (#39).
+       *
+       * El almacén puede ignorar el filtro, devolver de más o quedarse mudo, y
+       * su modo de fallo es silencioso. La base de datos es la autoridad sobre
+       * de quién es cada documento: si un fragmento ajeno se cuela en la
+       * búsqueda, su documento no llega a materializarse y no hay nada que
+       * enseñar.
+       */
       const documents = await this.prisma.hydraulicKnowledge.findMany({
-        where: { id: { in: docIds } }
+        where: { id: { in: docIds }, ...filtroPrisma(permitidos) }
       })
 
       const results: RAGSearchResult[] = []
@@ -97,6 +121,7 @@ export class HydraulicRAGService {
         }
 
         results.push({
+          origen: origenDe(doc.projectId),
           document: {
             id: doc.id,
             category: doc.category as any,
@@ -280,7 +305,16 @@ export class HydraulicRAGService {
           id: c.id,
           vector: JSON.parse(c.embedding as string),
           content: c.content,
-          metadata: { chunkId: c.id, docId: doc.id, title: doc.title, category: doc.category },
+          // `projectId` viaja en la metainformación para que el almacén pueda
+          // filtrar por ámbito sin ir a la base (#39). Hoy es una optimización:
+          // la garantía la da la consulta a Prisma.
+          metadata: {
+            chunkId: c.id,
+            docId: doc.id,
+            title: doc.title,
+            category: doc.category,
+            projectId: doc.projectId ?? null,
+          },
           timestamp: Date.now()
         }))
 
@@ -301,7 +335,14 @@ export class HydraulicRAGService {
   // Add new document to knowledge base
   async addDocument(
     document: Omit<HydraulicDocument, 'id' | 'lastUpdated'>,
-    onProgress?: (progress: { current: number; total: number; message: string }) => void
+    onProgress?: (progress: { current: number; total: number; message: string }) => void,
+    /**
+     * Dueño del documento (#39). Sin él el documento es general y lo ven todos
+     * los proyectos; con él es interno de ese cliente. Se pide explícito para
+     * que subir algo al ámbito equivocado tenga que ser una decisión, no un
+     * descuido del valor por defecto.
+     */
+    projectId?: string | null
   ): Promise<string> {
     try {
       const { chunks: successfulChunks } = await this.buildIndexedChunks(document.content, onProgress)
@@ -327,6 +368,7 @@ export class HydraulicRAGService {
           keywords: JSON.stringify(document.metadata.keywords),
           language: document.metadata.language,
           version: document.version,
+          projectId: projectId ?? null,
           chunks: {
             create: successfulChunks.map(item => ({
               content: item.content,

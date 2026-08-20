@@ -377,6 +377,7 @@ async function ensureProductionSchema(prismaClient: any): Promise<void> {
       "language" TEXT NOT NULL DEFAULT 'es',
       "version" TEXT NOT NULL DEFAULT '1.0',
       "status" TEXT NOT NULL DEFAULT 'active',
+      "projectId" TEXT,
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATETIME NOT NULL
     )`,
@@ -446,6 +447,16 @@ async function ensureProductionSchema(prismaClient: any): Promise<void> {
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATETIME NOT NULL
     )`,
+    /**
+     * Columnas añadidas a tablas que ya existen. `CREATE TABLE IF NOT EXISTS` no
+     * las agrega en una instalación que actualiza, y sin ellas la consulta que
+     * las nombra falla: el ámbito del Wisdom Center (#39) dejaría de funcionar
+     * en cuanto se abriera. `ADD COLUMN` protesta si ya está, y el bucle de
+     * abajo registra el aviso sin abortar, que es lo que hace idempotente esto.
+     */
+    `ALTER TABLE "hydraulic_knowledge" ADD COLUMN "projectId" TEXT`,
+    `CREATE INDEX IF NOT EXISTS "hydraulic_knowledge_projectId_idx" ON "hydraulic_knowledge"("projectId")`,
+
     // Historial inmutable de redes y simulaciones (#38)
     `CREATE TABLE IF NOT EXISTS "network_versions" (
       "id" TEXT NOT NULL PRIMARY KEY,

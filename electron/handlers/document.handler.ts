@@ -4,6 +4,7 @@ import * as path from 'path'
 import pdf from 'pdf-parse'
 import mammoth from 'mammoth'
 import { HydraulicRAGService } from '../../backend/services/hydraulic/ragService'
+import { duenosPermitidos, filtroPrisma, type Ambito } from '../../backend/services/hydraulic/ambitos'
 import { PrismaClient } from '@prisma/client'
 
 import { EmbeddingService } from '../../backend/services/embedding.service'
@@ -89,6 +90,11 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
     region?: string[]
     secondaryCategories?: string[]
     language?: string
+    /**
+     * Proyecto dueño del documento (#39). Sin él, el documento es general y lo
+     * ven todos los proyectos.
+     */
+    projectId?: string | null
   }) => {
     try {
       // Open file dialog
@@ -191,7 +197,7 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
               filename: fileName
             })
           }
-        })
+        }, options.projectId ?? null)
 
         uploadedDocs.push({
           id: docId,
@@ -238,9 +244,16 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
     category?: string
     region?: string
     language?: string
+    ambito?: Ambito
+    projectId?: string | null
   }) => {
     try {
       const where: any = { status: 'active' }
+
+      // El listado obedece al mismo ámbito que la búsqueda: si un documento de
+      // otro proyecto no puede salir en una consulta, tampoco puede salir en la
+      // lista (#39).
+      Object.assign(where, filtroPrisma(duenosPermitidos(filters?.ambito ?? 'general', filters?.projectId)))
 
       if (filters?.category) {
         where.category = filters.category
