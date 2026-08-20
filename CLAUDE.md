@@ -43,7 +43,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Code Quality
 - `npm run lint` - Run ESLint checks
 - `npm run lint:fix` - Auto-fix ESLint issues
-- `npm run typecheck` - TypeScript type checking
+- `npm run typecheck` - TypeScript type checking over the whole repo: the renderer
+  (`tsconfig.json`, `src/`) and the main process (`tsconfig.electron.json`,
+  `electron/` + `backend/`). Run just one side with `typecheck:renderer` or
+  `typecheck:electron`. It used to cover only `src/`, and a missing import in
+  `electron/` went unnoticed until the packaged app ran.
 
 ### Database
 - `npm run db:generate` - Generate Prisma client after schema changes
