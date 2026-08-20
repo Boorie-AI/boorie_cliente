@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, Camera, RotateCcw, Trash2 } from 'lucide-react'
+import { AlertTriangle, Camera, Download, RotateCcw, Share2, Trash2 } from 'lucide-react'
 import { logger } from '@/utils/logger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -57,6 +57,7 @@ export function InstantaneasProyecto({
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmar, setConfirmar] = useState<Snapshot | null>(null)
+  const [importado, setImportado] = useState<string | null>(null)
 
   const recargar = useCallback(async () => {
     setCargando(true)
@@ -111,6 +112,26 @@ export function InstantaneasProyecto({
     await recargar()
   }
 
+  const exportar = async (s: Snapshot) => {
+    const r = await window.electronAPI.projectSnapshots.exportar({
+      snapshotId: s.id,
+      nombre: `${nombreProyecto}-${s.label}`,
+    })
+    if (!r?.success && r?.error && !/cancelada/i.test(r.error)) setError(r.error)
+  }
+
+  const importar = async () => {
+    setError(null)
+    const r = await window.electronAPI.networkVersions.importar(projectId)
+    if (!r?.success) {
+      if (r?.error && !/cancelada/i.test(r.error)) setError(r.error)
+      return
+    }
+    setImportado(r.data.resumen)
+    await recargar()
+    onRestaurado?.()
+  }
+
   const fecha = (iso: string) =>
     new Date(iso).toLocaleString('es-ES', {
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -144,6 +165,21 @@ export function InstantaneasProyecto({
           </Button>
         </div>
 
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            Un paquete lleva las redes con su `.inp` y su sistema de coordenadas, y se comprueba al
+            abrirlo: si llegó a medias o alguien lo editó, no se importa nada.
+          </p>
+          <Button variant="outline" size="sm" className="shrink-0" onClick={importar}>
+            <Download className="mr-2 h-3.5 w-3.5" />
+            Importar paquete
+          </Button>
+        </div>
+
+        {importado && (
+          <p className="rounded-md border border-border bg-muted/50 px-3 py-2 text-xs">{importado}</p>
+        )}
+
         {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
 
         <div className="max-h-96 divide-y divide-border overflow-y-auto rounded-md border border-border">
@@ -174,6 +210,15 @@ export function InstantaneasProyecto({
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    title="Exportar para otra instalación de Boorie"
+                    onClick={() => exportar(s)}
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"

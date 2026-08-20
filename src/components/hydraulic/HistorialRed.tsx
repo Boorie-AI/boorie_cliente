@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { Activity, AlertTriangle, GitCompare, History, RotateCcw, Star, Plus } from 'lucide-react'
+import { Activity, AlertTriangle, GitCompare, History, RotateCcw, Share2, Star, Plus } from 'lucide-react'
 import { logger } from '@/utils/logger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -169,6 +169,19 @@ export function HistorialRed({
     }
   }
 
+  const exportar = async (v: Version) => {
+    try {
+      const r = await window.electronAPI.networkVersions.exportar({
+        versionId: v.id,
+        nombre: `${nombreRed}-v${v.versionNumber}`,
+      })
+      // Cancelar el diálogo de guardado no es un error que haya que enseñar.
+      if (!r?.success && r?.error && !/cancelada/i.test(r.error)) throw new Error(r.error)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo exportar')
+    }
+  }
+
   const fecha = (iso: string) =>
     new Date(iso).toLocaleString('es-ES', {
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -183,7 +196,7 @@ export function HistorialRed({
             Historial de {nombreRed}
           </DialogTitle>
           <DialogDescription>
-            Cada versión es un escenario distinto de la red de la cual precede. No se modifican
+            Cada versión es un escenario distinto de la red de la cual procede. No se modifican
             nunca: se añaden, se marcan como hito y se pueden restaurar.
           </DialogDescription>
         </DialogHeader>
@@ -257,6 +270,15 @@ export function HistorialRed({
                     onClick={() => compararConAnterior(v)}
                   >
                     <GitCompare className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    title="Exportar para otra instalación de Boorie"
+                    onClick={() => exportar(v)}
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     variant="ghost"

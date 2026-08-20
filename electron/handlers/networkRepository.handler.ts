@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { app, dialog, ipcMain } from 'electron'
 import { readFile, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
@@ -438,6 +438,65 @@ export class NetworkRepositoryHandler {
         await this.versiones.borrarSnapshot(snapshotId)
         return { success: true }
       } catch (error) {
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    // --- Intercambio entre instalaciones (#38) ---
+
+    /** Nombre de fichero sin caracteres que molesten en Windows. */
+    const nombreSeguro = (texto: string) =>
+      texto.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, '_').slice(0, 60)
+
+    const guardarPaquete = async (contenido: string, sugerido: string) => {
+      const r = await dialog.showSaveDialog({
+        title: 'Exportar para otra instalación de Boorie',
+        defaultPath: `${nombreSeguro(sugerido)}.boorie.json`,
+        filters: [{ name: 'Paquete de Boorie', extensions: ['json'] }],
+      })
+      if (r.canceled || !r.filePath) return { success: false, error: 'Exportación cancelada' }
+
+      await writeFile(r.filePath, contenido, 'utf-8')
+      return { success: true, filePath: r.filePath }
+    }
+
+    ipcMain.handle('network-version:export', async (_, data: { versionId: string; nombre: string }) => {
+      try {
+        const contenido = await this.versiones.exportarVersion(data.versionId, `Boorie ${app.getVersion()}`)
+        return await guardarPaquete(contenido, data.nombre)
+      } catch (error) {
+        appLogger.error('Failed to export network version', error as Error)
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    ipcMain.handle('project-snapshot:export', async (_, data: { snapshotId: string; nombre: string }) => {
+      try {
+        const contenido = await this.versiones.exportarSnapshot(data.snapshotId, `Boorie ${app.getVersion()}`)
+        return await guardarPaquete(contenido, data.nombre)
+      } catch (error) {
+        appLogger.error('Failed to export project snapshot', error as Error)
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    ipcMain.handle('network-version:import', async (_, projectId: string) => {
+      try {
+        const elegido = await dialog.showOpenDialog({
+          title: 'Importar un paquete de Boorie',
+          properties: ['openFile'],
+          filters: [{ name: 'Paquete de Boorie', extensions: ['json'] }],
+        })
+        if (elegido.canceled || elegido.filePaths.length === 0) {
+          return { success: false, error: 'Importación cancelada' }
+        }
+
+        const texto = await readFile(elegido.filePaths[0], 'utf-8')
+        const r = await this.versiones.importarPaquete(projectId, texto)
+        appLogger.success('Package imported', { projectId, ...r })
+        return { success: true, data: r }
+      } catch (error) {
+        appLogger.error('Failed to import package', error as Error)
         return { success: false, error: (error as Error).message }
       }
     })

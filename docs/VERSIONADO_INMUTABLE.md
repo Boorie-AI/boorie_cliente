@@ -42,6 +42,7 @@ HydraulicProject
 | Interfaz del historial | `src/components/hydraulic/HistorialRed.tsx` |
 | Instantáneas de proyecto | `src/components/hydraulic/InstantaneasProyecto.tsx` |
 | Ajuste de retención | `src/components/settings/tabs/GeneralTab.tsx` |
+| Formato de intercambio | `backend/services/hydraulic/intercambio.ts` |
 | Esquema y DDL de producción | `prisma/schema.prisma`, `electron/main.ts` |
 
 ## Decisiones
@@ -160,9 +161,54 @@ marcar se conservan por red. Se guarda en `app_settings` con la clave
 política no toca nunca: los hitos, las versiones sujetas por una instantánea y la
 más reciente.
 
+## Exportar e importar entre instalaciones
+
+Un paquete `.boorie.json` lleva uno o varios estados de red con lo necesario para
+reconstruirlos en otra máquina: los datos, el `.inp`, el sistema de coordenadas y
+de dónde salieron. Se exporta una versión desde su historial, o el conjunto que
+congeló una instantánea.
+
+**El formato lleva su propia versión.** `boorie.red/1`. Un Boorie más antiguo que
+reciba un paquete futuro tiene que reconocer que no lo entiende y decirlo, en
+lugar de leerlo a medias y crear una red incompleta.
+
+**Y lleva una suma de comprobación.** Un fichero truncado a mitad de copia, o
+editado a mano, produciría una red silenciosamente distinta de la que se exportó
+—y eso, en un modelo hidráulico, no se nota hasta que alguien toma una decisión
+con él—. Si la suma no cuadra no se importa nada.
+
+**Los identificadores no se reutilizan.** En la instalación de destino podrían
+chocar con registros que no tienen nada que ver. Se guardan como procedencia
+dentro de la nota de la versión —«Importada de Boorie 1.12.0 · proyecto "X" ·
+versión 4 de origen»—, que es lo que sirve para rastrearla; todo lo demás nace con
+identificadores nuevos. Una red que ya existe con ese nombre recibe una versión
+más en lugar de duplicarse, que es la misma semántica que reimportar un `.inp`.
+
+**Los resultados de simulación no viajan en el paquete.** Un solo resultado de
+calidad sobre una red grande ronda los 80 MB; el paquete es el estado de la red,
+que es lo que hace falta para reconstruirla y volver a calcular.
+
+### Un fallo que sólo apareció al probarlo de verdad
+
+Los tests pasaban y el primer intento real falló: un paquete recién exportado no
+validaba su propia suma. `JSON.stringify` **descarta las claves cuyo valor es
+`undefined`**, así que una red sin sistema de coordenadas se guardaba sin esa
+clave, y al releerla la suma calculada sobre el objeto original —que sí la tenía,
+puesta a `undefined`— ya no cuadraba. Los datos del test tenían todos los campos
+llenos y por eso no lo veían. La suma descarta ahora esas claves igual que hace
+`JSON.stringify`, y hay un test con los campos opcionales vacíos.
+
+Comprobado de extremo a extremo contra la base real: exportar la `v4` de
+`Net3 2.inp` da un paquete de 101 KB, importarlo en el proyecto
+`villa_100_casas` crea la red allí, y un paquete con un valor cambiado a mano se
+rechaza sin importar nada.
+
 ## Fuera de alcance
 
-**Exportar e importar versiones entre instalaciones** (punto 3 de las decisiones
-pendientes). Descartado para esta entrega; el modelo queda preparado con
-identificadores estables y número de versión.
+**Llevar los resultados de simulación en el paquete**, por su tamaño (ver arriba).
+
+**Resolver conflictos al importar**: una red con el mismo nombre recibe una
+versión más, sin preguntar. Es lo coherente con el resto del versionado —nada se
+pierde, todo queda en el historial—, pero no hay diálogo de «esto ya existe, ¿qué
+hago?».
 

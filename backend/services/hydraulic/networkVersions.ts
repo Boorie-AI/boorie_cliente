@@ -13,6 +13,13 @@
 
 import type { PrismaClient } from '@prisma/client'
 import {
+  construirPaquete,
+  describirPaquete,
+  validarPaquete,
+  type ContenidoPaquete,
+  type RedExportada,
+} from './intercambio'
+import {
   RETENCION_POR_DEFECTO,
   compararSimulaciones,
   compararVersiones,
@@ -417,6 +424,146 @@ export class NetworkVersionService {
 
   async borrarSnapshot(snapshotId: string): Promise<void> {
     await this.prisma.projectSnapshot.delete({ where: { id: snapshotId } })
+  }
+
+  // --- Intercambio entre instalaciones ---------------------------------
+
+  private async empaquetarVersiones(
+    versionIds: string[],
+    etiqueta: string | undefined,
+    generadoPor: string
+  ): Promise<string> {
+    const versiones = await this.prisma.networkVersion.findMany({
+      where: { id: { in: versionIds } },
+      include: { network: { select: { name: true, filename: true, project: { select: { name: true } } } } },
+    })
+
+    const redes: RedExportada[] = versiones.map(v => ({
+      nombre: (v as any).network.name,
+      filename: (v as any).network.filename,
+      versionNumber: v.versionNumber,
+      changeNote: v.changeNote ?? undefined,
+      creadaEl: v.createdAt.toISOString(),
+      origen: {
+        networkId: v.networkId,
+        versionId: v.id,
+        proyecto: (v as any).network.project?.name,
+      },
+      networkData: JSON.parse(v.networkData),
+      fileContent: v.fileContent,
+      coordinateSystem: v.coordinateSystem ? JSON.parse(v.coordinateSystem) : undefined,
+      summary: JSON.parse(v.summary),
+    }))
+
+    const contenido: ContenidoPaquete = { etiqueta, redes }
+    return JSON.stringify(
+      construirPaquete(contenido, { generadoPor, generadoEl: new Date().toISOString() }),
+      null,
+      2
+    )
+  }
+
+  /** Exporta una versión suelta. */
+  async exportarVersion(versionId: string, generadoPor: string): Promise<string> {
+    return this.empaquetarVersiones([versionId], undefined, generadoPor)
+  }
+
+  /** Exporta el conjunto que congeló una instantánea de proyecto. */
+  async exportarSnapshot(snapshotId: string, generadoPor: string): Promise<string> {
+    const snapshot = await this.prisma.projectSnapshot.findUnique({
+      where: { id: snapshotId },
+      include: { entries: true },
+    })
+    if (!snapshot) throw new Error('Instantánea no encontrada')
+
+    return this.empaquetarVersiones(
+      snapshot.entries.map(e => e.networkVersionId),
+      snapshot.label,
+      generadoPor
+    )
+  }
+
+  /**
+   * Importa un paquete en un proyecto.
+   *
+   * Los identificadores del paquete **no se reutilizan**: en la instalación de
+   * destino podrían chocar con registros que no tienen nada que ver. Se guardan
+   * como procedencia dentro de la nota de la versión, que es lo que sirve para
+   * rastrearla, y todo lo demás nace con identificadores nuevos.
+   *
+   * Una red que ya existe con ese nombre recibe una versión más, en lugar de
+   * duplicarse: es la misma semántica que reimportar un `.inp`.
+   */
+  async importarPaquete(
+    projectId: string,
+    texto: string
+  ): Promise<{ resumen: string; creadas: string[]; versionadas: string[] }> {
+    // Sin `strict` no hay estrechamiento de la unión, así que el motivo se saca
+    // antes de comprobar: leerlo del tipo ancho es más claro que un cast.
+    const validacion = validarPaquete(texto)
+    if (!validacion.ok) {
+      throw new Error((validacion as { error: string }).error)
+    }
+
+    const creadas: string[] = []
+    const versionadas: string[] = []
+
+    for (const red of validacion.paquete.contenido.redes) {
+      const nota = [
+        `Importada de ${validacion.paquete.generadoPor}`,
+        red.origen.proyecto ? `proyecto «${red.origen.proyecto}»` : null,
+        `versión ${red.versionNumber} de origen`,
+        red.changeNote ? `«${red.changeNote}»` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+
+      const existente = await this.prisma.hydraulicNetwork.findFirst({
+        where: { projectId, name: red.nombre, isActive: true },
+        select: { id: true },
+      })
+
+      const datos = {
+        networkData: JSON.stringify(red.networkData),
+        fileContent: red.fileContent,
+        coordinateSystem: red.coordinateSystem ? JSON.stringify(red.coordinateSystem) : null,
+        summary: JSON.stringify(red.summary),
+      }
+
+      if (existente) {
+        // El estado que había se congela antes de que la importación lo pise.
+        await this.crearVersion(existente.id, {
+          origen: 'importacion',
+          changeNote: `Estado anterior a importar «${red.nombre}»`,
+        })
+        await this.prisma.hydraulicNetwork.update({
+          where: { id: existente.id },
+          data: { ...datos, updatedAt: new Date() },
+        })
+        await this.crearVersion(existente.id, { origen: 'importacion', changeNote: nota })
+        versionadas.push(red.nombre)
+      } else {
+        const nueva = await this.prisma.hydraulicNetwork.create({
+          data: {
+            projectId,
+            name: red.nombre,
+            filename: red.filename,
+            description: `Importada de otra instalación de Boorie`,
+            ...datos,
+            version: '1.0',
+          },
+        })
+        await this.crearVersion(nueva.id, { origen: 'importacion', changeNote: nota })
+        creadas.push(red.nombre)
+      }
+    }
+
+    const partes = [
+      creadas.length ? `${creadas.length} red${creadas.length === 1 ? '' : 'es'} nueva${creadas.length === 1 ? '' : 's'}` : null,
+      versionadas.length ? `${versionadas.length} actualizada${versionadas.length === 1 ? '' : 's'} con una versión más` : null,
+    ].filter(Boolean)
+
+    return { resumen: `${describirPaquete(validacion.paquete)}. ${partes.join(' y ')}.`, creadas, versionadas }
   }
 
   /**

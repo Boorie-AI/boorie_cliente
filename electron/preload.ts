@@ -218,6 +218,11 @@ const electronAPI = {
     simulations: (networkId: string) => ipcRenderer.invoke('network-version:simulations', networkId),
     simulationResults: (runId: string) =>
       ipcRenderer.invoke('network-version:simulation-results', runId),
+    /** Exporta una versión a un fichero para otra instalación (#38). */
+    exportar: (data: { versionId: string; nombre: string }) =>
+      ipcRenderer.invoke('network-version:export', data),
+    /** Importa un paquete en el proyecto indicado. */
+    importar: (projectId: string) => ipcRenderer.invoke('network-version:import', projectId),
     compareSimulations: (data: { runA: string; runB: string; paso?: number }) =>
       ipcRenderer.invoke('network-version:compare-simulations', data),
     recordSimulation: (data: {
@@ -235,6 +240,8 @@ const electronAPI = {
     create: (data: { projectId: string; label: string; note?: string }) =>
       ipcRenderer.invoke('project-snapshot:create', data),
     restore: (snapshotId: string) => ipcRenderer.invoke('project-snapshot:restore', snapshotId),
+    exportar: (data: { snapshotId: string; nombre: string }) =>
+      ipcRenderer.invoke('project-snapshot:export', data),
     delete: (snapshotId: string) => ipcRenderer.invoke('project-snapshot:delete', snapshotId),
   },
 
