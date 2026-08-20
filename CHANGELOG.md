@@ -7,6 +7,28 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.13.0] - 2026-08-19
+
+Tu red tiene historia, y puedes volver a cualquier punto de ella.
+
+- **Reimportar un `.inp` corregido ya no destruye lo anterior.** Antes Boorie rechazaba el
+  guardado si ya había una red con ese nombre; ahora congela el estado que había y lo deja en el
+  historial.
+- **Cada red tiene su historial de versiones.** Guarda una versión con una nota de qué cambió,
+  márcala como hito para que no se pode nunca, compárala con la anterior —te dice qué nudos y
+  tramos se añadieron, se quitaron o se modificaron— y restaura cualquiera. Restaurar guarda antes
+  el estado actual, así que volver atrás no cuesta perder lo de hoy.
+- **Instantáneas del proyecto entero**, para responder «¿cómo estaba esto en la entrega de
+  marzo?». Anotan qué versión de cada red estaba vigente y las protegen de la limpieza automática.
+- **Cada simulación queda atada a la versión de red con la que se corrió**, y puedes comparar dos
+  ejecuciones: cuánto se movieron las presiones, los caudales y las velocidades, y qué elementos
+  cambiaron más.
+- **Puedes exportar una versión —o una instantánea entera— a un fichero y abrirla en otra
+  instalación de Boorie.** El paquete se comprueba al importarlo: si llegó a medias o alguien lo
+  editó, no se importa nada.
+- **La limpieza del historial se configura** en Configuración → General. Se conservan siempre los
+  hitos, lo que sujeta una instantánea y la versión más reciente.
+
 ## [1.12.0] - 2026-08-19
 
 El reloj de la simulación es el de tu modelo, y puedes elegir qué miras.
