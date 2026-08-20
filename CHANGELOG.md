@@ -7,6 +7,32 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.15.0] - 2026-08-20
+
+Ahora puedes preguntarle a Boorie qué encontró la última simulación.
+
+- **Cada simulación deja constancia en el conocimiento del proyecto.** Al terminar una corrida,
+  Boorie escribe e indexa un resumen de la ejecución, sus estadísticas, los elementos fuera de
+  umbral y en qué cambió respecto a la anterior.
+- **Pregúntale al chat «¿qué problemas encontró la última simulación?»** y responde con las
+  anomalías reales de esa corrida —qué nudo, qué presión, cuántas horas— citando la simulación de
+  la que salen.
+- **No se juzga la presión de embalses ni depósitos**, que por definición no la tienen: antes el
+  informe habría abierto denunciando que la fuente de la que se abastece la red estaba en déficit.
+- **Los umbrales son tuyos.** Presión entre 14 y 70 m y velocidad máxima de 3 m/s por defecto —los
+  valores de uso común—, ajustables porque la norma cambia con el país.
+- **La simulación no espera a la indexación.** Si algo falla, la corrida sigue siendo válida: el
+  historial de la red dice cómo fue y desde ahí se reintenta.
+- **Al podar una versión de red se van también sus documentos**, para que el conocimiento no
+  acumule respuestas sobre redes que ya no existen.
+- **Lo indexado de un proyecto no se ve desde otro**, igual que el resto de su conocimiento.
+- **El agente vuelve a citar el conocimiento indexado.** La búsqueda semántica llevaba tiempo
+  devolviendo cero en silencio y el graduado descartaba documentos válidos: se corrigieron cuatro
+  fallos que se tapaban entre sí. Una pregunta que antes tardaba siete minutos para acabar en «no
+  encontré nada» ahora se responde en dos o tres, con las fuentes delante.
+- **El historial de red y los ajustes que faltaban ya hablan tu idioma**, en inglés y catalán
+  además de castellano, con las fechas en el formato que corresponde.
+
 ## [1.14.0] - 2026-08-19
 
 Los documentos de un cliente se quedan en su proyecto.
