@@ -13,7 +13,8 @@
     "next": "Següent",
     "previous": "Anterior",
     "finish": "Finalitzar",
-    "skipOnboarding": "Ometre tutorial"
+    "skipOnboarding": "Ometre tutorial",
+    "saved": "Desat"
   },
   "sidebar": {
     "chat": "Xat",
@@ -99,6 +100,34 @@
       "releaseNotes": "Veure les notes de versió completes a GitHub",
       "loading": "Carregant…",
       "unknown": "Desconeguda"
+    },
+    "simulationIndexing": {
+      "title": "Simulacions en el coneixement",
+      "advanced": "Avançat",
+      "auto": "Indexar cada simulació en acabar",
+      "autoDesc": "Deixa en el coneixement del projecte un resum de l'execució, les seves estadístiques, els elements fora de llindar i en què ha canviat respecte a l'anterior. És el que permet preguntar al xat quins problemes va trobar l'última simulació.",
+      "raw": "Indexar també les sèries completes",
+      "rawDesc": "Desa a més els resultats crus, pas a pas. No millora les respostes del xat —per això hi ha els resums— i ocupa molt més; és per a les etapes d'ajust fi.",
+      "thresholds": "Llindars que marquen una anomalia",
+      "thresholdsDesc": "La referència normativa canvia segons el país. Per defecte, els valors d'ús comú: pressió entre 14 i 70 m —en aqüeductes rurals la mínima baixa a 7— i velocitat màxima de 3 m/s.",
+      "minPressure": "Pressió mínima (m)",
+      "maxPressure": "Pressió màxima (m)",
+      "maxVelocity": "Velocitat màxima (m/s)"
+    },
+    "versionHistory": {
+      "title": "Historial de versions",
+      "retention": "Versions sense marcar que es conserven per xarxa",
+      "retentionDesc": "Les marcades com a fita i les subjectes per una instantània de projecte no s'esporguen mai, comptin el que comptin. La més recent tampoc, encara que hi posis zero."
+    },
+    "python": {
+      "title": "Python (WNTR)",
+      "path": "Ruta de l'intèrpret",
+      "pathDesc": "Boorie detecta Python automàticament i prioritza el del teu sistema. Indica aquí la ruta només si tens WNTR en un entorn que no troba (conda, un venv propi o una instal·lació fora de les rutes habituals).",
+      "browse": "Examinar…",
+      "checking": "Comprovant…",
+      "inUse": "En ús ara:",
+      "detecting": "detectant…",
+      "autoDetect": "Tornar a la detecció automàtica"
     }
   },
   "ai": {
@@ -254,5 +283,50 @@
     "accionImportarRed": "Importar .inp",
     "tituloRedDe": "«{{modulo}}» necessita una xarxa carregada",
     "esteModulo": "Aquest mòdul"
+  },
+  "networkHistory": {
+    "title": "Historial de {{network}}",
+    "description": "Cada versió és un escenari diferent de la xarxa de la qual procedeix. No es modifiquen mai: s'afegeixen, es marquen com a fita i es poden restaurar.",
+    "notePlaceholder": "Què ha canviat, per reconèixer-la després",
+    "saveVersion": "Desar versió",
+    "empty": "Aquesta xarxa encara no té versions desades.",
+    "version": "Versió {{number}}",
+    "versionInline": "versió {{number}}",
+    "milestone": "fita",
+    "origin": {
+      "manual": "Desada a mà",
+      "importacion": "Importació",
+      "escenario": "Escenari",
+      "migracion": "Estat inicial"
+    },
+    "simulationOne": "{{count}} simulació",
+    "simulationOther": "{{count}} simulacions",
+    "comparedWith": "Enfront de la versió {{number}}: {{summary}}",
+    "markMilestone": "Marcar com a fita (no s'esporga mai)",
+    "unmarkMilestone": "Treure la fita",
+    "compareWithPrevious": "Comparar amb la versió anterior",
+    "exportVersion": "Exportar per a una altra instal·lació de Boorie",
+    "restoreVersion": "Restaurar aquesta versió",
+    "simulationsOnNetwork": "Simulacions sobre aquesta xarxa",
+    "compareChosen": "Comparar les dues escollides",
+    "indexNow": "Indexar aquesta simulació en el coneixement del projecte",
+    "indexing": {
+      "pendiente": "sense indexar",
+      "indexando": "indexant…",
+      "indexada": "en el coneixement",
+      "fallida": "no s'ha pogut indexar",
+      "omitida": "indexació desactivada"
+    },
+    "restoreWarning": "La xarxa tornarà a com estava a la versió {{number}}. L'estat actual no es perd: es desa abans com una versió nova.",
+    "restore": "Restaurar",
+    "errors": {
+      "read": "No s'ha pogut llegir l'historial",
+      "save": "No s'ha pogut desar la versió",
+      "restore": "No s'ha pogut restaurar",
+      "compare": "No s'ha pogut comparar",
+      "compareRuns": "No s'han pogut comparar",
+      "index": "No s'ha pogut indexar",
+      "export": "No s'ha pogut exportar"
+    }
   }
 }

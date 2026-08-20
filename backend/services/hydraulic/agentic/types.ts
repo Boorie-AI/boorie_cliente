@@ -88,6 +88,13 @@ export interface RetrievalConfig {
   includeMetadata: boolean
   categories?: string[]
   regions?: string[]
+  /**
+   * Ámbito de la recuperación (#39, #41). Sin esto el agente busca sobre todo
+   * el corpus: no vería lo indexado del proyecto activo —incluidos los
+   * resúmenes de sus simulaciones— y sí podría citar documentos de otro.
+   */
+  ambito?: 'general' | 'proyecto' | 'ambos'
+  projectId?: string | null
 }
 
 export interface GradingConfig {

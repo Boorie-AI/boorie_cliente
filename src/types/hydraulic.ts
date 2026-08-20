@@ -271,7 +271,8 @@ export interface Attachment {
 // RAG Document types
 export interface HydraulicDocument {
   id: string
-  category: 'hydraulics' | 'regulations' | 'best-practices'
+  /** `simulations`: derivados de una ejecución, generados por Boorie (#41). */
+  category: 'hydraulics' | 'regulations' | 'best-practices' | 'simulations'
   subcategory: string
   region: string[]
   secondaryCategories?: string[]

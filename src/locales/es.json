@@ -13,7 +13,8 @@
     "next": "Siguiente",
     "previous": "Anterior",
     "finish": "Finalizar",
-    "skipOnboarding": "Omitir tutorial"
+    "skipOnboarding": "Omitir tutorial",
+    "saved": "Guardado"
   },
   "sidebar": {
     "chat": "Chat",
@@ -99,6 +100,34 @@
       "releaseNotes": "Ver notas de versión completas en GitHub",
       "loading": "Cargando…",
       "unknown": "Desconocida"
+    },
+    "simulationIndexing": {
+      "title": "Simulaciones en el conocimiento",
+      "advanced": "Avanzado",
+      "auto": "Indexar cada simulación al terminar",
+      "autoDesc": "Deja en el conocimiento del proyecto un resumen de la ejecución, sus estadísticas, los elementos fuera de umbral y en qué cambió respecto a la anterior. Es lo que permite preguntarle al chat qué problemas encontró la última simulación.",
+      "raw": "Indexar también las series completas",
+      "rawDesc": "Guarda además los resultados crudos, paso a paso. No mejora las respuestas del chat —para eso están los resúmenes— y ocupa mucho más; está para las etapas de ajuste fino.",
+      "thresholds": "Umbrales que marcan una anomalía",
+      "thresholdsDesc": "La referencia normativa cambia con el país. Por defecto, los valores de uso común: presión entre 14 y 70 m —en acueductos rurales la mínima baja a 7— y velocidad máxima de 3 m/s.",
+      "minPressure": "Presión mínima (m)",
+      "maxPressure": "Presión máxima (m)",
+      "maxVelocity": "Velocidad máxima (m/s)"
+    },
+    "versionHistory": {
+      "title": "Historial de versiones",
+      "retention": "Versiones sin marcar que se conservan por red",
+      "retentionDesc": "Las marcadas como hito y las sujetas por una instantánea de proyecto no se podan nunca, cuenten lo que cuenten. La más reciente tampoco, aunque pongas cero."
+    },
+    "python": {
+      "title": "Python (WNTR)",
+      "path": "Ruta del intérprete",
+      "pathDesc": "Boorie detecta Python automáticamente y prioriza el de tu sistema. Indica aquí la ruta sólo si tienes WNTR en un entorno que no encuentra (conda, un venv propio o una instalación fuera de las rutas habituales).",
+      "browse": "Examinar…",
+      "checking": "Comprobando…",
+      "inUse": "En uso ahora:",
+      "detecting": "detectando…",
+      "autoDetect": "Volver a la detección automática"
     }
   },
   "ai": {
@@ -254,5 +283,50 @@
     "accionImportarRed": "Importar .inp",
     "tituloRedDe": "«{{modulo}}» necesita una red cargada",
     "esteModulo": "Este módulo"
+  },
+  "networkHistory": {
+    "title": "Historial de {{network}}",
+    "description": "Cada versión es un escenario distinto de la red de la cual procede. No se modifican nunca: se añaden, se marcan como hito y se pueden restaurar.",
+    "notePlaceholder": "Qué cambió, para reconocerla después",
+    "saveVersion": "Guardar versión",
+    "empty": "Esta red todavía no tiene versiones guardadas.",
+    "version": "Versión {{number}}",
+    "versionInline": "versión {{number}}",
+    "milestone": "hito",
+    "origin": {
+      "manual": "Guardada a mano",
+      "importacion": "Importación",
+      "escenario": "Escenario",
+      "migracion": "Estado inicial"
+    },
+    "simulationOne": "{{count}} simulación",
+    "simulationOther": "{{count}} simulaciones",
+    "comparedWith": "Frente a la versión {{number}}: {{summary}}",
+    "markMilestone": "Marcar como hito (nunca se poda)",
+    "unmarkMilestone": "Quitar el hito",
+    "compareWithPrevious": "Comparar con la versión anterior",
+    "exportVersion": "Exportar para otra instalación de Boorie",
+    "restoreVersion": "Restaurar esta versión",
+    "simulationsOnNetwork": "Simulaciones sobre esta red",
+    "compareChosen": "Comparar las dos elegidas",
+    "indexNow": "Indexar esta simulación en el conocimiento del proyecto",
+    "indexing": {
+      "pendiente": "sin indexar",
+      "indexando": "indexando…",
+      "indexada": "en el conocimiento",
+      "fallida": "no se pudo indexar",
+      "omitida": "indexación desactivada"
+    },
+    "restoreWarning": "La red volverá a como estaba en la versión {{number}}. El estado actual no se pierde: se guarda antes como una versión nueva.",
+    "restore": "Restaurar",
+    "errors": {
+      "read": "No se pudo leer el historial",
+      "save": "No se pudo guardar la versión",
+      "restore": "No se pudo restaurar",
+      "compare": "No se pudo comparar",
+      "compareRuns": "No se pudieron comparar",
+      "index": "No se pudo indexar",
+      "export": "No se pudo exportar"
+    }
   }
 }

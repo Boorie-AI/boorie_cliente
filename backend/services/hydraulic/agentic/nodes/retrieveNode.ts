@@ -113,8 +113,10 @@ export class RetrieveNode {
         region: this.config.regions?.[0],
         // Disable strict language filtering as many documents may lack language metadata.
         // Semantic search handles language matching implicitly.
-        language: undefined // state.queryLanguage
+        language: undefined, // state.queryLanguage
         // includeMetadata: this.config.includeMetadata
+        ambito: this.config.ambito,
+        projectId: this.config.projectId
       })
 
       console.log(`[RetrieveNode] Hybrid search returned ${searchResults.length} results before filtering. First 2 ID/Scores:`,
@@ -131,6 +133,10 @@ export class RetrieveNode {
           minSemanticScore: this.config.minScore * 0.8, // Slightly lower threshold
           // No category or region restriction
           // No language restriction in fallback to find documents even if language detection failed
+          // El ámbito sí se mantiene: relajar los filtros de búsqueda es
+          // aceptable, relajar de quién son los documentos no lo es.
+          ambito: this.config.ambito,
+          projectId: this.config.projectId
         })
 
         // Merge results, preferring strict matches, deduping by ID
@@ -239,6 +245,20 @@ export class RetrieveNode {
   private processSearchResults(results: any[], state: AgenticRAGState): Document[] {
     return results
       .filter(result => {
+        /**
+         * Los derivados de simulación no pasan por los filtros temáticos (#41).
+         *
+         * Categoría y región describen el corpus documental —hidráulica,
+         * bombeo, normativa de un país— y el usuario los elige en el Wisdom
+         * Center pensando en eso. Lo que Boorie indexa de una ejecución no es
+         * una temática que nadie vaya a marcar, así que con cualquier categoría
+         * seleccionada desaparecería justo la respuesta a «¿qué problemas
+         * encontró la última simulación?». Su confidencialidad no depende de
+         * esto: la garantiza el ámbito, que ya se aplicó en la búsqueda.
+         */
+        const esDerivadoDeSimulacion = (result.metadata?.category || result.category) === 'simulations'
+        if (esDerivadoDeSimulacion) return true
+
         // Apply category filter
         if (this.config.categories && this.config.categories.length > 0) {
           const docCategory = result.metadata?.category || result.category

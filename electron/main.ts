@@ -457,6 +457,13 @@ async function ensureProductionSchema(prismaClient: any): Promise<void> {
     `ALTER TABLE "hydraulic_knowledge" ADD COLUMN "projectId" TEXT`,
     `CREATE INDEX IF NOT EXISTS "hydraulic_knowledge_projectId_idx" ON "hydraulic_knowledge"("projectId")`,
 
+    // Indexación de simulaciones en el RAG (#41), sobre tablas que ya existen
+    // en cualquier instalación que venga de la 1.13 o posterior.
+    `ALTER TABLE "hydraulic_knowledge" ADD COLUMN "simulationRunId" TEXT`,
+    `CREATE INDEX IF NOT EXISTS "hydraulic_knowledge_simulationRunId_idx" ON "hydraulic_knowledge"("simulationRunId")`,
+    `ALTER TABLE "simulation_runs" ADD COLUMN "estadoIndexacion" TEXT NOT NULL DEFAULT 'pendiente'`,
+    `ALTER TABLE "simulation_runs" ADD COLUMN "errorIndexacion" TEXT`,
+
     // Historial inmutable de redes y simulaciones (#38)
     `CREATE TABLE IF NOT EXISTS "network_versions" (
       "id" TEXT NOT NULL PRIMARY KEY,
@@ -481,6 +488,8 @@ async function ensureProductionSchema(prismaClient: any): Promise<void> {
       "results" TEXT NOT NULL,
       "engineVersion" TEXT,
       "marcada" INTEGER NOT NULL DEFAULT 0,
+      "estadoIndexacion" TEXT NOT NULL DEFAULT 'pendiente',
+      "errorIndexacion" TEXT,
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT "simulation_runs_networkVersionId_fkey" FOREIGN KEY ("networkVersionId") REFERENCES "network_versions" ("id") ON DELETE CASCADE ON UPDATE CASCADE
     )`,
