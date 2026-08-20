@@ -384,6 +384,64 @@ export class NetworkRepositoryHandler {
       }
     })
 
+    ipcMain.handle('network-version:compare-simulations', async (_, data: {
+      runA: string
+      runB: string
+      paso?: number
+    }) => {
+      try {
+        return { success: true, data: await this.versiones.compararSimulaciones(data.runA, data.runB, data.paso ?? 0) }
+      } catch (error) {
+        appLogger.error('Failed to compare simulation runs', error as Error)
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    // --- Instantáneas de proyecto (#38) ---
+
+    ipcMain.handle('project-snapshot:list', async (_, projectId: string) => {
+      try {
+        return { success: true, data: await this.versiones.listarSnapshots(projectId) }
+      } catch (error) {
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    ipcMain.handle('project-snapshot:create', async (_, data: {
+      projectId: string
+      label: string
+      note?: string
+    }) => {
+      try {
+        const s = await this.versiones.crearSnapshot(data.projectId, data)
+        appLogger.success('Project snapshot created', { projectId: data.projectId, redes: s.redes })
+        return { success: true, data: s }
+      } catch (error) {
+        appLogger.error('Failed to create project snapshot', error as Error)
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    ipcMain.handle('project-snapshot:restore', async (_, snapshotId: string) => {
+      try {
+        const r = await this.versiones.restaurarSnapshot(snapshotId)
+        appLogger.success('Project snapshot restored', { snapshotId, redes: r.restauradas })
+        return { success: true, data: r }
+      } catch (error) {
+        appLogger.error('Failed to restore project snapshot', error as Error)
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    ipcMain.handle('project-snapshot:delete', async (_, snapshotId: string) => {
+      try {
+        await this.versiones.borrarSnapshot(snapshotId)
+        return { success: true }
+      } catch (error) {
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
     // Get network details
     ipcMain.handle('network-repo:get', async (_, networkId: string) => {
       try {

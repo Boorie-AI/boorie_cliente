@@ -40,6 +40,8 @@ HydraulicProject
 | Persistencia | `backend/services/hydraulic/networkVersions.ts` |
 | Canales IPC | `network-version:*` en `networkRepository.handler.ts` |
 | Interfaz del historial | `src/components/hydraulic/HistorialRed.tsx` |
+| Instantáneas de proyecto | `src/components/hydraulic/InstantaneasProyecto.tsx` |
+| Ajuste de retención | `src/components/settings/tabs/GeneralTab.tsx` |
 | Esquema y DDL de producción | `prisma/schema.prisma`, `electron/main.ts` |
 
 ## Decisiones
@@ -102,6 +104,9 @@ hubiera nombres duplicados por proyecto.
 | Cada resultado trazable a la versión exacta y a sus parámetros | Hecho para las simulaciones nuevas. Las 40 anteriores no lo son: los datos para atribuirlas no existen (ver arriba). |
 | Ninguna operación normal destruye datos históricos | Hecho. Restaurar y reimportar versionan antes; la retención sólo poda lo no marcado por encima del tope. |
 | La migración preserva el 100 % de proyectos, redes y resultados | Hecho, verificado por conteo antes y después: 5 proyectos, 5 redes, 40 cálculos, 11 conversaciones, 434 fragmentos. |
+| Versionado del proyecto (punto 4) | Hecho: instantáneas que anotan qué versión de cada red estaba vigente. |
+| Comparación entre versiones y entre simulaciones (punto 5) | Hecho: diff de red entre versiones y comparación de magnitudes entre ejecuciones. |
+| Política de retención configurable (punto 6) | Hecho, en Ajustes. |
 
 ## Comprobado en la aplicación
 
@@ -111,19 +116,53 @@ anterior —«Sin cambios en la red», que es lo correcto porque nada había cam
 y se restauró la versión 2, que dejó en el historial la `v3` con la nota «Estado
 anterior a restaurar la versión 2».
 
-## Fuera de alcance
+## Instantáneas de proyecto
 
-**Versionado del proyecto** como instantánea del conjunto de versiones de red
-activas (punto 4 del issue). Responde a «¿cómo estaba este proyecto en la entrega
-de marzo?» a nivel de proyecto, no de red. El modelo lo admite —bastaría una
-entidad que apunte a un conjunto de `NetworkVersion`— pero no se construye aquí.
+Responden a «¿cómo estaba este proyecto en la entrega de marzo?» a nivel de
+proyecto, no de red. Una instantánea **no copia nada**: anota qué versión de cada
+red estaba vigente, y esas versiones ya son inmutables. Congelar un proyecto
+entero cuesta unas pocas filas.
+
+```
+ProjectSnapshot ──< ProjectSnapshotEntry >── NetworkVersion
+```
+
+**Una versión sujeta por una instantánea no se puede podar.** Es la consecuencia
+que hacía falta atar: sin ella, la retención podía dejar una instantánea apuntando
+al vacío. Cuenta como intocable igual que un hito, pero por un motivo distinto —el
+hito lo decide el ingeniero; esto lo impone la integridad de algo que sí quiso
+conservar—.
+
+Restaurar una instantánea restaura cada red por separado, y cada restauración
+congela antes su estado vigente: volver a marzo no puede costar perder lo de hoy.
+
+Comprobado sobre la base real con la política puesta a cero: de las cuatro
+versiones de `Net3 2.inp`, se podó la `v1` y sobrevivieron la `v2` (hito), la `v3`
+(sujeta por la instantánea «Entrega de marzo») y la `v4` (la más reciente).
+
+## Comparar dos ejecuciones de simulación
+
+Tiene sentido entre versiones distintas de la red —«¿qué le hizo a las presiones
+cambiar ese diámetro?»— y también entre dos ejecuciones de la misma versión con
+parámetros distintos. Se comparan presión y demanda en los nudos, caudal y
+velocidad en los tramos, sobre el mismo paso de tiempo: cuánto se movió cada
+magnitud, cuántos elementos subieron y bajaron, y los que más cambiaron.
+
+**Sólo se comparan los elementos presentes en las dos ejecuciones.** Si la red
+cambió entremedias, los nudos nuevos no tienen con qué compararse, y contarlos
+como «cambio cero» falsearía las medias hacia abajo. Se listan aparte.
+
+## La retención, en Ajustes
+
+`Configuración → General → Historial de versiones` expone cuántas versiones sin
+marcar se conservan por red. Se guarda en `app_settings` con la clave
+`retencion.versionesSinMarcar`; sin ajuste, rigen 10. La pantalla dice lo que la
+política no toca nunca: los hitos, las versiones sujetas por una instantánea y la
+más reciente.
+
+## Fuera de alcance
 
 **Exportar e importar versiones entre instalaciones** (punto 3 de las decisiones
 pendientes). Descartado para esta entrega; el modelo queda preparado con
 identificadores estables y número de versión.
 
-**El control de retención en la interfaz de Ajustes.** La política se lee de
-`app_settings` y se puede cambiar ahí, pero no hay pantalla que la exponga.
-
-**Comparar resultados entre dos simulaciones** (parte del punto 5). Se compara la
-red entre versiones; comparar dos ejecuciones es otra funcionalidad.

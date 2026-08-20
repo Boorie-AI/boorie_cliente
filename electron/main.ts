@@ -476,6 +476,25 @@ async function ensureProductionSchema(prismaClient: any): Promise<void> {
     `CREATE INDEX IF NOT EXISTS "network_versions_networkId_idx" ON "network_versions"("networkId")`,
     `CREATE INDEX IF NOT EXISTS "simulation_runs_networkVersionId_idx" ON "simulation_runs"("networkVersionId")`,
     `CREATE UNIQUE INDEX IF NOT EXISTS "network_versions_networkId_versionNumber_key" ON "network_versions"("networkId", "versionNumber")`,
+    `CREATE TABLE IF NOT EXISTS "project_snapshots" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "projectId" TEXT NOT NULL,
+      "label" TEXT NOT NULL,
+      "note" TEXT,
+      "author" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "project_snapshots_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "hydraulic_projects" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    )`,
+    `CREATE TABLE IF NOT EXISTS "project_snapshot_entries" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "snapshotId" TEXT NOT NULL,
+      "networkVersionId" TEXT NOT NULL,
+      CONSTRAINT "project_snapshot_entries_snapshotId_fkey" FOREIGN KEY ("snapshotId") REFERENCES "project_snapshots" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT "project_snapshot_entries_networkVersionId_fkey" FOREIGN KEY ("networkVersionId") REFERENCES "network_versions" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    )`,
+    `CREATE INDEX IF NOT EXISTS "project_snapshots_projectId_idx" ON "project_snapshots"("projectId")`,
+    `CREATE INDEX IF NOT EXISTS "project_snapshot_entries_networkVersionId_idx" ON "project_snapshot_entries"("networkVersionId")`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "project_snapshot_entries_snapshotId_networkVersionId_key" ON "project_snapshot_entries"("snapshotId", "networkVersionId")`,
 
     // Unique indexes
     `CREATE UNIQUE INDEX IF NOT EXISTS "ai_providers_name_key" ON "ai_providers"("name")`,

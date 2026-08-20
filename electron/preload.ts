@@ -218,6 +218,8 @@ const electronAPI = {
     simulations: (networkId: string) => ipcRenderer.invoke('network-version:simulations', networkId),
     simulationResults: (runId: string) =>
       ipcRenderer.invoke('network-version:simulation-results', runId),
+    compareSimulations: (data: { runA: string; runB: string; paso?: number }) =>
+      ipcRenderer.invoke('network-version:compare-simulations', data),
     recordSimulation: (data: {
       networkId: string
       tipo: string
@@ -225,6 +227,15 @@ const electronAPI = {
       results: unknown
       engineVersion?: string
     }) => ipcRenderer.invoke('network-version:record-simulation', data),
+  },
+
+  /** Instantáneas de proyecto: qué versión de cada red estaba vigente (#38) */
+  projectSnapshots: {
+    list: (projectId: string) => ipcRenderer.invoke('project-snapshot:list', projectId),
+    create: (data: { projectId: string; label: string; note?: string }) =>
+      ipcRenderer.invoke('project-snapshot:create', data),
+    restore: (snapshotId: string) => ipcRenderer.invoke('project-snapshot:restore', snapshotId),
+    delete: (snapshotId: string) => ipcRenderer.invoke('project-snapshot:delete', snapshotId),
   },
 
   // WNTR operations

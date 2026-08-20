@@ -12,10 +12,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { WNTRAdvancedMapViewer } from './WNTRAdvancedMapViewer';
 import { ProjectDashboard } from './ProjectDashboard';
 import { HistorialRed } from './HistorialRed';
+import { InstantaneasProyecto } from './InstantaneasProyecto';
 import { Project, NetworkAsset, CalculationAsset } from '../../types/project';
 import { hydraulicService } from '@/services/hydraulic/hydraulicService';
 import {
-  FileUp, Play, Network, History,
+  FileUp, Play, Network, History, Camera,
   RefreshCw, AlertCircle,
   Activity, Database,
   Target, FolderOpen, ChevronDown,
@@ -358,6 +359,8 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   const [networkData, setNetworkData] = useState<NetworkData | null>(null);
   /** Red cuyo historial de versiones se está mirando (#38). */
   const [historialDe, setHistorialDe] = useState<{ id: string; nombre: string } | null>(null);
+  /** Instantáneas del proyecto activo (#38). */
+  const [verInstantaneas, setVerInstantaneas] = useState(false);
 
   /**
    * Red guardada que corresponde a lo que se está mostrando. La declaración del
@@ -993,7 +996,18 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
                 {currentProject.networks.length > 0 && (
                   <div className="pt-4 border-t">
-                    <h4 className="text-sm font-medium mb-2">Redes Guardadas</h4>
+                    <div className="mb-2 flex items-center justify-between">
+                      <h4 className="text-sm font-medium">Redes Guardadas</h4>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto px-2 py-1 text-xs"
+                        onClick={() => setVerInstantaneas(true)}
+                      >
+                        <Camera className="mr-1.5 h-3 w-3" />
+                        Instantáneas
+                      </Button>
+                    </div>
                     <div className="space-y-2">
                       {currentProject.networks.map((net) => (
                         <div key={net.id} className={`flex items-center gap-1 ${net.parentId ? 'ml-4' : ''}`}>
@@ -1979,6 +1993,25 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   return (
     <div className="w-full h-full bg-background text-foreground overflow-hidden">
       {renderDashboard()}
+      {verInstantaneas && currentProject && (
+        <InstantaneasProyecto
+          abierto
+          onCerrar={() => setVerInstantaneas(false)}
+          projectId={currentProject.id}
+          nombreProyecto={currentProject.name}
+          onRestaurado={async () => {
+            setVerInstantaneas(false);
+            await refreshActiveNetworks();
+            if (redGuardadaId) {
+              const res = await window.electronAPI.networkRepository.load(redGuardadaId);
+              if (res?.success) {
+                setNetworkData(res.data);
+                setLoadedNetworkPath(res.filePath ?? null);
+              }
+            }
+          }}
+        />
+      )}
       {historialDe && (
         <HistorialRed
           abierto

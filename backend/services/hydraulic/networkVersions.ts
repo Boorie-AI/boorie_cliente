@@ -14,10 +14,13 @@
 import type { PrismaClient } from '@prisma/client'
 import {
   RETENCION_POR_DEFECTO,
+  compararSimulaciones,
   compararVersiones,
   resumirDiferencia,
+  resumirDiferenciaSimulaciones,
   versionesAPodar,
   type DiferenciaRed,
+  type DiferenciaSimulaciones,
   type PoliticaRetencion,
 } from './versionado'
 
@@ -252,10 +255,23 @@ export class NetworkVersionService {
   async podar(networkId: string, politica: PoliticaRetencion = RETENCION_POR_DEFECTO): Promise<number> {
     const versiones = await this.prisma.networkVersion.findMany({
       where: { networkId },
-      select: { id: true, versionNumber: true, marcada: true },
+      select: {
+        id: true,
+        versionNumber: true,
+        marcada: true,
+        _count: { select: { enSnapshots: true } },
+      },
     })
 
-    const sobran = versionesAPodar(versiones, politica)
+    const sobran = versionesAPodar(
+      versiones.map(v => ({
+        id: v.id,
+        versionNumber: v.versionNumber,
+        marcada: v.marcada,
+        enSnapshot: ((v as any)._count?.enSnapshots ?? 0) > 0,
+      })),
+      politica
+    )
     if (sobran.length === 0) return 0
 
     await this.prisma.networkVersion.deleteMany({ where: { id: { in: sobran } } })
@@ -283,6 +299,124 @@ export class NetworkVersionService {
   /** Poda aplicando la política guardada. Devuelve cuántas versiones retiró. */
   async podarSegunAjustes(networkId: string): Promise<number> {
     return this.podar(networkId, await this.politicaVigente())
+  }
+
+  /**
+   * Compara dos ejecuciones de simulación sobre el mismo paso.
+   *
+   * Tiene sentido entre versiones distintas de la red —«¿qué le hizo a las
+   * presiones cambiar ese diámetro?»— y también entre dos ejecuciones de la
+   * misma versión con parámetros distintos.
+   */
+  async compararSimulaciones(
+    runA: string,
+    runB: string,
+    paso = 0
+  ): Promise<{ diferencia: DiferenciaSimulaciones; resumen: string }> {
+    const [a, b] = await Promise.all([
+      this.prisma.simulationRun.findUnique({ where: { id: runA } }),
+      this.prisma.simulationRun.findUnique({ where: { id: runB } }),
+    ])
+    if (!a || !b) throw new Error('Simulación no encontrada')
+
+    const diferencia = compararSimulaciones(JSON.parse(a.results), JSON.parse(b.results), paso)
+    return { diferencia, resumen: resumirDiferenciaSimulaciones(diferencia) }
+  }
+
+  // --- Instantáneas de proyecto ---------------------------------------
+
+  /**
+   * Congela el proyecto entero: qué versión de cada red estaba vigente.
+   *
+   * No copia datos, apunta a versiones que ya son inmutables. Las redes que aún
+   * no tengan versión reciben una en el momento, porque una instantánea con
+   * agujeros no serviría para responder «cómo estaba el proyecto».
+   */
+  async crearSnapshot(
+    projectId: string,
+    datos: { label: string; note?: string; author?: string }
+  ): Promise<{ id: string; label: string; redes: number }> {
+    const redes = await this.prisma.hydraulicNetwork.findMany({
+      where: { projectId, isActive: true },
+      select: { id: true },
+    })
+
+    const versionIds: string[] = []
+    for (const red of redes) {
+      const ultima = await this.prisma.networkVersion.findFirst({
+        where: { networkId: red.id },
+        orderBy: { versionNumber: 'desc' },
+        select: { id: true },
+      })
+      versionIds.push(ultima ? ultima.id : (await this.crearVersion(red.id, {
+        origen: 'manual',
+        changeNote: `Estado incluido en «${datos.label}»`,
+      })).id)
+    }
+
+    const snapshot = await this.prisma.projectSnapshot.create({
+      data: {
+        projectId,
+        label: datos.label,
+        note: datos.note ?? null,
+        author: datos.author ?? null,
+        entries: { create: versionIds.map(networkVersionId => ({ networkVersionId })) },
+      },
+    })
+
+    return { id: snapshot.id, label: snapshot.label, redes: versionIds.length }
+  }
+
+  async listarSnapshots(projectId: string) {
+    const snapshots = await this.prisma.projectSnapshot.findMany({
+      where: { projectId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        entries: {
+          include: {
+            networkVersion: {
+              select: { id: true, versionNumber: true, networkId: true, network: { select: { name: true } } },
+            },
+          },
+        },
+      },
+    })
+
+    return snapshots.map(s => ({
+      id: s.id,
+      label: s.label,
+      note: s.note ?? undefined,
+      createdAt: s.createdAt,
+      redes: s.entries.map(e => ({
+        networkId: (e as any).networkVersion.networkId,
+        nombre: (e as any).networkVersion.network?.name ?? '',
+        versionId: (e as any).networkVersion.id,
+        versionNumber: (e as any).networkVersion.versionNumber,
+      })),
+    }))
+  }
+
+  /**
+   * Devuelve el proyecto entero al estado de una instantánea. Cada red se
+   * restaura por separado, y cada restauración congela antes su estado vigente:
+   * volver a marzo no puede costar perder lo de hoy.
+   */
+  async restaurarSnapshot(snapshotId: string): Promise<{ restauradas: number }> {
+    const snapshot = await this.prisma.projectSnapshot.findUnique({
+      where: { id: snapshotId },
+      include: { entries: true },
+    })
+    if (!snapshot) throw new Error('Instantánea no encontrada')
+
+    for (const entrada of snapshot.entries) {
+      await this.restaurarVersion(entrada.networkVersionId)
+    }
+
+    return { restauradas: snapshot.entries.length }
+  }
+
+  async borrarSnapshot(snapshotId: string): Promise<void> {
+    await this.prisma.projectSnapshot.delete({ where: { id: snapshotId } })
   }
 
   /**

@@ -202,6 +202,7 @@ model HydraulicProject {
   updatedAt   DateTime @updatedAt
 
   calculations  HydraulicCalculation[]
+  snapshots     ProjectSnapshot[]
   documents     ProjectDocument[]
   teamMembers   ProjectTeamMember[]
   conversations Conversation[]
@@ -391,6 +392,10 @@ model NetworkVersion {
 
   simulations SimulationRun[]
 
+  /// Instantáneas de proyecto que apuntan a esta versión. Mientras haya una, la
+  /// retención no puede podarla: dejaría la instantánea apuntando al vacío.
+  enSnapshots ProjectSnapshotEntry[]
+
   @@unique([networkId, versionNumber])
   @@index([networkId])
   @@map("network_versions")
@@ -415,6 +420,40 @@ model SimulationRun {
 
   @@index([networkVersionId])
   @@map("simulation_runs")
+}
+
+/// Instantánea de un proyecto: qué versión de cada red estaba vigente (#38).
+///
+/// Responde a «¿cómo estaba este proyecto en la entrega de marzo?» a nivel de
+/// proyecto y no de red. No copia nada: apunta a versiones que ya son inmutables,
+/// así que una instantánea de un proyecto entero cuesta unas pocas filas.
+model ProjectSnapshot {
+  id        String           @id @default(cuid())
+  projectId String
+  project   HydraulicProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  /// Cómo la reconoce el ingeniero: «Entrega de marzo».
+  label     String
+  note      String?
+  author    String?
+  createdAt DateTime @default(now())
+
+  entries ProjectSnapshotEntry[]
+
+  @@index([projectId])
+  @@map("project_snapshots")
+}
+
+model ProjectSnapshotEntry {
+  id               String          @id @default(cuid())
+  snapshotId       String
+  snapshot         ProjectSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  networkVersionId String
+  networkVersion   NetworkVersion  @relation(fields: [networkVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([snapshotId, networkVersionId])
+  @@index([networkVersionId])
+  @@map("project_snapshot_entries")
 }
 
 // RLHF Feedback System

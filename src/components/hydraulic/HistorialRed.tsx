@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, GitCompare, History, RotateCcw, Star, Plus } from 'lucide-react'
+import { Activity, AlertTriangle, GitCompare, History, RotateCcw, Star, Plus } from 'lucide-react'
 import { logger } from '@/utils/logger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,6 +37,13 @@ const ORIGEN: Record<Version['origen'], string> = {
   migracion: 'Estado inicial',
 }
 
+interface Simulacion {
+  id: string
+  versionNumber: number
+  tipo: string
+  createdAt: string
+}
+
 interface HistorialRedProps {
   abierto: boolean
   onCerrar: () => void
@@ -59,14 +66,22 @@ export function HistorialRed({
   const [nota, setNota] = useState('')
   const [comparacion, setComparacion] = useState<{ contra: number; resumen: string } | null>(null)
   const [confirmarRestaurar, setConfirmarRestaurar] = useState<Version | null>(null)
+  const [simulaciones, setSimulaciones] = useState<Simulacion[]>([])
+  /** Las dos ejecuciones elegidas para comparar. */
+  const [elegidas, setElegidas] = useState<string[]>([])
+  const [comparaSims, setComparaSims] = useState<string | null>(null)
 
   const recargar = useCallback(async () => {
     setCargando(true)
     setError(null)
     try {
-      const r = await window.electronAPI.networkVersions.list(networkId)
+      const [r, rs] = await Promise.all([
+        window.electronAPI.networkVersions.list(networkId),
+        window.electronAPI.networkVersions.simulations(networkId),
+      ])
       if (!r?.success) throw new Error(r?.error || 'No se pudo leer el historial')
       setVersiones(r.data)
+      if (rs?.success) setSimulaciones(rs.data)
     } catch (e) {
       logger.error('Error leyendo el historial de versiones:', e)
       setError(e instanceof Error ? e.message : 'No se pudo leer el historial')
@@ -79,6 +94,8 @@ export function HistorialRed({
     if (abierto) {
       setComparacion(null)
       setConfirmarRestaurar(null)
+      setElegidas([])
+      setComparaSims(null)
       recargar()
     }
   }, [abierto, recargar])
@@ -127,6 +144,28 @@ export function HistorialRed({
       setComparacion({ contra: v.versionNumber, resumen: r.data.resumen })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo comparar')
+    }
+  }
+
+  /** Se eligen dos: al marcar una tercera, se descarta la más antigua. */
+  const alternarEleccion = (id: string) => {
+    setComparaSims(null)
+    setElegidas(previas =>
+      previas.includes(id) ? previas.filter(x => x !== id) : [...previas, id].slice(-2)
+    )
+  }
+
+  const compararEjecuciones = async () => {
+    if (elegidas.length !== 2) return
+    try {
+      const r = await window.electronAPI.networkVersions.compareSimulations({
+        runA: elegidas[0],
+        runB: elegidas[1],
+      })
+      if (!r?.success) throw new Error(r?.error || 'No se pudieron comparar')
+      setComparaSims(r.data.resumen)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudieron comparar')
     }
   }
 
@@ -233,6 +272,50 @@ export function HistorialRed({
             </div>
           ))}
         </div>
+
+        {simulaciones.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-sm font-medium">
+                <Activity className="h-3.5 w-3.5" />
+                Simulaciones sobre esta red
+              </h3>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={elegidas.length !== 2}
+                onClick={compararEjecuciones}
+              >
+                Comparar las dos elegidas
+              </Button>
+            </div>
+
+            <div className="max-h-40 divide-y divide-border overflow-y-auto rounded-md border border-border">
+              {simulaciones.map(sim => (
+                <button
+                  key={sim.id}
+                  onClick={() => alternarEleccion(sim.id)}
+                  className={cn(
+                    'flex w-full items-center justify-between px-3 py-1.5 text-left text-xs hover:bg-muted',
+                    elegidas.includes(sim.id) && 'bg-primary/10'
+                  )}
+                >
+                  <span>
+                    {sim.tipo}
+                    <span className="ml-2 text-muted-foreground">versión {sim.versionNumber}</span>
+                  </span>
+                  <span className="text-muted-foreground">{fecha(sim.createdAt)}</span>
+                </button>
+              ))}
+            </div>
+
+            {comparaSims && (
+              <p className="rounded-md border border-border bg-muted/50 px-3 py-2 text-xs">
+                {comparaSims}
+              </p>
+            )}
+          </div>
+        )}
 
         {confirmarRestaurar && (
           <div className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-xs">

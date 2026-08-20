@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
   RETENCION_POR_DEFECTO,
+  compararSimulaciones,
   compararVersiones,
+  resumirDiferenciaSimulaciones,
   resumirDiferencia,
   versionesAPodar,
 } from './versionado'
@@ -136,5 +138,86 @@ describe('comparación entre versiones', () => {
   it('aguanta una versión sin nudos ni tramos declarados', () => {
     expect(compararVersiones({}, {}).sinCambios).toBe(true)
     expect(compararVersiones({}, ANTES).nudos.anadidos).toHaveLength(3)
+  })
+})
+
+describe('retención frente a las instantáneas de proyecto', () => {
+  it('una versión sujeta por una instantánea no se poda, aunque sea antigua', () => {
+    // Podarla dejaría la instantánea apuntando al vacío, y una instantánea es
+    // justamente algo que el ingeniero quiso conservar.
+    const versiones = [
+      { id: 'v1', versionNumber: 1, marcada: false, enSnapshot: true },
+      ...Array.from({ length: 14 }, (_, i) => ({
+        id: `v${i + 2}`, versionNumber: i + 2, marcada: false,
+      })),
+    ]
+    const podar = versionesAPodar(versiones, { conservarSinMarcar: 5 })
+
+    expect(podar).not.toContain('v1')
+  })
+
+  it('estar en una instantánea no consume cupo de las que sí se podan', () => {
+    const versiones = [
+      { id: 'v1', versionNumber: 1, marcada: false, enSnapshot: true },
+      { id: 'v2', versionNumber: 2, marcada: false },
+      { id: 'v3', versionNumber: 3, marcada: false },
+      { id: 'v4', versionNumber: 4, marcada: false },
+    ]
+    // Con cupo 2 se conservan v4 y v3, se poda v2, y v1 sobrevive por la instantánea.
+    expect(versionesAPodar(versiones, { conservarSinMarcar: 2 })).toEqual(['v2'])
+  })
+})
+
+describe('comparación entre dos ejecuciones de simulación', () => {
+  const A = {
+    node_results: { J1: { pressure: 40 }, J2: { pressure: 35 }, J3: { pressure: 20 } },
+    link_results: { P1: { flowrate: 10, velocity: 1 } },
+  }
+
+  it('mide cuánto se movió cada magnitud y quién se movió más', () => {
+    const B = {
+      node_results: { J1: { pressure: 42 }, J2: { pressure: 25 }, J3: { pressure: 20 } },
+      link_results: { P1: { flowrate: 12, velocity: 1.2 } },
+    }
+    const d = compararSimulaciones(A, B)
+    const presion = d.magnitudes.find(m => m.magnitud === 'Presión')!
+
+    expect(presion.comparados).toBe(3)
+    expect(presion.deltaMaximo).toBe(10)
+    expect(presion.mayores[0].id).toBe('J2')
+    expect(presion.subieron).toBe(1)
+    expect(presion.bajaron).toBe(1)
+    expect(presion.igual).toBe(1)
+  })
+
+  it('dos ejecuciones idénticas lo dicen, en vez de fingir cambios', () => {
+    expect(resumirDiferenciaSimulaciones(compararSimulaciones(A, A))).toBe('Resultados idénticos')
+  })
+
+  it('un elemento que sólo está en una ejecución no cuenta como cambio cero', () => {
+    // Si la red cambió entremedias, contar los nudos nuevos como «sin cambio»
+    // falsearía las medias hacia abajo.
+    const B = {
+      node_results: { J1: { pressure: 40 }, J2: { pressure: 35 }, J9: { pressure: 99 } },
+      link_results: A.link_results,
+    }
+    const d = compararSimulaciones(A, B)
+
+    expect(d.magnitudes.find(m => m.magnitud === 'Presión')!.comparados).toBe(2)
+    expect(d.soloEnA).toContain('J3')
+    expect(d.soloEnB).toContain('J9')
+  })
+
+  it('compara el paso de tiempo que se le pida', () => {
+    const serieA = { node_results: { J1: { pressure: [10, 50] } } }
+    const serieB = { node_results: { J1: { pressure: [10, 20] } } }
+
+    expect(compararSimulaciones(serieA, serieB, 0).magnitudes[0].deltaMaximo).toBe(0)
+    expect(compararSimulaciones(serieA, serieB, 1).magnitudes[0].deltaMaximo).toBe(30)
+  })
+
+  it('sin magnitudes en común lo dice en lugar de devolver un resumen vacío', () => {
+    const d = compararSimulaciones({ node_results: { J1: { head: 5 } } }, { node_results: { J1: { head: 6 } } })
+    expect(resumirDiferenciaSimulaciones(d)).toMatch(/no hay magnitudes comparables/i)
   })
 })
