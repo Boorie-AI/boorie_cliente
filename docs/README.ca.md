@@ -39,15 +39,24 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.12.0
+### 🚀 Última Versió - v1.13.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.12.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.12.0/Boorie-1.12.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.12.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.12.0/Boorie-Setup-1.12.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.12.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.12.0/Boorie-1.12.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.13.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.13.0/Boorie-1.13.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.13.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.13.0/Boorie-Setup-1.13.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.13.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.13.0/Boorie-1.13.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.13.0
+- Reimportar un `.inp` corregit ja no destrueix l'anterior: Boorie congela l'estat que hi havia i el deixa a l'historial.
+- Cada xarxa té el seu historial de versions, amb nota, fites, comparació amb l'anterior i restauració. Restaurar desa abans l'estat actual.
+- Instantànies del projecte sencer, per tornar a l'estat d'un lliurament.
+- Cada simulació queda lligada a la versió amb què es va executar, i pots comparar dues execucions.
+- Pots exportar una versió o una instantània a un fitxer i obrir-la en una altra instal·lació de Boorie; el paquet es comprova en importar-lo.
+- La neteja de l'historial es configura a Configuració → General.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.13.0).
 
 ### 📝 Novetats a v1.12.0
 - El control temporal marca el temps real de la teva simulació: si el teu model reporta cada 15 minuts, el rellotge avança 15 minuts per pas. Abans sumava una hora fixa i la data no sortia de cap dada.
@@ -162,12 +171,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.12.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.12.0.AppImage`
-3. Executa: `./Boorie-1.12.0.AppImage`
+1. Descarrega `Boorie-1.13.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.13.0.AppImage`
+3. Executa: `./Boorie-1.13.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.12.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.13.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 

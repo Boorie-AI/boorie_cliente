@@ -39,15 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.12.0
+### 🚀 Latest Release - v1.13.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.12.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.12.0/Boorie-1.12.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.12.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.12.0/Boorie-Setup-1.12.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.12.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.12.0/Boorie-1.12.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.13.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.13.0/Boorie-1.13.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.13.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.13.0/Boorie-Setup-1.13.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.13.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.13.0/Boorie-1.13.0.AppImage) |
 
 ### 📝 What's New
+
+- **v1.13.0**: Your network has a history, and you can go back to any point in it. Re-importing a corrected `.inp` no longer destroys what was there: Boorie freezes the previous state and keeps it in the history, where before it simply refused to save if a network with that name already existed. Every network now has a version history — save a version with a note on what changed, mark it as a milestone so it is never pruned, compare it with the previous one (it tells you which nodes and pipes were added, removed or modified) and restore any of them; restoring saves the current state first, so going back never costs you today's work. Project-wide snapshots answer «how was this in the March delivery?», recording which version of each network was current and protecting them from automatic cleanup. Every simulation is now tied to the network version it ran on, and you can compare two runs: how far pressures, flows and velocities moved, and which elements changed most. You can export a version —or a whole snapshot— to a file and open it in another Boorie installation; the package is verified on import, so if it arrived truncated or someone edited it, nothing is imported. And history cleanup is configurable in Settings → General: milestones, anything held by a snapshot and the most recent version are always kept. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.13.0).
 
 - **v1.12.0**: The simulation clock is your model's clock, and you choose what you look at. If your model reports every 15 minutes, the clock advances 15 minutes per step — before it added a fixed hour, so it ran four times faster than the simulation, and the date it showed (a Thursday in October, in Australian time) came from no data at all. It now tells you the moment, the step, how often the model reports and how long it lasts, all read from your `.inp` and from WNTR's results; with no start time declared in the `.inp` it shows elapsed time (`+04:15:00`) instead of faking a time of day. Dragging the bar now repaints the map — before it changed the clock and left the colours on the first step — and a single-step simulation no longer shows a player that goes nowhere. You can colour the network by pressure, demand, flow or velocity, with a legend that states your network's real range at that step instead of a fixed maximum that saturated as soon as the network fell outside it; and you can switch the network on and off by element type — junctions, tanks, reservoirs, pipes, pumps and valves, each with its count — which is what lets you look at just the pumps, or at the layout without the cloud of service connections. Finally: pressing «Simulations» with no loaded network now tells you one is needed and gives you the import button, and «Open» in the project list actually opens the project. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.12.0).
 
@@ -82,12 +84,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.12.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.12.0.AppImage`
-3. Run: `./Boorie-1.12.0.AppImage`
+1. Download `Boorie-1.13.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.13.0.AppImage`
+3. Run: `./Boorie-1.13.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.12.0.exe` from the link above
+1. Download `Boorie-Setup-1.13.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 
