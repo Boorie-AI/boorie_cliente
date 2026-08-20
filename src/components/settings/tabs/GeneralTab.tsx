@@ -3,12 +3,15 @@ import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/stores/appStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
 import { databaseService } from '@/services/database'
-import { Moon, Sun, RotateCcw, Languages, Eye, EyeOff, Map, Check, Terminal } from 'lucide-react'
+import { Moon, Sun, RotateCcw, Languages, Eye, EyeOff, Map, Check, Terminal, History } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import * as Switch from '@radix-ui/react-switch'
 import * as Select from '@radix-ui/react-select'
 
 const MAPBOX_TOKEN_SETTING_KEY = 'mapbox_access_token'
+/** Cuántas versiones sin marcar conserva el historial de cada red (#38). */
+const RETENCION_SETTING_KEY = 'retencion.versionesSinMarcar'
+const RETENCION_POR_DEFECTO = 10
 
 export function GeneralTab() {
   const { t } = useTranslation()
@@ -25,6 +28,8 @@ export function GeneralTab() {
   const [mapboxToken, setMapboxToken] = useState('')
   const [showMapboxToken, setShowMapboxToken] = useState(false)
   const [mapboxSaved, setMapboxSaved] = useState(false)
+  const [retencion, setRetencion] = useState(String(RETENCION_POR_DEFECTO))
+  const [retencionSaved, setRetencionSaved] = useState(false)
 
   const [pythonPath, setPythonPath] = useState('')
   const [pythonDetected, setPythonDetected] = useState('')
@@ -55,6 +60,9 @@ export function GeneralTab() {
 
   useEffect(() => {
     loadPreferences()
+    databaseService.getSetting(RETENCION_SETTING_KEY).then((value) => {
+      if (value !== null && value !== undefined) setRetencion(value)
+    })
     databaseService.getSetting(MAPBOX_TOKEN_SETTING_KEY).then((value) => {
       if (value) setMapboxToken(value)
     })
@@ -97,6 +105,16 @@ export function GeneralTab() {
     if (ok) {
       setMapboxSaved(true)
       setTimeout(() => setMapboxSaved(false), 2000)
+    }
+  }
+
+  const handleSaveRetencion = async () => {
+    const n = Number(retencion)
+    if (!Number.isFinite(n) || n < 0) return
+    const ok = await databaseService.setSetting(RETENCION_SETTING_KEY, String(Math.floor(n)), 'hydraulic')
+    if (ok) {
+      setRetencionSaved(true)
+      setTimeout(() => setRetencionSaved(false), 2000)
     }
   }
 
@@ -329,6 +347,47 @@ export function GeneralTab() {
               >
                 {mapboxSaved ? <Check size={16} /> : null}
                 {mapboxSaved ? 'Guardado' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Historial de versiones (#38) */}
+        <div className="bg-card rounded-xl border border-border p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <History size={20} className="text-muted-foreground" />
+            <h2 className="text-xl font-semibold text-card-foreground">Historial de versiones</h2>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium text-card-foreground">
+                Versiones sin marcar que se conservan por red
+              </label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Las marcadas como hito y las sujetas por una instantánea de proyecto no se podan
+                nunca, cuenten lo que cuenten. La más reciente tampoco, aunque pongas cero.
+              </p>
+            </div>
+            <div className="flex space-x-2">
+              <input
+                type="number"
+                min={0}
+                value={retencion}
+                onChange={(e) => setRetencion(e.target.value)}
+                className="w-32 px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:border-ring focus:outline-none text-sm"
+              />
+              <button
+                type="button"
+                onClick={handleSaveRetencion}
+                className={cn(
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5',
+                  retencionSaved
+                    ? 'bg-green-600/10 text-green-600'
+                    : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                )}
+              >
+                {retencionSaved ? <Check size={16} /> : null}
+                {retencionSaved ? 'Guardado' : 'Guardar'}
               </button>
             </div>
           </div>
