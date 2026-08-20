@@ -124,6 +124,13 @@ porque una fecha pasada es sintácticamente válida.
 El resumen se escribe **para el usuario final**, no para el equipo: qué cambia en su uso de
 la aplicación, no qué ficheros se tocaron.
 
+**Si la versión toca `prisma/schema.prisma`, comprobar antes el esquema de producción.** En una
+instalación empaquetada no corre `prisma db push`: el esquema lo ponen las sentencias de
+`electron/esquemaProduccion.ts`, y una columna que no llegue ahí sale en la máquina del cliente
+como «no such column», con sus datos ya dentro. `electron/esquemaProduccion.test.ts` lo compara
+en cada suite; el porqué y cómo simular los dos caminos —instalación nueva y actualización desde
+una versión antigua— están en [`ESQUEMA_EN_PRODUCCION.md`](ESQUEMA_EN_PRODUCCION.md).
+
 ## Ficheros afectados
 
 | Fichero | Papel |
