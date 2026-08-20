@@ -1,5 +1,7 @@
 import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
+import { useProjectStore } from '@/stores/projectStore'
+import type { Ambito } from '@/../backend/services/hydraulic/ambitos'
 
 import {
   Upload, Search, FileText, Trash2, RefreshCw, Settings,
@@ -34,6 +36,8 @@ interface WisdomDocument {
   type: 'uploaded' | 'catalog'
   indexing?: IndexingStatus
   description?: string
+  /** Proyecto dueño; ausente o nulo significa ámbito general (#39). */
+  projectId?: string | null
 }
 
 /*
@@ -196,6 +200,7 @@ export function UnifiedWisdomPanel() {
     combineDocuments()
   }, [wisdomDocuments, searchQuery, selectedCategory])
 
+
   // Debug: Log when embedding providers change
   useEffect(() => {
     logger.debug(`🔄 [React] Embedding providers state updated: ${embeddingProviders.length} providers`)
@@ -215,6 +220,25 @@ export function UnifiedWisdomPanel() {
     }
   }
 
+  /**
+   * Ámbito de la consulta (#39). Con proyecto activo el valor por defecto es
+   * «ambos», que es lo que el issue pide: un proyecto no debe perder acceso a la
+   * normativa general. Sin proyecto sólo existe lo general.
+   */
+  const projectId = useProjectStore(s => s.currentProjectId)
+  const nombreProyecto = useProjectStore(s => s.currentProject?.name)
+  const [ambito, setAmbito] = useState<Ambito>('general')
+
+  useEffect(() => {
+    setAmbito(projectId ? 'ambos' : 'general')
+  }, [projectId])
+
+  // Cambiar de ámbito cambia el corpus, así que hay que releerlo (#39).
+  useEffect(() => {
+    loadWisdomDocuments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ambito, projectId])
+
   const loadWisdomDocuments = async () => {
     try {
       // Check if electronAPI is available
@@ -223,7 +247,7 @@ export function UnifiedWisdomPanel() {
         return
       }
 
-      const filters: any = {}
+      const filters: any = { ambito, projectId }
       if (selectedCategory !== 'all') filters.category = selectedCategory
       if (selectedRegion) filters.region = selectedRegion
 
@@ -535,7 +559,10 @@ export function UnifiedWisdomPanel() {
     const options = {
       category: selectedCategory === 'all' ? 'hydraulics' : selectedCategory as any,
       language: 'es',
-      region: selectedRegion ? [selectedRegion] : undefined
+      region: selectedRegion ? [selectedRegion] : undefined,
+      // Se sube al proyecto sólo si el ámbito elegido es el del proyecto: subir
+      // al ámbito equivocado tiene que ser una decisión, no un descuido.
+      projectId: ambito === 'proyecto' ? projectId : null,
     }
 
     setLoading(true)
@@ -585,7 +612,9 @@ export function UnifiedWisdomPanel() {
       const options = {
         category: selectedCategory !== 'all' ? selectedCategory : undefined,
         region: selectedRegion || undefined,
-        language: 'es'
+        language: 'es',
+        ambito,
+        projectId,
       }
 
       const result = await window.electronAPI.wisdom.search(searchQuery, options)
@@ -872,6 +901,36 @@ export function UnifiedWisdomPanel() {
           <div className="flex flex-wrap gap-4 items-center">
             {/* Left side - Filters and Search */}
             <div className="flex flex-wrap gap-4 items-center flex-1">
+              {/* Ámbito (#39). Va delante porque manda sobre los demás filtros:
+                  decide en qué corpus se busca, no cómo se recorta. */}
+              <div className="flex items-center gap-1 rounded-lg border border-border bg-background p-1">
+                {([
+                  { valor: 'general' as Ambito, texto: 'General' },
+                  { valor: 'proyecto' as Ambito, texto: 'Del proyecto' },
+                  { valor: 'ambos' as Ambito, texto: 'Ambos' },
+                ]).map(op => (
+                  <button
+                    key={op.valor}
+                    disabled={op.valor !== 'general' && !projectId}
+                    title={
+                      op.valor !== 'general' && !projectId
+                        ? 'Necesita un proyecto activo'
+                        : op.valor === 'general'
+                          ? 'Normativa y buenas prácticas, compartidas por todos los proyectos'
+                          : `Documentos internos de ${nombreProyecto ?? 'el proyecto'}`
+                    }
+                    onClick={() => setAmbito(op.valor)}
+                    className={`rounded px-3 py-1.5 text-sm transition-colors ${
+                      ambito === op.valor
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground disabled:opacity-40'
+                    }`}
+                  >
+                    {op.texto}
+                  </button>
+                ))}
+              </div>
+
               {/* Category Filter */}
               <select
                 value={selectedCategory}
@@ -1367,6 +1426,20 @@ export function UnifiedWisdomPanel() {
                             <FileText className="w-4 h-4 text-primary" />
                             <span className="text-xs px-2 py-1 rounded-full font-medium bg-primary/10 text-primary">
                               My Document
+                            </span>
+                            {/* De dónde viene, para que una cita de una norma no
+                                se confunda con un documento interno del cliente (#39). */}
+                            <span
+                              className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                doc.projectId
+                                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-500'
+                                  : 'bg-muted text-muted-foreground'
+                              }`}
+                              title={doc.projectId
+                                ? `Documento interno de ${nombreProyecto ?? 'este proyecto'}`
+                                : 'Conocimiento general, compartido por todos los proyectos'}
+                            >
+                              {doc.projectId ? 'Del proyecto' : 'General'}
                             </span>
                           </div>
                           {doc.type === 'uploaded' && !isSelectMode && (

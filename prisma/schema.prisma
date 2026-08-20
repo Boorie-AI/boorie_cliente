@@ -203,6 +203,7 @@ model HydraulicProject {
 
   calculations  HydraulicCalculation[]
   snapshots     ProjectSnapshot[]
+  knowledge     HydraulicKnowledge[]
   documents     ProjectDocument[]
   teamMembers   ProjectTeamMember[]
   conversations Conversation[]
@@ -279,8 +280,15 @@ model HydraulicKnowledge {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
+  /// Dueño del documento (#39). `null` es el ámbito general: normativa y buenas
+  /// prácticas compartidas por todos los proyectos. Con proyecto, el documento
+  /// es interno de ese cliente y no puede aparecer en búsquedas de otro.
+  projectId String?
+  project   HydraulicProject? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
   chunks KnowledgeChunk[]
 
+  @@index([projectId])
   @@map("hydraulic_knowledge")
 }
 
