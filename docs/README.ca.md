@@ -39,15 +39,22 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.15.0
+### 🚀 Última Versió - v1.15.1
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.15.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.15.0/Boorie-1.15.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.15.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.15.0/Boorie-Setup-1.15.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.15.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.15.0/Boorie-1.15.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.15.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.15.1/Boorie-1.15.1-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.15.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.15.1/Boorie-Setup-1.15.1.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.15.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.15.1/Boorie-1.15.1.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.15.1
+- Si Boorie no et deixava obrir ni llistar les xarxes d'un projecte, ja està resolt: a les instal·lacions els faltaven tres columnes que l'aplicació donava per fetes des de la v1.6.0.
+- Les teves dades no es van perdre mai: les xarxes, les seves versions i les seves simulacions continuaven desades i es reparen soles en obrir aquesta versió.
+- Afectava qui instal·lés de zero i qui actualitzés des d'una versió anterior a la v1.6.0.
+- La pestanya de guardrails torna a poder llistar les violacions registrades.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.15.1).
 
 ### 📝 Novetats a v1.15.0
 - Cada simulació deixa constància en el coneixement del projecte: resum de l'execució, estadístiques, elements fora de llindar i en què ha canviat respecte a l'anterior.
