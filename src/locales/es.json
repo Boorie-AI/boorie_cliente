@@ -99,6 +99,20 @@
       "releaseNotes": "Ver notas de versión completas en GitHub",
       "loading": "Cargando…",
       "unknown": "Desconocida"
+    },
+    "simulationIndexing": {
+      "title": "Simulaciones en el conocimiento",
+      "advanced": "Avanzado",
+      "saved": "Guardado",
+      "auto": "Indexar cada simulación al terminar",
+      "autoDesc": "Deja en el conocimiento del proyecto un resumen de la ejecución, sus estadísticas, los elementos fuera de umbral y en qué cambió respecto a la anterior. Es lo que permite preguntarle al chat qué problemas encontró la última simulación.",
+      "raw": "Indexar también las series completas",
+      "rawDesc": "Guarda además los resultados crudos, paso a paso. No mejora las respuestas del chat —para eso están los resúmenes— y ocupa mucho más; está para las etapas de ajuste fino.",
+      "thresholds": "Umbrales que marcan una anomalía",
+      "thresholdsDesc": "La referencia normativa cambia con el país. Por defecto, los valores de uso común: presión entre 14 y 70 m —en acueductos rurales la mínima baja a 7— y velocidad máxima de 3 m/s.",
+      "minPressure": "Presión mínima (m)",
+      "maxPressure": "Presión máxima (m)",
+      "maxVelocity": "Velocidad máxima (m/s)"
     }
   },
   "ai": {

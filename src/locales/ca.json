@@ -99,6 +99,20 @@
       "releaseNotes": "Veure les notes de versió completes a GitHub",
       "loading": "Carregant…",
       "unknown": "Desconeguda"
+    },
+    "simulationIndexing": {
+      "title": "Simulacions en el coneixement",
+      "advanced": "Avançat",
+      "saved": "Desat",
+      "auto": "Indexar cada simulació en acabar",
+      "autoDesc": "Deixa en el coneixement del projecte un resum de l'execució, les seves estadístiques, els elements fora de llindar i en què ha canviat respecte a l'anterior. És el que permet preguntar al xat quins problemes va trobar l'última simulació.",
+      "raw": "Indexar també les sèries completes",
+      "rawDesc": "Desa a més els resultats crus, pas a pas. No millora les respostes del xat —per això hi ha els resums— i ocupa molt més; és per a les etapes d'ajust fi.",
+      "thresholds": "Llindars que marquen una anomalia",
+      "thresholdsDesc": "La referència normativa canvia segons el país. Per defecte, els valors d'ús comú: pressió entre 14 i 70 m —en aqüeductes rurals la mínima baixa a 7— i velocitat màxima de 3 m/s.",
+      "minPressure": "Pressió mínima (m)",
+      "maxPressure": "Pressió màxima (m)",
+      "maxVelocity": "Velocitat màxima (m/s)"
     }
   },
   "ai": {

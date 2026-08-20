@@ -99,6 +99,20 @@
       "releaseNotes": "See full release notes on GitHub",
       "loading": "Loading…",
       "unknown": "Unknown"
+    },
+    "simulationIndexing": {
+      "title": "Simulations in the knowledge base",
+      "advanced": "Advanced",
+      "saved": "Saved",
+      "auto": "Index every simulation when it finishes",
+      "autoDesc": "Adds to the project's knowledge base a summary of the run, its statistics, the elements outside their thresholds and what changed since the previous run. This is what lets you ask the chat what problems the last simulation found.",
+      "raw": "Also index the full time series",
+      "rawDesc": "Additionally stores the raw results, step by step. It does not improve the chat's answers —that is what the summaries are for— and takes up far more space; it is meant for fine-tuning stages.",
+      "thresholds": "Thresholds that flag an anomaly",
+      "thresholdsDesc": "The regulatory reference varies by country. The defaults are the values in common use: pressure between 14 and 70 m —in rural water systems the minimum drops to 7— and a maximum velocity of 3 m/s.",
+      "minPressure": "Minimum pressure (m)",
+      "maxPressure": "Maximum pressure (m)",
+      "maxVelocity": "Maximum velocity (m/s)"
     }
   },
   "ai": {

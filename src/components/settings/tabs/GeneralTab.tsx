@@ -422,14 +422,14 @@ export function GeneralTab() {
           <div className="flex items-center gap-2 mb-4">
             <BrainCircuit size={20} className="text-muted-foreground" />
             <h2 className="text-xl font-semibold text-card-foreground">
-              Simulaciones en el conocimiento
+              {t('settings.simulationIndexing.title')}
             </h2>
             <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border border-border rounded px-1.5 py-0.5">
-              Avanzado
+              {t('settings.simulationIndexing.advanced')}
             </span>
             {indexacionSaved && (
               <span className="flex items-center gap-1 text-xs text-green-600">
-                <Check size={14} /> Guardado
+                <Check size={14} /> {t('settings.simulationIndexing.saved')}
               </span>
             )}
           </div>
@@ -438,13 +438,10 @@ export function GeneralTab() {
             <div className="flex items-center justify-between">
               <div className="pr-4">
                 <label className="text-sm font-medium text-card-foreground">
-                  Indexar cada simulación al terminar
+                  {t('settings.simulationIndexing.auto')}
                 </label>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Deja en el conocimiento del proyecto un resumen de la ejecución, sus
-                  estadísticas, los elementos fuera de umbral y en qué cambió respecto a la
-                  anterior. Es lo que permite preguntarle al chat qué problemas encontró la última
-                  simulación.
+                  {t('settings.simulationIndexing.autoDesc')}
                 </p>
               </div>
               <Switch.Root
@@ -459,12 +456,10 @@ export function GeneralTab() {
             <div className="flex items-center justify-between">
               <div className="pr-4">
                 <label className="text-sm font-medium text-card-foreground">
-                  Indexar también las series completas
+                  {t('settings.simulationIndexing.raw')}
                 </label>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Guarda además los resultados crudos, paso a paso. No mejora las respuestas del
-                  chat —para eso están los resúmenes— y ocupa mucho más; está para las etapas de
-                  ajuste fino.
+                  {t('settings.simulationIndexing.rawDesc')}
                 </p>
               </div>
               <Switch.Root
@@ -478,21 +473,21 @@ export function GeneralTab() {
 
             <div>
               <label className="text-sm font-medium text-card-foreground">
-                Umbrales que marcan una anomalía
+                {t('settings.simulationIndexing.thresholds')}
               </label>
               <p className="text-xs text-muted-foreground mt-1 mb-2">
-                La referencia normativa cambia con el país. Por defecto, los valores de uso común:
-                presión entre 14 y 70 m —en acueductos rurales la mínima baja a 7— y velocidad
-                máxima de 3 m/s.
+                {t('settings.simulationIndexing.thresholdsDesc')}
               </p>
               <div className="flex flex-wrap gap-3">
                 {([
-                  ['presionMinimaM', 'Presión mínima (m)'],
-                  ['presionMaximaM', 'Presión máxima (m)'],
-                  ['velocidadMaximaMs', 'Velocidad máxima (m/s)'],
+                  ['presionMinimaM', 'minPressure'],
+                  ['presionMaximaM', 'maxPressure'],
+                  ['velocidadMaximaMs', 'maxVelocity'],
                 ] as const).map(([clave, etiqueta]) => (
                   <div key={clave}>
-                    <span className="text-xs text-muted-foreground">{etiqueta}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {t(`settings.simulationIndexing.${etiqueta}`)}
+                    </span>
                     <input
                       type="number"
                       min={0}
