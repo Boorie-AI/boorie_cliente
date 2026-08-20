@@ -380,16 +380,15 @@ export function GeneralTab() {
         <div className="bg-card rounded-xl border border-border p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <History size={20} className="text-muted-foreground" />
-            <h2 className="text-xl font-semibold text-card-foreground">Historial de versiones</h2>
+            <h2 className="text-xl font-semibold text-card-foreground">{t('settings.versionHistory.title')}</h2>
           </div>
           <div className="space-y-3">
             <div>
               <label className="text-sm font-medium text-card-foreground">
-                Versiones sin marcar que se conservan por red
+                {t('settings.versionHistory.retention')}
               </label>
               <p className="text-xs text-muted-foreground mt-1">
-                Las marcadas como hito y las sujetas por una instantánea de proyecto no se podan
-                nunca, cuenten lo que cuenten. La más reciente tampoco, aunque pongas cero.
+                {t('settings.versionHistory.retentionDesc')}
               </p>
             </div>
             <div className="flex space-x-2">
@@ -411,7 +410,7 @@ export function GeneralTab() {
                 )}
               >
                 {retencionSaved ? <Check size={16} /> : null}
-                {retencionSaved ? 'Guardado' : 'Guardar'}
+                {retencionSaved ? t('common.saved') : t('common.save')}
               </button>
             </div>
           </div>
@@ -429,7 +428,7 @@ export function GeneralTab() {
             </span>
             {indexacionSaved && (
               <span className="flex items-center gap-1 text-xs text-green-600">
-                <Check size={14} /> {t('settings.simulationIndexing.saved')}
+                <Check size={14} /> {t('common.saved')}
               </span>
             )}
           </div>
@@ -513,15 +512,13 @@ export function GeneralTab() {
         <div className="bg-card rounded-xl border border-border p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <Terminal size={20} className="text-muted-foreground" />
-            <h2 className="text-xl font-semibold text-card-foreground">Python (WNTR)</h2>
+            <h2 className="text-xl font-semibold text-card-foreground">{t('settings.python.title')}</h2>
           </div>
           <div className="space-y-3">
             <div>
-              <label className="text-sm font-medium text-card-foreground">Ruta del intérprete</label>
+              <label className="text-sm font-medium text-card-foreground">{t('settings.python.path')}</label>
               <p className="text-sm text-muted-foreground">
-                Boorie detecta Python automáticamente y prioriza el de tu sistema. Indica aquí la ruta
-                sólo si tienes WNTR en un entorno que no encuentra (conda, un venv propio o una
-                instalación fuera de las rutas habituales).
+                {t('settings.python.pathDesc')}
               </p>
             </div>
             <div className="flex space-x-2">
@@ -537,7 +534,7 @@ export function GeneralTab() {
                 onClick={handleBrowsePython}
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
               >
-                Examinar…
+                {t('settings.python.browse')}
               </button>
               <button
                 type="button"
@@ -548,7 +545,7 @@ export function GeneralTab() {
                   'bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50'
                 )}
               >
-                {pythonChecking ? 'Comprobando…' : 'Guardar'}
+                {pythonChecking ? t('settings.python.checking') : t('common.save')}
               </button>
             </div>
             {pythonMessage && (
@@ -566,15 +563,15 @@ export function GeneralTab() {
             )}
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>
-                En uso ahora:{' '}
-                <span className="font-mono">{pythonDetected || 'detectando…'}</span>
+                {t('settings.python.inUse')}{' '}
+                <span className="font-mono">{pythonDetected || t('settings.python.detecting')}</span>
               </span>
               <button
                 type="button"
                 onClick={handleClearPythonPath}
                 className="underline hover:text-foreground"
               >
-                Volver a la detección automática
+                {t('settings.python.autoDetect')}
               </button>
             </div>
           </div>

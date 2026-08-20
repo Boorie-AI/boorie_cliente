@@ -7,6 +7,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Activity, AlertTriangle, GitCompare, History, RotateCcw, Share2, Star, Plus, BrainCircuit, RefreshCw } from 'lucide-react'
 import { logger } from '@/utils/logger'
 import { Button } from '@/components/ui/button'
@@ -30,13 +31,6 @@ interface Version {
   simulaciones: number
 }
 
-const ORIGEN: Record<Version['origen'], string> = {
-  manual: 'Guardada a mano',
-  importacion: 'Importación',
-  escenario: 'Escenario',
-  migracion: 'Estado inicial',
-}
-
 interface Simulacion {
   id: string
   versionNumber: number
@@ -56,12 +50,13 @@ type EstadoIndexacion = 'pendiente' | 'indexando' | 'indexada' | 'fallida' | 'om
  * comunique, y un indicador que sólo aparece al fallar no se entiende cuando
  * aparece —no hay con qué compararlo—, así que el estado normal también se ve.
  */
-const INDEXACION: Record<EstadoIndexacion, { texto: string; clase: string }> = {
-  pendiente: { texto: 'sin indexar', clase: 'text-muted-foreground' },
-  indexando: { texto: 'indexando…', clase: 'text-muted-foreground' },
-  indexada: { texto: 'en el conocimiento', clase: 'text-emerald-600' },
-  fallida: { texto: 'no se pudo indexar', clase: 'text-amber-600' },
-  omitida: { texto: 'indexación desactivada', clase: 'text-muted-foreground' },
+/** El texto vive en los ficheros de idioma; aquí sólo el color. */
+const COLOR_INDEXACION: Record<EstadoIndexacion, string> = {
+  pendiente: 'text-muted-foreground',
+  indexando: 'text-muted-foreground',
+  indexada: 'text-emerald-600',
+  fallida: 'text-amber-600',
+  omitida: 'text-muted-foreground',
 }
 
 interface HistorialRedProps {
@@ -80,6 +75,7 @@ export function HistorialRed({
   nombreRed,
   onRestaurada,
 }: HistorialRedProps) {
+  const { t, i18n } = useTranslation()
   const [versiones, setVersiones] = useState<Version[]>([])
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -101,12 +97,12 @@ export function HistorialRed({
         window.electronAPI.networkVersions.list(networkId),
         window.electronAPI.networkVersions.simulations(networkId),
       ])
-      if (!r?.success) throw new Error(r?.error || 'No se pudo leer el historial')
+      if (!r?.success) throw new Error(r?.error || t('networkHistory.errors.read'))
       setVersiones(r.data)
       if (rs?.success) setSimulaciones(rs.data)
     } catch (e) {
       logger.error('Error leyendo el historial de versiones:', e)
-      setError(e instanceof Error ? e.message : 'No se pudo leer el historial')
+      setError(e instanceof Error ? e.message : t('networkHistory.errors.read'))
     } finally {
       setCargando(false)
     }
@@ -128,11 +124,11 @@ export function HistorialRed({
         networkId,
         changeNote: nota.trim() || undefined,
       })
-      if (!r?.success) throw new Error(r?.error || 'No se pudo guardar la versión')
+      if (!r?.success) throw new Error(r?.error || t('networkHistory.errors.save'))
       setNota('')
       await recargar()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo guardar la versión')
+      setError(e instanceof Error ? e.message : t('networkHistory.errors.save'))
     }
   }
 
@@ -144,12 +140,12 @@ export function HistorialRed({
   const restaurar = async (v: Version) => {
     try {
       const r = await window.electronAPI.networkVersions.restore(v.id)
-      if (!r?.success) throw new Error(r?.error || 'No se pudo restaurar')
+      if (!r?.success) throw new Error(r?.error || t('networkHistory.errors.restore'))
       setConfirmarRestaurar(null)
       await recargar()
       onRestaurada?.()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo restaurar')
+      setError(e instanceof Error ? e.message : t('networkHistory.errors.restore'))
     }
   }
 
@@ -162,10 +158,10 @@ export function HistorialRed({
         versionA: anterior.id,
         versionB: v.id,
       })
-      if (!r?.success) throw new Error(r?.error || 'No se pudo comparar')
+      if (!r?.success) throw new Error(r?.error || t('networkHistory.errors.compare'))
       setComparacion({ contra: v.versionNumber, resumen: r.data.resumen })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo comparar')
+      setError(e instanceof Error ? e.message : t('networkHistory.errors.compare'))
     }
   }
 
@@ -184,10 +180,10 @@ export function HistorialRed({
         runA: elegidas[0],
         runB: elegidas[1],
       })
-      if (!r?.success) throw new Error(r?.error || 'No se pudieron comparar')
+      if (!r?.success) throw new Error(r?.error || t('networkHistory.errors.compareRuns'))
       setComparaSims(r.data.resumen)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudieron comparar')
+      setError(e instanceof Error ? e.message : t('networkHistory.errors.compareRuns'))
     }
   }
 
@@ -196,10 +192,10 @@ export function HistorialRed({
     setReindexando(sim.id)
     try {
       const r = await window.electronAPI.simulacionRAG.reindexar(sim.id)
-      if (!r?.success) throw new Error(r?.error || 'No se pudo indexar')
+      if (!r?.success) throw new Error(r?.error || t('networkHistory.errors.index'))
       await recargar()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo indexar')
+      setError(e instanceof Error ? e.message : t('networkHistory.errors.index'))
     } finally {
       setReindexando(null)
     }
@@ -214,12 +210,12 @@ export function HistorialRed({
       // Cancelar el diálogo de guardado no es un error que haya que enseñar.
       if (!r?.success && r?.error && !/cancelada/i.test(r.error)) throw new Error(r.error)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo exportar')
+      setError(e instanceof Error ? e.message : t('networkHistory.errors.export'))
     }
   }
 
   const fecha = (iso: string) =>
-    new Date(iso).toLocaleString('es-ES', {
+    new Date(iso).toLocaleString(i18n.language, {
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
     })
 
@@ -229,11 +225,10 @@ export function HistorialRed({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <History className="h-4 w-4" />
-            Historial de {nombreRed}
+            {t('networkHistory.title', { network: nombreRed })}
           </DialogTitle>
           <DialogDescription>
-            Cada versión es un escenario distinto de la red de la cual procede. No se modifican
-            nunca: se añaden, se marcan como hito y se pueden restaurar.
+            {t('networkHistory.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -241,23 +236,23 @@ export function HistorialRed({
           <Input
             value={nota}
             onChange={e => setNota(e.target.value)}
-            placeholder="Qué cambió, para reconocerla después"
+            placeholder={t('networkHistory.notePlaceholder')}
             onKeyDown={e => { if (e.key === 'Enter') guardarVersion() }}
           />
           <Button size="sm" onClick={guardarVersion} className="shrink-0">
             <Plus className="mr-2 h-3.5 w-3.5" />
-            Guardar versión
+            {t('networkHistory.saveVersion')}
           </Button>
         </div>
 
         {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
 
         <div className="max-h-96 divide-y divide-border overflow-y-auto rounded-md border border-border">
-          {cargando && <p className="px-3 py-6 text-center text-sm text-muted-foreground">Cargando…</p>}
+          {cargando && <p className="px-3 py-6 text-center text-sm text-muted-foreground">{t('common.loading')}</p>}
 
           {!cargando && versiones.length === 0 && (
             <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-              Esta red todavía no tiene versiones guardadas.
+              {t('networkHistory.empty')}
             </p>
           )}
 
@@ -266,23 +261,23 @@ export function HistorialRed({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="font-medium">Versión {v.versionNumber}</span>
+                    <span className="font-medium">{t('networkHistory.version', { number: v.versionNumber })}</span>
                     {v.marcada && (
                       <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-500">
-                        hito
+                        {t('networkHistory.milestone')}
                       </span>
                     )}
-                    <span className="text-xs text-muted-foreground">{ORIGEN[v.origen]}</span>
+                    <span className="text-xs text-muted-foreground">{t(`networkHistory.origin.${v.origen}`)}</span>
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {fecha(v.createdAt)}
                     {v.simulaciones > 0 &&
-                      ` · ${v.simulaciones} ${v.simulaciones === 1 ? 'simulación' : 'simulaciones'}`}
+                      ` · ${t(v.simulaciones === 1 ? 'networkHistory.simulationOne' : 'networkHistory.simulationOther', { count: v.simulaciones })}`}
                   </p>
                   {v.changeNote && <p className="mt-1 text-xs">{v.changeNote}</p>}
                   {comparacion?.contra === v.versionNumber && (
                     <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
-                      Frente a la versión {v.versionNumber - 1}: {comparacion.resumen}
+                      {t('networkHistory.comparedWith', { number: v.versionNumber - 1, summary: comparacion.resumen })}
                     </p>
                   )}
                 </div>
@@ -292,7 +287,7 @@ export function HistorialRed({
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
-                    title={v.marcada ? 'Quitar el hito' : 'Marcar como hito (nunca se poda)'}
+                    title={v.marcada ? t('networkHistory.unmarkMilestone') : t('networkHistory.markMilestone')}
                     onClick={() => alternarHito(v)}
                   >
                     <Star className={cn('h-3.5 w-3.5', v.marcada && 'fill-amber-500 text-amber-500')} />
@@ -302,7 +297,7 @@ export function HistorialRed({
                     size="icon"
                     className="h-7 w-7"
                     disabled={!versiones.some(x => x.versionNumber === v.versionNumber - 1)}
-                    title="Comparar con la versión anterior"
+                    title={t('networkHistory.compareWithPrevious')}
                     onClick={() => compararConAnterior(v)}
                   >
                     <GitCompare className="h-3.5 w-3.5" />
@@ -311,7 +306,7 @@ export function HistorialRed({
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
-                    title="Exportar para otra instalación de Boorie"
+                    title={t('networkHistory.exportVersion')}
                     onClick={() => exportar(v)}
                   >
                     <Share2 className="h-3.5 w-3.5" />
@@ -320,7 +315,7 @@ export function HistorialRed({
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
-                    title="Restaurar esta versión"
+                    title={t('networkHistory.restoreVersion')}
                     onClick={() => setConfirmarRestaurar(v)}
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
@@ -336,7 +331,7 @@ export function HistorialRed({
             <div className="flex items-center justify-between">
               <h3 className="flex items-center gap-2 text-sm font-medium">
                 <Activity className="h-3.5 w-3.5" />
-                Simulaciones sobre esta red
+                {t('networkHistory.simulationsOnNetwork')}
               </h3>
               <Button
                 size="sm"
@@ -344,13 +339,13 @@ export function HistorialRed({
                 disabled={elegidas.length !== 2}
                 onClick={compararEjecuciones}
               >
-                Comparar las dos elegidas
+                {t('networkHistory.compareChosen')}
               </Button>
             </div>
 
             <div className="max-h-40 divide-y divide-border overflow-y-auto rounded-md border border-border">
               {simulaciones.map(sim => {
-                const estado = INDEXACION[sim.estadoIndexacion ?? 'pendiente']
+                const estado = sim.estadoIndexacion ?? 'pendiente'
                 const reintentable = sim.estadoIndexacion === 'fallida' || sim.estadoIndexacion === 'pendiente' || sim.estadoIndexacion === 'omitida'
 
                 return (
@@ -367,17 +362,17 @@ export function HistorialRed({
                     >
                       <span className="truncate">
                         {sim.tipo}
-                        <span className="ml-2 text-muted-foreground">versión {sim.versionNumber}</span>
+                        <span className="ml-2 text-muted-foreground">{t('networkHistory.versionInline', { number: sim.versionNumber })}</span>
                       </span>
                       <span className="ml-2 shrink-0 text-muted-foreground">{fecha(sim.createdAt)}</span>
                     </button>
 
                     <span
-                      className={cn('flex shrink-0 items-center gap-1', estado.clase)}
+                      className={cn('flex shrink-0 items-center gap-1', COLOR_INDEXACION[estado])}
                       title={sim.errorIndexacion ?? undefined}
                     >
                       <BrainCircuit className="h-3 w-3" />
-                      {estado.texto}
+                      {t(`networkHistory.indexing.${estado}`)}
                     </span>
 
                     {reintentable && (
@@ -387,7 +382,7 @@ export function HistorialRed({
                         className="h-6 shrink-0 px-1.5"
                         disabled={reindexando === sim.id}
                         onClick={() => reindexar(sim)}
-                        title="Indexar esta simulación en el conocimiento del proyecto"
+                        title={t('networkHistory.indexNow')}
                       >
                         <RefreshCw className={cn('h-3 w-3', reindexando === sim.id && 'animate-spin')} />
                       </Button>
@@ -410,15 +405,14 @@ export function HistorialRed({
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
             <div className="min-w-0 flex-1">
               <p>
-                La red volverá a como estaba en la versión {confirmarRestaurar.versionNumber}. El
-                estado actual no se pierde: se guarda antes como una versión nueva.
+                {t('networkHistory.restoreWarning', { number: confirmarRestaurar.versionNumber })}
               </p>
               <div className="mt-2 flex gap-2">
                 <Button size="sm" onClick={() => restaurar(confirmarRestaurar)}>
-                  Restaurar
+                  {t('networkHistory.restore')}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setConfirmarRestaurar(null)}>
-                  Cancelar
+                  {t('common.cancel')}
                 </Button>
               </div>
             </div>

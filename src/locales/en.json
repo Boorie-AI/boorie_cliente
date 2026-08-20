@@ -13,7 +13,8 @@
     "next": "Next",
     "previous": "Previous",
     "finish": "Finish",
-    "skipOnboarding": "Skip Tutorial"
+    "skipOnboarding": "Skip Tutorial",
+    "saved": "Saved"
   },
   "sidebar": {
     "chat": "Chat",
@@ -103,7 +104,6 @@
     "simulationIndexing": {
       "title": "Simulations in the knowledge base",
       "advanced": "Advanced",
-      "saved": "Saved",
       "auto": "Index every simulation when it finishes",
       "autoDesc": "Adds to the project's knowledge base a summary of the run, its statistics, the elements outside their thresholds and what changed since the previous run. This is what lets you ask the chat what problems the last simulation found.",
       "raw": "Also index the full time series",
@@ -113,6 +113,21 @@
       "minPressure": "Minimum pressure (m)",
       "maxPressure": "Maximum pressure (m)",
       "maxVelocity": "Maximum velocity (m/s)"
+    },
+    "versionHistory": {
+      "title": "Version history",
+      "retention": "Unmarked versions kept per network",
+      "retentionDesc": "Versions marked as milestones and those held by a project snapshot are never pruned, whatever the count says. Neither is the most recent one, even if you set zero."
+    },
+    "python": {
+      "title": "Python (WNTR)",
+      "path": "Interpreter path",
+      "pathDesc": "Boorie detects Python automatically and prefers your system's. Set the path here only if WNTR lives in an environment it cannot find (conda, your own venv or an installation outside the usual paths).",
+      "browse": "Browse…",
+      "checking": "Checking…",
+      "inUse": "Currently in use:",
+      "detecting": "detecting…",
+      "autoDetect": "Back to automatic detection"
     }
   },
   "ai": {
@@ -268,5 +283,50 @@
     "accionImportarRed": "Import .inp",
     "tituloRedDe": "«{{modulo}}» needs a loaded network",
     "esteModulo": "This module"
+  },
+  "networkHistory": {
+    "title": "History of {{network}}",
+    "description": "Each version is a different scenario of the network it came from. They are never modified: they are added, marked as milestones and can be restored.",
+    "notePlaceholder": "What changed, so you can recognise it later",
+    "saveVersion": "Save version",
+    "empty": "This network has no saved versions yet.",
+    "version": "Version {{number}}",
+    "versionInline": "version {{number}}",
+    "milestone": "milestone",
+    "origin": {
+      "manual": "Saved by hand",
+      "importacion": "Import",
+      "escenario": "Scenario",
+      "migracion": "Initial state"
+    },
+    "simulationOne": "{{count}} simulation",
+    "simulationOther": "{{count}} simulations",
+    "comparedWith": "Against version {{number}}: {{summary}}",
+    "markMilestone": "Mark as a milestone (never pruned)",
+    "unmarkMilestone": "Remove the milestone",
+    "compareWithPrevious": "Compare with the previous version",
+    "exportVersion": "Export for another Boorie installation",
+    "restoreVersion": "Restore this version",
+    "simulationsOnNetwork": "Simulations on this network",
+    "compareChosen": "Compare the two selected",
+    "indexNow": "Index this simulation into the project's knowledge base",
+    "indexing": {
+      "pendiente": "not indexed",
+      "indexando": "indexing…",
+      "indexada": "in the knowledge base",
+      "fallida": "could not be indexed",
+      "omitida": "indexing turned off"
+    },
+    "restoreWarning": "The network will go back to how it was in version {{number}}. The current state is not lost: it is saved as a new version first.",
+    "restore": "Restore",
+    "errors": {
+      "read": "Could not read the history",
+      "save": "Could not save the version",
+      "restore": "Could not restore",
+      "compare": "Could not compare",
+      "compareRuns": "Could not compare the runs",
+      "index": "Could not index",
+      "export": "Could not export"
+    }
   }
 }
