@@ -7,6 +7,35 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.18.0] - 2026-08-21
+
+Escenarios de interrupción del servicio, y el coste energético del bombeo.
+
+- **Puedes plantear qué pasa si algo falla, y saber a cuánta gente deja sin agua.** Rotura de
+  tubería, bomba fuera de servicio, pérdida del control de los automatismos, sobredemanda por un
+  incendio o sequía en el origen: cinco tipos de evento que cubren las cuatro familias de causa
+  —naturales, operativas, inducidas y de demanda— y que se pueden combinar en un mismo escenario.
+- **Pregúntaselo al chat en lenguaje natural.** «¿Cuántos clientes quedan sin servicio si se pierde
+  el control de las bombas 4 horas?» y Boorie te propone el escenario, te lo enseña entero y espera
+  tu confirmación. **Nada se simula sin que le des el visto bueno.**
+- **Las cifras salen de la simulación, no del modelo.** La respuesta cita la ejecución que la
+  respalda y las cifras coinciden, al decimal, con ejecutar el motor a mano. Si algo no cuadra,
+  puedes ir a esa simulación en el historial del proyecto.
+- **El impacto se mide contra tu red sin el evento**, así que el déficit que ya arrastraba no se
+  le atribuye al escenario: es lo que separa una cifra útil de una alarmante y falsa.
+- **Ya sabes lo que te cuesta bombear.** Consumo y coste por bomba, horas en marcha, potencia, y el
+  reparto entre horas punta y valle según la tarifa de tu proyecto, que se configura por proyecto
+  porque el precio depende del país y de la hora.
+- **Boorie te dice qué bomba trabaja fuera de su punto óptimo**, comparando con la curva de
+  eficiencia que declara tu propio archivo. En la red de pruebas: tres bombas al 37,5% cuando su
+  curva da 70%, con el caudal un 66,7% por debajo del óptimo.
+- **Y puedes comprobar si una medida ahorra de verdad**: se simula la red con ella y se resta.
+  Parar el bombeo en las horas caras ahorró 118,8 kWh y 33,80 USD en una red y **consumió 48,8 kWh
+  más** en otra, porque los depósitos se vaciaban y había que recuperarlos. La medida se rechaza a
+  sí misma, con su cifra, en vez de prometer un ahorro que no existe.
+- Todo ahorro viene con lo que le cuesta al servicio: apagar el bombeo doce horas ahorra mucho y
+  deja a la red sin agua.
+
 ## [1.17.1] - 2026-08-21
 
 El chat vuelve a responder con lo que hay indexado, en vez de decir que no hay nada.
