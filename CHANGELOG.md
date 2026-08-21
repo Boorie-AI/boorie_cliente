@@ -7,6 +7,19 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.16.0] - 2026-08-20
+
+Cada proyecto puede tener sus propios umbrales.
+
+- **Los ajustes de indexación de simulaciones se pueden fijar por proyecto**, no sólo para todo
+  Boorie: en Ajustes → General eliges si estás tocando los generales o los del proyecto activo.
+  Es útil cuando un proyecto se rige por una normativa distinta o está en una etapa de ajuste
+  fino.
+- **Un proyecto hereda hasta que lo tocas.** Mientras no cambies nada en su ámbito, sigue los
+  ajustes generales: si mañana cambias la presión mínima para todos, ese proyecto también la
+  cambia. En cuanto tocas algo, se queda con lo suyo y la pantalla te lo dice.
+- **«Volver a heredar»** deshace esa separación y devuelve el proyecto a los ajustes generales.
+
 ## [1.15.1] - 2026-08-20
 
 Corrige un fallo que dejaba las redes inaccesibles en instalaciones reales.
