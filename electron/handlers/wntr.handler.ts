@@ -482,6 +482,45 @@ export function setupWNTRHandlers() {
     }
   })
 
+  /**
+   * Escenario declarativo de interrupción del servicio (#43).
+   *
+   * El guardrail de ejecución ve la definición entera y no sólo el fichero: un
+   * escenario puede cerrar media red o multiplicar la demanda por cien, y eso es
+   * justo lo que ese raíl existe para mirar.
+   */
+  ipcMain.handle('wntr:simulate-scenario', async (event, definicion: any) => {
+    try {
+      if (!global.currentWNTRFile) {
+        return { success: false, error: 'No EPANET file loaded' }
+      }
+      if (!definicion?.eventos?.length) {
+        return { success: false, error: 'El escenario no declara ningún evento' }
+      }
+
+      const verdict = await guardrailsWrapper.validateExecution('wntr.simulateScenario', {
+        file: global.currentWNTRFile,
+        eventos: definicion.eventos,
+        duration_hours: definicion.duration_hours,
+      })
+      if (!verdict.allow) {
+        return {
+          success: false,
+          blockedBy: 'guardrail:execution',
+          error: `Escenario rechazado por guardrail: ${verdict.reason}`,
+        }
+      }
+
+      return await resilienceService.simulateScenario(global.currentWNTRFile, definicion)
+    } catch (error) {
+      console.error('Error simulating scenario:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  })
+
   // Resilience indicators: Todini, entropy, hydraulic redundancy (#23)
   ipcMain.handle('wntr:calculate-resilience-indicators', async (event, options: any) => {
     try {

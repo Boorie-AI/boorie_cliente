@@ -297,6 +297,7 @@ const electronAPI = {
     // resilience indicators, fragility curve
     skeletonizeNetwork: (options?: any) => ipcRenderer.invoke('wntr:skeletonize-network', options),
     simulateComponentFailure: (options: any) => ipcRenderer.invoke('wntr:simulate-component-failure', options),
+    simulateScenario: (definicion: any) => ipcRenderer.invoke('wntr:simulate-scenario', definicion),
     calculateResilienceIndicators: (options?: any) => ipcRenderer.invoke('wntr:calculate-resilience-indicators', options),
     generateFragilityCurve: (options?: any) => ipcRenderer.invoke('wntr:generate-fragility-curve', options),
   },

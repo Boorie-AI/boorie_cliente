@@ -203,6 +203,263 @@ class WNTRResilienceService:
         return applied
 
     # ------------------------------------------------------------------
+    # Motor de escenarios (#43)
+    # ------------------------------------------------------------------
+    #
+    # Un escenario es una lista de eventos declarativos que se aplican sobre una
+    # copia de la red antes de simular. Las cuatro familias de causa que pide el
+    # issue —naturales, operativas, inducidas y de demanda— no son cuatro
+    # mecanismos distintos en WNTR: se expresan con estos cinco, y un terremoto
+    # es una lista de roturas igual que un ciberataque es una pérdida de control.
+    #
+    # Cada aplicación devuelve el método que usó, porque varios de estos eventos
+    # admiten más de una forma de modelarse y la cifra de impacto depende de cuál
+    # se eligió. Lo que no se pueda aplicar se devuelve en `omitidos` con su
+    # motivo, en vez de simularse a medias en silencio.
+
+    def _ventana_s(self, evento, duration_hours):
+        """La ventana del evento en segundos, acotada a la simulación."""
+        desde = float(evento.get('desde_h', 0.0)) * 3600.0
+        hasta = evento.get('hasta_h')
+        fin_sim = float(duration_hours) * 3600.0
+        if hasta is None:
+            return desde, None
+        return desde, min(float(hasta) * 3600.0, fin_sim)
+
+    def _cerrar_enlaces(self, wn, ids, desde_s, hasta_s, etiqueta):
+        """Cierra enlaces por control, y los reabre si el evento termina."""
+        aplicados = []
+        omitidos = []
+        for elemento in ids:
+            try:
+                link = wn.get_link(elemento)
+            except KeyError:
+                omitidos.append({'id': str(elemento), 'motivo': 'no existe en la red'})
+                continue
+
+            wn.add_control(
+                f'{etiqueta}_cierra_{elemento}',
+                ctrls.Control(
+                    ctrls.SimTimeCondition(wn, '=', desde_s),
+                    ctrls.ControlAction(link, 'status', LinkStatus.Closed),
+                    name=f'{etiqueta}_cierra_{elemento}',
+                ),
+            )
+            if hasta_s is not None:
+                wn.add_control(
+                    f'{etiqueta}_abre_{elemento}',
+                    ctrls.Control(
+                        ctrls.SimTimeCondition(wn, '=', hasta_s),
+                        ctrls.ControlAction(link, 'status', LinkStatus.Open),
+                        name=f'{etiqueta}_abre_{elemento}',
+                    ),
+                )
+            aplicados.append(str(elemento))
+        return aplicados, omitidos
+
+    def _evento_rotura(self, wn, evento, duration_hours):
+        """
+        Rotura de tubería: cierre, o fuga con descarga a la atmósfera.
+
+        La fuga se pone en un nudo extremo de la tubería y no partiéndola por la
+        mitad: `wntr.morph.split_pipe` sería más fiel al punto de rotura, pero
+        cambia la topología y renombra elementos, y el usuario no reconocería en
+        el resultado la red que cargó. El método queda declarado en la respuesta.
+        """
+        desde_s, hasta_s = self._ventana_s(evento, duration_hours)
+        modo = str(evento.get('modo', 'cierre')).lower()
+        ids = evento.get('elementos') or []
+
+        if modo != 'fuga':
+            aplicados, omitidos = self._cerrar_enlaces(wn, ids, desde_s, hasta_s, 'rotura')
+            return aplicados, omitidos, 'cierre del enlace por control'
+
+        area = float(evento.get('area_m2', 0.01))
+        coef = float(evento.get('coef_descarga', 0.75))
+        aplicados, omitidos = [], []
+        for elemento in ids:
+            try:
+                tuberia = wn.get_link(elemento)
+            except KeyError:
+                omitidos.append({'id': str(elemento), 'motivo': 'no existe en la red'})
+                continue
+
+            nudo = None
+            for extremo in (tuberia.start_node, tuberia.end_node):
+                if extremo.node_type == 'Junction':
+                    nudo = extremo
+                    break
+            if nudo is None:
+                omitidos.append({'id': str(elemento), 'motivo': 'ningún extremo es un nudo de consumo donde poner la fuga'})
+                continue
+
+            nudo.add_leak(wn, area=area, discharge_coeff=coef, start_time=desde_s, end_time=hasta_s)
+            aplicados.append(f'{elemento}@{nudo.name}')
+        return aplicados, omitidos, f'fuga de {area} m2 (Cd={coef}) en un nudo extremo, sin partir la tubería'
+
+    def _evento_paro_bomba(self, wn, evento, duration_hours):
+        """Bomba fuera de servicio: corte de energía, avería o parada operativa."""
+        desde_s, hasta_s = self._ventana_s(evento, duration_hours)
+        aplicados, omitidos = self._cerrar_enlaces(
+            wn, evento.get('elementos') or [], desde_s, hasta_s, 'paro')
+        return aplicados, omitidos, 'bomba cerrada por control en la ventana del evento'
+
+    def _evento_perdida_control(self, wn, evento, duration_hours):
+        """
+        Pérdida de control: los automatismos dejan de actuar y los activos se
+        quedan como están (el caso de ciberseguridad, y también el de un SCADA
+        caído).
+
+        Los controles de WNTR son estáticos: no se pueden «apagar» a mitad de
+        simulación, así que la pérdida se modela para toda la ventana simulada y
+        así se declara. Lo que sí respeta la ventana es la congelación explícita
+        de activos, que se hace con controles propios.
+        """
+        alcance = evento.get('alcance', 'todos')
+        nombres = list(wn.control_name_list) if alcance == 'todos' else [str(c) for c in alcance]
+
+        retirados = []
+        omitidos = []
+        for nombre in nombres:
+            try:
+                wn.remove_control(nombre)
+                retirados.append(nombre)
+            except (KeyError, ValueError):
+                omitidos.append({'id': nombre, 'motivo': 'no es un control de la red'})
+
+        desde_s, hasta_s = self._ventana_s(evento, duration_hours)
+        congelados = []
+        for elemento in evento.get('congelar') or []:
+            try:
+                link = wn.get_link(elemento)
+            except KeyError:
+                omitidos.append({'id': str(elemento), 'motivo': 'no existe en la red'})
+                continue
+            estado = LinkStatus.Closed if str(evento.get('congelar_en', 'cerrado')).lower() == 'cerrado' else LinkStatus.Open
+            wn.add_control(
+                f'congela_{elemento}',
+                ctrls.Control(
+                    ctrls.SimTimeCondition(wn, '=', desde_s),
+                    ctrls.ControlAction(link, 'status', estado),
+                    name=f'congela_{elemento}',
+                ),
+            )
+            congelados.append(str(elemento))
+
+        aplicados = [f'controles_retirados:{len(retirados)}'] + [f'congelado:{c}' for c in congelados]
+        return aplicados, omitidos, 'controles retirados durante toda la ventana simulada; activos congelados con control propio'
+
+    def _evento_sobredemanda(self, wn, evento, duration_hours):
+        """
+        Sobredemanda: incendio, rotura de consigna o punta estacional.
+
+        Se añade una demanda **aditiva** de (multiplicador − 1) × demanda base en
+        la ventana, no un factor sobre el patrón existente. Es como se modela un
+        caudal de incendio, y evita tener que rehacer el patrón de cada nudo con
+        su propio paso de tiempo. Para una punta estacional la diferencia es de
+        segundo orden, y el método va declarado.
+        """
+        multiplicador = float(evento.get('multiplicador', 2.0))
+        if multiplicador <= 1.0:
+            return [], [{'id': 'multiplicador', 'motivo': 'debe ser mayor que 1'}], 'sin efecto'
+
+        desde_s, hasta_s = self._ventana_s(evento, duration_hours)
+        fin_s = hasta_s if hasta_s is not None else float(duration_hours) * 3600.0
+
+        nudos = evento.get('nudos')
+        if not nudos or nudos == 'todos':
+            nudos = list(wn.junction_name_list)
+
+        # Un patrón de 0/1 con el paso del patrón de la red: dentro de la ventana
+        # entra la demanda extra, fuera no.
+        paso = float(wn.options.time.pattern_timestep or wn.options.time.hydraulic_timestep or 3600.0)
+        n = max(1, int(np.ceil(float(duration_hours) * 3600.0 / paso)) + 1)
+        mascara = [1.0 if desde_s <= i * paso < fin_s else 0.0 for i in range(n)]
+        nombre_patron = 'boorie_sobredemanda'
+        if nombre_patron not in wn.pattern_name_list:
+            wn.add_pattern(nombre_patron, mascara)
+
+        aplicados, omitidos = [], []
+        for elemento in nudos:
+            try:
+                nudo = wn.get_node(elemento)
+            except KeyError:
+                omitidos.append({'id': str(elemento), 'motivo': 'no existe en la red'})
+                continue
+            if nudo.node_type != 'Junction' or not nudo.demand_timeseries_list:
+                omitidos.append({'id': str(elemento), 'motivo': 'no es un nudo con demanda'})
+                continue
+
+            base = float(nudo.demand_timeseries_list[0].base_value)
+            if base <= 0:
+                omitidos.append({'id': str(elemento), 'motivo': 'demanda base nula o negativa'})
+                continue
+            nudo.demand_timeseries_list.append(
+                (base * (multiplicador - 1.0), nombre_patron, 'boorie_sobredemanda'))
+            aplicados.append(str(elemento))
+
+        return aplicados, omitidos, f'demanda aditiva de {multiplicador - 1.0:.2f} x la base en la ventana'
+
+    def _evento_reduccion_fuente(self, wn, evento, duration_hours):
+        """
+        Menos agua en el origen: sequía, o un embalse que baja de nivel.
+
+        Se aplica sobre `base_head` del embalse y para toda la simulación: la
+        ventana no se respeta a propósito, porque una sequía no es un evento con
+        hora de inicio y el nivel de una fuente no se recupera a mitad del día.
+        """
+        factor = float(evento.get('factor', 0.5))
+        aplicados, omitidos = [], []
+        for elemento in evento.get('elementos') or []:
+            try:
+                nodo = wn.get_node(elemento)
+            except KeyError:
+                omitidos.append({'id': str(elemento), 'motivo': 'no existe en la red'})
+                continue
+            if nodo.node_type != 'Reservoir':
+                omitidos.append({'id': str(elemento), 'motivo': 'no es un embalse'})
+                continue
+            if 'nivel_m' in evento:
+                nodo.base_head = float(evento['nivel_m'])
+            else:
+                nodo.base_head = float(nodo.base_head) * factor
+            aplicados.append(f'{elemento}->{nodo.base_head:.2f} m')
+        detalle = f"nivel fijado a {evento['nivel_m']} m" if 'nivel_m' in evento else f'base_head x {factor}'
+        return aplicados, omitidos, f'{detalle}, durante toda la simulación'
+
+    EVENTOS = {
+        'pipe_break': '_evento_rotura',
+        'pump_outage': '_evento_paro_bomba',
+        'control_loss': '_evento_perdida_control',
+        'demand_surge': '_evento_sobredemanda',
+        'source_reduction': '_evento_reduccion_fuente',
+    }
+
+    def _aplicar_eventos(self, wn, eventos, duration_hours):
+        aplicados = []
+        for i, evento in enumerate(eventos):
+            tipo = str(evento.get('tipo', '')).lower()
+            metodo = self.EVENTOS.get(tipo)
+            if metodo is None:
+                aplicados.append({
+                    'indice': i, 'tipo': tipo, 'aplicado': False,
+                    'omitidos': [{'id': tipo, 'motivo': f'tipo de evento desconocido; admitidos: {", ".join(sorted(self.EVENTOS))}'}],
+                })
+                continue
+            hechos, omitidos, como = getattr(self, metodo)(wn, evento, duration_hours)
+            aplicados.append({
+                'indice': i,
+                'tipo': tipo,
+                'aplicado': bool(hechos),
+                'elementos': hechos,
+                'metodo': como,
+                'omitidos': omitidos,
+                'desde_h': float(evento.get('desde_h', 0.0)),
+                'hasta_h': evento.get('hasta_h'),
+            })
+        return aplicados
+
+    # ------------------------------------------------------------------
     # Población y clientes afectados (#32)
     # ------------------------------------------------------------------
     def _enable_pda(self, wn, required_pressure, minimum_pressure):
@@ -469,6 +726,115 @@ class WNTRResilienceService:
         except Exception as e:
             print(json.dumps({'success': False, 'error': str(e)}))
 
+    def simulate_scenario(self, inp_file, options=None):
+        """
+        Ejecuta un escenario declarativo y devuelve su impacto (#43).
+
+        Dos corridas en PDA, igual que la interrupción de un componente: una de
+        referencia y otra con los eventos aplicados. La de referencia no es un
+        lujo —sin ella, el déficit que la red ya arrastra se le atribuye al
+        escenario, y en la red de pruebas eso son 2009 habitantes que nadie
+        perdió por el evento (ver docs/POBLACION_AFECTADA_PDA.md).
+
+        PDA no es opcional: en modo dirigido por demanda un nudo con 5 m de
+        columna recibe el 100% de su demanda y cualquier escenario de degradación
+        sale con impacto cero.
+        """
+        start_time = time.time()
+        try:
+            options = options or {}
+            eventos = options.get('eventos') or []
+            if not eventos:
+                print(json.dumps({'success': False, 'error': 'El escenario no declara ningún evento'}))
+                return
+
+            duration_hours = float(options.get('duration_hours', 24))
+            min_pressure_threshold = float(options.get('min_pressure_threshold', 10.0))
+            required_pressure = float(options.get('required_pressure', DEFAULT_REQUIRED_PRESSURE))
+            minimum_pressure = float(options.get('minimum_pressure', DEFAULT_MINIMUM_PRESSURE))
+
+            wn_base = self.load_network(inp_file)
+            self._enable_pda(wn_base, required_pressure, minimum_pressure)
+            res_base, conv_base = self._run_extended_checked(wn_base, duration_hours)
+
+            wn_ev = self.load_network(inp_file)
+            self._enable_pda(wn_ev, required_pressure, minimum_pressure)
+            aplicados = self._aplicar_eventos(wn_ev, eventos, duration_hours)
+
+            if not any(e['aplicado'] for e in aplicados):
+                print(json.dumps({
+                    'success': False,
+                    'error': 'Ningún evento del escenario pudo aplicarse sobre esta red',
+                    'eventos': aplicados,
+                }))
+                return
+
+            res_ev, conv_ev = self._run_extended_checked(wn_ev, duration_hours)
+
+            presion = res_ev.node['pressure']
+            presion_base = res_base.node['pressure']
+            index = presion.index.to_numpy(dtype=float)
+            intervalos_h = (np.diff(index) / 3600.0) if len(index) > 1 else np.array([0.0])
+
+            nudos_bajo_minimo = []
+            for nudo in wn_ev.junction_name_list:
+                serie = presion.loc[:, nudo]
+                min_p = float(serie.min())
+                min_base = float(presion_base.loc[:, nudo].min()) if nudo in presion_base.columns else min_p
+                bajo = (serie < min_pressure_threshold).to_numpy()
+                horas = float((bajo[:-1] * intervalos_h).sum()) if len(index) > 1 else 0.0
+                if min_p < min_pressure_threshold or horas > 0:
+                    nudos_bajo_minimo.append({
+                        'id': str(nudo),
+                        'min_pressure': min_p,
+                        'baseline_min_pressure': min_base,
+                        'pressure_drop': min_base - min_p,
+                        'hours_below_threshold': horas,
+                    })
+            nudos_bajo_minimo.sort(key=lambda n: n['hours_below_threshold'], reverse=True)
+
+            poblacion = self._population_impact(wn_base, res_base, wn_ev, res_ev, options)
+
+            resultado = {
+                'success': True,
+                'data': {
+                    'status': 'Completed',
+                    'execution_time': time.time() - start_time,
+                    'scenario': {
+                        'name': options.get('nombre') or 'Escenario sin nombre',
+                        'events': aplicados,
+                        'duration_hours': duration_hours,
+                    },
+                    # La demanda no satisfecha, que es la cifra que da sentido a
+                    # todo lo demás: sale de las mismas dos corridas PDA.
+                    'unmet_demand': {
+                        'total_m3': poblacion['event']['undelivered_volume_m3'],
+                        'baseline_m3': poblacion['baseline']['undelivered_volume_m3'],
+                        'attributable_m3': poblacion['attributable_to_event']['undelivered_volume_m3'],
+                        'by_node': [
+                            {'id': n['id'], 'undelivered_m3': n['undelivered_m3'],
+                             'outage_hours': n['outage_hours'],
+                             'min_service_availability': n['min_service_availability']}
+                            for n in poblacion['event']['affected_nodes']
+                        ],
+                        'max_deficit_hours': poblacion['event']['max_outage_hours'],
+                    },
+                    'nodes_below_minimum_pressure': nudos_bajo_minimo,
+                    'min_pressure_threshold': min_pressure_threshold,
+                    'total_junction_count': len(wn_ev.junction_name_list),
+                    'population': poblacion,
+                    'timestamps': index.tolist(),
+                    'convergence_warnings': {
+                        'baseline': conv_base,
+                        'event': conv_ev,
+                        'converged': not conv_base and not conv_ev,
+                    },
+                },
+            }
+            print(json.dumps(resultado))
+        except Exception as e:
+            print(json.dumps({'success': False, 'error': str(e)}))
+
     # ------------------------------------------------------------------
     # Feature: Indicadores de resiliencia (#23)
     # ------------------------------------------------------------------
@@ -645,6 +1011,8 @@ if __name__ == "__main__":
         service.skeletonize(inp_file, cli_options)
     elif command == 'simulate_failure':
         service.simulate_failure(inp_file, cli_options)
+    elif command == 'scenario':
+        service.simulate_scenario(inp_file, cli_options)
     elif command == 'resilience_indicators':
         service.resilience_indicators(inp_file, cli_options)
     elif command == 'fragility_curve':

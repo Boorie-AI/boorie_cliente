@@ -110,6 +110,65 @@ export interface SimulateFailureResult {
   error?: string;
 }
 
+/**
+ * Un evento de escenario (#43).
+ *
+ * Las cuatro familias de causa del issue —naturales, operativas, inducidas y de
+ * demanda— no son cuatro mecanismos en WNTR: se expresan con estos cinco. Un
+ * terremoto es una lista de roturas, y un ciberataque una pérdida de control.
+ */
+export type EscenarioEvento =
+  | { tipo: 'pipe_break'; elementos: string[]; modo?: 'cierre' | 'fuga'; area_m2?: number; coef_descarga?: number; desde_h?: number; hasta_h?: number | null }
+  | { tipo: 'pump_outage'; elementos: string[]; desde_h?: number; hasta_h?: number | null }
+  | { tipo: 'control_loss'; alcance?: 'todos' | string[]; congelar?: string[]; congelar_en?: 'cerrado' | 'abierto'; desde_h?: number; hasta_h?: number | null }
+  | { tipo: 'demand_surge'; nudos?: string[] | 'todos'; multiplicador: number; desde_h?: number; hasta_h?: number | null }
+  | { tipo: 'source_reduction'; elementos: string[]; factor?: number; nivel_m?: number }
+
+export interface EventoAplicado {
+  indice: number
+  tipo: string
+  aplicado: boolean
+  elementos?: string[]
+  /** Cómo se modeló: varios eventos admiten más de una forma y la cifra depende de cuál. */
+  metodo?: string
+  omitidos: Array<{ id: string; motivo: string }>
+  desde_h?: number
+  hasta_h?: number | null
+}
+
+export interface SimulateScenarioResult {
+  success: boolean
+  data?: {
+    status: string
+    execution_time: number
+    scenario: { name: string; events: EventoAplicado[]; duration_hours: number }
+    /** La cifra que da sentido al resto: cuánta demanda se queda sin servir. */
+    unmet_demand: {
+      total_m3: number
+      baseline_m3: number
+      /** Lo que causa el escenario, descontado el déficit que la red ya tenía. */
+      attributable_m3: number
+      by_node: Array<{ id: string; undelivered_m3: number; outage_hours: number; min_service_availability: number }>
+      max_deficit_hours: number
+    }
+    nodes_below_minimum_pressure: Array<{
+      id: string
+      min_pressure: number
+      baseline_min_pressure: number
+      pressure_drop: number
+      hours_below_threshold: number
+    }>
+    min_pressure_threshold: number
+    total_junction_count: number
+    population: PopulationImpact
+    timestamps: number[]
+    convergence_warnings: { baseline: string[]; event: string[]; converged: boolean }
+  }
+  error?: string
+  /** Cuando ningún evento se pudo aplicar, para poder decir por qué. */
+  eventos?: EventoAplicado[]
+}
+
 export interface ResilienceSnapshot {
   todini_index: number;
   network_entropy: number;
@@ -192,6 +251,33 @@ export class WNTRResilienceService {
     persons_per_connection?: number;
   }): Promise<SimulateFailureResult> {
     return this.executePythonService('simulate_failure', networkFile, options);
+  }
+
+  /**
+   * Ejecuta un escenario declarativo (#43).
+   *
+   * Dos corridas en PDA —referencia y evento— porque sin la de referencia el
+   * déficit que la red ya arrastra se le atribuye al escenario. El resultado
+   * trae la demanda no satisfecha por nudo y total, los nudos bajo presión
+   * mínima con su duración, y los habitantes y clientes afectados con el método
+   * declarado.
+   */
+  async simulateScenario(networkFile: string, definicion: {
+    nombre?: string
+    eventos: EscenarioEvento[]
+    duration_hours?: number
+    min_pressure_threshold?: number
+    /** Presión a la que PDA entrega el 100% de la demanda. */
+    required_pressure?: number
+    /** Presión por debajo de la cual PDA no entrega nada. */
+    minimum_pressure?: number
+    /** Módulo de demanda media en l/hab/día (típico LatAm 150-300, por defecto 200). */
+    demand_module_lphd?: number
+    availability_threshold?: number
+    /** Habitantes por acometida. Si se omite no se reportan clientes. */
+    persons_per_connection?: number
+  }): Promise<SimulateScenarioResult> {
+    return this.executePythonService('scenario', networkFile, definicion);
   }
 
   async calculateResilienceIndicators(networkFile: string, options?: {
