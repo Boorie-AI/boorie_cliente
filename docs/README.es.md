@@ -39,15 +39,25 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.17.1
+### 🚀 Última Versión - v1.18.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.17.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.1/Boorie-1.17.1-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.17.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.1/Boorie-Setup-1.17.1.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.17.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.1/Boorie-1.17.1.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.18.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.18.0/Boorie-1.18.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.18.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.18.0/Boorie-Setup-1.18.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.18.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.18.0/Boorie-1.18.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.18.0
+- Escenarios de interrupción del servicio: rotura de tubería, bomba fuera de servicio, pérdida del control de los automatismos, sobredemanda por incendio o sequía en el origen, combinables entre sí.
+- Pregúntaselo al chat: «¿cuántos clientes quedan sin servicio si se pierde el control de las bombas 4 horas?». Boorie propone el escenario, lo enseña entero y espera tu confirmación: nada se simula sin tu visto bueno.
+- Las cifras salen de la simulación y la respuesta cita la ejecución que las respalda, así que puedes ir a ella en el historial del proyecto.
+- El impacto se mide contra tu red sin el evento: el déficit que ya arrastraba no se le atribuye al escenario.
+- Consumo y coste de bombeo por bomba, con el reparto entre horas punta y valle según la tarifa de tu proyecto.
+- Boorie señala la bomba que trabaja fuera de su punto óptimo, comparando con la curva de eficiencia de tu propio archivo.
+- Y puedes comprobar si una medida ahorra de verdad: se simula la red con ella y se resta, con lo que le cuesta al servicio.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.18.0).
 
 ### 📝 Novedades en v1.17.1
 - Si preguntabas por tus simulaciones y Boorie contestaba «no hay datos», ya está resuelto: la búsqueda tarda una sexta parte y el chat cita los documentos de los que saca cada dato.

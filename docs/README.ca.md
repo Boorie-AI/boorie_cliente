@@ -39,15 +39,25 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.17.1
+### 🚀 Última Versió - v1.18.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.17.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.1/Boorie-1.17.1-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.17.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.1/Boorie-Setup-1.17.1.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.17.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.1/Boorie-1.17.1.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.18.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.18.0/Boorie-1.18.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.18.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.18.0/Boorie-Setup-1.18.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.18.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.18.0/Boorie-1.18.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.18.0
+- Escenaris d'interrupció del servei: trencament de canonada, bomba fora de servei, pèrdua del control dels automatismes, sobredemanda per incendi o sequera a l'origen, combinables entre si.
+- Pregunta-ho al xat: «quants clients queden sense servei si es perd el control de les bombes 4 hores?». Boorie proposa l'escenari, l'ensenya sencer i espera la teva confirmació: res no se simula sense el teu vistiplau.
+- Les xifres surten de la simulació i la resposta cita l'execució que les avala, així que pots anar-hi des de l'historial del projecte.
+- L'impacte es mesura contra la teva xarxa sense l'esdeveniment: el dèficit que ja arrossegava no s'atribueix a l'escenari.
+- Consum i cost de bombament per bomba, amb el repartiment entre hores punta i vall segons la tarifa del teu projecte.
+- Boorie assenyala la bomba que treballa fora del seu punt òptim, comparant amb la corba d'eficiència del teu propi fitxer.
+- I pots comprovar si una mesura estalvia de veritat: se simula la xarxa amb ella i es resta, amb el que li costa al servei.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.18.0).
 
 ### 📝 Novetats a v1.17.1
 - Si preguntaves per les teves simulacions i Boorie contestava «no hi ha dades», ja està resolt: la cerca triga una sisena part i el xat cita els documents d'on treu cada dada.
