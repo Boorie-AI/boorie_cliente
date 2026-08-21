@@ -51,6 +51,8 @@ export function registerAgenticRAGHandlers(prismaClient: PrismaClient) {
       /** Proyecto desde el que se pregunta (#39, #41). */
       projectId?: string | null
       ambito?: 'general' | 'proyecto' | 'ambos'
+      /** Sólo las fuentes, sin redactar respuesta: es lo que usa el chat (#63). */
+      soloRecuperacion?: boolean
     }
   }) => {
     try {

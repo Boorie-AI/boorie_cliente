@@ -314,7 +314,7 @@ export function createRetrieveNode(
   customConfig?: Partial<RetrievalConfig>
 ): RetrieveNode {
   const defaultConfig: RetrievalConfig = {
-    topK: parseInt(process.env.RETRIEVAL_TOP_K || '10'),
+    topK: parseInt(process.env.RETRIEVAL_TOP_K || '3'),
     minScore: parseFloat(process.env.RETRIEVAL_MIN_SCORE || '0.3'),
     useParentChild: process.env.USE_PARENT_CHILD === 'true',
     includeMetadata: true
