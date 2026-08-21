@@ -248,13 +248,31 @@ class WNTREnergyService:
             horas = float((en_marcha * intervalos_s).sum() / 3600.0)
             caudal_medio = float(np.abs(caudal_bomba[:len(intervalos_s)])[en_marcha].mean()) if en_marcha.any() else 0.0
 
+            # El reparto se acumula dos veces: para la red y para esta bomba.
+            # Sin el detalle por bomba, «mueve el bombeo a horas valle» no puede
+            # decir *qué* bomba mover ni cuánto gasta ahí (#42).
+            bloques_bomba = {}
             for etiqueta, valor, precio in zip(etiquetas, serie_kwh, precios):
                 acumulado = por_bloque.setdefault(etiqueta, {'kwh': 0.0, 'coste': 0.0, 'precio_kwh': float(precio)})
                 acumulado['kwh'] += float(valor)
                 acumulado['coste'] += float(valor) * float(precio)
 
+                propio = bloques_bomba.setdefault(etiqueta, {'kwh': 0.0, 'coste': 0.0, 'precio_kwh': float(precio),
+                                                             'desde_h': None, 'hasta_h': None})
+                propio['kwh'] += float(valor)
+                propio['coste'] += float(valor) * float(precio)
+
+            # Las horas que cubre cada bloque, tomadas de la propia tarifa: son la
+            # ventana de la medida que se va a proponer y verificar.
+            for bloque in tarifa['bloques']:
+                propio = bloques_bomba.get(str(bloque.get('nombre', 'bloque')))
+                if propio is not None:
+                    propio['desde_h'] = float(bloque.get('desde_h', 0.0))
+                    propio['hasta_h'] = float(bloque.get('hasta_h', 24.0))
+
             bombas.append({
                 'nombre': str(nombre),
+                'por_bloque_horario': bloques_bomba,
                 'energia_kwh': float(serie_kwh.sum()),
                 'coste': coste,
                 'horas_en_marcha': horas,
@@ -287,6 +305,50 @@ class WNTREnergyService:
                 'intervalos': int(len(intervalos_s)),
             },
         }
+
+    def _aplicar_punto_optimo(self, wn, elementos):
+        """
+        «¿Y si esta bomba trabajara en su punto óptimo?» (#42).
+
+        Es una medida de energía y no un escenario, así que no vive en el motor
+        del #43: cambia la eficiencia de la bomba, no el estado de la red. Se
+        sustituye su curva por una constante en el valor del punto de máxima
+        eficiencia, y se vuelve a simular.
+
+        Lo que sale **no es un ahorro operativo**: es la brecha entre lo que la
+        bomba gasta hoy y lo que gastaría el mismo servicio en el mejor punto de
+        su curva, que es la cifra con la que se justifica sustituir o
+        redimensionar un equipo. La narración tiene que decirlo así, porque un
+        ahorro que exige comprar una bomba no se compara con mover un horario.
+        """
+        aplicados, omitidos = [], []
+        for elemento in elementos:
+            try:
+                bomba = wn.get_link(elemento)
+            except KeyError:
+                omitidos.append({'id': str(elemento), 'motivo': 'no existe en la red'})
+                continue
+
+            nombre_curva = getattr(bomba, 'efficiency_curve_name', None)
+            if not nombre_curva or nombre_curva not in wn.curve_name_list:
+                omitidos.append({'id': str(elemento), 'motivo': 'no declara curva de eficiencia, así que no hay punto óptimo que alcanzar'})
+                continue
+
+            puntos = [(float(q), float(e)) for q, e in wn.get_curve(nombre_curva).points]
+            if not puntos:
+                omitidos.append({'id': str(elemento), 'motivo': 'su curva de eficiencia está vacía'})
+                continue
+
+            mejor = max(puntos, key=lambda punto: punto[1])
+            plana = f'boorie_bep_{elemento}'
+            if plana not in wn.curve_name_list:
+                # Dos puntos con el mismo valor: la interpolación da esa constante
+                # para cualquier caudal, que es «trabajar siempre en el óptimo».
+                wn.add_curve(plana, 'EFFICIENCY', [(puntos[0][0], mejor[1]), (puntos[-1][0], mejor[1])])
+            bomba.efficiency_curve_name = plana
+            aplicados.append(f'{elemento}@{mejor[1]:.1f}%')
+
+        return aplicados, omitidos, 'eficiencia llevada al punto óptimo de su curva (medida de equipo, no operativa)'
 
     # ------------------------------------------------------------------
     # Comandos
@@ -342,7 +404,23 @@ class WNTREnergyService:
 
             wn_medida = self.base.load_network(inp_file)
             self._eficiencia(wn_medida, opts)
-            aplicadas = self.base._aplicar_eventos(wn_medida, medidas, duracion)
+
+            # `pump_bep` es de este servicio; el resto son eventos del motor de
+            # escenarios (#43) y se aplican con él, sin duplicar vocabulario.
+            propias = [m for m in medidas if str(m.get('tipo')) == 'pump_bep']
+            del_motor = [m for m in medidas if str(m.get('tipo')) != 'pump_bep']
+
+            aplicadas = self.base._aplicar_eventos(wn_medida, del_motor, duracion) if del_motor else []
+            for i, medida in enumerate(propias):
+                hechos, omitidos, como = self._aplicar_punto_optimo(wn_medida, medida.get('elementos') or [])
+                aplicadas.append({
+                    'indice': len(del_motor) + i,
+                    'tipo': 'pump_bep',
+                    'aplicado': bool(hechos),
+                    'elementos': hechos,
+                    'metodo': como,
+                    'omitidos': omitidos,
+                })
             if not any(m['aplicado'] for m in aplicadas):
                 print(json.dumps({
                     'success': False,

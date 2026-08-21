@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { detectarIntencionEscenario } from './intencionEscenario'
+import { detectarIntencionEscenario, detectarIntencionEnergia } from './intencionEscenario'
 import type { RedCompleta } from './agentTools'
 
 const red: RedCompleta = {
@@ -81,5 +81,19 @@ describe('intención de escenario', () => {
 
   it('acepta los ids como los escriba el usuario, sin distinguir mayúsculas', () => {
     expect(detectar('¿qué pasa si se para la bomba b1?')!.elementos).toEqual(['B1'])
+  })
+
+  it('reconoce una pregunta de eficiencia energética', () => {
+    expect(detectarIntencionEnergia('¿cómo puedo reducir el consumo energético del bombeo?')).toBe(true)
+    expect(detectarIntencionEnergia('¿qué puedo hacer para ahorrar en la factura de la luz?')).toBe(true)
+    expect(detectarIntencionEnergia('recomiéndame medidas para bajar los kWh')).toBe(true)
+    expect(detectarIntencionEnergia('¿cuánto me cuesta bombear en hora punta?')).toBe(true)
+  })
+
+  it('no confunde una mención con una petición', () => {
+    // Un dato suelto no es una pregunta: «la tarifa es de 0,18» no pide nada.
+    expect(detectarIntencionEnergia('la tarifa es de 0,18 USD/kWh')).toBe(false)
+    expect(detectarIntencionEnergia('gracias')).toBe(false)
+    expect(detectarIntencionEnergia('¿qué cota tiene el nudo 10?')).toBe(false)
   })
 })

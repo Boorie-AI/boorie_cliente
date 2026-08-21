@@ -3,7 +3,7 @@ import { ipcMain } from 'electron'
 import { createLogger } from '../../backend/utils/logger'
 import { DatabaseService } from '../../backend/services'
 import { HERRAMIENTAS, ejecutarHerramienta, type RedCompleta } from '../../backend/services/hydraulic/agentTools'
-import { detectarIntencionEscenario } from '../../backend/services/hydraulic/intencionEscenario'
+import { detectarIntencionEscenario, detectarIntencionEnergia } from '../../backend/services/hydraulic/intencionEscenario'
 
 /**
  * La red activa tal como la usan las herramientas, con su identificador (#44).
@@ -218,6 +218,34 @@ export class ChatHandler {
                 escenario_detectado_en_codigo: true,
               },
             }
+          }
+        }
+      }
+
+      /**
+       * Y lo mismo para las preguntas de eficiencia energética (#42): el modelo
+       * puesto a responder de memoria da cifras de ahorro inventadas, que es lo
+       * que el issue prohíbe expresamente. Se le ofrece analizar y verificar, y
+       * las cifras llegan de la simulación.
+       */
+      if (red && !result.metadata?.propuesta_escenario && !result.metadata?.propuesta_energia) {
+        const pregunta = preguntaOriginal
+          ?? [...messages].reverse().find(m => m.role === 'user')?.content
+          ?? ''
+        if (detectarIntencionEnergia(pregunta)) {
+          result = {
+            response:
+              'Puedo analizar el consumo de bombeo de tu red y proponerte medidas, pero **simulando cada una** ' +
+              'para decirte lo que ahorra de verdad. Confírmalo y lo hago; no te doy cifras de ahorro sin haberlas ' +
+              'simulado.',
+            metadata: {
+              ...result.metadata,
+              // El proyecto va con la propuesta porque **su tarifa manda**: sin
+              // él se calcula con la general y, medido, eso hacía desaparecer
+              // las candidatas —sin bloque de punta no hay hora cara que evitar.
+              propuesta_energia: { red_id: red.id, project_id: projectId ?? null },
+              escenario_detectado_en_codigo: true,
+            },
           }
         }
       }

@@ -136,3 +136,22 @@ export function detectarIntencionEscenario(texto: string, red: RedCompleta): Int
     motivo: `pregunta condicional sobre ${familia.tipo}`,
   }
 }
+
+/**
+ * Preguntas de eficiencia energética (#42, segunda entrega).
+ *
+ * Va aparte de las de escenario porque la respuesta es otra: no se propone un
+ * evento, se propone **analizar el bombeo y verificar medidas**. Y va en código
+ * por lo mismo que allí: el modelo local no llama a las herramientas y, puesto a
+ * responder de memoria, da cifras de ahorro inventadas, que es justo lo que el
+ * issue prohíbe.
+ */
+const ENERGIA = /\b(ahorr\w+|eficiencia\s+energétic\w+|consumo\s+(de\s+)?(energ|el[eé]ctric)\w*|factura\s+(de\s+)?(la\s+)?luz|coste\s+(de\s+)?(la\s+)?energ\w+|kwh|horas?\s+valle|hora\s+punta|tarifa)\b/i
+
+/** Verbos que convierten la mención en una petición. */
+const PIDE = /\b(cómo|como|puedo|podr[íi]a|qué|que|cuánto|cuanto|recomienda|recomiéndame|sugiere|reduce|reducir|bajar|optimiza|optimizar|mejorar|analiza|analizar)\b/i
+
+export function detectarIntencionEnergia(texto: string): boolean {
+  if (!texto) return false
+  return ENERGIA.test(texto) && PIDE.test(texto)
+}
