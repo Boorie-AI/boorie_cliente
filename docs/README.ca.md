@@ -39,15 +39,22 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.20.1
+### 🚀 Última Versió - v1.20.2
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.20.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.1/Boorie-1.20.1-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.20.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.1/Boorie-Setup-1.20.1.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.20.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.1/Boorie-1.20.1.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.20.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.2/Boorie-1.20.2-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.20.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.2/Boorie-Setup-1.20.2.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.20.2.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.2/Boorie-1.20.2.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.20.2
+- A Linux l'aplicació obria sense base de dades: no apareixien els projectes, ni les xarxes, ni les converses. Ja està arreglat.
+- El paquet triava un component compilat per a Alpine, que no es pot carregar a Ubuntu, Debian ni Fedora; ara tria el que correspon al teu sistema i el comprova abans d'usar-lo.
+- Si feies servir l'AppImage i no veies les teves dades, no s'havien perdut: el fitxer no es va arribar a obrir mai.
+- L'instal·lador ja no porta bases de dades a dins: només s'empaqueta la definició de les taules.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.20.2).
 
 ### 📝 Novetats a v1.20.1
 - Manteniment de seguretat: no canvia res del que veus, no hi ha funcions noves ni canvis de comportament.

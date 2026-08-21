@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.20.1
+### 🚀 Latest Release - v1.20.2
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.20.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.1/Boorie-1.20.1-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.20.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.1/Boorie-Setup-1.20.1.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.20.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.1/Boorie-1.20.1.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.20.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.2/Boorie-1.20.2-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.20.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.2/Boorie-Setup-1.20.2.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.20.2.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.2/Boorie-1.20.2.AppImage) |
 
 ### 📝 What's New
 
+- **v1.20.2**: Packaging fixes. On Linux, the application can now open its database. It used to open with none —no projects, no networks, no conversations— because the package picked a component built for Alpine, which cannot be loaded on Ubuntu, Debian, Fedora or any other common distribution, so the application never connected. It now picks the one that matches your system and checks it before using it. If you were using the AppImage and could not see your data, nothing was lost: the file was never opened. The installer no longer carries databases inside either: until now it shipped somebody else's test database, with AI providers configured in it, and whoever built the installer from source also put their own in, with their projects. Only the table definitions are packaged; every installation creates its own on startup, as it already did. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.20.2).
 - **v1.20.1**: Security maintenance. Nothing you see changes: no new features and no changes in behaviour. The dependencies with known vulnerabilities are updated — 23 down to zero, two of them critical — and Electron moves to 42.9.3, which brings the Chromium security patches the application uses to draw its whole interface. Before publishing it we checked that automatic updating from 1.20.0 still works, that the 464 automated checks are still green, and that the application starts, loads a network and simulates just as before. That is the part with real risk in an update like this, because the tools that build the installer move too. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.20.1).
 - **v1.20.0**: You can now tell Boorie whether a recommendation is useful to you. Every energy efficiency measure can be marked as useful or wrong, both in the panel and in the chat. If you mark it as wrong you can explain why, and that explanation is the most valuable thing stored: the figure comes from the simulation, but *why* a measure does not work on your network only you know. What you rate is stored together with the simulation that backed the figure, so the whole rating can be read back: what was recommended, how much it saved, on which run, and what you said. Returning to the panel shows the measures you already rated instead of asking again, and changing your mind replaces the previous rating rather than piling up another. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.20.0).
 - **v1.19.0**: Boorie now recommends how to spend less on pumping, and every figure comes from a simulation. Ask «how can I reduce the pumping energy?» and it proposes concrete measures, simulating each one on your network before giving you a number — so what you see is what it really saves, not an estimate. In the test network: taking pump 335 out of the peak-price hours saves 77.4 kWh and 19.49 USD a day, without leaving anyone without water. Every saving cites the simulation that backs it, stored in the project history. It also tells you what it costs to run a pump away from its best efficiency point — not as an estimate: the same network is simulated with that pump at the best point of its curve and subtracted (155.9 kWh a day in the test network, 46%), labelled «requires new equipment» so it is not confused with shifting a schedule. Measures that do **not** work are shown too, with their figure: stopping pumping during expensive hours sounds good and in some networks consumes more, because the tanks drain and have to be recovered afterwards. And a fault affecting the previous version's scenarios is fixed: in a network whose automation drives the pumping, stopping a pump had no effect —its own control started it again— and the scenario reported no impact. If you ran a pump outage on v1.18.0 and got no impact, run it again. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.19.0).
@@ -95,12 +96,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.20.1.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.20.1.AppImage`
-3. Run: `./Boorie-1.20.1.AppImage`
+1. Download `Boorie-1.20.2.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.20.2.AppImage`
+3. Run: `./Boorie-1.20.2.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.20.1.exe` from the link above
+1. Download `Boorie-Setup-1.20.2.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 
