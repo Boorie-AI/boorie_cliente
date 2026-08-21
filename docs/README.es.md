@@ -39,15 +39,22 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.15.1
+### 🚀 Última Versión - v1.16.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.15.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.15.1/Boorie-1.15.1-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.15.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.15.1/Boorie-Setup-1.15.1.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.15.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.15.1/Boorie-1.15.1.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.16.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.16.0/Boorie-1.16.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.16.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.16.0/Boorie-Setup-1.16.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.16.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.16.0/Boorie-1.16.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.16.0
+- Los ajustes de indexación de simulaciones se pueden fijar por proyecto, no sólo para todo Boorie: en Ajustes → General eliges si tocas los generales o los del proyecto activo.
+- Útil cuando un proyecto se rige por una normativa distinta o está en una etapa de ajuste fino.
+- Un proyecto hereda hasta que lo tocas: mientras no cambies nada en su ámbito, sigue los ajustes generales.
+- «Volver a heredar» deshace esa separación y devuelve el proyecto a los ajustes generales.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.16.0).
 
 ### 📝 Novedades en v1.15.1
 - Si Boorie no te dejaba abrir ni listar las redes de un proyecto, ya está resuelto: a las instalaciones les faltaban tres columnas que la aplicación daba por hechas desde la v1.6.0.
