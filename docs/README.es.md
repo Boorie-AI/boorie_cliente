@@ -39,15 +39,23 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.17.0
+### 🚀 Última Versión - v1.17.1
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.17.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.0/Boorie-1.17.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.17.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.0/Boorie-Setup-1.17.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.17.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.0/Boorie-1.17.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.17.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.1/Boorie-1.17.1-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.17.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.1/Boorie-Setup-1.17.1.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.17.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.1/Boorie-1.17.1.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.17.1
+- Si preguntabas por tus simulaciones y Boorie contestaba «no hay datos», ya está resuelto: la búsqueda tarda una sexta parte y el chat cita los documentos de los que saca cada dato.
+- La búsqueda del Wisdom Center ya no dice «no encontré información» cuando sí la encontró: si no termina de redactar a tiempo, lo dice y enumera las fuentes localizadas.
+- El «Max Results» del selector de conocimiento por fin hace algo, y viene en 3.
+- La comprobación de seguridad sobre lo recuperado vuelve a funcionar: antes se quedaba a medias por falta de tiempo y rechazaba documentos que sí respondían.
+- Boorie espera lo que hace falta para responder: hasta tres minutos por las fuentes y ocho para la respuesta completa.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.17.1).
 
 ### 📝 Novedades en v1.17.0
 - El desplegable de modelos desaparece del chat: las respuestas las escribe siempre el modelo que Boorie tiene fijado para ingeniería hidráulica.

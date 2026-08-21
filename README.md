@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.17.0
+### 🚀 Latest Release - v1.17.1
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.17.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.0/Boorie-1.17.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.17.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.0/Boorie-Setup-1.17.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.17.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.0/Boorie-1.17.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.17.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.1/Boorie-1.17.1-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.17.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.1/Boorie-Setup-1.17.1.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.17.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.1/Boorie-1.17.1.AppImage) |
 
 ### 📝 What's New
 
+- **v1.17.1**: The chat answers from what is indexed again, instead of saying there is nothing. If you asked about your simulations and Boorie replied «no data», that is fixed: searching the project's knowledge took longer than the chat was willing to wait, so the answer came back without a single source even though they were indexed. The search now takes a sixth of the time and the chat cites the documents each figure comes from. The Wisdom Center search no longer claims it found nothing when it did: if the drafting does not finish in time it says so and lists the sources it located. The knowledge selector's «Max Results» finally does something — it used to move without changing anything — and it now ships at 3, which is what a machine without a dedicated graphics card reviews in reasonable time. The security check on retrieved content works again: it always ran out of time, a minute per query checking nothing, and it also rejected documents that did answer the question. And Boorie now waits as long as answering takes: up to three minutes for the sources and eight for the full answer, instead of cutting off just before having it. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.17.1).
 - **v1.17.0**: Boorie picks the model that answers you and stops asking. The model dropdown is gone from the chat: answers are always written by the model Boorie has fixed for hydraulic engineering, so you can no longer end up asking an unvalidated one without knowing — the dropdown used to offer NVIDIA's whole catalogue, models that were not even Nemotron among them. Two roles, each with its model: one reasons over what is retrieved from the knowledge base and writes the answer; a faster one rephrases your question and decides which documents are worth using, the task that repeats for every fragment and where the waiting shows. If the main model is unavailable the auxiliary answers and the reply says so, instead of leaving you with nothing and no explanation. The model name no longer appears under each answer — it stays in the log, where it is needed. And a first install downloads 2.7 GB instead of 24 GB: the model shipped before could not answer on a machine without a dedicated graphics card — measured, it took some 45 minutes for an answer that now takes two and a half. Settings → AI still holds your keys and each provider's catalogue, and now says that ticking models there does not change who answers in the chat. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.17.0).
 - **v1.16.0**: Each project can have its own thresholds. The simulation indexing settings can now be set per project, not just for the whole of Boorie: in Settings → General you choose whether you are editing the general ones or those of the active project — useful when a project follows a different regulation or is in a fine-tuning stage. A project inherits until you touch it: while you change nothing in its scope it follows the general settings, so if tomorrow you change the minimum pressure for everyone, that project changes too. The moment you touch something it keeps its own, and the screen says so. «Back to inherited» undoes that split. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.16.0).
 - **v1.15.1**: Fixes a fault that left networks unreachable in real installations. If Boorie would not let you open or list a project's networks, that is resolved. Installations were missing three columns the app had assumed since v1.6.0, so any screen touching networks failed. **Your data was never lost**: the networks, their versions and their simulations were still stored — the app simply could not read them, and opening this version repairs them. It affected fresh installs and upgrades from before v1.6.0; if you never saw the error, there is nothing to do. The guardrails tab can list its recorded violations again. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.15.1).
@@ -90,12 +91,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.17.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.17.0.AppImage`
-3. Run: `./Boorie-1.17.0.AppImage`
+1. Download `Boorie-1.17.1.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.17.1.AppImage`
+3. Run: `./Boorie-1.17.1.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.17.0.exe` from the link above
+1. Download `Boorie-Setup-1.17.1.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 

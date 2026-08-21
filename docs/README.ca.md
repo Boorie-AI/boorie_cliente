@@ -39,15 +39,23 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.17.0
+### 🚀 Última Versió - v1.17.1
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.17.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.0/Boorie-1.17.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.17.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.0/Boorie-Setup-1.17.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.17.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.0/Boorie-1.17.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.17.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.1/Boorie-1.17.1-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.17.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.1/Boorie-Setup-1.17.1.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.17.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.1/Boorie-1.17.1.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.17.1
+- Si preguntaves per les teves simulacions i Boorie contestava «no hi ha dades», ja està resolt: la cerca triga una sisena part i el xat cita els documents d'on treu cada dada.
+- La cerca del Wisdom Center ja no diu «no he trobat informació» quan sí que l'ha trobada: si no acaba de redactar a temps, ho diu i enumera les fonts localitzades.
+- El «Max Results» del selector de coneixement per fi fa alguna cosa, i ve a 3.
+- La comprovació de seguretat sobre el que es recupera torna a funcionar: abans es quedava a mitges per manca de temps i rebutjava documents que sí que responien.
+- Boorie espera el que calgui per respondre: fins a tres minuts per les fonts i vuit per la resposta completa.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.17.1).
 
 ### 📝 Novetats a v1.17.0
 - El desplegable de models desapareix del xat: les respostes les escriu sempre el model que Boorie té fixat per a enginyeria hidràulica.
