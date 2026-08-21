@@ -11,6 +11,7 @@ import { WNTREnergyService } from '../../backend/services/hydraulic/energyServic
 import { TarifaElectricaService, TARIFA_POR_DEFECTO, bloquesSolapados, type TarifaElectrica } from '../../backend/services/hydraulic/tarifaElectrica'
 import { generarCandidatas, type Candidata } from '../../backend/services/hydraulic/recomendacionesEnergia'
 import { NetworkVersionService } from '../../backend/services/hydraulic/networkVersions'
+import { FeedbackRecomendacionesService } from '../../backend/services/hydraulic/feedbackRecomendaciones'
 import { getPythonStatus } from '../../backend/services/hydraulic/pythonDetector'
 import { guardrailsWrapper } from '../../backend/services/guardrails/guardrailsWrapper'
 
@@ -738,6 +739,48 @@ export function setupWNTRHandlers(prisma?: import('@prisma/client').PrismaClient
       return { success: true, data: { analisis: analisis.data, recomendaciones } }
     } catch (error) {
       console.error('Error recommending energy measures:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+  /**
+   * Si una recomendación sirvió o no (#42, tercera entrega).
+   *
+   * El registro se guarda con la ejecución que respaldó la cifra, porque es lo
+   * que lo convierte en el dataset que el issue quiere para el Enfoque B. Sin
+   * base de datos no hay nada que guardar, y se dice en vez de fingir que sí.
+   */
+  ipcMain.handle('energia:feedback', async (_e, feedback: any) => {
+    try {
+      if (!prisma) return { success: false, error: 'Sin base de datos no se puede guardar la valoración' }
+      if (!feedback?.runId) return { success: false, error: 'Falta la ejecución que respalda la cifra' }
+      if (feedback.rating !== 1 && feedback.rating !== -1) {
+        return { success: false, error: 'La valoración sólo puede ser útil (1) o incorrecta (-1)' }
+      }
+
+      const guardado = await new FeedbackRecomendacionesService(prisma).guardar(feedback)
+      return { success: true, data: guardado }
+    } catch (error) {
+      console.error('Error guardando el feedback de la recomendación:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+  ipcMain.handle('energia:feedback-de', async (_e, runIds: string[]) => {
+    try {
+      if (!prisma) return { success: true, data: {} }
+      return { success: true, data: await new FeedbackRecomendacionesService(prisma).de(runIds ?? []) }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+  /** El dataset acumulado, entero y sin resumir: es para lo que existe. */
+  ipcMain.handle('energia:feedback-dataset', async () => {
+    try {
+      if (!prisma) return { success: true, data: [] }
+      return { success: true, data: await new FeedbackRecomendacionesService(prisma).dataset() }
+    } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   })

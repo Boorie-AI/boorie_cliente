@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import { PropuestaEscenario } from './PropuestaEscenario'
 import { PropuestaEnergia } from './PropuestaEnergia'
+import { FeedbackRecomendacion } from '@/components/hydraulic/FeedbackRecomendacion'
 import { useChatStore } from '@/stores/chatStore'
 
 interface MessageBubbleProps {
@@ -25,13 +26,20 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
    * cita de origen tienen que sobrevivir a cerrar la aplicación, no vivir en el
    * estado de un componente.
    */
-  const anadirNarracion = (texto: string, runId: string | null) => {
+  const anadirNarracion = (
+    texto: string,
+    runId: string | null,
+    valorables?: Array<{ runId: string; titulo: string; contexto?: Record<string, unknown> }>,
+  ) => {
     const { activeConversationId, addMessageToConversation } = useChatStore.getState()
     if (!activeConversationId) return
     addMessageToConversation(activeConversationId, {
       role: 'assistant',
       content: texto,
-      metadata: { escenarioEjecutado: runId ?? undefined },
+      metadata: {
+        escenarioEjecutado: runId ?? undefined,
+        ...(valorables?.length ? { recomendaciones_energia: valorables } : {}),
+      },
     })
   }
 
@@ -74,11 +82,23 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
               )}
             </div>
 
+            {/* Valorar cada medida narrada, con la ejecución que la respalda (#42). */}
+            {message.metadata?.recomendaciones_energia?.length && !isUser ? (
+              <div className="mt-2 border-t pt-2 space-y-2">
+                {message.metadata.recomendaciones_energia.map(r => (
+                  <div key={r.runId}>
+                    <div className="text-[11px] font-medium">{r.titulo}</div>
+                    <FeedbackRecomendacion runId={r.runId} titulo={r.titulo} contexto={r.contexto} compacto />
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
             {propuestaEnergia && !isUser && (
               <PropuestaEnergia
                 projectId={propuestaEnergia.project_id ?? null}
                 redId={propuestaEnergia.red_id ?? null}
-                onNarracion={texto => anadirNarracion(texto, null)}
+                onNarracion={(texto, valorables) => anadirNarracion(texto, null, valorables)}
               />
             )}
 

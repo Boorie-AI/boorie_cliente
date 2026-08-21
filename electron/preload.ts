@@ -449,6 +449,11 @@ const electronAPI = {
     tarifa: (projectId?: string | null) => ipcRenderer.invoke('energia:tarifa', projectId),
     guardarTarifa: (data: { projectId?: string | null; tarifa: unknown }) => ipcRenderer.invoke('energia:guardar-tarifa', data),
     olvidarTarifa: (projectId: string) => ipcRenderer.invoke('energia:olvidar-tarifa', projectId),
+    /** Valorar una recomendación como útil (1) o incorrecta (-1) (#42). */
+    feedback: (data: { runId: string; titulo: string; rating: 1 | -1; correccion?: string | null; contexto?: unknown }) =>
+      ipcRenderer.invoke('energia:feedback', data),
+    feedbackDe: (runIds: string[]) => ipcRenderer.invoke('energia:feedback-de', runIds),
+    feedbackDataset: () => ipcRenderer.invoke('energia:feedback-dataset'),
   },
 
   // Milvus inspector
