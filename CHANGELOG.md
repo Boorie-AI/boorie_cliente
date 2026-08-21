@@ -7,6 +7,26 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.17.1] - 2026-08-21
+
+El chat vuelve a responder con lo que hay indexado, en vez de decir que no hay nada.
+
+- **Si preguntabas por tus simulaciones y Boorie contestaba «no hay datos», ya está resuelto.**
+  Buscar en el conocimiento del proyecto tardaba más de lo que el chat esperaba, así que la
+  respuesta salía sin una sola fuente aunque estuvieran indexadas. Ahora la búsqueda tarda una
+  sexta parte y el chat cita los documentos de los que saca cada dato.
+- **La búsqueda del Wisdom Center ya no dice «no encontré información» cuando sí la encontró.**
+  Cuando la redacción no termina a tiempo, lo dice tal cual y enumera las fuentes que localizó,
+  para que puedas ir a ellas.
+- **El «Max Results» del selector de conocimiento por fin hace algo.** Antes se movía y no
+  cambiaba nada; ahora decide cuántos documentos se revisan, y viene en 3, que es lo que un
+  equipo sin tarjeta gráfica dedicada revisa en un tiempo razonable.
+- **La comprobación de seguridad sobre lo recuperado vuelve a funcionar.** Se quedaba siempre a
+  medias por falta de tiempo —un minuto por consulta sin comprobar nada— y además rechazaba
+  documentos que sí respondían a la pregunta. Ahora juzga en unos segundos y acierta.
+- **Boorie espera lo que hace falta para responder**: hasta tres minutos por las fuentes y ocho
+  para la respuesta completa, en lugar de cortar justo antes de tenerla.
+
 ## [1.17.0] - 2026-08-20
 
 Boorie elige el modelo con el que te responde y deja de preguntártelo.
