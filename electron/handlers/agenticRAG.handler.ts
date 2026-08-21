@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { PrismaClient } from '@prisma/client'
 import { createAgenticRAGService } from '../../backend/services/hydraulic/agentic/agenticRAGService'
 import { guardrailsWrapper } from '../../backend/services/guardrails/guardrailsWrapper'
+import { estadoModelosRAG } from '../../backend/services/hydraulic/agentic/modelosRAG'
 
 let ragService: any = null
 
@@ -122,6 +123,25 @@ export function registerAgenticRAGHandlers(prismaClient: PrismaClient) {
   })
 
   // Get metrics handler
+  /**
+   * Qué modelo atiende la ruta del RAG (#49).
+   *
+   * La interfaz no lo elige: lo consulta para saber qué modelo mandar cuando
+   * redacta la respuesta final, si el desplegable debe enseñarse y si hay que
+   * avisar de que responde el auxiliar.
+   */
+  ipcMain.handle('agentic-rag-modelos', async () => {
+    try {
+      return { success: true, data: await estadoModelosRAG() }
+    } catch (error) {
+      console.error('[AgenticRAG Handler] Modelos error:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'No se pudo resolver el modelo del RAG',
+      }
+    }
+  })
+
   ipcMain.handle('agentic-rag-metrics', async () => {
     try {
       const metrics = ragService.getMetrics()

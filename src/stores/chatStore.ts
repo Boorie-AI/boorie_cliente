@@ -5,6 +5,7 @@ import { type ChatMessage } from '@/services/chat'
 import { useAIConfigStore } from './aiConfigStore'
 import { databaseService } from '@/services/database'
 import { getOllamaBaseUrl } from '@/config/ollama'
+import { cargarModelosRAG, modeloFijadoRAG, modelosRAGEnCache } from '@/config/modelosRAG'
 
 export interface WisdomConfiguration {
   enabled: boolean
@@ -28,6 +29,8 @@ export interface Message {
     originalQuery?: string
     enhancedQuery?: boolean
     ragAttempted?: boolean
+    /** Respondió el auxiliar porque el principal no estaba (#49). */
+    modeloDegradado?: boolean
   }
 }
 
@@ -90,13 +93,22 @@ export const useChatStore = create<ChatState>()(
       createNewConversation: (projectId?: string) => {
         // Get selected model from localStorage or use first available
         let selectedModel: { name: string; provider: string; modelId?: string } = { name: 'Default Model', provider: 'Ollama' }
-        try {
-          const stored = localStorage.getItem('selectedModel')
-          if (stored) {
-            selectedModel = JSON.parse(stored)
+        const fijado = modeloFijadoRAG()
+        if (fijado) {
+          // Con el modelo fijado (#49) el desplegable no existe, así que lo que
+          // hubiera quedado en localStorage no representa ninguna elección: sin
+          // esto, una conversación nueva nacía con «Default Model» o con el
+          // último modelo que se hubiera podido elegir antes de ocultarlo.
+          selectedModel = { name: fijado.model, provider: fijado.provider, modelId: fijado.model }
+        } else {
+          try {
+            const stored = localStorage.getItem('selectedModel')
+            if (stored) {
+              selectedModel = JSON.parse(stored)
+            }
+          } catch {
+            logger.warn('Failed to load selected model from localStorage')
           }
-        } catch {
-          logger.warn('Failed to load selected model from localStorage')
         }
 
         const newConversation: Conversation = {
@@ -296,6 +308,26 @@ export const useChatStore = create<ChatState>()(
             const conversation = get().conversations.find(c => c.id === conversationId)
             if (!conversation) throw new Error('Conversation not found')
 
+            /**
+             * Con qué modelo se responde (#49).
+             *
+             * No lo elige el usuario: con el desplegable oculto responde el
+             * principal de la ruta del RAG. Se resuelve aquí y no al crear la
+             * conversación porque las que ya existían se guardaron con el modelo
+             * que hubiera elegido entonces —incluido uno que no es Nemotron— y
+             * seguirían usándolo para siempre.
+             */
+            await cargarModelosRAG()
+            const fijado = modeloFijadoRAG()
+            const modelo = fijado?.model ?? conversation.model
+            const proveedor = fijado?.provider ?? conversation.provider
+
+            // Y se deja escrito en la conversación, que es lo que se ve al
+            // volver a abrirla y lo que se guarda en la base.
+            if (fijado && (conversation.model !== modelo || conversation.provider !== proveedor)) {
+              get().updateConversationModel(conversationId, modelo, proveedor)
+            }
+
             // El contexto sale del proyecto de la conversación o, si no tiene,
             // del proyecto activo global (#31). Antes se exigía el enlace
             // explícito, así que un chat «General» no recibía nada aunque
@@ -313,7 +345,7 @@ export const useChatStore = create<ChatState>()(
             try {
               const red = await window.electronAPI.networkRepository.context(
                 proyectoParaContexto ?? '',
-                conversation.provider
+                proveedor
               )
               if (red?.success && red.data?.texto) {
                 enhancedPrompt = red.data.texto + enhancedPrompt
@@ -345,7 +377,7 @@ export const useChatStore = create<ChatState>()(
 
             // Get API key for the provider
             const aiConfigStore = useAIConfigStore.getState()
-            const providerConfig = aiConfigStore.providers.find(p => p.name === conversation.provider)
+            const providerConfig = aiConfigStore.providers.find(p => p.name === proveedor)
             const apiKey = providerConfig?.apiKey || ''
 
             // Prepare messages for chat handler (includes system prompt automatically)
@@ -368,7 +400,7 @@ export const useChatStore = create<ChatState>()(
             // herramientas necesitan varias vueltas de peticion y respuesta, y
             // eso vive en el handler IPC. Se cambia respuesta token a token por
             // respuesta con datos de la red, que es el objeto de #34.
-            const isOllama = conversation.provider.toLowerCase() === 'ollama' && !hayRedEnContexto
+            const isOllama = proveedor.toLowerCase() === 'ollama' && !hayRedEnContexto
 
             for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
               try {
@@ -384,7 +416,7 @@ export const useChatStore = create<ChatState>()(
                   // Avoids the IPC chat handler's blocking 90s wait.
                   try {
                     const r = await get().callOllamaAPI(
-                      conversation.model,
+                      modelo,
                       enhancedPrompt,
                       conversation.messages, // history (without the user msg added below — it's already inside)
                     )
@@ -394,8 +426,8 @@ export const useChatStore = create<ChatState>()(
                   }
                 } else {
                   result = await window.electronAPI.chat.sendMessage({
-                    provider: conversation.provider,
-                    model: conversation.model,
+                    provider: proveedor,
+                    model: modelo,
                     messages: messages,
                     apiKey: apiKey,
 
@@ -420,9 +452,16 @@ export const useChatStore = create<ChatState>()(
 
                 const response = result.data?.response || ''
                 const metadata = result.data?.metadata || {
-                  model: conversation.model,
-                  provider: conversation.provider,
+                  model: modelo,
+                  provider: proveedor,
                   tokens: 0
+                }
+
+                // Que respondiera el auxiliar no puede quedar sólo en el log:
+                // las respuestas salen más cortas y menos cuidadas, y el
+                // usuario no tiene ninguna otra forma de saberlo (#49).
+                if (modelosRAGEnCache()?.degradado) {
+                  metadata.modeloDegradado = true
                 }
 
                 // Clear streaming message before adding final message

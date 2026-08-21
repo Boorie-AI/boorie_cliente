@@ -1,14 +1,11 @@
 import { AgenticRAGState, ReformulationResult } from '../types'
 import { StateManager } from '../stateManager'
-import axios from 'axios'
-import { modeloLocal } from '../modeloLocal'
+import { llamarModeloRAG } from '../modelosRAG'
 
 export class ReformulateNode {
-  private ollamaUrl: string
   private technicalTerms: Record<string, string[]>
 
   constructor() {
-    this.ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434'
     this.technicalTerms = this.loadTechnicalTerms()
   }
 
@@ -72,19 +69,17 @@ export class ReformulateNode {
     const prompt = this.buildReformulationPrompt(state)
 
     try {
-      const response = await axios.post(`${this.ollamaUrl}/api/generate`, {
-        model: await modeloLocal(),
+      // Reformular es tarea del auxiliar (#49): no necesita el modelo grande y
+      // se ejecuta una vez por vuelta del ciclo.
+      const respuesta = await llamarModeloRAG({
+        rol: 'auxiliar',
         prompt,
-        stream: false,
-        options: {
-          temperature: 0.7, // Higher temperature for diversity
-          top_p: 0.9,
-          // Ollama ignora `max_tokens`; su opción es `num_predict`.
-          num_predict: 500
-        }
-      }, { timeout: 30000 })
+        temperatura: 0.7, // Higher temperature for diversity
+        maxTokens: 500,
+        timeoutMs: 30000,
+      })
 
-      return this.parseReformulations(response.data.response)
+      return this.parseReformulations(respuesta)
     } catch (error) {
       console.error('[ReformulateNode] LLM generation error:', error)
       throw error

@@ -1,15 +1,12 @@
 import { AgenticRAGState, GenerationResult, GenerationConfig, Citation, GradedDocument } from '../types'
 import { StateManager } from '../stateManager'
-import axios from 'axios'
-import { modeloLocal } from '../modeloLocal'
+import { llamarModeloRAG } from '../modelosRAG'
 
 export class GenerateNode {
   private config: GenerationConfig
-  private ollamaUrl: string
 
   constructor(config: GenerationConfig) {
     this.config = config
-    this.ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434'
   }
 
   public setConfig(config: GenerationConfig) {
@@ -30,37 +27,18 @@ export class GenerateNode {
       // Build the generation prompt
       const prompt = this.buildGenerationPrompt(state, relevantDocs)
 
-      // Generate response based on provider
-      let generation: string
-
-      if (this.config.provider === 'openai') {
-        const response = await this.callOpenAI(prompt)
-        generation = response
-      } else if (this.config.provider === 'anthropic') {
-        const response = await this.callAnthropic(prompt)
-        generation = response
-      } else {
-        // Default to local Ollama
-        const response = await axios.post(`${this.ollamaUrl}/api/generate`, {
-          model: await modeloLocal(),
-          prompt,
-          stream: false,
-          options: {
-            temperature: this.config.temperature,
-            top_p: 0.9,
-            // Ollama ignora `max_tokens`: su opción es `num_predict` (ver el
-            // mismo caso en gradeNode). Sin tope, el modelo escribía hasta
-            // pasarse del minuto de espera y la respuesta terminada se perdía
-            // en el `catch`, que devolvía el texto de «no encontré nada» aunque
-            // hubiera documentos. Con el tope aplicado: 106 s antes, 36 s ahora.
-            num_predict: this.config.maxTokens,
-            repeat_penalty: 1.1
-          }
-          // El margen es para la máquina lenta, no para el caso normal: aquí la
-          // inferencia va por CPU y la primera llamada carga además el modelo.
-        }, { timeout: 180000 })
-        generation = response.data.response
-      }
+      // La respuesta la escribe el modelo principal de la ruta del RAG (#49):
+      // es la única llamada por pregunta, así que aquí sí cabe el grande.
+      const generation = await llamarModeloRAG({
+        rol: 'principal',
+        prompt,
+        temperatura: this.config.temperature,
+        maxTokens: this.config.maxTokens,
+        // El margen es para la máquina lenta, no para el caso normal: aquí la
+        // inferencia va por CPU y la primera llamada carga además el modelo.
+        timeoutMs: 180000,
+        penalizacionRepeticion: 1.1,
+      })
 
       // Extract answer and citations
       const citations = this.extractCitations(generation, relevantDocs)
@@ -404,59 +382,6 @@ Te sugiero:
     }
 
     return translations[type] || type
-  }
-
-  private async callOpenAI(prompt: string): Promise<string> {
-    if (!this.config.apiKey) {
-      throw new Error('OpenAI API key is required')
-    }
-
-    const response = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        model: this.config.model || 'gpt-4-turbo',
-        messages: [
-          { role: 'user', content: prompt }
-        ],
-        temperature: this.config.temperature,
-        max_tokens: this.config.maxTokens
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    )
-
-    return response.data.choices[0].message.content
-  }
-
-  private async callAnthropic(prompt: string): Promise<string> {
-    if (!this.config.apiKey) {
-      throw new Error('Anthropic API key is required')
-    }
-
-    const response = await axios.post(
-      'https://api.anthropic.com/v1/messages',
-      {
-        model: this.config.model || 'claude-3-sonnet-20240229',
-        max_tokens: this.config.maxTokens,
-        temperature: this.config.temperature,
-        messages: [
-          { role: 'user', content: prompt }
-        ]
-      },
-      {
-        headers: {
-          'x-api-key': this.config.apiKey,
-          'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json'
-        }
-      }
-    )
-
-    return response.data.content[0].text
   }
 }
 

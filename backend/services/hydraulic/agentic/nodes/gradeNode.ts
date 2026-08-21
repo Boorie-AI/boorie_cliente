@@ -1,15 +1,12 @@
 import { AgenticRAGState, GradedDocument, GradingResult, GradingConfig, Document } from '../types'
 import { StateManager } from '../stateManager'
-import axios from 'axios'
-import { modeloLocal } from '../modeloLocal'
+import { llamarModeloRAG } from '../modelosRAG'
 
 export class GradeNode {
   private config: GradingConfig
-  private ollamaUrl: string
 
   constructor(config: GradingConfig) {
     this.config = config
-    this.ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434'
   }
 
   public setConfig(config: GradingConfig) {
@@ -129,24 +126,23 @@ export class GradeNode {
     try {
       const prompt = this.buildGradingPrompt(doc, state)
 
-      const response = await axios.post(`${this.ollamaUrl}/api/generate`, {
-        model: await modeloLocal(),
+      // El juez es el modelo auxiliar (#49): esto se llama una vez por
+      // fragmento recuperado, así que aquí manda la velocidad.
+      const respuesta = await llamarModeloRAG({
+        rol: 'auxiliar',
         prompt,
-        stream: false,
-        options: {
-          temperature: 0.1, // Low temperature for consistent grading
-          top_p: 0.9,
-          // `max_tokens` no existe en Ollama —su opción se llama `num_predict`—
-          // así que el tope nunca se aplicaba y el juez seguía escribiendo
-          // después del JSON que se le pedía. Medido sobre un documento real:
-          // 20.3 s sin tope contra 2.2 s con él, y esto se llama una vez por
-          // fragmento recuperado. La respuesta útil son dos líneas de JSON.
-          num_predict: 200
-        }
-      }, { timeout: 30000 })
+        temperatura: 0.1, // Low temperature for consistent grading
+        // `max_tokens` no existe en Ollama —su opción se llama `num_predict`—
+        // así que el tope nunca se aplicaba y el juez seguía escribiendo
+        // después del JSON que se le pedía. Medido sobre un documento real:
+        // 20.3 s sin tope contra 2.2 s con él. La respuesta útil son dos
+        // líneas de JSON.
+        maxTokens: 200,
+        timeoutMs: 30000,
+      })
 
       // Parse LLM response
-      const result = this.parseGradingResponse(response.data.response)
+      const result = this.parseGradingResponse(respuesta)
 
       // Apply additional technical checks
       const technicalScore = this.evaluateTechnicalRelevance(doc, state)

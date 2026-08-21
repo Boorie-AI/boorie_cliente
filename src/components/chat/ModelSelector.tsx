@@ -1,6 +1,7 @@
 import { logger } from '@/utils/logger'
 import { getOllamaBaseUrl } from '@/config/ollama';
 import { useState, useEffect } from 'react'
+import { cargarModelosRAG } from '@/config/modelosRAG'
 import { useAppStore } from '@/stores/appStore'
 import { useChatStore } from '@/stores/chatStore'
 import { useAIConfigStore } from '@/stores/aiConfigStore'
@@ -24,8 +25,15 @@ export function ModelSelector() {
   const [ollamaStatus, setOllamaStatus] = useState<'checking' | 'available' | 'unavailable'>('checking')
   const [availableModels, setAvailableModels] = useState<Model[]>([])
   const [selectedModel, setSelectedModel] = useState('')
+  // El modelo del RAG lo fija Boorie y no se enseña (#49). El desplegable sólo
+  // reaparece con BOORIE_SELECTOR_MODELO=1, para diagnóstico y usos no-RAG.
+  const [visible, setVisible] = useState(false)
 
   const activeConversation = conversations.find(c => c.id === activeConversationId)
+
+  useEffect(() => {
+    cargarModelosRAG().then(modelos => setVisible(modelos?.selectorVisible === true))
+  }, [])
 
   useEffect(() => {
     checkOllamaAndLoadModels()
@@ -143,6 +151,8 @@ export function ModelSelector() {
   if (availableModels.length === 0) {
     logger.debug('No models loaded yet')
   }
+
+  if (!visible) return null
 
   return (
     <div className="flex items-center relative">

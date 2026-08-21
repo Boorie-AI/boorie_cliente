@@ -160,6 +160,7 @@
     "test": "Test",
     "connected": "Connected",
     "availableModels": "Available Models",
+    "modelFijadoAviso": "Boorie sets the model that answers in the chat: this selection does not change it. It applies to each provider’s keys and catalogue.",
     "configureProviders": "Configure API Providers",
     "checkingOllama": "Checking Ollama installation...",
     "apiProviderConfig": "API Provider Configuration",

@@ -428,6 +428,8 @@ const electronAPI = {
 
     testConfig: () => ipcRenderer.invoke('agentic-rag-test-config'),
 
+    modelos: () => ipcRenderer.invoke('agentic-rag-modelos'),
+
     getMetrics: () => ipcRenderer.invoke('agentic-rag-metrics'),
 
     resetMetrics: () => ipcRenderer.invoke('agentic-rag-reset-metrics'),

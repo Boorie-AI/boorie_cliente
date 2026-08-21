@@ -1,5 +1,6 @@
 import { logger } from '@/utils/logger'
 import { getOllamaBaseUrl } from '@/config/ollama';
+import { cargarModelosRAG } from '@/config/modelosRAG';
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -17,7 +18,8 @@ import {
   Settings,
   Zap,
   X,
-  Search
+  Search,
+  Info
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import * as Tabs from '@radix-ui/react-tabs'
@@ -73,6 +75,9 @@ export function AIConfigurationPanel() {
   const [ollamaInstalled, setOllamaInstalled] = useState<boolean | null>(null)
   const [ollamaModels, setOllamaModels] = useState<OllamaModel[]>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
+  // Con el modelo del chat fijado (#49), marcar modelos aquí no cambia quién
+  // responde: el panel sigue sirviendo para las claves y el catálogo.
+  const [modeloDelChatFijado, setModeloDelChatFijado] = useState(false)
   const [showAPIKey, setShowAPIKey] = useState<Record<string, boolean>>({})
   const [newModelName, setNewModelName] = useState('')
   const [isInstallingModel, setIsInstallingModel] = useState(false)
@@ -101,6 +106,10 @@ export function AIConfigurationPanel() {
   useEffect(() => {
     checkOllamaInstallation()
     initializeProviders()
+  }, [])
+
+  useEffect(() => {
+    cargarModelosRAG().then(modelos => setModeloDelChatFijado(modelos?.selectorVisible === false))
   }, [])
 
   const initializeProviders = async () => {
@@ -871,6 +880,13 @@ export function AIConfigurationPanel() {
                             </button>
 
                           </div>
+
+                          {modeloDelChatFijado && (
+                            <div className="flex items-start space-x-2 p-3 rounded-lg bg-accent/40 border border-border/50 text-xs text-muted-foreground">
+                              <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                              <span>{t('ai.modelFijadoAviso')}</span>
+                            </div>
+                          )}
 
                           {/* Search Bar */}
                           {provider.availableModels.length > 5 && (

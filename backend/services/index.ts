@@ -10,6 +10,7 @@ import { DatabaseService } from './database.service'
 import { ConversationService } from './conversation.service'
 import { AIProviderService } from './aiProvider.service'
 import { appLogger } from '../utils/logger'
+import { PAREJAS, backendRAG } from './hydraulic/agentic/modelosRAG'
 
 export class ServiceContainer {
   private databaseService: DatabaseService
@@ -34,23 +35,29 @@ export class ServiceContainer {
     // Initialize default providers (OpenAI, Anthropic, Nvidia, Ollama)
     await this.aiProviderService.initializeDefaultProviders()
 
-    // Ensure default model exists
-    const defaultModel = process.env.OLLAMA_MODEL || 'nemotron-3-nano'
-    this.logger.info(`Ensuring default model ${defaultModel} exists...`)
+    // Los modelos de la ruta del RAG (#49), leídos de donde se deciden para no
+    // mantener dos listas. Hoy la pareja local es el mismo modelo en los dos
+    // papeles, así que esto descarga uno; cuando dejen de serlo, descargará los
+    // dos sin tocar nada aquí.
+    if (backendRAG() === 'ollama') {
+      for (const modelo of new Set(Object.values(PAREJAS.ollama))) {
+        this.logger.info(`Ensuring RAG model ${modelo} exists...`)
 
-    // Don't await this to avoid blocking app startup if model download takes time
-    // But do log it clearly
-    this.aiProviderService.ensureOllamaModel(defaultModel)
-      .then(success => {
-        if (success) {
-          this.logger.success(`Default model ${defaultModel} is ready`)
-        } else {
-          this.logger.warn(`Default model ${defaultModel} is NOT available`)
-        }
-      })
-      .catch(err => {
-        this.logger.error(`Error checking default model ${defaultModel}`, err as Error)
-      })
+        // Don't await this to avoid blocking app startup if model download takes time
+        // But do log it clearly
+        this.aiProviderService.ensureOllamaModel(modelo)
+          .then(success => {
+            if (success) {
+              this.logger.success(`RAG model ${modelo} is ready`)
+            } else {
+              this.logger.warn(`RAG model ${modelo} is NOT available`)
+            }
+          })
+          .catch(err => {
+            this.logger.error(`Error checking RAG model ${modelo}`, err as Error)
+          })
+      }
+    }
   }
 
   // Getters for services
