@@ -7,6 +7,19 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.20.1] - 2026-08-21
+
+Mantenimiento de seguridad. No cambia nada de lo que ves: no hay funciones nuevas ni cambios de
+comportamiento.
+
+- **Se actualizan las dependencias con vulnerabilidades conocidas: 23 a cero**, dos de ellas
+  críticas. Entre lo que sube, Electron pasa a 42.9.3, que trae los parches de seguridad de
+  Chromium que la aplicación usa para dibujar toda su interfaz.
+- **Antes de publicarla se comprobó que la actualización automática desde la 1.20.0 sigue
+  funcionando**, que las 464 comprobaciones automáticas siguen en verde y que la aplicación
+  arranca, carga una red y simula igual que antes. Es la parte con riesgo real de una
+  actualización así, porque también suben las herramientas que construyen el instalador.
+
 ## [1.20.0] - 2026-08-21
 
 Ahora puedes decirle a Boorie si una recomendación te sirve.
