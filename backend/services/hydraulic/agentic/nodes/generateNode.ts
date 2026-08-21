@@ -3,6 +3,9 @@ import { StateManager } from '../stateManager'
 import { llamarModeloRAG } from '../modelosRAG'
 
 export class GenerateNode {
+  /** Cuánto de cada documento entra en el prompt de generación (#63). */
+  private static readonly MAX_CARACTERES_POR_DOCUMENTO = 1500
+
   private config: GenerationConfig
 
   constructor(config: GenerationConfig) {
@@ -36,7 +39,7 @@ export class GenerateNode {
         maxTokens: this.config.maxTokens,
         // El margen es para la máquina lenta, no para el caso normal: aquí la
         // inferencia va por CPU y la primera llamada carga además el modelo.
-        timeoutMs: 180000,
+        timeoutMs: 240000,
         penalizacionRepeticion: 1.1,
       })
 
@@ -123,7 +126,9 @@ export class GenerateNode {
         const scoreB = 'relevanceScore' in b ? b.relevanceScore : 0.5
         return scoreB - scoreA
       })
-      .slice(0, 10) // Limit context size
+      // Cinco y no diez: cada documento entra entero en el prompt y evaluarlo
+      // es lo que se llevaba la espera de la generación (#63).
+      .slice(0, 5)
   }
 
   private buildGenerationPrompt(state: AgenticRAGState, documents: any[]): string {
@@ -204,9 +209,15 @@ Respuesta técnica:`
         const section = doc.metadata.section ? `, sección: ${doc.metadata.section}` : ''
         const standard = doc.metadata.standard ? ` [${doc.metadata.standard}]` : ''
 
+        // Truncado: los documentos de simulación pasan de 4 kB y cinco enteros
+        // convertían el proceso del prompt en la mitad de la espera (#63).
+        const contenido = doc.content.length > GenerateNode.MAX_CARACTERES_POR_DOCUMENTO
+          ? `${doc.content.slice(0, GenerateNode.MAX_CARACTERES_POR_DOCUMENTO)}…`
+          : doc.content
+
         return `
 [Documento ${index + 1}] ${source}${page}${section}${standard}
-Contenido: ${doc.content}
+Contenido: ${contenido}
 ---`
       })
       .join('\n')
@@ -318,7 +329,28 @@ Contenido: ${doc.content}
     return calculationPatterns.some(pattern => pattern.test(generation))
   }
 
+  /**
+   * Lo que se dice cuando la generación falla.
+   *
+   * Distinguir los dos casos no es cosmético: durante meses este texto dijo «no
+   * encontré información» en consultas que **sí** habían encontrado fuentes y en
+   * las que lo que falló fue la redacción, al pasarse de su espera. Con el mismo
+   * mensaje para las dos cosas, el fallo de rendimiento era indistinguible de
+   * una base de conocimientos vacía, y así se quedó (#63).
+   */
   private generateFallbackResponse(state: AgenticRAGState): string {
+    const relevantes = state.gradedDocuments.filter(doc => doc.relevant)
+
+    if (relevantes.length > 0) {
+      const fuentes = Array.from(new Set(
+        relevantes.map(doc => doc.metadata.source || doc.metadata.title).filter(Boolean)
+      )).slice(0, 5)
+
+      return `Encontré ${relevantes.length} ${relevantes.length === 1 ? 'documento relevante' : 'documentos relevantes'} para tu pregunta, pero no pude terminar de redactar la respuesta en el tiempo límite.
+
+${fuentes.length > 0 ? `Fuentes localizadas:\n${fuentes.map(f => `- ${f}`).join('\n')}\n\n` : ''}Puedes volver a preguntar, acotar más la pregunta, o consultar esas fuentes directamente en el Wisdom Center. Si esto se repite, el modelo local está tardando más de lo que el sistema espera.`
+    }
+
     return `No pude encontrar información específica en la base de conocimientos para responder completamente a tu pregunta sobre "${state.originalQuestion}".
 
 Para proporcionarte una respuesta precisa, necesitaría:

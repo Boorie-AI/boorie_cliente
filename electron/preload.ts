@@ -424,6 +424,7 @@ const electronAPI = {
       technicalLevel?: 'basic' | 'intermediate' | 'advanced'
       projectId?: string | null
       ambito?: 'general' | 'proyecto' | 'ambos'
+      soloRecuperacion?: boolean
     }) => ipcRenderer.invoke('agentic-rag-query', { question, options }),
 
     testConfig: () => ipcRenderer.invoke('agentic-rag-test-config'),

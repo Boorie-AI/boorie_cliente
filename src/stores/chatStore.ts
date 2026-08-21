@@ -256,11 +256,14 @@ export const useChatStore = create<ChatState>()(
 
         set({ isLoading: true })
 
-        // Global timeout for the entire flow (RAG + AI response): 5 minutes.
+        // Global timeout for the entire flow (RAG + AI response): 8 minutes.
         // Generous because small local models (nemotron-mini, llama3.2) can do
         // chain-of-thought reasoning before the first visible token. The user
         // still sees progress via setStreamingMessage on every chunk.
-        const GLOBAL_TIMEOUT_MS = 300000
+        // Eran 5 minutos, que no daban para las dos fases: con el presupuesto de
+        // fuentes en 3 minutos y una respuesta que en local tarda otros 2, el
+        // límite global cortaba justo lo que se acababa de arreglar (#63).
+        const GLOBAL_TIMEOUT_MS = 480000
         const globalTimeout = new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('GLOBAL_TIMEOUT')), GLOBAL_TIMEOUT_MS)
         )
@@ -288,12 +291,24 @@ export const useChatStore = create<ChatState>()(
             let enhancedPrompt = content
             let ragSources: any[] = []
             try {
-              // RAG enhancement with its own timeout (30s)
+              /**
+               * Cuánto se espera a las fuentes (#63).
+               *
+               * Eran 30 s, y ninguna consulta cabía: medido en una máquina sin
+               * GPU utilizable, una consulta entera tardaba 7 min 23 s, así que
+               * la carrera la ganaba siempre el reloj y el chat contestaba sin
+               * una sola fuente aunque el proyecto las tuviera indexadas. Con el
+               * graduado en tres documentos y sin redactar la respuesta que aquí
+               * se tira, la recuperación baja a unos dos minutos y este
+               * presupuesto ya se puede cumplir. Y la carrera no cancela nada:
+               * pasarse de largo no ahorra trabajo, sólo desperdicia el hecho.
+               */
+              const PRESUPUESTO_FUENTES_MS = 180000
               const ragTimeout = new Promise<{ enhancedPrompt: string; sources?: any[] }>((resolve) =>
                 setTimeout(() => {
                   logger.warn('RAG enhancement timed out, using original prompt')
                   resolve({ enhancedPrompt: content })
-                }, 30000)
+                }, PRESUPUESTO_FUENTES_MS)
               )
               const ragResult = await Promise.race([
                 get().enhancePromptWithRAG(content, proyectoDeLaConversacion),
@@ -511,7 +526,7 @@ export const useChatStore = create<ChatState>()(
           let userFacingMessage: string
 
           if (errorMessage === 'GLOBAL_TIMEOUT') {
-            userFacingMessage = '**La solicitud tardó demasiado.** El sistema no pudo completar la operación en el tiempo límite (2 minutos).\n\n' +
+            userFacingMessage = '**La solicitud tardó demasiado.** El sistema no pudo completar la operación en el tiempo límite (8 minutos).\n\n' +
               'Posibles causas:\n' +
               '- El modelo de IA está sobrecargado o es demasiado grande\n' +
               '- La búsqueda en la base de conocimiento (RAG) está tardando mucho\n' +
@@ -807,7 +822,10 @@ export const useChatStore = create<ChatState>()(
             // lo interno del proyecto, que incluye lo indexado de sus
             // simulaciones (#41). Sin proyecto, sólo lo general (#39).
             projectId: projectId ?? null,
-            ambito: projectId ? 'ambos' : 'general'
+            ambito: projectId ? 'ambos' : 'general',
+            // Aquí sólo se usan las fuentes; la respuesta del RAG se tiraba
+            // después de costar tres minutos de modelo (#63).
+            soloRecuperacion: true
           })
 
           // `sources` is always returned as an array (possibly empty) once we've

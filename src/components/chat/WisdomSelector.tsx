@@ -60,7 +60,7 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
       logger.debug('🧠 [DEBUG] WisdomSelector - Enabling RAG with agentic method')
       const newConfig = {
         enabled: true,
-        searchTopK: 5,
+        searchTopK: 3,
         searchMethod: 'agentic' as const, // Usar RAG Agéntico por defecto
         categories: []
       }

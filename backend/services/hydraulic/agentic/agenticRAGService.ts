@@ -29,7 +29,17 @@ export class AgenticRAGService {
   private buildConfig(customConfig?: Partial<AgenticRAGConfig>): AgenticRAGConfig {
     const defaultConfig: AgenticRAGConfig = {
       retrieval: {
-        topK: 10,
+        /**
+         * Tres, no diez (#63).
+         *
+         * Graduar cuesta ~45 s por documento en una máquina sin GPU utilizable
+         * —y ahí manda el proceso del prompt, no la generación—, así que diez
+         * documentos son más de dos minutos de una fase que el chat espera 30 s.
+         * Con tres cabe en una sola tanda de graduado. Quien tenga hardware o
+         * quiera más contexto lo sube desde el selector, que ahora sí se
+         * respeta, o con RETRIEVAL_TOP_K.
+         */
+        topK: parseInt(process.env.RETRIEVAL_TOP_K || '3'),
         minScore: 0.3,
         useParentChild: true,
         includeMetadata: true
@@ -43,14 +53,16 @@ export class AgenticRAGService {
       generation: {
         temperature: 0.3,
         /**
-         * 800 y no 2000: el tope nunca se aplicaba —se enviaba con el nombre
-         * que Ollama ignora— y al aplicarlo de verdad pasa a ser lo que decide
-         * cuánto espera el usuario. Con inferencia por CPU son unos 35 s de
-         * respuesta, frente a los más de tres minutos que tardaba en escribir
-         * 2000 y que se perdían al vencer la espera. 800 tokens son unas 600
-         * palabras: de sobra para una respuesta con sus citas.
+         * 500, bajando de 800 (#63).
+         *
+         * El tope decide cuánto espera el usuario: a los 5,4 tokens por segundo
+         * que da el modelo local, 800 tokens son 148 s **sólo de escritura**,
+         * más evaluar un prompt con los documentos dentro; el nodo cortaba a los
+         * 180 s y la respuesta terminada se perdía, devolviendo el texto de «no
+         * encontré nada» con las fuentes ya encontradas. 500 tokens son unas 375
+         * palabras, que dan para una respuesta con sus citas.
          */
-        maxTokens: 800,
+        maxTokens: parseInt(process.env.GENERATION_MAX_TOKENS || '500'),
         includeCitations: true,
         includeCalculations: true,
         responseLanguage: 'es',
@@ -111,6 +123,16 @@ export class AgenticRAGService {
       /** Proyecto desde el que se pregunta (#39, #41). */
       projectId?: string | null
       ambito?: 'general' | 'proyecto' | 'ambos'
+      /** Cuántos documentos recuperar y graduar; es el «Max Results» del selector (#63). */
+      searchTopK?: number
+      /**
+       * Devolver sólo las fuentes, sin redactar respuesta (#63).
+       *
+       * Es lo que necesita el chat: usa `sources` y tira `answer`, así que
+       * generarla eran 180 s perdidos y CPU compitiendo con la respuesta que el
+       * usuario sí está esperando.
+       */
+      soloRecuperacion?: boolean
     }
   ): Promise<{
     answer: string
@@ -135,6 +157,11 @@ export class AgenticRAGService {
       if (options.technicalLevel) {
         this.config.generation.technicalLevel = options.technicalLevel
       }
+      // Llegaba desde el selector y nadie lo leía, así que «Max Results» no
+      // hacía nada (#63).
+      if (options.searchTopK && options.searchTopK > 0) {
+        this.config.retrieval.topK = options.searchTopK
+      }
     }
 
     // Fuera del `if`, y asignando también cuando no viene nada: el servicio es
@@ -157,7 +184,8 @@ export class AgenticRAGService {
 
     try {
       // Execute the agentic workflow
-      await this.executeWorkflow(stateManager)
+      const generar = options?.soloRecuperacion !== true
+      await this.executeWorkflow(stateManager, generar)
 
       // Get final state
       const finalState = stateManager.getState()
@@ -167,7 +195,7 @@ export class AgenticRAGService {
 
       // Format response
       return {
-        answer: finalState.generation || 'No se pudo generar una respuesta.',
+        answer: generar ? (finalState.generation || 'No se pudo generar una respuesta.') : '',
         confidence: finalState.confidence,
         sources: this.formatSources(finalState),
         metrics: {
@@ -196,10 +224,13 @@ export class AgenticRAGService {
     }
   }
 
-  private async executeWorkflow(stateManager: StateManager): Promise<void> {
+  private async executeWorkflow(stateManager: StateManager, generar = true): Promise<void> {
     let currentNode: NodeName = 'retrieve'
 
     while (currentNode !== 'end' && stateManager.shouldContinue()) {
+      // Quien sólo quiere las fuentes se baja antes de redactar (#63).
+      if (!generar && currentNode === 'generate') break
+
       if (this.config.debugMode) {
         console.log(`[AgenticRAG] Executing node: ${currentNode}`)
       }
