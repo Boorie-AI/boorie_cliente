@@ -39,15 +39,23 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.18.0
+### 🚀 Última Versió - v1.19.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.18.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.18.0/Boorie-1.18.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.18.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.18.0/Boorie-Setup-1.18.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.18.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.18.0/Boorie-1.18.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.19.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.19.0/Boorie-1.19.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.19.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.19.0/Boorie-Setup-1.19.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.19.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.19.0/Boorie-1.19.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.19.0
+- Pregunta-li «com puc reduir el consum energètic del bombament?» i et proposa mesures, simulant-ne cadascuna abans de donar-te una xifra.
+- Cada estalvi cita la simulació que l'avala, guardada a l'historial del projecte.
+- També et diu què costa tenir una bomba fora del seu punt òptim, simulant la mateixa xarxa amb aquesta bomba al millor punt de la seva corba.
+- Les mesures que no funcionen també es mostren amb la seva xifra: aturar el bombament a les hores cares consumeix més en algunes xarxes.
+- Corregit un error dels escenaris de la v1.18.0: en una xarxa on els automatismes governen el bombament, aturar una bomba no tenia efecte i l'escenari deia que no passava res. Si ho vas simular, torna-ho a llançar.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.19.0).
 
 ### 📝 Novetats a v1.18.0
 - Escenaris d'interrupció del servei: trencament de canonada, bomba fora de servei, pèrdua del control dels automatismes, sobredemanda per incendi o sequera a l'origen, combinables entre si.

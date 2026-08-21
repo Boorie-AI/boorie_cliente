@@ -39,15 +39,23 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.18.0
+### 🚀 Última Versión - v1.19.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.18.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.18.0/Boorie-1.18.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.18.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.18.0/Boorie-Setup-1.18.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.18.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.18.0/Boorie-1.18.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.19.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.19.0/Boorie-1.19.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.19.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.19.0/Boorie-Setup-1.19.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.19.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.19.0/Boorie-1.19.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.19.0
+- Pregúntale «¿cómo puedo reducir el consumo energético del bombeo?» y te propone medidas, simulando cada una antes de darte una cifra.
+- Cada ahorro cita la simulación que lo respalda, guardada en el historial del proyecto.
+- También te dice lo que cuesta tener una bomba fuera de su punto óptimo, simulando la misma red con esa bomba en el mejor punto de su curva.
+- Las medidas que no funcionan también se muestran con su cifra: parar el bombeo en horas caras consume más en algunas redes.
+- Corregido un fallo de los escenarios de la v1.18.0: en una red cuyos automatismos gobiernan el bombeo, parar una bomba no surtía efecto y el escenario decía que no pasaba nada. Si lo simulaste, vuelve a lanzarlo.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.19.0).
 
 ### 📝 Novedades en v1.18.0
 - Escenarios de interrupción del servicio: rotura de tubería, bomba fuera de servicio, pérdida del control de los automatismos, sobredemanda por incendio o sequía en el origen, combinables entre sí.
