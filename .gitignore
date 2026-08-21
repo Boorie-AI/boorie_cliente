@@ -89,3 +89,7 @@ volumes/
 
 data/boorie-milvus/
 data/data/
+
+# Cache de Python: lo genera el import entre servicios (#42)
+__pycache__/
+*.pyc
