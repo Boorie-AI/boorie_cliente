@@ -50,7 +50,41 @@ try {
     } else if (process.platform === 'win32') {
       queryEnginePath = path.join(resourcesPath, '.prisma/client/query_engine-windows.dll.node')
     } else {
-      queryEnginePath = path.join(resourcesPath, '.prisma/client/libquery_engine-linux-musl.so.node')
+      /*
+       * Aquí estaba fijado el motor de musl, que es la libc de Alpine, así que
+       * el AppImage se quedaba sin base de datos en cualquier Linux normal: el
+       * .so no se puede cargar y Prisma no llega a arrancar. Se elige entre los
+       * motores que ya viajan en el paquete, en el orden que corresponde a la
+       * libc de la máquina, y se comprueba cargándolos: si el primero no entra
+       * se pasa al siguiente, que es lo que ninguna detección sola garantiza.
+       */
+      const conGlibc = !!(process.report?.getReport() as { header?: { glibcVersionRuntime?: string } })?.header?.glibcVersionRuntime
+      const glibc = [
+        'libquery_engine-debian-openssl-3.0.x.so.node',
+        'libquery_engine-debian-openssl-1.1.x.so.node',
+        'libquery_engine-rhel-openssl-3.0.x.so.node',
+        'libquery_engine-rhel-openssl-1.1.x.so.node',
+      ]
+      const musl = ['libquery_engine-linux-musl.so.node', 'libquery_engine-linux-musl-openssl-3.0.x.so.node']
+      const candidatos = conGlibc ? [...glibc, ...musl] : [...musl, ...glibc]
+
+      const cargable = (ruta: string): boolean => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          require(ruta)
+          return true
+        } catch {
+          return false
+        }
+      }
+
+      const rutas = candidatos.map(nombre => path.join(resourcesPath, '.prisma/client', nombre))
+      // Si no carga ninguno se deja el que exista: el error de Prisma nombrando
+      // el motor concreto dice más que un PRISMA_QUERY_ENGINE_LIBRARY a medias.
+      queryEnginePath = rutas.find(ruta => fs.existsSync(ruta) && cargable(ruta))
+        ?? rutas.find(ruta => fs.existsSync(ruta))
+        ?? rutas[0]
+      console.log(`Prisma query engine for linux (glibc: ${conGlibc}): ${path.basename(queryEnginePath)}`)
     }
 
     /*
@@ -168,17 +202,7 @@ function initializeDatabasePath(): string {
 
   if (isDev) {
     // Development: use the prisma folder in project root
-    // Check if hydraulic.db exists, otherwise use xavi9.db for backward compatibility
-    const hydraulicDbPath = path.join(process.cwd(), 'prisma', 'hydraulic.db')
-    const xavi9DbPath = path.join(process.cwd(), 'prisma', 'xavi9.db')
-
-    if (fs.existsSync(hydraulicDbPath)) {
-      databasePath = hydraulicDbPath
-    } else if (fs.existsSync(xavi9DbPath)) {
-      databasePath = xavi9DbPath
-    } else {
-      databasePath = hydraulicDbPath // Default to hydraulic.db for new installations
-    }
+    databasePath = path.join(process.cwd(), 'prisma', 'hydraulic.db')
   } else {
     // Production: use userData directory for writable database
     const userDataPath = app.getPath('userData')
@@ -190,18 +214,14 @@ function initializeDatabasePath(): string {
       fs.mkdirSync(dbDir, { recursive: true })
     }
 
-    // Copy initial database from resources if it doesn't exist
-    if (!fs.existsSync(databasePath)) {
-      const sourcePath = path.join(process.resourcesPath, 'prisma', 'hydraulic.db')
-      if (fs.existsSync(sourcePath)) {
-        try {
-          fs.copyFileSync(sourcePath, databasePath)
-          console.log('Initial database copied to userData directory')
-        } catch (error) {
-          console.error('Failed to copy initial database:', error)
-        }
-      }
-    }
+    /*
+     * Aquí se copiaba `resources/prisma/hydraulic.db` como base inicial. El
+     * paquete ya no la lleva —sólo el esquema— y es a propósito: la regla de
+     * empaquetado se llevaba dentro cualquier .db del directorio, así que quien
+     * generase el instalador en su máquina distribuía su propia base, con sus
+     * proyectos y sus proveedores configurados, y encima se instalaba como base
+     * de partida de quien lo abriera. Cada instalación arranca con la suya.
+     */
   }
 
   return databasePath

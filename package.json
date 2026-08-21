@@ -127,14 +127,15 @@
     "files": [
       "dist/**/*",
       "resources/**/*",
-      "prisma/**/*"
+      "prisma/**/*",
+      "!prisma/*.db"
     ],
     "extraResources": [
       {
         "from": "prisma",
         "to": "prisma",
         "filter": [
-          "**/*"
+          "schema.prisma"
         ]
       },
       {
