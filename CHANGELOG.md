@@ -7,6 +7,30 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.19.0] - 2026-08-21
+
+Boorie ya te recomienda cómo gastar menos en bombeo, y cada cifra viene de una simulación.
+
+- **Pregúntale «¿cómo puedo reducir el consumo energético del bombeo?»** y te propone medidas
+  concretas. Antes de darte una cifra las simula una por una sobre tu red, así que lo que ves es
+  lo que ahorra de verdad, no una estimación. En la red de pruebas: *sacar la bomba 335 de la hora
+  punta ahorra 77,4 kWh y 19,49 USD al día, sin dejar a nadie sin agua*.
+- **Cada ahorro cita la simulación que lo respalda**, que queda guardada en el historial del
+  proyecto: si una cifra no te cuadra, puedes ir a verla.
+- **También te dice lo que cuesta tener una bomba fuera de su punto óptimo.** No es una
+  estimación: se simula la misma red con esa bomba trabajando en el mejor punto de su curva y se
+  resta. En la red de pruebas son 155,9 kWh al día, un 46%. Va marcado como «requiere cambiar
+  equipo», para que no se confunda con mover un horario.
+- **Las medidas que no funcionan también se muestran**, con su cifra. Parar el bombeo en las horas
+  caras suena bien y en algunas redes consume más, porque los depósitos se vacían y hay que
+  recuperarlos después. Es mejor saberlo que creerse un ahorro que no existe.
+- **Corregido un fallo que afectaba a los escenarios de la versión anterior**: en una red cuyos
+  automatismos gobiernan el bombeo, parar una bomba no llegaba a surtir efecto —el propio control
+  la volvía a arrancar— y el escenario decía que no pasaba nada. Si simulaste un paro de bomba con
+  la v1.18.0 y te salió sin impacto, vuelve a lanzarlo.
+- **Nada se simula sin tu confirmación**, aquí también: cada medida son dos simulaciones y en un
+  equipo sin tarjeta gráfica dedicada eso lleva su tiempo, así que se te avisa antes.
+
 ## [1.18.0] - 2026-08-21
 
 Escenarios de interrupción del servicio, y el coste energético del bombeo.
