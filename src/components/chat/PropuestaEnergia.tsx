@@ -18,7 +18,11 @@ interface Props {
   projectId?: string | null
   /** Red activa: hace falta para registrar cada verificación y poder citarla. */
   redId?: string | null
-  onNarracion: (texto: string) => void
+  /**
+   * El texto y, aparte, las medidas con su ejecución: sin ellas la narración es
+   * un párrafo y no se puede valorar nada (#42, tercera entrega).
+   */
+  onNarracion: (texto: string, valorables: Array<{ runId: string; titulo: string; contexto: Record<string, unknown> }>) => void
 }
 
 export function PropuestaEnergia({ projectId, redId, onNarracion }: Props) {
@@ -48,11 +52,17 @@ export function PropuestaEnergia({ projectId, redId, onNarracion }: Props) {
         return
       }
 
-      onNarracion(narrarEnergia(
-        r.data.analisis,
-        (r.data.recomendaciones ?? []) as RecomendacionVerificada[],
-        r.data.motivo,
-      ))
+      const recomendaciones = (r.data.recomendaciones ?? []) as RecomendacionVerificada[]
+      onNarracion(
+        narrarEnergia(r.data.analisis, recomendaciones, r.data.motivo),
+        recomendaciones
+          .filter(x => x.runId && x.ahorro)
+          .map(x => ({
+            runId: x.runId as string,
+            titulo: x.candidata.titulo,
+            contexto: { medida: x.candidata.medida, naturaleza: x.candidata.naturaleza, ahorro: x.ahorro, motivo: x.candidata.motivo },
+          })),
+      )
       setEstado('hecho')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudieron calcular las medidas')

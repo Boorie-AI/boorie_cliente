@@ -5,6 +5,7 @@ import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { AlertCircle, Gauge, Lightbulb, Plus, RefreshCw, Trash2, Zap } from 'lucide-react'
 import { logger } from '@/utils/logger'
+import { FeedbackRecomendacion } from './FeedbackRecomendacion'
 
 /**
  * Eficiencia energética del bombeo (#42).
@@ -70,6 +71,8 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
   const [recomendaciones, setRecomendaciones] = useState<any[] | null>(null)
   const [motivoSinRecomendaciones, setMotivoSinRecomendaciones] = useState<string | null>(null)
   const [recomendando, setRecomendando] = useState(false)
+  /** Lo ya valorado, indexado por ejecución, para no volver a preguntarlo. */
+  const [valoraciones, setValoraciones] = useState<Record<string, { rating: number; correccion: string | null }>>({})
 
   const cargarTarifa = useCallback(async () => {
     try {
@@ -178,6 +181,14 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
         setAnalisis(r.data.analisis)
         setRecomendaciones(r.data.recomendaciones)
         setMotivoSinRecomendaciones(r.data.motivo ?? null)
+
+        // Si estas medidas ya se valoraron antes, se enseña la marca en vez de
+        // volver a preguntar por lo mismo.
+        const runIds = (r.data.recomendaciones ?? []).map((x: any) => x.runId).filter(Boolean)
+        if (runIds.length > 0) {
+          const previas = await window.electronAPI.energia.feedbackDe(runIds)
+          if (previas?.success) setValoraciones(previas.data ?? {})
+        }
       } else {
         setError(r?.error || 'No se pudieron calcular las recomendaciones')
       }
@@ -455,6 +466,16 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
                     : <>Verificado por simulación, pero no se pudo registrar en el historial.</>}
                   {!r.convergio && ' ⚠️ alguna simulación no convergió.'}
                 </div>
+
+                {/* Valorarla sólo tiene sentido si hay ejecución que citar (#42). */}
+                {r.runId && (
+                  <FeedbackRecomendacion
+                    runId={r.runId}
+                    titulo={r.candidata.titulo}
+                    contexto={{ medida: r.candidata.medida, naturaleza: r.candidata.naturaleza, ahorro: r.ahorro, motivo: r.candidata.motivo }}
+                    valoracionInicial={valoraciones[r.runId] ?? null}
+                  />
+                )}
               </>
             ) : (
               <div className="text-[11px] text-destructive">No se pudo verificar: {r.error}</div>
