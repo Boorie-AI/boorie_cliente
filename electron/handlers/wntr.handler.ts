@@ -5,6 +5,8 @@ import { WNTRSimulationService } from '../../backend/services/hydraulic/simulati
 import { WNTRAnalysisService } from '../../backend/services/hydraulic/analysisService'
 import { WNTRReportService } from '../../backend/services/hydraulic/reportService'
 import { WNTRResilienceService } from '../../backend/services/hydraulic/resilienceService'
+import { WNTREnergyService } from '../../backend/services/hydraulic/energyService'
+import { TarifaElectricaService, TARIFA_POR_DEFECTO, bloquesSolapados, type TarifaElectrica } from '../../backend/services/hydraulic/tarifaElectrica'
 import { getPythonStatus } from '../../backend/services/hydraulic/pythonDetector'
 import { guardrailsWrapper } from '../../backend/services/guardrails/guardrailsWrapper'
 
@@ -13,8 +15,19 @@ const simulationService = new WNTRSimulationService()
 const analysisService = new WNTRAnalysisService()
 const reportService = new WNTRReportService()
 const resilienceService = new WNTRResilienceService()
+const energyService = new WNTREnergyService()
 
-export function setupWNTRHandlers() {
+/**
+ * La tarifa vive en la base, así que estos handlers la necesitan (#42). Es
+ * opcional para no romper a quien llame sin ella: sin base se calcula con la
+ * tarifa por defecto, que viaja declarada en cada resultado.
+ */
+export function setupWNTRHandlers(prisma?: import('@prisma/client').PrismaClient) {
+  const tarifas = prisma ? new TarifaElectricaService(prisma) : null
+
+  const tarifaDe = async (projectId?: string | null): Promise<TarifaElectrica> =>
+    tarifas ? tarifas.tarifaDe(projectId) : TARIFA_POR_DEFECTO
+
   // Check Python/WNTR availability
   ipcMain.handle('wntr:check-python', async () => {
     try {
@@ -518,6 +531,104 @@ export function setupWNTRHandlers() {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
       }
+    }
+  })
+
+  /**
+   * Consumo y coste de bombeo, con la tarifa del proyecto (#42).
+   *
+   * La tarifa se resuelve aquí y no en el renderer porque es un dato del
+   * proyecto y porque el resultado tiene que decir con qué precio se calculó:
+   * un ahorro de 40 kWh no significa nada sin la tarifa que lo convierte en
+   * dinero.
+   */
+  ipcMain.handle('wntr:energy-analyze', async (_e, options?: { projectId?: string | null; duration_hours?: number }) => {
+    try {
+      if (!global.currentWNTRFile) {
+        return { success: false, error: 'No EPANET file loaded' }
+      }
+      const tarifa = await tarifaDe(options?.projectId)
+      const resultado = await energyService.analizar(global.currentWNTRFile, {
+        duration_hours: options?.duration_hours,
+        tarifa,
+        eficiencia_global: tarifa.eficienciaGlobal,
+      })
+      return { ...resultado, avisos: { bloques_solapados: bloquesSolapados(tarifa) } }
+    } catch (error) {
+      console.error('Error analyzing energy:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+  /**
+   * Ahorro medido de una medida operativa (#42).
+   *
+   * Pasa por el guardrail de ejecución igual que un escenario: una medida cierra
+   * bombas, y apagar el bombeo doce horas «ahorra» mucha energía.
+   */
+  ipcMain.handle('wntr:energy-verify', async (_e, options: any) => {
+    try {
+      if (!global.currentWNTRFile) {
+        return { success: false, error: 'No EPANET file loaded' }
+      }
+      if (!options?.medidas?.length) {
+        return { success: false, error: 'No se declaró ninguna medida que verificar' }
+      }
+
+      const verdict = await guardrailsWrapper.validateExecution('wntr.energyVerify', {
+        file: global.currentWNTRFile,
+        medidas: options.medidas,
+      })
+      if (!verdict.allow) {
+        return {
+          success: false,
+          blockedBy: 'guardrail:execution',
+          error: `Medida rechazada por guardrail: ${verdict.reason}`,
+        }
+      }
+
+      const tarifa = await tarifaDe(options.projectId)
+      return await energyService.verificarMedida(global.currentWNTRFile, {
+        ...options,
+        tarifa,
+        eficiencia_global: tarifa.eficienciaGlobal,
+      })
+    } catch (error) {
+      console.error('Error verifying energy measure:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+  // Tarifa eléctrica del proyecto (#42). Misma herencia que los ajustes de
+  // indexación (#41): un proyecto sin tarifa propia sigue la general.
+  ipcMain.handle('energia:tarifa', async (_e, projectId?: string | null) => {
+    try {
+      if (!tarifas) return { success: true, data: { tarifa: TARIFA_POR_DEFECTO, propia: false, solapados: [] } }
+      const tarifa = await tarifas.tarifaDe(projectId)
+      const propia = projectId ? (await tarifas.tarifaPropiaDe(projectId)) !== null : false
+      return { success: true, data: { tarifa, propia, solapados: bloquesSolapados(tarifa) } }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+  ipcMain.handle('energia:guardar-tarifa', async (_e, data: { projectId?: string | null; tarifa: Partial<TarifaElectrica> }) => {
+    try {
+      if (!tarifas) return { success: false, error: 'Sin base de datos no se puede guardar la tarifa' }
+      const guardada = await tarifas.guardarTarifa(data?.projectId ?? null, data?.tarifa ?? {})
+      return { success: true, data: { tarifa: guardada, solapados: bloquesSolapados(guardada) } }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+  ipcMain.handle('energia:olvidar-tarifa', async (_e, projectId: string) => {
+    try {
+      if (!tarifas) return { success: false, error: 'Sin base de datos no hay tarifa que olvidar' }
+      await tarifas.olvidarTarifa(projectId)
+      return { success: true, data: { tarifa: await tarifas.tarifaDe(projectId), propia: false } }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   })
 

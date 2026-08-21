@@ -63,7 +63,7 @@ export class HandlersManager {
       .catch(e => console.warn('No se pudo migrar el historial de versiones:', e?.message))
 
     // Setup WNTR handlers
-    setupWNTRHandlers()
+    setupWNTRHandlers(services.database.prisma)
 
     // Setup wisdom handlers
     try {

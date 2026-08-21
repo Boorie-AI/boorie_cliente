@@ -13,6 +13,7 @@ import { WNTRAdvancedMapViewer } from './WNTRAdvancedMapViewer';
 import { ProjectDashboard } from './ProjectDashboard';
 import { HistorialRed } from './HistorialRed';
 import { InstantaneasProyecto } from './InstantaneasProyecto';
+import { PanelEnergia } from './PanelEnergia';
 import { Project, NetworkAsset, CalculationAsset } from '../../types/project';
 import { hydraulicService } from '@/services/hydraulic/hydraulicService';
 import {
@@ -1350,6 +1351,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     <Target className="h-4 w-4 text-purple-500" />
                     Network Analysis
                   </h3>
+
+                  {/* Eficiencia energética del bombeo (#42) */}
+                  <div className="border-t pt-4">
+                    <PanelEnergia projectId={activeProjectId} hayRed={!!networkData} />
+                  </div>
 
                   <Button
                     className="w-full"
