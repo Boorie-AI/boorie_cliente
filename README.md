@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.19.0
+### 🚀 Latest Release - v1.20.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.19.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.19.0/Boorie-1.19.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.19.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.19.0/Boorie-Setup-1.19.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.19.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.19.0/Boorie-1.19.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.20.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.0/Boorie-1.20.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.20.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.0/Boorie-Setup-1.20.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.20.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.0/Boorie-1.20.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.20.0**: You can now tell Boorie whether a recommendation is useful to you. Every energy efficiency measure can be marked as useful or wrong, both in the panel and in the chat. If you mark it as wrong you can explain why, and that explanation is the most valuable thing stored: the figure comes from the simulation, but *why* a measure does not work on your network only you know. What you rate is stored together with the simulation that backed the figure, so the whole rating can be read back: what was recommended, how much it saved, on which run, and what you said. Returning to the panel shows the measures you already rated instead of asking again, and changing your mind replaces the previous rating rather than piling up another. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.20.0).
 - **v1.19.0**: Boorie now recommends how to spend less on pumping, and every figure comes from a simulation. Ask «how can I reduce the pumping energy?» and it proposes concrete measures, simulating each one on your network before giving you a number — so what you see is what it really saves, not an estimate. In the test network: taking pump 335 out of the peak-price hours saves 77.4 kWh and 19.49 USD a day, without leaving anyone without water. Every saving cites the simulation that backs it, stored in the project history. It also tells you what it costs to run a pump away from its best efficiency point — not as an estimate: the same network is simulated with that pump at the best point of its curve and subtracted (155.9 kWh a day in the test network, 46%), labelled «requires new equipment» so it is not confused with shifting a schedule. Measures that do **not** work are shown too, with their figure: stopping pumping during expensive hours sounds good and in some networks consumes more, because the tanks drain and have to be recovered afterwards. And a fault affecting the previous version's scenarios is fixed: in a network whose automation drives the pumping, stopping a pump had no effect —its own control started it again— and the scenario reported no impact. If you ran a pump outage on v1.18.0 and got no impact, run it again. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.19.0).
 - **v1.18.0**: Service-interruption scenarios, and what pumping costs you. You can now pose what happens if something fails —pipe break, pump out of service, loss of control of the automation, a fire's demand surge, drought at the source— and get how many people it leaves without water. Ask the chat in plain language: «how many customers lose service if the pumps' control is lost for 4 hours?» and Boorie proposes the scenario, shows it in full and waits for your confirmation: **nothing is simulated until you approve it**. The figures come from the simulation, not from the model: the answer cites the run that backs it and the numbers match running the engine by hand, to the decimal. Impact is measured against your network without the event, so the deficit it already carried is not blamed on the scenario. On energy: consumption and cost per pump, hours running, power, and the split between peak and off-peak hours according to your project's tariff. Boorie also tells you which pump works away from its best efficiency point, using the efficiency curve your own file declares —in the test network, three pumps at 37.5% when their curve gives 70%, with flow 66.7% below the optimum. And you can check whether a measure really saves: the network is simulated with it and subtracted. Stopping pumping during the expensive hours saved 118.8 kWh and 33.80 USD in one network and **consumed 48.8 kWh more** in another, because the tanks drained and had to be recovered — the measure rejects itself, with its own figure. Every saving comes with what it costs the service. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.18.0).
 - **v1.17.1**: The chat answers from what is indexed again, instead of saying there is nothing. If you asked about your simulations and Boorie replied «no data», that is fixed: searching the project's knowledge took longer than the chat was willing to wait, so the answer came back without a single source even though they were indexed. The search now takes a sixth of the time and the chat cites the documents each figure comes from. The Wisdom Center search no longer claims it found nothing when it did: if the drafting does not finish in time it says so and lists the sources it located. The knowledge selector's «Max Results» finally does something — it used to move without changing anything — and it now ships at 3, which is what a machine without a dedicated graphics card reviews in reasonable time. The security check on retrieved content works again: it always ran out of time, a minute per query checking nothing, and it also rejected documents that did answer the question. And Boorie now waits as long as answering takes: up to three minutes for the sources and eight for the full answer, instead of cutting off just before having it. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.17.1).
@@ -93,12 +94,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.19.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.19.0.AppImage`
-3. Run: `./Boorie-1.19.0.AppImage`
+1. Download `Boorie-1.20.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.20.0.AppImage`
+3. Run: `./Boorie-1.20.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.19.0.exe` from the link above
+1. Download `Boorie-Setup-1.20.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 

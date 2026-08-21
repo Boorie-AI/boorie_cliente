@@ -39,15 +39,22 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.19.0
+### 🚀 Última Versión - v1.20.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.19.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.19.0/Boorie-1.19.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.19.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.19.0/Boorie-Setup-1.19.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.19.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.19.0/Boorie-1.19.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.20.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.0/Boorie-1.20.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.20.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.0/Boorie-Setup-1.20.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.20.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.0/Boorie-1.20.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.20.0
+- Cada medida de eficiencia energética se puede marcar como útil o incorrecta, en el panel y en el chat.
+- Al marcarla como incorrecta puedes explicar por qué, y esa explicación es lo más valioso que se guarda.
+- Lo que valoras queda guardado junto a la simulación que respaldó la cifra, así que la valoración se puede leer entera.
+- Al volver al panel, las medidas ya valoradas aparecen marcadas en vez de preguntártelo otra vez.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.20.0).
 
 ### 📝 Novedades en v1.19.0
 - Pregúntale «¿cómo puedo reducir el consumo energético del bombeo?» y te propone medidas, simulando cada una antes de darte una cifra.
