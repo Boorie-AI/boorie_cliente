@@ -38,6 +38,8 @@ export interface Message {
      */
     /** Id de la ejecución que respalda las cifras de esta narración (#44). */
     escenarioEjecutado?: string
+    /** Propuesta de analizar el bombeo y verificar medidas (#42). */
+    propuesta_energia?: { red_id?: string; project_id?: string | null }
     propuesta_escenario?: {
       resumen?: string
       definicion?: { nombre?: string; eventos: Array<Record<string, unknown>> }

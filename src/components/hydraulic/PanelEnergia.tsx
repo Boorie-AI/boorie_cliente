@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { AlertCircle, Gauge, Plus, RefreshCw, Trash2, Zap } from 'lucide-react'
+import { AlertCircle, Gauge, Lightbulb, Plus, RefreshCw, Trash2, Zap } from 'lucide-react'
 import { logger } from '@/utils/logger'
 
 /**
@@ -40,6 +40,8 @@ interface Tarifa {
 interface Props {
   /** Proyecto activo: su tarifa manda sobre la general. */
   projectId?: string | null
+  /** Red cargada: hace falta para registrar cada verificación y poder citarla. */
+  redId?: string | null
   /** Si no hay red cargada no hay nada que analizar. */
   hayRed: boolean
 }
@@ -49,7 +51,7 @@ const num = (v: string, porDefecto = 0) => {
   return Number.isFinite(n) ? n : porDefecto
 }
 
-export function PanelEnergia({ projectId, hayRed }: Props) {
+export function PanelEnergia({ projectId, redId, hayRed }: Props) {
   const [tarifa, setTarifa] = useState<Tarifa | null>(null)
   const [propia, setPropia] = useState(false)
   const [solapados, setSolapados] = useState<Array<[string, string]>>([])
@@ -64,6 +66,10 @@ export function PanelEnergia({ projectId, hayRed }: Props) {
   const [hastaH, setHastaH] = useState(22)
   const [verificacion, setVerificacion] = useState<any>(null)
   const [verificando, setVerificando] = useState(false)
+
+  const [recomendaciones, setRecomendaciones] = useState<any[] | null>(null)
+  const [motivoSinRecomendaciones, setMotivoSinRecomendaciones] = useState<string | null>(null)
+  const [recomendando, setRecomendando] = useState(false)
 
   const cargarTarifa = useCallback(async () => {
     try {
@@ -112,7 +118,7 @@ export function PanelEnergia({ projectId, hayRed }: Props) {
     setAnalizando(true)
     setError(null)
     try {
-      const r = await window.electronAPI.wntr.energyAnalyze({ projectId: projectId ?? null, duration_hours: 24 })
+      const r = await window.electronAPI.wntr.energyAnalyze({ projectId: projectId ?? null, redId: redId ?? null, duration_hours: 24 })
       if (r?.success) {
         setAnalisis(r.data)
         setSolapados(r.avisos?.bloques_solapados ?? solapados)
@@ -138,6 +144,7 @@ export function PanelEnergia({ projectId, hayRed }: Props) {
     try {
       const r = await window.electronAPI.wntr.energyVerify({
         projectId: projectId ?? null,
+        redId: redId ?? null,
         duration_hours: 24,
         persons_per_connection: 4,
         medidas: [{ tipo: 'pump_outage', elementos, desde_h: desdeH, hasta_h: hastaH }],
@@ -148,6 +155,36 @@ export function PanelEnergia({ projectId, hayRed }: Props) {
       setError(e instanceof Error ? e.message : 'No se pudo verificar la medida')
     } finally {
       setVerificando(false)
+    }
+  }
+
+  /**
+   * Cada recomendación se verifica simulando, así que esto son dos simulaciones
+   * por candidata. Se avisa en la interfaz en vez de dejar al usuario mirando un
+   * botón girando.
+   */
+  const recomendar = async () => {
+    setRecomendando(true)
+    setError(null)
+    setRecomendaciones(null)
+    setMotivoSinRecomendaciones(null)
+    try {
+      const r = await window.electronAPI.wntr.energyRecommend({
+        projectId: projectId ?? null,
+        redId: redId ?? null,
+        duration_hours: 24,
+      })
+      if (r?.success) {
+        setAnalisis(r.data.analisis)
+        setRecomendaciones(r.data.recomendaciones)
+        setMotivoSinRecomendaciones(r.data.motivo ?? null)
+      } else {
+        setError(r?.error || 'No se pudieron calcular las recomendaciones')
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudieron calcular las recomendaciones')
+    } finally {
+      setRecomendando(false)
     }
   }
 
@@ -355,6 +392,76 @@ export function PanelEnergia({ projectId, hayRed }: Props) {
           </CardContent>
         </Card>
       )}
+
+      {/* Recomendaciones verificadas (#42) */}
+      <Button size="sm" variant="secondary" className="w-full" onClick={recomendar} disabled={!hayRed || recomendando}>
+        {recomendando
+          ? <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> Buscando y verificando medidas…</>
+          : <><Lightbulb className="h-3.5 w-3.5 mr-2" /> Recomendar medidas (verificadas por simulación)</>}
+      </Button>
+
+      {motivoSinRecomendaciones && (
+        <Alert className="text-[11px] py-2">{motivoSinRecomendaciones}</Alert>
+      )}
+
+      {recomendaciones?.map((r: any, i: number) => (
+        <Card key={i}>
+          <CardContent className="p-3 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="text-xs font-semibold">{r.candidata.titulo}</div>
+              <Badge variant={r.candidata.naturaleza === 'operativa' ? 'secondary' : 'outline'} className="text-[9px] flex-shrink-0">
+                {r.candidata.naturaleza === 'operativa' ? 'operativa' : 'requiere equipo'}
+              </Badge>
+            </div>
+            <div className="text-[11px] text-muted-foreground">{r.candidata.motivo}</div>
+
+            {r.ahorro ? (
+              <>
+                <div className="flex items-baseline justify-between border-t pt-2">
+                  <span className={`text-lg font-mono ${r.ahorro.energia_kwh > 0 ? 'text-green-600' : 'text-amber-600'}`}>
+                    {r.ahorro.energia_kwh > 0 ? '−' : '+'}{Math.abs(r.ahorro.energia_kwh).toFixed(1)} kWh
+                  </span>
+                  <span className={`text-base font-mono ${r.ahorro.coste > 0 ? 'text-green-600' : 'text-amber-600'}`}>
+                    {r.ahorro.coste > 0 ? '−' : '+'}{Math.abs(r.ahorro.coste).toFixed(2)} {r.ahorro.moneda}
+                  </span>
+                </div>
+                <div className="text-[10px] text-muted-foreground">
+                  {r.antes.energia_kwh.toFixed(1)} → {r.despues.energia_kwh.toFixed(1)} kWh ·
+                  {' '}un {Math.abs(r.ahorro.porcentaje_energia).toFixed(1)}% {r.ahorro.energia_kwh > 0 ? 'menos' : 'más'} ·
+                  {' '}<Badge variant="secondary" className="text-[9px]">{r.ahorro.origen}</Badge>
+                </div>
+                {/* Cero no es «consume más»: es que la medida no cambia nada, y
+                    decirlo mal esconde que quizá no llegó a aplicarse. */}
+                {Math.abs(r.ahorro.energia_kwh) < 0.05 ? (
+                  <Alert className="text-[10px] py-1">
+                    Simulada, esta medida <strong>no cambia el consumo</strong>. Suele significar que la red la
+                    absorbe —otra bomba compensa, o los depósitos ya cubrían esas horas.
+                  </Alert>
+                ) : r.ahorro.energia_kwh < 0 ? (
+                  <Alert className="text-[10px] py-1">
+                    Simulada, esta medida <strong>no ahorra</strong>: la red consume más con ella. Se muestra igual,
+                    porque saber que no funciona también es información.
+                  </Alert>
+                ) : null}
+                <div className="text-[10px] text-muted-foreground">
+                  Coste en servicio: {r.impacto_en_servicio.habitantes_afectados_atribuibles} habitantes ·
+                  {' '}{r.impacto_en_servicio.demanda_no_satisfecha_atribuible_m3.toFixed(1)} m³ sin servir
+                  {r.impacto_en_servicio.habitantes_afectados_atribuibles === 0 && ' — no deja a nadie sin agua'}
+                </div>
+                {/* La cita de origen: es el criterio de aceptación del issue. */}
+                <div className="text-[10px] text-muted-foreground italic">
+                  {r.runId
+                    ? <>Verificado en la simulación <code>{r.runId}</code>, en el historial del proyecto.</>
+                    : <>Verificado por simulación, pero no se pudo registrar en el historial.</>}
+                  {!r.convergio && ' ⚠️ alguna simulación no convergió.'}
+                </div>
+              </>
+            ) : (
+              <div className="text-[11px] text-destructive">No se pudo verificar: {r.error}</div>
+            )}
+          </CardContent>
+        </Card>
+      ))}
 
       {/* Verificación de una medida */}
       <div className="space-y-2 p-3 bg-muted/20 rounded-lg">

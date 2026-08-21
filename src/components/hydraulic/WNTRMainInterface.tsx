@@ -1354,7 +1354,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
                   {/* Eficiencia energética del bombeo (#42) */}
                   <div className="border-t pt-4">
-                    <PanelEnergia projectId={activeProjectId} hayRed={!!networkData} />
+                    <PanelEnergia projectId={activeProjectId} redId={redGuardadaId} hayRed={!!networkData} />
                   </div>
 
                   <Button

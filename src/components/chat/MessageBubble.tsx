@@ -4,6 +4,7 @@ import { Copy, User, Bot } from 'lucide-react'
 import { useState } from 'react'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import { PropuestaEscenario } from './PropuestaEscenario'
+import { PropuestaEnergia } from './PropuestaEnergia'
 import { useChatStore } from '@/stores/chatStore'
 
 interface MessageBubbleProps {
@@ -15,6 +16,7 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
   const propuesta = message.metadata?.propuesta_escenario
+  const propuestaEnergia = message.metadata?.propuesta_energia
 
   /**
    * La narración del escenario entra como un mensaje más del asistente (#44).
@@ -71,6 +73,14 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
                 <span className="animate-pulse text-primary ml-1">▌</span>
               )}
             </div>
+
+            {propuestaEnergia && !isUser && (
+              <PropuestaEnergia
+                projectId={propuestaEnergia.project_id ?? null}
+                redId={propuestaEnergia.red_id ?? null}
+                onNarracion={texto => anadirNarracion(texto, null)}
+              />
+            )}
 
             {propuesta && !isUser && (
               <PropuestaEscenario

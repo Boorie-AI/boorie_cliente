@@ -298,11 +298,48 @@ class WNTRResilienceService:
         return aplicados, omitidos, f'fuga de {area} m2 (Cd={coef}) en un nudo extremo, sin partir la tubería'
 
     def _evento_paro_bomba(self, wn, evento, duration_hours):
-        """Bomba fuera de servicio: corte de energía, avería o parada operativa."""
+        """
+        Bomba fuera de servicio: corte de energía, avería o parada operativa.
+
+        Se usa `Pump.add_outage` de WNTR, que existe justamente para esto y
+        aplica la regla con **prioridad 6** (muy alta). Cerrar la bomba con un
+        control corriente no basta: en una red cuyos controles gobiernan el
+        bombeo, el propio control la reabre al paso siguiente y el paro se
+        deshace sin que nada lo diga. Medido en Net3, que tiene 18 controles: un
+        paro de cuatro horas de la bomba 335 daba **0,0 kWh** de diferencia, es
+        decir, no pasaba nada. En Chamisero, que no tiene controles, sí
+        funcionaba, y por eso no se vio antes.
+
+        `add_after_outage_rule` se pasa cuando el evento tiene fin, para que la
+        bomba vuelva; WNTR advierte de que, si no, el estado posterior lo deciden
+        los controles de la red, y en una red sin controles se quedaría parada
+        para siempre.
+        """
         desde_s, hasta_s = self._ventana_s(evento, duration_hours)
-        aplicados, omitidos = self._cerrar_enlaces(
-            wn, evento.get('elementos') or [], desde_s, hasta_s, 'paro')
-        return aplicados, omitidos, 'bomba cerrada por control en la ventana del evento'
+        aplicados, omitidos = [], []
+        con_regla = False
+
+        for elemento in evento.get('elementos') or []:
+            try:
+                enlace = wn.get_link(elemento)
+            except KeyError:
+                omitidos.append({'id': str(elemento), 'motivo': 'no existe en la red'})
+                continue
+
+            if hasattr(enlace, 'add_outage'):
+                enlace.add_outage(wn, desde_s, hasta_s, add_after_outage_rule=hasta_s is not None)
+                con_regla = True
+                aplicados.append(str(elemento))
+            else:
+                # No es una bomba: se cierra como cualquier otro enlace, que es
+                # lo que se puede hacer y lo que se declara.
+                hechos, fallidos = self._cerrar_enlaces(wn, [elemento], desde_s, hasta_s, 'paro')
+                aplicados.extend(hechos)
+                omitidos.extend(fallidos)
+
+        metodo = ('regla de apagón de WNTR con prioridad alta, para que los controles de la red no la deshagan'
+                  if con_regla else 'enlace cerrado por control en la ventana del evento')
+        return aplicados, omitidos, metodo
 
     def _evento_perdida_control(self, wn, evento, duration_hours):
         """

@@ -24,6 +24,12 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..', '..')
 const NET1 = path.join(REPO_ROOT, 'test-files', 'Net1v3.inp')
 const CHAMISERO = path.join(REPO_ROOT, 'test-files', 'SoloChamiseroMedioConPatronComercial-07p1.inp')
 const SIN_BOMBAS = path.join(REPO_ROOT, 'test-files', 'simple-network.inp')
+/**
+ * Net3 con sus 18 controles, que es lo que faltaba en el banco de pruebas.
+ * Chamisero y Net1 no tienen ninguno, y por eso no se vio que un paro de bomba
+ * hecho con un control corriente lo deshacía el control propio de la red.
+ */
+const CON_CONTROLES = path.join(REPO_ROOT, 'test-files', 'Net3-con-controles.inp')
 const canRun = getPythonStatus().wntrAvailable && fs.existsSync(NET1) && fs.existsSync(CHAMISERO)
 
 const SIM_TIMEOUT = 120_000
@@ -151,6 +157,20 @@ describe.skipIf(!canRun)('verificación de ahorro por simulación', () => {
     expect(s).toBeDefined()
     expect(s.habitantes_afectados_atribuibles).toBeDefined()
     expect(s.metodo).toMatchObject({ demand_model: 'PDA' })
+  }, SIM_TIMEOUT)
+
+  it('el paro de bomba se sostiene aunque la red tenga sus propios controles', async () => {
+    if (!fs.existsSync(CON_CONTROLES)) return
+    const r = await service.verificarMedida(CON_CONTROLES, {
+      duration_hours: 24,
+      tarifa: TARIFA,
+      medidas: [{ tipo: 'pump_outage', elementos: ['335'], desde_h: 18, hasta_h: 22 }],
+    })
+
+    // Antes del arreglo esto daba exactamente 0,0 kWh: el control de la red
+    // reabría la bomba al paso siguiente y el paro no llegaba a existir.
+    expect(r.data!.ahorro.energia_kwh).toBeGreaterThan(0)
+    expect(r.data!.medidas[0].metodo).toContain('prioridad alta')
   }, SIM_TIMEOUT)
 
   it('una medida sobre un elemento que no existe se rechaza diciendo cuál', async () => {

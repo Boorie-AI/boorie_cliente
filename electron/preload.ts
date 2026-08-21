@@ -300,6 +300,7 @@ const electronAPI = {
     simulateScenario: (definicion: any) => ipcRenderer.invoke('wntr:simulate-scenario', definicion),
     energyAnalyze: (options?: { projectId?: string | null; duration_hours?: number }) => ipcRenderer.invoke('wntr:energy-analyze', options),
     energyVerify: (options: any) => ipcRenderer.invoke('wntr:energy-verify', options),
+    energyRecommend: (options?: { projectId?: string | null; redId?: string | null; duration_hours?: number; maximo?: number }) => ipcRenderer.invoke('wntr:energy-recommend', options),
     calculateResilienceIndicators: (options?: any) => ipcRenderer.invoke('wntr:calculate-resilience-indicators', options),
     generateFragilityCurve: (options?: any) => ipcRenderer.invoke('wntr:generate-fragility-curve', options),
   },

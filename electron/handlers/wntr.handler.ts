@@ -9,6 +9,8 @@ import { WNTRReportService } from '../../backend/services/hydraulic/reportServic
 import { WNTRResilienceService } from '../../backend/services/hydraulic/resilienceService'
 import { WNTREnergyService } from '../../backend/services/hydraulic/energyService'
 import { TarifaElectricaService, TARIFA_POR_DEFECTO, bloquesSolapados, type TarifaElectrica } from '../../backend/services/hydraulic/tarifaElectrica'
+import { generarCandidatas, type Candidata } from '../../backend/services/hydraulic/recomendacionesEnergia'
+import { NetworkVersionService } from '../../backend/services/hydraulic/networkVersions'
 import { getPythonStatus } from '../../backend/services/hydraulic/pythonDetector'
 import { guardrailsWrapper } from '../../backend/services/guardrails/guardrailsWrapper'
 
@@ -29,6 +31,32 @@ export function setupWNTRHandlers(prisma?: import('@prisma/client').PrismaClient
 
   const tarifaDe = async (projectId?: string | null): Promise<TarifaElectrica> =>
     tarifas ? tarifas.tarifaDe(projectId) : TARIFA_POR_DEFECTO
+
+  /**
+   * El `.inp` sobre el que trabajar (#42, #44).
+   *
+   * Depender sólo de `currentWNTRFile` significaba que todo lo que se pide desde
+   * el chat —escenarios y medidas de eficiencia— acabase en «No EPANET file
+   * loaded», porque el chat no pasa por la vista de red. Medido las dos veces.
+   * Con el id de la red se materializa su .inp desde la base, que es la misma
+   * fuente que usa `network-repo:load`: así se trabaja sobre la red que el
+   * agente tenía delante y no sobre la que otra pantalla dejó cargada.
+   */
+  const ficheroDeRed = async (redId?: string | null): Promise<string | null> => {
+    if (redId && prisma) {
+      try {
+        const red = await prisma.hydraulicNetwork.findUnique({ where: { id: redId } })
+        if (red?.fileContent) {
+          const ruta = join(tmpdir(), `boorie-red-${red.id}.inp`)
+          await fs.writeFile(ruta, red.fileContent, 'utf-8')
+          return ruta
+        }
+      } catch (error) {
+        console.warn('No se pudo materializar la red pedida:', error)
+      }
+    }
+    return global.currentWNTRFile ?? null
+  }
 
   // Check Python/WNTR availability
   ipcMain.handle('wntr:check-python', async () => {
@@ -510,27 +538,7 @@ export function setupWNTRHandlers(prisma?: import('@prisma/client').PrismaClient
         return { success: false, error: 'El escenario no declara ningún evento' }
       }
 
-      /**
-       * El escenario puede venir del chat, que no ha pasado por la vista de red
-       * (#44). Depender de `currentWNTRFile` significaba que proponer un
-       * escenario desde el chat acabase en «No EPANET file loaded» —medido, es
-       * lo que pasó— aunque el agente sí supiera sobre qué red hablaba. Con el
-       * id de la red se materializa su .inp desde la base, que es la misma
-       * fuente que usa `network-repo:load`: así la red que se simula es la que
-       * el agente tenía delante y no la que otra pantalla dejó cargada.
-       */
-      let fichero = global.currentWNTRFile
-      if (definicion.red_id) {
-        try {
-          const red = await prisma?.hydraulicNetwork.findUnique({ where: { id: definicion.red_id } })
-          if (red?.fileContent) {
-            fichero = join(tmpdir(), `boorie-escenario-${red.id}.inp`)
-            await fs.writeFile(fichero, red.fileContent, 'utf-8')
-          }
-        } catch (error) {
-          console.warn('No se pudo materializar la red del escenario:', error)
-        }
-      }
+      const fichero = await ficheroDeRed(definicion.red_id)
       if (!fichero) {
         return { success: false, error: 'No hay ninguna red cargada sobre la que simular el escenario' }
       }
@@ -566,13 +574,14 @@ export function setupWNTRHandlers(prisma?: import('@prisma/client').PrismaClient
    * un ahorro de 40 kWh no significa nada sin la tarifa que lo convierte en
    * dinero.
    */
-  ipcMain.handle('wntr:energy-analyze', async (_e, options?: { projectId?: string | null; duration_hours?: number }) => {
+  ipcMain.handle('wntr:energy-analyze', async (_e, options?: { projectId?: string | null; redId?: string | null; duration_hours?: number }) => {
     try {
-      if (!global.currentWNTRFile) {
-        return { success: false, error: 'No EPANET file loaded' }
+      const fichero = await ficheroDeRed(options?.redId)
+      if (!fichero) {
+        return { success: false, error: 'No hay ninguna red cargada que analizar' }
       }
       const tarifa = await tarifaDe(options?.projectId)
-      const resultado = await energyService.analizar(global.currentWNTRFile, {
+      const resultado = await energyService.analizar(fichero, {
         duration_hours: options?.duration_hours,
         tarifa,
         eficiencia_global: tarifa.eficienciaGlobal,
@@ -592,15 +601,16 @@ export function setupWNTRHandlers(prisma?: import('@prisma/client').PrismaClient
    */
   ipcMain.handle('wntr:energy-verify', async (_e, options: any) => {
     try {
-      if (!global.currentWNTRFile) {
-        return { success: false, error: 'No EPANET file loaded' }
+      const fichero = await ficheroDeRed(options?.redId)
+      if (!fichero) {
+        return { success: false, error: 'No hay ninguna red cargada sobre la que verificar la medida' }
       }
       if (!options?.medidas?.length) {
         return { success: false, error: 'No se declaró ninguna medida que verificar' }
       }
 
       const verdict = await guardrailsWrapper.validateExecution('wntr.energyVerify', {
-        file: global.currentWNTRFile,
+        file: fichero,
         medidas: options.medidas,
       })
       if (!verdict.allow) {
@@ -612,13 +622,122 @@ export function setupWNTRHandlers(prisma?: import('@prisma/client').PrismaClient
       }
 
       const tarifa = await tarifaDe(options.projectId)
-      return await energyService.verificarMedida(global.currentWNTRFile, {
+      return await energyService.verificarMedida(fichero, {
         ...options,
         tarifa,
         eficiencia_global: tarifa.eficienciaGlobal,
       })
     } catch (error) {
       console.error('Error verifying energy measure:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+  /**
+   * Recomendaciones de eficiencia energética, cada una con su ahorro **simulado**
+   * y la ejecución que lo respalda (#42, segunda entrega).
+   *
+   * El reparto es el mismo que en los escenarios del #44, y por la misma razón
+   * medida: el análisis dice qué pasa, el código propone qué probar, WNTR dice
+   * cuánto se ahorra. Ninguna cifra de ahorro sale del modelo, que es el criterio
+   * explícito del issue.
+   *
+   * Cada verificación son **dos** simulaciones de periodo extendido, así que el
+   * número de candidatas está acotado: en una máquina sin GPU, cinco candidatas
+   * son diez simulaciones.
+   */
+  ipcMain.handle('wntr:energy-recommend', async (_e, options?: {
+    projectId?: string | null
+    redId?: string | null
+    duration_hours?: number
+    maximo?: number
+  }) => {
+    try {
+      const fichero = await ficheroDeRed(options?.redId)
+      if (!fichero) {
+        return { success: false, error: 'No hay ninguna red cargada sobre la que recomendar' }
+      }
+
+      const tarifa = await tarifaDe(options?.projectId)
+      const comun = {
+        duration_hours: options?.duration_hours ?? 24,
+        tarifa,
+        eficiencia_global: tarifa.eficienciaGlobal,
+      }
+
+      const analisis = await energyService.analizar(fichero, comun)
+      if (!analisis.success || !analisis.data) {
+        return { success: false, error: analisis.error || 'No se pudo analizar el consumo energético' }
+      }
+
+      const candidatas = generarCandidatas(analisis.data as never, options?.maximo ?? 3)
+      if (candidatas.length === 0) {
+        return {
+          success: true,
+          data: {
+            analisis: analisis.data,
+            recomendaciones: [],
+            // Que no haya candidatas es una respuesta, no un fallo: significa que
+            // el bombeo no gasta en horas caras y ninguna bomba está lejos de su
+            // punto óptimo. Decirlo es más útil que devolver una lista vacía.
+            motivo: 'El bombeo no consume en bloques más caros que el precio base y ninguna bomba trabaja lejos de su punto óptimo.',
+          },
+        }
+      }
+
+      const versiones = options?.redId
+        ? await new NetworkVersionService(prisma!).listarVersiones(options.redId).catch(() => [])
+        : []
+      const versionId = versiones[0]?.id ?? null
+
+      const recomendaciones = []
+      for (const candidata of candidatas as Candidata[]) {
+        const verificacion = await energyService.verificarMedida(fichero, {
+          ...comun,
+          persons_per_connection: 4,
+          medidas: [candidata.medida as never],
+        })
+
+        if (!verificacion.success || !verificacion.data) {
+          recomendaciones.push({ candidata, error: verificacion.error ?? 'No se pudo verificar', ahorro: null })
+          continue
+        }
+
+        /**
+         * Se registra la ejecución **antes** de devolver la cifra. El criterio
+         * pide que todo ahorro sea trazable a una ejecución concreta,
+         * identificable en el registro: si el registro falla, la cifra viaja
+         * diciendo que no se pudo registrar, en vez de citar un id inexistente.
+         */
+        let runId: string | null = null
+        if (versionId && prisma) {
+          try {
+            const run = await new NetworkVersionService(prisma).registrarSimulacion(versionId, {
+              tipo: 'energia',
+              parameters: { candidata: candidata.id, medida: candidata.medida, tarifa },
+              results: verificacion.data,
+            })
+            runId = run.id
+          } catch (error) {
+            console.warn('No se pudo registrar la verificación energética:', error)
+          }
+        }
+
+        recomendaciones.push({
+          candidata,
+          runId,
+          ahorro: verificacion.data.ahorro,
+          impacto_en_servicio: verificacion.data.impacto_en_servicio,
+          antes: { energia_kwh: verificacion.data.antes.energia_total_kwh, coste: verificacion.data.antes.coste_total },
+          despues: { energia_kwh: verificacion.data.despues.energia_total_kwh, coste: verificacion.data.despues.coste_total },
+          medidas_aplicadas: verificacion.data.medidas,
+          convergio: verificacion.data.convergence_warnings.converged,
+        })
+      }
+
+      return { success: true, data: { analisis: analisis.data, recomendaciones } }
+    } catch (error) {
+      console.error('Error recommending energy measures:', error)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   })
