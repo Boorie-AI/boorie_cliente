@@ -12,6 +12,7 @@ import {
 import { DatabaseService } from './database.service'
 import { aiProviderLogger } from '../utils/logger'
 import { validateString, validateBoolean, validateRequired } from '../utils/validation'
+import { PAREJAS } from './hydraulic/agentic/modelosRAG'
 
 export class AIProviderService {
   private databaseService: DatabaseService
@@ -1000,87 +1001,36 @@ export class AIProviderService {
     }
   }
 
-  private async fetchNvidiaModels(provider: IAIProvider): Promise<any[]> {
-    try {
-      // Use config base URL or default
-      const config = provider.config ? JSON.parse(provider.config) : {}
-      const baseUrl = config.baseUrl || 'https://integrate.api.nvidia.com/v1'
+  /**
+   * Los dos Nemotron de la especificación, y nada más (#49).
+   *
+   * Antes se enumeraba el catálogo entero de la API y se le enseñaba al
+   * usuario, con un respaldo codificado que además incluía
+   * `meta/llama-3.1-405b-instruct`: tres modelos elegibles, uno de ellos ni
+   * Nemotron, para una ruta —la del RAG— que la especificación fija en dos. La
+   * pareja se lee de donde la usa el agente, para que no haya dos listas que
+   * puedan separarse.
+   */
+  private async fetchNvidiaModels(_provider: IAIProvider): Promise<any[]> {
+    const { principal, auxiliar } = PAREJAS.nvidia
 
-      this.logger.debug('Fetching Nvidia models', { baseUrl })
-
-      const response = await fetch(`${baseUrl}/models`, {
-        headers: {
-          'Authorization': `Bearer ${provider.apiKey}`,
-          'Accept': 'application/json'
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error(`Nvidia API error: ${response.status} ${response.statusText}`)
-      }
-
-      const data = await response.json() as { data?: any[] }
-
-      const models = data.data?.map((model: any) => ({
-        modelId: model.id,
-        modelName: model.id.split('/').pop() || model.id,
-        isDefault: model.id === 'nvidia/llama-3.1-nemotron-70b-instruct',
+    return [
+      {
+        modelId: principal,
+        modelName: 'Nemotron (principal)',
+        isDefault: true,
         isAvailable: true,
         isSelected: false,
-        description: `Nvidia model: ${model.id}`,
-        metadata: {
-          owned_by: model.owned_by,
-          permission: model.permission
-        }
-      })) || []
-
-      // Ensure the user's specific model is included if not returned by API (sometimes lists are incomplete or filtered)
-      const userModelId = 'nvidia/llama-3.1-nemotron-ultra-253b-v1'
-      if (!models.find(m => m.modelId === userModelId)) {
-        models.push({
-          modelId: userModelId,
-          modelName: 'Llama 3.1 Nemotron Ultra 253B',
-          isDefault: false,
-          isAvailable: true,
-          isSelected: false,
-          description: 'Nvidia Llama 3.1 Nemotron Ultra 253B',
-          metadata: {
-            owned_by: 'nvidia',
-            permission: []
-          }
-        })
-      }
-
-      return models
-    } catch (error) {
-      this.logger.error('Failed to fetch Nvidia models', error as Error)
-      // Return hardcoded common Nvidia models as fallback
-      return [
-        {
-          modelId: 'nvidia/llama-3.1-nemotron-70b-instruct',
-          modelName: 'Llama 3.1 Nemotron 70B',
-          isDefault: true,
-          isAvailable: true,
-          isSelected: false,
-          description: 'Nvidia Llama 3.1 Nemotron 70B Instruct'
-        },
-        {
-          modelId: 'meta/llama-3.1-405b-instruct',
-          modelName: 'Llama 3.1 405B',
-          isDefault: false,
-          isAvailable: true,
-          isSelected: false,
-          description: 'Meta Llama 3.1 405B Instruct'
-        },
-        {
-          modelId: 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
-          modelName: 'Llama 3.1 Nemotron Ultra 253B',
-          isDefault: false,
-          isAvailable: true,
-          isSelected: false,
-          description: 'Nvidia Llama 3.1 Nemotron Ultra 253B'
-        }
-      ]
-    }
+        description: 'Razona sobre el contexto recuperado y redacta la respuesta',
+      },
+      {
+        modelId: auxiliar,
+        modelName: 'Nemotron (auxiliar)',
+        isDefault: false,
+        isAvailable: true,
+        isSelected: false,
+        description: 'Reformulación de consultas y graduación de relevancia',
+      },
+    ]
   }
 }

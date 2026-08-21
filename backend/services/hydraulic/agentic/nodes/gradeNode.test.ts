@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import axios from 'axios'
 import { GradeNode } from './gradeNode'
-import { olvidarModeloLocal } from '../modeloLocal'
+import { olvidarModelosRAG } from '../modelosRAG'
 
 vi.mock('axios')
 
@@ -42,8 +42,9 @@ const veredicto = (relevant: boolean, score: number) =>
 describe('graduado de documentos', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    olvidarModeloLocal()
-    process.env.OLLAMA_MODEL = 'modelo-de-prueba'
+    olvidarModelosRAG()
+    process.env.BOORIE_RAG_MODELO_PRINCIPAL = 'modelo-de-prueba'
+    process.env.BOORIE_RAG_MODELO_AUXILIAR = 'modelo-de-prueba'
   })
 
   it('deja pasar lo que el juez aprueba', async () => {

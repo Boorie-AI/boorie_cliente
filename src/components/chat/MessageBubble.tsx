@@ -55,14 +55,22 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
             {/* Metadata */}
             {message.metadata && !isUser && (
               <div className="mt-2 pt-2 border-t border-border text-xs text-muted-foreground">
+                {/* El modelo no se enseña: la especificación lo quiere
+                    invisible y queda anotado en el log (#49). */}
                 <div className="flex items-center space-x-2">
                   <span>{message.metadata.provider}</span>
-                  <span>•</span>
-                  <span>{message.metadata.model}</span>
                   {message.metadata.tokens && (
                     <>
                       <span>•</span>
                       <span>{message.metadata.tokens} tokens</span>
+                    </>
+                  )}
+                  {message.metadata.modeloDegradado && (
+                    <>
+                      <span>•</span>
+                      <span className="text-yellow-600 dark:text-yellow-500">
+                        Respuesta del modelo auxiliar
+                      </span>
                     </>
                   )}
                 </div>

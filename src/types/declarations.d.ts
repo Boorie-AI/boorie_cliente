@@ -63,6 +63,7 @@ interface Window {
     agenticRAG: {
       search: (data: any) => Promise<any>;
       query: (prompt: string, options?: any) => Promise<any>;
+      modelos: () => Promise<any>;
     };
     [key: string]: any;
   };

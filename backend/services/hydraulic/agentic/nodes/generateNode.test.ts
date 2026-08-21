@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import axios from 'axios'
 import { GenerateNode } from './generateNode'
-import { olvidarModeloLocal } from '../modeloLocal'
+import { olvidarModelosRAG } from '../modelosRAG'
 
 vi.mock('axios')
 
@@ -46,8 +46,9 @@ const documento = {
 describe('generación de la respuesta', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    olvidarModeloLocal()
-    process.env.OLLAMA_MODEL = 'modelo-de-prueba'
+    olvidarModelosRAG()
+    process.env.BOORIE_RAG_MODELO_PRINCIPAL = 'modelo-de-prueba'
+    process.env.BOORIE_RAG_MODELO_AUXILIAR = 'modelo-de-prueba'
   })
 
   it('pide el tope con la opción que Ollama entiende', async () => {

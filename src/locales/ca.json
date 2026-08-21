@@ -161,6 +161,7 @@
     "test": "Provar",
     "connected": "Connectat",
     "availableModels": "Models Disponibles",
+    "modelFijadoAviso": "Boorie fixa el model de les respostes del xat: aquesta selecció no el canvia. Serveix per a les claus i el catàleg de cada proveïdor.",
     "configureProviders": "Configurar Proveïdors d'API",
     "checkingOllama": "Verificant instal·lació d'Ollama...",
     "apiProviderConfig": "Configuració de Proveïdors d'API",

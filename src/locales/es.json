@@ -160,6 +160,7 @@
     "test": "Probar",
     "connected": "Conectado",
     "availableModels": "Modelos Disponibles",
+    "modelFijadoAviso": "Boorie fija el modelo de las respuestas del chat: esta selección no lo cambia. Sirve para las claves y el catálogo de cada proveedor.",
     "configureProviders": "Configurar Proveedores de API",
     "checkingOllama": "Verificando instalación de Ollama...",
     "apiProviderConfig": "Configuración de Proveedores de API",

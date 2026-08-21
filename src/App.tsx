@@ -10,6 +10,7 @@ import { SetupWizard } from '@/components/setup/SetupWizard'
 import { useAppStore } from '@/stores/appStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { migrateProjectAssets } from '@/services/migration/migrateProjectAssets'
+import { cargarModelosRAG } from '@/config/modelosRAG'
 import { cn } from '@/utils/cn'
 import './i18n' // Initialize i18n
 
@@ -48,6 +49,14 @@ function App() {
         if (informe.ejecutada) setInformeMigracion(informe)
       })
       .catch(error => console.error('Fallo la migracion del almacenamiento local:', error))
+  }, [])
+
+  // Qué modelo responde y si el desplegable se enseña (#49). Se pregunta al
+  // arrancar porque `createNewConversation` es sincrónico: sin esto, la primera
+  // conversación se guardaba con lo que hubiera quedado en localStorage —vimos
+  // «llama3.1:8b»— aunque la respuesta ya la diera el Nemotron fijado.
+  useEffect(() => {
+    cargarModelosRAG()
   }, [])
 
   // First-run check: if Python deps are missing, show the SetupWizard.
