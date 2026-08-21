@@ -7,6 +7,20 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.20.2] - 2026-08-21
+
+Arreglos de empaquetado. En Linux, la aplicación ya puede abrir su base de datos.
+
+- **En Linux la aplicación abría sin base de datos**: no aparecían los proyectos, ni las redes, ni
+  las conversaciones. El paquete elegía un componente compilado para Alpine, que no se puede cargar
+  en Ubuntu, Debian, Fedora ni ninguna otra distribución habitual, y la aplicación no llegaba a
+  conectar. Ahora elige el que corresponde a tu sistema y lo comprueba antes de usarlo. Si venías
+  usando el AppImage y no veías tus datos, no se habían perdido: nunca se llegó a abrir el fichero.
+- **El instalador ya no lleva bases de datos dentro.** Hasta ahora viajaba una base ajena de
+  pruebas, con proveedores de IA configurados dentro, y quien generaba el instalador desde el código
+  metía además la suya propia con sus proyectos. Se empaqueta sólo la definición de las tablas; cada
+  instalación crea la suya al arrancar, como ya venía haciendo.
+
 ## [1.20.1] - 2026-08-21
 
 Mantenimiento de seguridad. No cambia nada de lo que ves: no hay funciones nuevas ni cambios de
