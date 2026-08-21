@@ -6,13 +6,27 @@ import { estadoModelosRAG } from '../../backend/services/hydraulic/agentic/model
 
 let ragService: any = null
 
+/**
+ * Cuando el raíl no llegó a juzgar, y por qué importa.
+ *
+ * `fail-open` es correcto —no bloquear tráfico porque el juez esté caído— pero
+ * era además mudo: se permitía, no se registraba nada, y un raíl que expira en
+ * cada consulta era indistinguible de un raíl que aprueba. Así estuvo el de
+ * recuperación gastando 60 s por consulta sin comprobar nada (#63).
+ */
+const NO_LLEGO_A_JUZGAR = /^(fail-open|guardrails-unavailable|judge-failed|guardrails-disabled)/
+
 async function auditViolation(
   prismaClient: PrismaClient,
   rail: 'input' | 'retrieval' | 'output',
   verdict: { allow: boolean; reason: string; severity: string; judge_model: string; judge_provider: string },
   payload: any,
 ) {
-  if (verdict.allow && !verdict.reason.startsWith('[advisory]')) return
+  const noJuzgo = NO_LLEGO_A_JUZGAR.test(verdict.reason)
+  if (noJuzgo) {
+    console.warn(`[Guardrails] el raíl "${rail}" no llegó a juzgar: ${verdict.reason}`)
+  }
+  if (verdict.allow && !noJuzgo && !verdict.reason.startsWith('[advisory]')) return
   try {
     await prismaClient.guardrailViolation.create({
       data: {
@@ -82,7 +96,22 @@ export function registerAgenticRAGHandlers(prismaClient: PrismaClient) {
         .map((s: any) => s?.content ?? s?.text ?? '')
         .filter(Boolean)
       if (sourceTexts.length > 0) {
-        const retrievalVerdict = await guardrailsWrapper.validateRetrieval(question, sourceTexts.slice(0, 8))
+        /**
+         * Tres trozos, no ocho (#63).
+         *
+         * El juez es el mismo modelo pequeño que gradúa, y su coste lo fija el
+         * tamaño del prompt: el lado Python ya recorta cada trozo a 600
+         * caracteres, así que ocho son ~1200 tokens que en una máquina sin GPU
+         * utilizable tardan ~110 s, contra los 60 s que el wrapper espera.
+         * Medido: expiraba **siempre** y fallaba en abierto, o sea que el raíl
+         * costaba un minuto por consulta y no comprobaba nada. El tope tampoco
+         * puede depender del «Max Results» del selector, que llega a veinte.
+         */
+        const TROZOS_PARA_EL_JUEZ = 3
+        const retrievalVerdict = await guardrailsWrapper.validateRetrieval(
+          question,
+          sourceTexts.slice(0, TROZOS_PARA_EL_JUEZ),
+        )
         await auditViolation(prismaClient, 'retrieval', retrievalVerdict, { query: question, chunkCount: sourceTexts.length })
         if (!retrievalVerdict.allow) {
           // For retrieval we don't block the whole answer; we attach a flag

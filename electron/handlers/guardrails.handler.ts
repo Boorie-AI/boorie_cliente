@@ -95,6 +95,20 @@ export function registerGuardrailsHandlers(prisma?: PrismaClient) {
       ollamaBaseUrl: s.ollamaBaseUrl,
       nvidiaApiKey: s.nvidiaApiKey,
     })
+
+    /**
+     * Se calienta al arrancar, no en la primera pregunta (#63).
+     *
+     * Levantar Python, NeMo Guardrails y cargar el modelo del juez tarda más
+     * que los 60 s que el wrapper espera por llamada: medido, la primera
+     * llamada de cada sesión expira **siempre** y falla en abierto, así que la
+     * primera consulta del usuario pagaba un minuto por un raíl que no
+     * comprobaba nada. En caliente el mismo raíl juzga en ~28 s. No se espera
+     * el resultado: si falla, todo sigue fallando en abierto como antes.
+     */
+    guardrailsWrapper.ping()
+      .then(r => console.log(`[Guardrails] proceso listo al arrancar: ${r.ok ? 'sí' : `no (${r.error})`}`))
+      .catch(() => { /* fail-open */ })
   }).catch(() => { /* fail-open */ })
 
   ipcMain.handle('guardrails:getSettings', async () => {
