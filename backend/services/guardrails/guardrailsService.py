@@ -143,14 +143,9 @@ RAIL_INSTRUCTIONS = {
         "  BLOCK: <short reason>\n"
         "Nothing else."
     ),
-    "retrieval": (
-        "You are the RETRIEVAL guardrail. The user message contains a QUERY and "
-        "retrieved CHUNKS. Decide if the chunks are useful to answer the query. "
-        "BLOCK if the chunks are completely off-topic. "
-        "WARN if loosely related. "
-        "ALLOW if clearly relevant.\n\n"
-        "Reply with EXACTLY ALLOW, WARN: <reason>, or BLOCK: <reason>."
-    ),
+    # The retrieval rail carries no system instructions on purpose: its whole
+    # prompt is built in cmd_validate_retrieval, chunks first. See there.
+    "retrieval": "",
     "output": (
         "You are the OUTPUT guardrail for hydraulic engineering answers. The "
         "user message contains USER_QUESTION, CONTEXT (retrieved knowledge), "
@@ -192,8 +187,8 @@ def _run_rail(rail_name: str, prompt_body: str):
         )
 
     instructions = RAIL_INSTRUCTIONS.get(rail_name, RAIL_INSTRUCTIONS["input"])
-    messages = [
-        {"role": "system", "content": instructions},
+    # An empty instruction means the rail builds its own single-turn prompt.
+    messages = ([{"role": "system", "content": instructions}] if instructions else []) + [
         {"role": "user", "content": prompt_body},
     ]
 
@@ -239,6 +234,20 @@ def cmd_validate_input(payload):
 
 
 def cmd_validate_retrieval(payload):
+    """Judge whether the retrieved chunks are useful for the query.
+
+    The chunks come first and the question last, on purpose, and in Spanish:
+    it is the same lesson already learnt for the grading node (see the long
+    comment in gradeNode.ts). The previous shape opened with a wall of
+    criteria and buried the chunks after the query, and with the small local
+    judge that was enough to reject the very report that answered the
+    question. Measured on the real payload of two chunks: the old shape
+    answered BLOCK ("the chunks are completely off-topic") for
+    "¿qué problemas encontró la última simulación?" and for "¿cuántos nudos
+    tienen presión por debajo del umbral?", while this one answers ALLOW for
+    both and still blocks a genuinely unrelated question about wastewater
+    regulations — in a third of the time (#63).
+    """
     query = (payload or {}).get("query", "")
     chunks = (payload or {}).get("chunks", [])
     if not chunks:
@@ -246,7 +255,12 @@ def cmd_validate_retrieval(payload):
     serialized = "\n---\n".join(c[:600] for c in chunks)
     return _run_rail(
         "retrieval",
-        f"QUERY: {query}\n\nCHUNKS:\n{serialized}",
+        f"Fragmentos recuperados de la base de conocimientos:\n{serialized}\n\n"
+        f'Pregunta del usuario: "{query}"\n\n'
+        "¿Sirven estos fragmentos para responder esa pregunta? Sirven si contienen "
+        "datos, procedimientos, normativa o resultados relacionados con lo que se "
+        "pregunta.\n"
+        "Responde EXACTAMENTE con ALLOW, WARN: <motivo> o BLOCK: <motivo>.",
     )
 
 
