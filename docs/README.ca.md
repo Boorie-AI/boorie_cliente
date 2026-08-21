@@ -39,15 +39,23 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.16.0
+### 🚀 Última Versió - v1.17.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.16.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.16.0/Boorie-1.16.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.16.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.16.0/Boorie-Setup-1.16.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.16.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.16.0/Boorie-1.16.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.17.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.0/Boorie-1.17.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.17.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.0/Boorie-Setup-1.17.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.17.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.0/Boorie-1.17.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.17.0
+- El desplegable de models desapareix del xat: les respostes les escriu sempre el model que Boorie té fixat per a enginyeria hidràulica.
+- Dos papers, cadascun amb el seu model: un raona sobre el que es recupera i redacta; l'altre, més ràpid, reformula la pregunta i decideix quins documents serveixen.
+- Si el model principal no està disponible respon l'auxiliar, i la resposta ho diu, en lloc de quedar-se sense contestar.
+- A sota de cada resposta ja no apareix el nom del model: queda registrat per a diagnòstic.
+- La primera instal·lació descarrega 2,7 GB en lloc de 24 GB, i una resposta que trigava uns 45 minuts en un equip sense targeta gràfica dedicada surt ara en dos i mig.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.17.0).
 
 ### 📝 Novetats a v1.16.0
 - Els ajustos d'indexació de simulacions es poden fixar per projecte, no només per a tot Boorie: a Configuració → General tries si toques els generals o els del projecte actiu.

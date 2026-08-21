@@ -39,15 +39,23 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.16.0
+### 🚀 Última Versión - v1.17.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.16.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.16.0/Boorie-1.16.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.16.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.16.0/Boorie-Setup-1.16.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.16.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.16.0/Boorie-1.16.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.17.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.0/Boorie-1.17.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.17.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.0/Boorie-Setup-1.17.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.17.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.17.0/Boorie-1.17.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.17.0
+- El desplegable de modelos desaparece del chat: las respuestas las escribe siempre el modelo que Boorie tiene fijado para ingeniería hidráulica.
+- Dos papeles, cada uno con su modelo: uno razona sobre lo recuperado y redacta; otro, más rápido, reformula la pregunta y decide qué documentos sirven.
+- Si el modelo principal no está disponible responde el auxiliar, y la respuesta lo dice, en vez de quedarse sin contestar.
+- Debajo de cada respuesta ya no aparece el nombre del modelo: queda registrado para diagnóstico.
+- La primera instalación descarga 2,7 GB en vez de 24 GB, y una respuesta que tardaba unos 45 minutos en un equipo sin tarjeta gráfica dedicada sale ahora en dos y medio.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.17.0).
 
 ### 📝 Novedades en v1.16.0
 - Los ajustes de indexación de simulaciones se pueden fijar por proyecto, no sólo para todo Boorie: en Ajustes → General eliges si tocas los generales o los del proyecto activo.
