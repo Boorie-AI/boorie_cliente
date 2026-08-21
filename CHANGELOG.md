@@ -7,6 +7,20 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.20.0] - 2026-08-21
+
+Ahora puedes decirle a Boorie si una recomendación te sirve.
+
+- **Cada medida de eficiencia energética se puede marcar como útil o como incorrecta**, tanto en
+  el panel como en el chat. Si la marcas como incorrecta puedes explicar por qué, y esa
+  explicación es lo más valioso que se guarda: la cifra la pone la simulación, pero *por qué* una
+  medida no vale en tu red sólo lo sabes tú.
+- **Lo que valoras queda guardado con la simulación que respaldó la cifra**, así que la valoración
+  se puede volver a leer entera: qué se recomendó, cuánto ahorraba, sobre qué ejecución, y qué
+  dijiste tú. Al volver al panel, las medidas ya valoradas aparecen marcadas en vez de
+  preguntártelo otra vez.
+- **Cambiar de opinión sustituye la valoración anterior** en lugar de acumular otra.
+
 ## [1.19.0] - 2026-08-21
 
 Boorie ya te recomienda cómo gastar menos en bombeo, y cada cifra viene de una simulación.
