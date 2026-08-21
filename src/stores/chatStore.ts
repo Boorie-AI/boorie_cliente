@@ -31,6 +31,19 @@ export interface Message {
     ragAttempted?: boolean
     /** Respondió el auxiliar porque el principal no estaba (#49). */
     modeloDegradado?: boolean
+    /**
+     * Escenario que el agente propone y que espera confirmación (#44). Llega
+     * con el nombre que le pone el handler, sin traducir, para que no haya dos
+     * formas de llamar a lo mismo entre proceso principal y renderer.
+     */
+    /** Id de la ejecución que respalda las cifras de esta narración (#44). */
+    escenarioEjecutado?: string
+    propuesta_escenario?: {
+      resumen?: string
+      definicion?: { nombre?: string; eventos: Array<Record<string, unknown>> }
+      elementos_inexistentes?: Array<{ id: string; ids_parecidos: string[] }>
+      red_id?: string
+    }
   }
 }
 
@@ -448,7 +461,12 @@ export const useChatStore = create<ChatState>()(
 
                     // Con proyecto el agente puede consultar la red por
                     // herramientas, en vez de quedarse en el resumen (#34).
-                    projectId: proyectoParaContexto
+                    projectId: proyectoParaContexto,
+
+                    // La pregunta sin el contexto inyectado, para reconocer si
+                    // pide un escenario (#44): buscar ids de elementos en el
+                    // prompt enriquecido encuentra los del resumen de la red.
+                    preguntaOriginal: content
                   })
                 }
 

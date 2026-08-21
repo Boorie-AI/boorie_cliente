@@ -123,6 +123,44 @@ export const HERRAMIENTAS: DefinicionHerramienta[] = [
       required: ['tipo'],
     },
   },
+  {
+    nombre: 'proponer_escenario',
+    descripcion:
+      'Traduce a una definicion ejecutable un escenario de interrupcion del servicio que el usuario ' +
+      'describa en lenguaje natural: rotura de tuberia, bomba fuera de servicio, perdida de control ' +
+      'SCADA, sobredemanda o sequia. NO ejecuta nada: devuelve la definicion para que el usuario la ' +
+      'confirme, y la simulacion la lanza el la interfaz. Usala siempre que la pregunta sea condicional ' +
+      'sobre un fallo ("que pasa si...", "cuantos clientes quedan sin servicio si...", "y si se rompe..."). ' +
+      'Despues de llamarla, explicale al usuario que escenario has propuesto y pidele que lo confirme; ' +
+      'no des cifras de impacto, porque todavia no se ha simulado nada.',
+    esquema: {
+      type: 'object',
+      properties: {
+        tipo: {
+          type: 'string',
+          enum: ['pipe_break', 'pump_outage', 'control_loss', 'demand_surge', 'source_reduction'],
+          description:
+            'pipe_break: rotura de tuberia. pump_outage: bomba parada (corte de energia, averia). ' +
+            'control_loss: se pierde el control de los automatismos (ciberataque, SCADA caido). ' +
+            'demand_surge: sobredemanda (incendio, punta). source_reduction: menos agua en el origen (sequia).',
+        },
+        elementos: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Identificadores de los elementos afectados, copiados tal cual de la red y sin anadir prefijos. ' +
+            'Para control_loss son los activos que se quedan congelados; para demand_surge, los nudos ' +
+            'con exceso de demanda. Si el usuario dice "las bombas" sin nombrarlas, listalas primero con ' +
+            'listar_elementos y pasa sus ids.',
+        },
+        desde_h: { type: 'number', description: 'Hora de la simulacion en la que empieza el evento. Por defecto 0.' },
+        duracion_h: { type: 'number', description: 'Cuantas horas dura el evento. Si se omite, dura hasta el final.' },
+        multiplicador: { type: 'number', description: 'Solo para demand_surge: por cuanto se multiplica la demanda.' },
+        factor: { type: 'number', description: 'Solo para source_reduction: fraccion a la que baja el nivel del origen (0,5 = la mitad).' },
+      },
+      required: ['tipo'],
+    },
+  },
 ]
 
 const mm = (metros?: number | null) =>
@@ -266,6 +304,117 @@ function listarElementos(argumentos: Record<string, unknown>, red: RedCompleta):
   }
 }
 
+/**
+ * Traduce la peticion del modelo a la definicion que entiende el motor de
+ * escenarios (#44), **sin simular nada**.
+ *
+ * Es deliberado que esta herramienta no ejecute: ningun escenario se lanza sin
+ * que el usuario apruebe la definicion, y la aprobacion vive en la interfaz. Lo
+ * que sale de aqui es una propuesta.
+ *
+ * Los elementos se validan contra la red antes de proponer nada. Si el modelo
+ * inventa una bomba, el usuario tiene que ver que no existe **antes** de darle a
+ * ejecutar, no despues de esperar dos simulaciones.
+ */
+function proponerEscenario(argumentos: Record<string, unknown>, red: RedCompleta): ResultadoHerramienta {
+  const tipo = typeof argumentos.tipo === 'string' ? argumentos.tipo.trim() : ''
+  const TIPOS = ['pipe_break', 'pump_outage', 'control_loss', 'demand_surge', 'source_reduction']
+  if (!TIPOS.includes(tipo)) {
+    return { error: `Tipo de escenario no reconocido: "${tipo}". Validos: ${TIPOS.join(', ')}.` }
+  }
+
+  const pedidos = Array.isArray(argumentos.elementos)
+    ? argumentos.elementos.map(e => String(e).trim()).filter(Boolean)
+    : []
+
+  const nodos = red.nodes ?? []
+  const tramos = red.links ?? []
+  const idsRed = [...nodos.map(n => n.id), ...tramos.map(l => l.id)]
+  const buscar = (id: string) => idsRed.find(otro => otro.toLowerCase() === id.toLowerCase())
+
+  const existentes: string[] = []
+  const inexistentes: Array<{ id: string; ids_parecidos: string[] }> = []
+  for (const id of pedidos) {
+    const encontrado = buscar(id)
+    if (encontrado) existentes.push(encontrado)
+    else inexistentes.push({ id, ids_parecidos: sugerencias(id, idsRed) })
+  }
+
+  // control_loss puede no llevar elementos: retirar los automatismos de toda la
+  // red es un escenario legitimo, y de hecho el mas parecido a un ciberataque.
+  if (pedidos.length === 0 && tipo !== 'control_loss' && tipo !== 'demand_surge') {
+    const candidatos = tipo === 'pump_outage'
+      ? tramos.filter(l => l.type === 'pump').map(l => l.id)
+      : tipo === 'source_reduction'
+        ? nodos.filter(n => n.type === 'reservoir').map(n => n.id)
+        : tramos.filter(l => l.type === 'pipe').map(l => l.id)
+    return {
+      error: `El escenario "${tipo}" necesita al menos un elemento.`,
+      candidatos_en_la_red: candidatos.slice(0, 20),
+    }
+  }
+
+  if (existentes.length === 0 && pedidos.length > 0) {
+    return {
+      error: 'Ninguno de los elementos indicados existe en la red activa.',
+      inexistentes,
+    }
+  }
+
+  const desde_h = typeof argumentos.desde_h === 'number' ? Math.max(0, argumentos.desde_h) : 0
+  const duracion = typeof argumentos.duracion_h === 'number' && argumentos.duracion_h > 0
+    ? argumentos.duracion_h
+    : null
+
+  const evento: Record<string, unknown> = { tipo, desde_h }
+  if (duracion !== null) evento.hasta_h = desde_h + duracion
+
+  if (tipo === 'demand_surge') {
+    evento.multiplicador = typeof argumentos.multiplicador === 'number' && argumentos.multiplicador > 1
+      ? argumentos.multiplicador
+      : 2
+    evento.nudos = existentes.length > 0 ? existentes : 'todos'
+  } else if (tipo === 'control_loss') {
+    evento.alcance = 'todos'
+    if (existentes.length > 0) {
+      evento.congelar = existentes
+      evento.congelar_en = 'cerrado'
+    }
+  } else if (tipo === 'source_reduction') {
+    evento.elementos = existentes
+    evento.factor = typeof argumentos.factor === 'number' && argumentos.factor > 0 && argumentos.factor < 1
+      ? argumentos.factor
+      : 0.5
+  } else {
+    evento.elementos = existentes
+  }
+
+  const ventana = duracion !== null
+    ? `de la hora ${desde_h} a la ${desde_h + duracion}`
+    : `a partir de la hora ${desde_h} y hasta el final`
+
+  const RESUMEN: Record<string, string> = {
+    pipe_break: `Rotura de ${existentes.join(', ')}`,
+    pump_outage: `Bomba(s) ${existentes.join(', ')} fuera de servicio`,
+    control_loss: existentes.length > 0
+      ? `Perdida de control de los automatismos, con ${existentes.join(', ')} congelado(s) en cerrado`
+      : 'Perdida de control de todos los automatismos de la red',
+    demand_surge: `Demanda multiplicada por ${evento.multiplicador} en ${existentes.length > 0 ? existentes.join(', ') : 'todos los nudos'}`,
+    source_reduction: `Origen ${existentes.join(', ')} reducido al ${Math.round(Number(evento.factor) * 100)}%`,
+  }
+
+  return {
+    propuesta: true,
+    // La marca que la interfaz busca para pedir confirmacion. Sin ella el
+    // escenario no se ejecuta, y esta herramienta no puede ejecutarlo.
+    requiere_confirmacion: true,
+    resumen: `${RESUMEN[tipo]}, ${ventana}.`,
+    definicion: { nombre: `${RESUMEN[tipo]}, ${ventana}`, eventos: [evento] },
+    ...(inexistentes.length > 0 ? { elementos_inexistentes: inexistentes } : {}),
+    siguiente_paso: 'Explicale al usuario el escenario propuesto y pidele que lo confirme. No des cifras de impacto: nada se ha simulado todavia.',
+  }
+}
+
 export function ejecutarHerramienta(
   nombre: string,
   argumentos: Record<string, unknown>,
@@ -276,6 +425,8 @@ export function ejecutarHerramienta(
       return consultarElemento(argumentos, red)
     case 'listar_elementos':
       return listarElementos(argumentos, red)
+    case 'proponer_escenario':
+      return proponerEscenario(argumentos, red)
     default:
       return { error: `Herramienta desconocida: "${nombre}".` }
   }

@@ -3,6 +3,8 @@ import { Message } from '@/stores/chatStore'
 import { Copy, User, Bot } from 'lucide-react'
 import { useState } from 'react'
 import { MarkdownRenderer } from './MarkdownRenderer'
+import { PropuestaEscenario } from './PropuestaEscenario'
+import { useChatStore } from '@/stores/chatStore'
 
 interface MessageBubbleProps {
   message: Message
@@ -12,6 +14,24 @@ interface MessageBubbleProps {
 export function MessageBubble({ message, isStreaming = false }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
+  const propuesta = message.metadata?.propuesta_escenario
+
+  /**
+   * La narración del escenario entra como un mensaje más del asistente (#44).
+   *
+   * Así queda en el historial y se guarda con la conversación: la cifra y su
+   * cita de origen tienen que sobrevivir a cerrar la aplicación, no vivir en el
+   * estado de un componente.
+   */
+  const anadirNarracion = (texto: string, runId: string | null) => {
+    const { activeConversationId, addMessageToConversation } = useChatStore.getState()
+    if (!activeConversationId) return
+    addMessageToConversation(activeConversationId, {
+      role: 'assistant',
+      content: texto,
+      metadata: { escenarioEjecutado: runId ?? undefined },
+    })
+  }
 
   const handleCopy = async () => {
     try {
@@ -51,6 +71,14 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
                 <span className="animate-pulse text-primary ml-1">▌</span>
               )}
             </div>
+
+            {propuesta && !isUser && (
+              <PropuestaEscenario
+                propuesta={propuesta}
+                networkId={propuesta.red_id ?? null}
+                onNarracion={anadirNarracion}
+              />
+            )}
 
             {/* Metadata */}
             {message.metadata && !isUser && (

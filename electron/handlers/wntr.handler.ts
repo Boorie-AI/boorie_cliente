@@ -1,5 +1,7 @@
 import { ipcMain, dialog } from 'electron'
 import * as fs from 'fs/promises'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { wntrWrapper } from '../../backend/services/hydraulic/wntrWrapper'
 import { WNTRSimulationService } from '../../backend/services/hydraulic/simulationService'
 import { WNTRAnalysisService } from '../../backend/services/hydraulic/analysisService'
@@ -504,15 +506,37 @@ export function setupWNTRHandlers(prisma?: import('@prisma/client').PrismaClient
    */
   ipcMain.handle('wntr:simulate-scenario', async (event, definicion: any) => {
     try {
-      if (!global.currentWNTRFile) {
-        return { success: false, error: 'No EPANET file loaded' }
-      }
       if (!definicion?.eventos?.length) {
         return { success: false, error: 'El escenario no declara ningún evento' }
       }
 
+      /**
+       * El escenario puede venir del chat, que no ha pasado por la vista de red
+       * (#44). Depender de `currentWNTRFile` significaba que proponer un
+       * escenario desde el chat acabase en «No EPANET file loaded» —medido, es
+       * lo que pasó— aunque el agente sí supiera sobre qué red hablaba. Con el
+       * id de la red se materializa su .inp desde la base, que es la misma
+       * fuente que usa `network-repo:load`: así la red que se simula es la que
+       * el agente tenía delante y no la que otra pantalla dejó cargada.
+       */
+      let fichero = global.currentWNTRFile
+      if (definicion.red_id) {
+        try {
+          const red = await prisma?.hydraulicNetwork.findUnique({ where: { id: definicion.red_id } })
+          if (red?.fileContent) {
+            fichero = join(tmpdir(), `boorie-escenario-${red.id}.inp`)
+            await fs.writeFile(fichero, red.fileContent, 'utf-8')
+          }
+        } catch (error) {
+          console.warn('No se pudo materializar la red del escenario:', error)
+        }
+      }
+      if (!fichero) {
+        return { success: false, error: 'No hay ninguna red cargada sobre la que simular el escenario' }
+      }
+
       const verdict = await guardrailsWrapper.validateExecution('wntr.simulateScenario', {
-        file: global.currentWNTRFile,
+        file: fichero,
         eventos: definicion.eventos,
         duration_hours: definicion.duration_hours,
       })
@@ -524,7 +548,7 @@ export function setupWNTRHandlers(prisma?: import('@prisma/client').PrismaClient
         }
       }
 
-      return await resilienceService.simulateScenario(global.currentWNTRFile, definicion)
+      return await resilienceService.simulateScenario(fichero, definicion)
     } catch (error) {
       console.error('Error simulating scenario:', error)
       return {
