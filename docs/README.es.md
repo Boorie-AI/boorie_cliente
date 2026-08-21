@@ -39,15 +39,22 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.20.0
+### 🚀 Última Versión - v1.20.1
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.20.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.0/Boorie-1.20.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.20.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.0/Boorie-Setup-1.20.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.20.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.0/Boorie-1.20.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.20.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.1/Boorie-1.20.1-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.20.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.1/Boorie-Setup-1.20.1.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.20.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.1/Boorie-1.20.1.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.20.1
+- Mantenimiento de seguridad: no cambia nada de lo que ves, no hay funciones nuevas ni cambios de comportamiento.
+- Se actualizan las dependencias con vulnerabilidades conocidas: 23 a cero, dos de ellas críticas.
+- Electron pasa a 42.9.3, que trae los parches de seguridad de Chromium.
+- Antes de publicarla se comprobó que la actualización automática desde la 1.20.0 sigue funcionando y que la aplicación arranca, carga una red y simula igual que antes.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.20.1).
 
 ### 📝 Novedades en v1.20.0
 - Cada medida de eficiencia energética se puede marcar como útil o incorrecta, en el panel y en el chat.
