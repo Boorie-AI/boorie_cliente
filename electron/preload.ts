@@ -298,6 +298,8 @@ const electronAPI = {
     skeletonizeNetwork: (options?: any) => ipcRenderer.invoke('wntr:skeletonize-network', options),
     simulateComponentFailure: (options: any) => ipcRenderer.invoke('wntr:simulate-component-failure', options),
     simulateScenario: (definicion: any) => ipcRenderer.invoke('wntr:simulate-scenario', definicion),
+    energyAnalyze: (options?: { projectId?: string | null; duration_hours?: number }) => ipcRenderer.invoke('wntr:energy-analyze', options),
+    energyVerify: (options: any) => ipcRenderer.invoke('wntr:energy-verify', options),
     calculateResilienceIndicators: (options?: any) => ipcRenderer.invoke('wntr:calculate-resilience-indicators', options),
     generateFragilityCurve: (options?: any) => ipcRenderer.invoke('wntr:generate-fragility-curve', options),
   },
@@ -439,6 +441,13 @@ const electronAPI = {
     getIndexingStatus: () => ipcRenderer.invoke('agentic-rag-indexing-status'),
 
     validateQuery: (query: string) => ipcRenderer.invoke('agentic-rag-validate-query', query),
+  },
+
+  // Tarifa eléctrica del proyecto (#42)
+  energia: {
+    tarifa: (projectId?: string | null) => ipcRenderer.invoke('energia:tarifa', projectId),
+    guardarTarifa: (data: { projectId?: string | null; tarifa: unknown }) => ipcRenderer.invoke('energia:guardar-tarifa', data),
+    olvidarTarifa: (projectId: string) => ipcRenderer.invoke('energia:olvidar-tarifa', projectId),
   },
 
   // Milvus inspector

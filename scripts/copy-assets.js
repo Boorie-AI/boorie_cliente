@@ -16,6 +16,7 @@ const FILES_TO_COPY = [
     'backend/services/hydraulic/wntr_analysis_service.py',
     'backend/services/hydraulic/wntr_simulation_service.py',
     'backend/services/hydraulic/wntr_resilience_service.py',
+    'backend/services/hydraulic/wntr_energy_service.py',
     'backend/services/guardrails/guardrailsService.py',
     'backend/services/guardrails/rails/config.yml',
     'backend/services/guardrails/rails/input.co',
