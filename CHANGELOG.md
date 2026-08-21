@@ -7,6 +7,27 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.17.0] - 2026-08-20
+
+Boorie elige el modelo con el que te responde y deja de preguntártelo.
+
+- **El desplegable de modelos desaparece del chat.** Las respuestas las escribe siempre el
+  modelo que Boorie tiene fijado para ingeniería hidráulica, así que ya no puedes acabar
+  preguntándole a uno sin validar sin saberlo: el desplegable ofrecía el catálogo entero de
+  NVIDIA, con modelos que ni eran Nemotron.
+- **Dos papeles, cada uno con su modelo.** Uno razona sobre lo que se recupera del conocimiento
+  y redacta la respuesta; otro, más rápido, reformula tu pregunta y decide qué documentos
+  sirven, que es la tarea que se repite por cada fragmento y donde se nota la espera.
+- **Si el modelo principal no está disponible responde el auxiliar, y la respuesta lo dice**,
+  en lugar de quedarse sin contestar sin explicar por qué.
+- **Debajo de cada respuesta ya no aparece el nombre del modelo.** Sigue quedando registrado
+  para diagnóstico, que es donde hace falta.
+- **La primera instalación descarga 2,7 GB en vez de 24 GB.** El modelo que se descargaba antes
+  no podía responder en un equipo sin tarjeta gráfica dedicada: medido, tardaba unos 45 minutos
+  en una respuesta que ahora sale en dos y medio.
+- Ajustes → IA sigue sirviendo para tus claves y para el catálogo de cada proveedor, y ahora
+  avisa de que marcar modelos ahí no cambia quién responde en el chat.
+
 ## [1.16.0] - 2026-08-20
 
 Cada proyecto puede tener sus propios umbrales.
