@@ -3,6 +3,20 @@ import { ipcMain } from 'electron'
 import { createLogger } from '../../backend/utils/logger'
 import { DatabaseService } from '../../backend/services'
 import { HERRAMIENTAS, ejecutarHerramienta, type RedCompleta } from '../../backend/services/hydraulic/agentTools'
+import { detectarIntencionEscenario } from '../../backend/services/hydraulic/intencionEscenario'
+
+/**
+ * La red activa tal como la usan las herramientas, con su identificador (#44).
+ *
+ * El id viaja junto a los datos porque la propuesta de escenario tiene que decir
+ * sobre qué red se simularía: la interfaz registra la ejecución en esa red para
+ * que la cifra sea rastreable, y adivinarla desde el renderer sería otra fuente
+ * de verdad que puede discrepar de la que el agente tuvo delante.
+ */
+interface RedParaHerramientas {
+  id: string
+  datos: RedCompleta
+}
 import { leerRedActiva } from '../../backend/services/hydraulic/redActiva'
 import {
   esErrorDeHerramientas,
@@ -49,6 +63,17 @@ export interface SendChatMessageParams {
   stream?: boolean
   /** Proyecto cuya red activa puede consultar el agente con herramientas (#34). */
   projectId?: string
+  /**
+   * La pregunta tal como la escribió el usuario, sin el contexto inyectado (#44).
+   *
+   * Hace falta para reconocer la intención de escenario: el último mensaje que
+   * llega aquí lleva delante el resumen de la red y las fuentes del RAG, y
+   * buscar identificadores de elementos en ese texto encuentra los del contexto.
+   * Medido: a la pregunta «...si se pierde el control de las bombas 4 horas?» se
+   * le propuso congelar la bomba «10» porque ese id aparecía en el resumen
+   * inyectado, no en la pregunta.
+   */
+  preguntaOriginal?: string
 }
 
 /**
@@ -122,7 +147,7 @@ export class ChatHandler {
   }
 
   private async sendChatMessage(params: SendChatMessageParams): Promise<IPCChatResponse> {
-    const { provider, model, messages, apiKey, projectId } = params
+    const { provider, model, messages, apiKey, projectId, preguntaOriginal } = params
 
     try {
       // Get system prompt from database and add it to messages if not already present
@@ -163,6 +188,40 @@ export class ChatHandler {
           throw new Error(`Unsupported chat provider: ${provider}`)
       }
 
+      /**
+       * Red de seguridad para las preguntas de escenario (#44).
+       *
+       * Medido con la pregunta del criterio de aceptación, `nemotron-mini`
+       * respondió «10» sin llamar a ninguna herramienta: una cifra inventada,
+       * que es justo lo que esta funcionalidad existe para impedir. Si la
+       * pregunta era claramente condicional sobre un fallo y el modelo no
+       * propuso nada, Boorie propone el escenario y **se queda con la palabra**:
+       * la respuesta del modelo no se enseña, porque cualquier cifra que traiga
+       * no está simulada.
+       */
+      if (red && !result.metadata?.propuesta_escenario) {
+        const pregunta = preguntaOriginal
+          ?? [...messages].reverse().find(m => m.role === 'user')?.content
+          ?? ''
+        const intencion = detectarIntencionEscenario(pregunta, red.datos)
+        if (intencion) {
+          const propuesta = ejecutarHerramienta('proponer_escenario', { ...intencion }, red.datos)
+          if (propuesta.requiere_confirmacion === true) {
+            result = {
+              response:
+                `He entendido que quieres simular este escenario: ${propuesta.resumen}\n\n` +
+                'Confírmalo y lo ejecuto sobre tu red. No te doy cifras todavía porque no se ha simulado nada: ' +
+                'las que salgan vendrán de la simulación, no de mí.',
+              metadata: {
+                ...result.metadata,
+                propuesta_escenario: { ...propuesta, red_id: red.id },
+                escenario_detectado_en_codigo: true,
+              },
+            }
+          }
+        }
+      }
+
       return {
         success: true,
         data: {
@@ -185,17 +244,37 @@ export class ChatHandler {
    * no se ofrecen herramientas: el prompt de chat general ya le dice que no
    * hable de redes que no tiene delante.
    */
-  private async cargarRedActiva(projectId?: string): Promise<RedCompleta | null> {
+  private async cargarRedActiva(projectId?: string): Promise<RedParaHerramientas | null> {
     if (!projectId) return null
     try {
       const red = await leerRedActiva(this.databaseService.prisma, projectId)
-      return red ? red.datos : null
+      return red ? { id: red.id, datos: red.datos } : null
     } catch (error) {
       // Quedarse sin herramientas degrada la respuesta; tumbar el mensaje del
       // usuario por no poder leer la red seria peor.
       logger.warn('No se pudo cargar la red activa para las herramientas', { error: (error as Error).message })
       return null
     }
+  }
+
+  /**
+   * La propuesta de escenario que el agente haya construido, si la hay (#44).
+   *
+   * Viaja en la metadata de la respuesta porque la confirmación es del usuario y
+   * vive en la interfaz: la herramienta no puede ejecutar el escenario, y el
+   * proceso principal no puede preguntar. Sin este canal, el agente describiría
+   * un escenario que nadie puede lanzar.
+   */
+  private propuestaDeEscenario(
+    resultados: Array<{ llamada: LlamadaHerramienta; salida: Record<string, unknown> }>,
+    redId?: string
+  ): Record<string, unknown> | null {
+    for (const { llamada, salida } of resultados) {
+      if (llamada.nombre === 'proponer_escenario' && salida?.requiere_confirmacion === true) {
+        return redId ? { ...salida, red_id: redId } : salida
+      }
+    }
+    return null
   }
 
   private ejecutarLlamadas(llamadas: LlamadaHerramienta[], red: RedCompleta) {
@@ -247,12 +326,14 @@ export class ChatHandler {
     model: string,
     messages: ChatMessage[],
     apiKey: string,
-    red?: RedCompleta | null
+    red?: RedParaHerramientas | null
   ): Promise<ChatResponse> {
     // Convert messages to Anthropic format
     const historial: any[] = this.convertToAnthropicFormat(messages)
 
     let usarHerramientas = !!red
+    /** La propuesta de escenario pendiente de confirmar, si el agente la construye (#44). */
+    let propuestaEscenario: Record<string, unknown> | null = null
     let vueltas = 0
     let entrada = 0
     let salida = 0
@@ -309,7 +390,9 @@ export class ChatHandler {
       if (llamadas.length === 0) break
 
       historial.push({ role: 'assistant', content: data.content })
-      historial.push(mensajeResultadosAnthropic(this.ejecutarLlamadas(llamadas, red!)))
+      const resultados = this.ejecutarLlamadas(llamadas, red!.datos)
+      propuestaEscenario = this.propuestaDeEscenario(resultados, red?.id) ?? propuestaEscenario
+      historial.push(mensajeResultadosAnthropic(resultados))
 
       // Al agotar las vueltas no se corta en seco: se responden las llamadas
       // pendientes (Anthropic exige un tool_result por cada tool_use) y se pide
@@ -333,6 +416,7 @@ export class ChatHandler {
         },
         finish_reason: ultima?.stop_reason,
         vueltas_herramientas: vueltas,
+        ...(propuestaEscenario ? { propuesta_escenario: propuestaEscenario } : {}),
         created_at: new Date().toISOString(),
       }
     }
@@ -417,11 +501,13 @@ export class ChatHandler {
     },
     model: string,
     messages: ChatMessage[],
-    red?: RedCompleta | null
+    red?: RedParaHerramientas | null
   ): Promise<ChatResponse> {
     const historial: any[] = [...messages]
 
     let usarHerramientas = !!red
+    /** La propuesta de escenario pendiente de confirmar, si el agente la construye (#44). */
+    let propuestaEscenario: Record<string, unknown> | null = null
     let vueltas = 0
     let ultima: any = null
     let tokens = 0
@@ -472,7 +558,9 @@ export class ChatHandler {
       if (llamadas.length === 0) break
 
       historial.push(data.choices[0].message)
-      historial.push(...mensajesResultadosOpenAI(this.ejecutarLlamadas(llamadas, red!)))
+      const resultados = this.ejecutarLlamadas(llamadas, red!.datos)
+      propuestaEscenario = this.propuestaDeEscenario(resultados, red?.id) ?? propuestaEscenario
+      historial.push(...mensajesResultadosOpenAI(resultados))
 
       if (++vueltas >= MAX_VUELTAS_HERRAMIENTAS) {
         logger.warn('Tope de vueltas de herramientas alcanzado', { model, vueltas })
@@ -489,6 +577,7 @@ export class ChatHandler {
         usage: ultima?.usage || {},
         finish_reason: ultima?.choices?.[0]?.finish_reason,
         vueltas_herramientas: vueltas,
+        ...(propuestaEscenario ? { propuesta_escenario: propuestaEscenario } : {}),
         created_at: ultima?.created ? new Date(ultima.created * 1000).toISOString() : new Date().toISOString(),
       }
     }
@@ -498,7 +587,7 @@ export class ChatHandler {
     model: string,
     messages: ChatMessage[],
     apiKey: string,
-    red?: RedCompleta | null
+    red?: RedParaHerramientas | null
   ): Promise<ChatResponse> {
     return this.enviarOpenAICompat({
       url: 'https://api.openai.com/v1/chat/completions',
@@ -628,7 +717,7 @@ export class ChatHandler {
     model: string,
     messages: ChatMessage[],
     apiKey: string,
-    red?: RedCompleta | null
+    red?: RedParaHerramientas | null
   ): Promise<ChatResponse> {
     return this.enviarOpenAICompat({
       url: 'https://openrouter.ai/api/v1/chat/completions',
@@ -670,7 +759,7 @@ export class ChatHandler {
     model: string,
     messages: ChatMessage[],
     _apiKey: string,
-    red?: RedCompleta | null
+    red?: RedParaHerramientas | null
   ): Promise<ChatResponse> {
     // Get Ollama base URL from provider config
     const providers = await this.databaseService.prisma.aIProvider.findMany({
@@ -686,6 +775,8 @@ export class ChatHandler {
     }))
 
     let usarHerramientas = !!red
+    /** La propuesta de escenario pendiente de confirmar, si el agente la construye (#44). */
+    let propuestaEscenario: Record<string, unknown> | null = null
     let vueltas = 0
     let entrada = 0
     let salida = 0
@@ -748,7 +839,9 @@ export class ChatHandler {
         if (llamadas.length === 0) break
 
         historial.push(data.message)
-        historial.push(...mensajesResultadosOpenAI(this.ejecutarLlamadas(llamadas, red!)))
+        const resultados = this.ejecutarLlamadas(llamadas, red!.datos)
+        propuestaEscenario = this.propuestaDeEscenario(resultados, red?.id) ?? propuestaEscenario
+        historial.push(...mensajesResultadosOpenAI(resultados))
 
         if (++vueltas >= MAX_VUELTAS_HERRAMIENTAS) {
           logger.warn('Tope de vueltas de herramientas alcanzado', { model, vueltas })
@@ -770,6 +863,7 @@ export class ChatHandler {
             total_tokens: entrada + salida,
           },
           vueltas_herramientas: vueltas,
+          ...(propuestaEscenario ? { propuesta_escenario: propuestaEscenario } : {}),
           created_at: new Date().toISOString(),
         }
       }
@@ -800,7 +894,7 @@ export class ChatHandler {
     model: string,
     messages: ChatMessage[],
     apiKey: string,
-    red?: RedCompleta | null
+    red?: RedParaHerramientas | null
   ): Promise<ChatResponse> {
     return this.enviarOpenAICompat({
       url: 'https://integrate.api.nvidia.com/v1/chat/completions',
