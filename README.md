@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.21.0
+### 🚀 Latest Release - v1.21.1
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.21.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.0/Boorie-1.21.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.21.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.0/Boorie-Setup-1.21.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.21.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.0/Boorie-1.21.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.21.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.1/Boorie-1.21.1-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.21.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.1/Boorie-Setup-1.21.1.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.21.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.1/Boorie-1.21.1.AppImage) |
 
 ### 📝 What's New
 
+- **v1.21.1**: Fixes. No new features and no changes in how the application is used. Simulating right after opening a saved network used to fail: the network appeared on screen immediately —its data comes from the database— but getting it ready to simulate takes a moment longer, and in that gap the network looked ready while pressing «Simulate» in the viewer reported that no file was loaded. It now waits for whatever it needs to wait for. And if preparing the network fails, it says so: until now there was no way to tell you could view it but not simulate it. Two progress bars were also being drawn instead of one while simulating, and the installation instructions in the Spanish and Catalan READMEs, which pointed at version 1.15.0, are corrected. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.21.1).
 - **v1.21.0**: Fixes in the network viewer. The box with a node's or a pipe's figures now follows the time control: when you clicked an element you got its pressure, flow and velocity, but moving the time slider did not change them — it kept showing the step that was active when you opened it, so the figures could have nothing to do with the instant you were looking at. They are now read from the current step, both in the schematic and on the map, and a pipe's box on the map also shows the velocity, which was already being computed and not displayed. The viewer's «Simulate» button no longer looks broken either: it did run the simulation, but what it produced never reached the time bar, the network colours or the results panel, so there was no way to tell anything had happened. It does now — and it computes the full simulation over time instead of only the initial instant, which had never worked through that path even when asked for. The button that loaded an `.inp` file is removed from the viewer's header: it sat next to the network you were already looking at and only caused confusion; when no network is loaded the viewer still offers to load one in the centre, as before. A memory leak in the map is fixed along the way: every time you changed step or touched the drawing settings, the map piled up another copy of its click detectors, with no limit. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.21.0).
 - **v1.20.2**: Packaging fixes. On Linux, the application can now open its database. It used to open with none —no projects, no networks, no conversations— because the package picked a component built for Alpine, which cannot be loaded on Ubuntu, Debian, Fedora or any other common distribution, so the application never connected. It now picks the one that matches your system and checks it before using it. If you were using the AppImage and could not see your data, nothing was lost: the file was never opened. The installer no longer carries databases inside either: until now it shipped somebody else's test database, with AI providers configured in it, and whoever built the installer from source also put their own in, with their projects. Only the table definitions are packaged; every installation creates its own on startup, as it already did. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.20.2).
 - **v1.20.1**: Security maintenance. Nothing you see changes: no new features and no changes in behaviour. The dependencies with known vulnerabilities are updated — 23 down to zero, two of them critical — and Electron moves to 42.9.3, which brings the Chromium security patches the application uses to draw its whole interface. Before publishing it we checked that automatic updating from 1.20.0 still works, that the 464 automated checks are still green, and that the application starts, loads a network and simulates just as before. That is the part with real risk in an update like this, because the tools that build the installer move too. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.20.1).
@@ -97,12 +98,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.21.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.21.0.AppImage`
-3. Run: `./Boorie-1.21.0.AppImage`
+1. Download `Boorie-1.21.1.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.21.1.AppImage`
+3. Run: `./Boorie-1.21.1.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.21.0.exe` from the link above
+1. Download `Boorie-Setup-1.21.1.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 

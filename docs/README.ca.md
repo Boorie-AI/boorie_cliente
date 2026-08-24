@@ -39,15 +39,22 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.21.0
+### 🚀 Última Versió - v1.21.1
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.21.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.0/Boorie-1.21.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.21.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.0/Boorie-Setup-1.21.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.21.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.0/Boorie-1.21.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.21.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.1/Boorie-1.21.1-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.21.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.1/Boorie-Setup-1.21.1.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.21.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.1/Boorie-1.21.1.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.21.1
+- Simular just després d'obrir una xarxa desada fallava: la xarxa apareixia a l'instant però preparar-la per simular triga una mica més, i en aquell buit l'aplicació deia que no hi havia cap fitxer carregat. Ja espera el que hagi d'esperar.
+- Si preparar la xarxa falla, ara es diu: abans no hi havia manera de saber que la podies veure però no simular.
+- Mentre simulava es dibuixaven dues barres de progrés en lloc d'una.
+- Corregides les instruccions d'instal·lació d'aquest README, que manaven descarregar la versió 1.15.0.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.21.1).
 
 ### 📝 Novetats a v1.21.0
 - El quadre amb les xifres d'un node o d'una canonada ja segueix el control temporal: abans es quedava amb les del moment en què el vas obrir, així que podien no tenir res a veure amb l'instant que estaves mirant.
@@ -268,12 +275,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.21.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.21.0.AppImage`
-3. Executa: `./Boorie-1.21.0.AppImage`
+1. Descarrega `Boorie-1.21.1.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.21.1.AppImage`
+3. Executa: `./Boorie-1.21.1.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.21.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.21.1.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
