@@ -1184,10 +1184,14 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             <span>Status:</span>
                             <span className="font-medium text-green-600">Completed</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span>Duration:</span>
-                            <span className="font-mono">{simulationResults.hydraulic.data.execution_time?.toFixed(2)}s</span>
-                          </div>
+                          {/* Simular desde el visor no mide el tiempo de ejecución,
+                              y la fila se quedaba en un «s» suelto. */}
+                          {simulationResults.hydraulic.data.execution_time !== undefined && (
+                            <div className="flex justify-between">
+                              <span>Duration:</span>
+                              <span className="font-mono">{simulationResults.hydraulic.data.execution_time.toFixed(2)}s</span>
+                            </div>
+                          )}
                           <div className="flex justify-between">
                             <span>Nodes/Links:</span>
                             <span className="font-mono">{Object.keys(simulationResults.hydraulic.data.node_results || {}).length}/{Object.keys(simulationResults.hydraulic.data.link_results || {}).length}</span>

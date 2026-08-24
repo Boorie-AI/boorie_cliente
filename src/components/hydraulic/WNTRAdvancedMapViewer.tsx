@@ -72,7 +72,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
   networkData: externalNetworkData,
   simulationResults: externalSimulationResults,
   onDataLoaded,
-  onSimulationCompleted: _onSimulationCompleted,
+  onSimulationCompleted,
   highlightedNodes,
   networkId
 }) => {
@@ -166,6 +166,15 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
     onDataLoaded?.(datos);
   }, [onDataLoaded]);
 
+  // Lo mismo con los resultados. `onSimulationCompleted` se declaraba y se
+  // descartaba, así que simular desde el mapa no llegaba ni a este armazón —de
+  // donde salen la barra de tiempo y la simbología— ni a la pantalla que lo
+  // contiene, y el botón parecía no hacer nada.
+  const handleSimulationResults = useCallback((resultados: SimulationResults) => {
+    setSimulationResults(resultados);
+    onSimulationCompleted?.(resultados);
+  }, [onSimulationCompleted]);
+
   const verTopologia = useCallback(() => {
     setVisualizationSettings(prev => ({ ...prev, vista: 'topologia' }));
   }, []);
@@ -218,6 +227,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
               onMapSettingsChange={handleMapSettingsChange}
               onVerTopologia={verTopologia}
               onNetworkLoaded={handleNetworkLoaded}
+              onSimulationResults={handleSimulationResults}
             />
           ) : (
             <NetworkTopologyView

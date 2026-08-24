@@ -659,7 +659,10 @@ class WNTRService:
                     link_results[link] = {
                         'flowrate': [],
                         'velocity': [],
-                        'headloss': [] if link in results.link.get('headloss', {}).columns else None
+                        # `get('headloss', {})` devolvia un dict cuando el simulador
+                        # no reporta perdidas —WNTRSimulator no lo hace— y pedirle
+                        # `.columns` reventaba la simulacion extendida entera.
+                        'headloss': [] if 'headloss' in results.link and link in results.link['headloss'].columns else None
                     }
                 
                 # Fill in the time series data
@@ -962,10 +965,14 @@ if __name__ == "__main__":
         print(json.dumps(result, indent=2))
     
     elif command == "simulate":
-        # First load the file
+        # El tipo llega como tercer argumento y hasta ahora se descartaba, asi que
+        # `run_simulation` caia siempre en su valor por defecto (`single`) y
+        # devolvia solo el instante t=0 aunque quien llamaba pidiera la serie
+        # completa: el parametro viajaba desde la interfaz y se perdia aqui.
+        simulation_type = sys.argv[3] if len(sys.argv) > 3 else 'single'
         load_result = wntr_service.load_inp_file(file_path)
         if load_result['success']:
-            result = wntr_service.run_simulation()
+            result = wntr_service.run_simulation(simulation_type)
             print(json.dumps(result, indent=2))
         else:
             print(f"Error loading file: {load_result['error']}")

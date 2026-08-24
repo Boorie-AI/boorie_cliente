@@ -34,12 +34,20 @@ export function NetworkTopologyView({
   capas,
 }: NetworkTopologyViewProps) {
   const visRef = useRef<{ fit: () => void } | null>(null)
-  const [seleccion, setSeleccion] = useState<{ tipo: 'nudo' | 'tramo'; texto: string } | null>(null)
+  // El id, no el texto: las cifras del cuadro dependen del paso, y guardar la
+  // cadena ya formateada las congelaba en el paso que hubiera al pinchar (#74).
+  const [seleccion, setSeleccion] = useState<{ tipo: 'nudo' | 'tramo'; id: string } | null>(null)
 
   const grafo = useMemo(
     () => construirGrafo(networkData, simulationResults, activeTimeStep, escala, capas),
     [networkData, simulationResults, activeTimeStep, escala, capas]
   )
+
+  const textoSeleccion = useMemo(() => {
+    if (!seleccion) return null
+    const elementos = seleccion.tipo === 'nudo' ? grafo.nodes : grafo.edges
+    return elementos.find(x => x.id === seleccion.id)?.title ?? null
+  }, [seleccion, grafo])
 
   const datosVis = useMemo(() => {
     const destacados = new Set(highlightedNodes ?? [])
@@ -86,19 +94,17 @@ export function NetworkTopologyView({
   const eventos = useMemo(
     () => ({
       selectNode: ({ nodes }: { nodes: string[] }) => {
-        const n = grafo.nodes.find(x => x.id === nodes[0])
-        setSeleccion(n ? { tipo: 'nudo', texto: n.title } : null)
+        setSeleccion(nodes[0] ? { tipo: 'nudo', id: nodes[0] } : null)
       },
       selectEdge: ({ edges, nodes }: { edges: string[]; nodes: string[] }) => {
         // vis emite selectEdge tambien al pinchar un nudo: sin esto, el panel
         // enseñaria un tramo cualquiera en lugar del nudo elegido.
         if (nodes.length > 0) return
-        const e = grafo.edges.find(x => x.id === edges[0])
-        setSeleccion(e ? { tipo: 'tramo', texto: e.title } : null)
+        setSeleccion(edges[0] ? { tipo: 'tramo', id: edges[0] } : null)
       },
       deselectNode: () => setSeleccion(null),
     }),
-    [grafo]
+    []
   )
 
   if (grafo.nodes.length === 0) {
@@ -130,9 +136,9 @@ export function NetworkTopologyView({
         <span>{grafo.motivo}</span>
       </div>
 
-      {seleccion && (
+      {textoSeleccion && (
         <div className="absolute right-3 top-3 max-w-xs whitespace-pre-line rounded-md border border-border bg-background/95 px-3 py-2 text-xs">
-          {seleccion.texto}
+          {textoSeleccion}
         </div>
       )}
     </div>
