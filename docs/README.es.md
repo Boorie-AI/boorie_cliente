@@ -39,15 +39,23 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.20.2
+### 🚀 Última Versión - v1.21.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.20.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.2/Boorie-1.20.2-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.20.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.2/Boorie-Setup-1.20.2.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.20.2.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.2/Boorie-1.20.2.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.21.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.0/Boorie-1.21.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.21.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.0/Boorie-Setup-1.21.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.21.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.0/Boorie-1.21.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.21.0
+- El cuadro con las cifras de un nudo o una tubería ya sigue al control temporal: antes se quedaba con las del momento en que lo abriste, así que podían no tener nada que ver con el instante que estabas mirando.
+- La ficha de una tubería en el mapa enseña además la velocidad, que ya se calculaba y no se mostraba.
+- El botón «Simulate» del visor calculaba y no se veía el resultado: no llegaba a la barra de tiempo, ni a los colores de la red, ni al panel de resultados. Ya llega, y calcula la simulación completa en el tiempo en lugar de sólo el instante inicial.
+- Se retira el botón de cargar un fichero `.inp` de la cabecera del visor: estaba junto a la red que ya se está viendo y sólo llevaba a confusión. Cuando no hay ninguna red cargada, el visor sigue ofreciendo cargarla en el centro.
+- Corregido un consumo de memoria del mapa: acumulaba una copia más de sus detectores de clic con cada cambio de paso o de ajustes.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.21.0).
 
 ### 📝 Novedades en v1.20.2
 - En Linux la aplicación abría sin base de datos: no aparecían los proyectos, ni las redes, ni las conversaciones. Ya está arreglado.

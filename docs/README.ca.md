@@ -39,15 +39,23 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.20.2
+### 🚀 Última Versió - v1.21.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.20.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.2/Boorie-1.20.2-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.20.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.2/Boorie-Setup-1.20.2.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.20.2.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.20.2/Boorie-1.20.2.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.21.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.0/Boorie-1.21.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.21.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.0/Boorie-Setup-1.21.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.21.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.0/Boorie-1.21.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.21.0
+- El quadre amb les xifres d'un node o d'una canonada ja segueix el control temporal: abans es quedava amb les del moment en què el vas obrir, així que podien no tenir res a veure amb l'instant que estaves mirant.
+- La fitxa d'una canonada al mapa mostra també la velocitat, que ja es calculava i no es mostrava.
+- El botó «Simulate» del visor calculava i no es veia el resultat: no arribava a la barra de temps, ni als colors de la xarxa, ni al plafó de resultats. Ja hi arriba, i calcula la simulació completa en el temps en lloc de només l'instant inicial.
+- Es retira el botó de carregar un fitxer `.inp` de la capçalera del visor: era al costat de la xarxa que ja s'està veient i només duia a confusió. Quan no hi ha cap xarxa carregada, el visor continua oferint carregar-la al centre.
+- Corregit un consum de memòria del mapa: acumulava una còpia més dels seus detectors de clic amb cada canvi de pas o d'ajustos.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.21.0).
 
 ### 📝 Novetats a v1.20.2
 - A Linux l'aplicació obria sense base de dades: no apareixien els projectes, ni les xarxes, ni les converses. Ja està arreglat.
