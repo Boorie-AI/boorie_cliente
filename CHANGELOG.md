@@ -4,8 +4,10 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el versionado es
 [SemVer](https://semver.org/lang/es/).
 
-La entrada superior debe coincidir con la versión de `package.json`. El proceso de
-actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
+La entrada superior debe coincidir con la versión de `package.json`. Cómo se publica una
+versión —qué ficheros hay que tocar y qué comprobar en los artefactos— está en
+`docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
+`docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
 ## [1.21.0] - 2026-08-24
 

@@ -101,6 +101,13 @@ interface WNTRMapViewerProps {
    * sin ella la declaración vale sólo para la sesión en curso.
    */
   networkId?: string | null
+  /**
+   * Ruta del `.inp` de la red mostrada. Simular exige que el backend tenga
+   * cargado ese fichero, y quien abre una red guardada la pinta antes de acabar
+   * de cargarla ahí: sin reasegurarse, pulsar «Simulate» en esa ventana fallaba
+   * con «No EPANET file loaded». Es lo que ya hace el panel lateral.
+   */
+  networkFilePath?: string | null
   mapSettings: MapSettings
   onMapSettingsChange: (ajustes: MapSettings) => void
   /**
@@ -143,6 +150,7 @@ export function WNTRMapViewer({
   activeTimeStep: propActiveTimeStep,
   highlightedNodes,
   networkId,
+  networkFilePath,
   mapSettings,
   onMapSettingsChange,
   onVerTopologia,
@@ -993,6 +1001,14 @@ export function WNTRMapViewer({
     try {
       setLoading(true)
       setError(null)
+
+      if (networkFilePath) {
+        const carga = await window.electronAPI.wntr.loadINPFromPath(networkFilePath)
+        if (!carga?.success) {
+          setError(carga?.error || 'No se pudo preparar la red para simular.')
+          return
+        }
+      }
 
       // `extended`, no `single`: este visor existe para recorrer la simulación en
       // el tiempo, y `single` sólo devuelve el instante t=0 —escalares y un único

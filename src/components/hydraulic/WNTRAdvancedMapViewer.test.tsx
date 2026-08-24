@@ -70,6 +70,16 @@ describe('los resultados de simular desde el mapa suben al armazón', () => {
     expect(screen.getByText(/paso 1 de 3/)).toBeInTheDocument()
   })
 
+  // Simular desde el visor tiene que poder asegurarse de que el backend tiene el
+  // .inp de la red que se está viendo: quien abre una red guardada la pinta antes
+  // de acabar de cargarla ahí, y pulsar «Simulate» en esa ventana fallaba con «No
+  // EPANET file loaded». El visor sólo puede hacerlo si le llega la ruta.
+  it('la ruta del .inp llega al mapa', () => {
+    render(<WNTRAdvancedMapViewer networkData={RED as never} networkFilePath="/tmp/red.inp" />)
+
+    expect(propsDelMapa.networkFilePath).toBe('/tmp/red.inp')
+  })
+
   it('no exige que el contenedor pase el callback', () => {
     render(<WNTRAdvancedMapViewer networkData={RED as never} />)
 
