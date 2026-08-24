@@ -9,6 +9,19 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.21.1] - 2026-08-24
+
+Correcciones. No hay funciones nuevas ni cambios en la forma de usar la aplicación.
+
+- **Simular justo después de abrir una red guardada fallaba.** La red aparecía en pantalla al
+  instante —sus datos salen de la base—, pero prepararla para simular tarda un poco más. En ese
+  hueco la red parecía lista y, al pulsar «Simulate» en el visor, la aplicación decía que no había
+  ningún fichero cargado. Ya espera lo que tenga que esperar. Y si preparar la red falla, ahora se
+  dice: antes no había forma de saber que podías verla pero no simularla.
+- **Mientras simulaba se dibujaban dos barras de progreso** en lugar de una.
+- Corregidas las instrucciones de instalación de los README en castellano y catalán, que mandaban
+  descargar la versión 1.15.0.
+
 ## [1.21.0] - 2026-08-24
 
 Arreglos en el visor de redes. El cuadro con las cifras de un nudo o una tubería ya sigue al
