@@ -127,6 +127,35 @@ Reintentar a los ~20 s.
 - [ ] `latest.yml`, `latest-mac.yml` y `latest-linux.yml` presentes y apuntando a la versión
       nueva: son los del autoactualizador.
 - [ ] GitHub da la release como `latest`.
+- [ ] **La actualización automática desde la versión anterior funciona.** Es lo que confirma
+      que el `blockmap` y los `latest*.yml` de esta release sirven de verdad, que es por donde
+      va a llegar la versión nueva a quien ya tiene la aplicación instalada. Se comprueba
+      ejecutando el AppImage **de la versión anterior**, descargado de su propia release:
+
+```bash
+curl -sL -o Boorie-<anterior>.AppImage \
+  https://github.com/Boorie-AI/boorie_cliente/releases/download/v<anterior>/Boorie-<anterior>.AppImage
+chmod +x Boorie-<anterior>.AppImage && ./Boorie-<anterior>.AppImage --no-sandbox
+tail -f ~/.config/boorie/logs/main.log
+```
+
+En el registro tienen que aparecer `Found version X.Y.Z`, la descarga —que será
+**diferencial**, del orden del 1 % de los bytes, si el blockmap está bien— y el fichero
+resultante con el **tamaño y el `sha512` exactos** de `latest-linux.yml`. Que el sha cuadre es
+lo que demuestra que el ensamblado por bloques produce el mismo binario que una descarga
+completa.
+
+> **Cerrar con `kill -TERM` no instala nada.** El evento `quit` del que cuelga
+> `autoInstallOnAppQuit` no se dispara con una señal, y no queda ninguna traza en el log que
+> lo explique: parece que la actualización no se aplica. Hay que **cerrar la ventana**
+> (`window-all-closed` → `app.quit()`, `electron/main.ts`). Entonces sí aparece
+> `Auto install update on quit` y el AppImage queda sustituido por el de la versión nueva.
+
+Al arrancar la versión ya actualizada, el actualizador debe responder
+`Update for version X.Y.Z is not available`: ésa es la confirmación de que la aplicación que
+corre se identifica con la versión nueva. Sólo cubre el camino de Linux; Windows y macOS usan
+los mismos ficheros del autoactualizador, pero no se ejecutan desde aquí.
+
 - [ ] Si el PR llevaba `Closes #N`, el issue ha quedado cerrado. La palabra clave **tiene que
       ir en inglés** aunque el PR esté en español: «Cierra #N» no cierra nada, y el #32 quedó
       abierto después de publicar por eso.
