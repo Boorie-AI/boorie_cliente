@@ -102,6 +102,72 @@ export function valorEnPaso(
   return valor
 }
 
+export interface LecturaNudo {
+  id: string
+  label: string
+  tipo: string
+  cota?: number
+  presion?: number
+}
+
+export interface LecturaTramo {
+  id: string
+  label: string
+  tipo: string
+  longitud?: number
+  diametro?: number
+  caudal?: number
+  velocidad?: number
+}
+
+/**
+ * Lo que enseña el cuadro de un elemento elegido, leído en el paso vigente.
+ *
+ * El cuadro no puede quedarse con las cifras del momento del clic: presión,
+ * caudal y velocidad cambian con el paso de la simulación, y guardarlas las
+ * congelaba (#74). Se resuelven aquí, contra la red y los resultados, para que
+ * el visor sólo tenga que recordar qué elemento está elegido.
+ */
+export function lecturaNudo(
+  datos: DatosRed | null | undefined,
+  resultados: ResultadosSimulacion | null | undefined,
+  id: string,
+  paso = 0
+): LecturaNudo | null {
+  const n = datos?.nodes.find(x => x.id === id)
+  if (!n) return null
+
+  return {
+    id,
+    label: String(n.label ?? n.id),
+    tipo: String(n.type ?? 'junction'),
+    cota: typeof n.elevation === 'number' ? n.elevation : undefined,
+    presion: valorEnPaso(resultados?.node_results?.[id]?.pressure, paso),
+  }
+}
+
+export function lecturaTramo(
+  datos: DatosRed | null | undefined,
+  resultados: ResultadosSimulacion | null | undefined,
+  id: string,
+  paso = 0
+): LecturaTramo | null {
+  const l = datos?.links.find(x => x.id === id)
+  if (!l) return null
+
+  const res = resultados?.link_results?.[id]
+
+  return {
+    id,
+    label: String(l.label ?? l.id),
+    tipo: String(l.type ?? 'pipe'),
+    longitud: typeof l.length === 'number' ? l.length : undefined,
+    diametro: typeof l.diameter === 'number' ? l.diameter : undefined,
+    caudal: valorEnPaso(res?.flowrate, paso),
+    velocidad: valorEnPaso(res?.velocity, paso),
+  }
+}
+
 function coordenadas(n: NodoRed): [number, number] | null {
   const x = n.x ?? n.coordinates?.[0]
   const y = n.y ?? n.coordinates?.[1]

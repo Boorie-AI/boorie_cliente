@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { construirGrafo, tieneCoordenadasUtiles, valorEnPaso } from './topologia'
+import { construirGrafo, lecturaNudo, lecturaTramo, tieneCoordenadasUtiles, valorEnPaso } from './topologia'
 
 const RED = {
   nodes: [
@@ -135,5 +135,58 @@ describe('robustez', () => {
     const g = construirGrafo({ nodes: [{ id: 'X', type: 'no-existe' }], links: [] })
     expect(g.nodes).toHaveLength(1)
     expect(g.nodes[0].color).toBe('#3B82F6')
+  })
+})
+
+describe('la lectura del elemento elegido sigue al paso de la simulación (#74)', () => {
+  const RESULTADOS = {
+    node_results: { J1: { pressure: [30, 45, 12] } },
+    link_results: { P1: { flowrate: [0.1, 0.5, -0.2], velocity: [0.4, 1.8, 0.7] } },
+  }
+
+  it('un nudo da la presión del paso pedido, no la del primero', () => {
+    expect(lecturaNudo(RED, RESULTADOS, 'J1', 0)?.presion).toBe(30)
+    expect(lecturaNudo(RED, RESULTADOS, 'J1', 1)?.presion).toBe(45)
+    expect(lecturaNudo(RED, RESULTADOS, 'J1', 2)?.presion).toBe(12)
+  })
+
+  it('un tramo da el caudal y la velocidad del paso pedido', () => {
+    const paso1 = lecturaTramo(RED, RESULTADOS, 'P1', 1)
+    expect(paso1?.caudal).toBe(0.5)
+    expect(paso1?.velocidad).toBe(1.8)
+
+    const paso2 = lecturaTramo(RED, RESULTADOS, 'P1', 2)
+    expect(paso2?.caudal).toBe(-0.2)
+    expect(paso2?.velocidad).toBe(0.7)
+  })
+
+  it('los datos que no dependen del tiempo salen de la red', () => {
+    expect(lecturaNudo(RED, RESULTADOS, 'R1', 5)).toMatchObject({
+      label: 'R1',
+      tipo: 'reservoir',
+      cota: 100,
+    })
+    expect(lecturaTramo(RED, RESULTADOS, 'P1', 5)).toMatchObject({
+      label: 'P1',
+      tipo: 'pipe',
+      longitud: 120,
+      diametro: 200,
+    })
+  })
+
+  it('sin resultados enseña el elemento sin cifras, en vez de nada', () => {
+    expect(lecturaNudo(RED, null, 'J1')).toMatchObject({ label: 'J1', presion: undefined })
+    expect(lecturaTramo(RED, null, 'P1')).toMatchObject({ label: 'P1', caudal: undefined })
+  })
+
+  it('un resultado escalar vale para cualquier paso', () => {
+    const escalar = { node_results: { J1: { pressure: 22 } } }
+    expect(lecturaNudo(RED, escalar, 'J1', 7)?.presion).toBe(22)
+  })
+
+  it('un elemento que ya no está en la red no da lectura', () => {
+    expect(lecturaNudo(RED, RESULTADOS, 'FANTASMA')).toBeNull()
+    expect(lecturaTramo(RED, RESULTADOS, 'FANTASMA')).toBeNull()
+    expect(lecturaNudo(null, RESULTADOS, 'J1')).toBeNull()
   })
 })

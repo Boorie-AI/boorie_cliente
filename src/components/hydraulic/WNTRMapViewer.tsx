@@ -17,7 +17,7 @@ import { useMapboxToken } from '@/hooks/useMapboxToken'
 import { comprobarSoporteSatelite } from '@/utils/webgl'
 import { construirEscala, type Simbologia } from '@/services/network/simbologia'
 import { nudoVisible, tramoVisible, type CapasVisibles } from '@/services/network/capas'
-import { valorEnPaso } from '@/services/network/topologia'
+import { lecturaNudo, lecturaTramo, valorEnPaso } from '@/services/network/topologia'
 import { useProjectStore } from '@/stores/projectStore'
 import { CRSSelector } from './CRSSelector'
 // Las definiciones proj4 viven en `@/services/geo/crs`, no aqui: cuando cada
@@ -110,6 +110,13 @@ interface WNTRMapViewerProps {
    */
   onNetworkLoaded?: (datos: NetworkData) => void
   /**
+   * Los resultados de simular desde aquí también tienen que subir. Mientras se
+   * quedaban en este componente, el botón «Simulate» calculaba de verdad pero
+   * ni la barra de tiempo ni la simbología ni el panel de resultados —que viven
+   * en el armazón— se enteraban, así que parecía que no hacía nada.
+   */
+  onSimulationResults?: (resultados: SimulationResults) => void
+  /**
    * Salida hacia la vista topológica. La ofrece el aviso de «esta red no se
    * puede situar en el mapa»: es la respuesta a esa situación, no un modo suelto.
    */
@@ -139,7 +146,8 @@ export function WNTRMapViewer({
   mapSettings,
   onMapSettingsChange,
   onVerTopologia,
-  onNetworkLoaded
+  onNetworkLoaded,
+  onSimulationResults
 }: WNTRMapViewerProps) {
   // Priority: token pasted in Settings → General (persisted, works in the
   // packaged app) over the VITE_MAPBOX_ACCESS_TOKEN build-time env var.
@@ -173,8 +181,11 @@ export function WNTRMapViewer({
   const [styleChanging, setStyleChanging] = useState(false)
   // Network overlay is always visible
   const showNetworkOverlay = true
-  const [selectedNode, setSelectedNode] = useState<any>(null)
-  const [selectedLink, setSelectedLink] = useState<any>(null)
+  // El id, no las propiedades de la entidad pinchada: esas traen la presión y el
+  // caudal del paso que hubiera al pinchar, y el cuadro se quedaba con ellas al
+  // mover la barra de tiempo (#74).
+  const [selectedNode, setSelectedNode] = useState<string | null>(null)
+  const [selectedLink, setSelectedLink] = useState<string | null>(null)
 
   // Check WebGL capabilities and satellite compatibility
   // El satélite se comprueba de verdad, una vez, en lugar de desactivarse para
@@ -226,6 +237,16 @@ export function WNTRMapViewer({
 
   // New states for advanced visualization
   const [currentTimeStep, setCurrentTimeStep] = useState(0)
+
+  const lecturaNudoElegido = useMemo(
+    () => (selectedNode ? lecturaNudo(networkData, simulationResults, selectedNode, currentTimeStep) : null),
+    [selectedNode, networkData, simulationResults, currentTimeStep]
+  )
+
+  const lecturaTramoElegido = useMemo(
+    () => (selectedLink ? lecturaTramo(networkData, simulationResults, selectedLink, currentTimeStep) : null),
+    [selectedLink, networkData, simulationResults, currentTimeStep]
+  )
 
   // Initialize map
   useEffect(() => {
@@ -362,7 +383,29 @@ export function WNTRMapViewer({
       map.current.addControl(new mapboxgl.NavigationControl(), 'top-left')
       map.current.addControl(new mapboxgl.ScaleControl(), 'bottom-left')
 
-      // Click handlers will be added in separate useEffect
+      // Aqui y no en `addNetworkToMap`: ese se reejecuta en cada cambio de paso
+      // y de ajuste, y registraba una copia mas de cada handler cada vez. Mapbox
+      // resuelve el `layerId` al despachar, asi que registrarlos antes de que
+      // existan las capas es correcto; mueren con el mapa, en el cleanup.
+      map.current.on('click', 'network-nodes', (e) => {
+        if (e.features && e.features.length > 0) {
+          setSelectedNode(String(e.features[0].properties?.id))
+        }
+      })
+
+      map.current.on('click', 'network-links', (e) => {
+        if (e.features && e.features.length > 0) {
+          setSelectedLink(String(e.features[0].properties?.id))
+        }
+      })
+
+      map.current.on('mouseenter', 'network-nodes', () => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer'
+      })
+
+      map.current.on('mouseleave', 'network-nodes', () => {
+        if (map.current) map.current.getCanvas().style.cursor = ''
+      })
     } catch (err) {
       logger.error('Map initialization error:', err)
       if (err instanceof Error) {
@@ -830,30 +873,6 @@ export function WNTRMapViewer({
       }
     }
 
-    // Add click handlers
-    map.current.on('click', 'network-nodes', (e) => {
-      if (e.features && e.features.length > 0) {
-        const feature = e.features[0]
-        setSelectedNode(feature.properties)
-      }
-    })
-
-    map.current.on('click', 'network-links', (e) => {
-      if (e.features && e.features.length > 0) {
-        const feature = e.features[0]
-        setSelectedLink(feature.properties)
-      }
-    })
-
-    // Change cursor on hover
-    map.current.on('mouseenter', 'network-nodes', () => {
-      if (map.current) map.current.getCanvas().style.cursor = 'pointer'
-    })
-
-    map.current.on('mouseleave', 'network-nodes', () => {
-      if (map.current) map.current.getCanvas().style.cursor = ''
-    })
-
     // Fit map to network bounds
     const bounds = new mapboxgl.LngLatBounds()
     let boundsCount = 0
@@ -975,10 +994,14 @@ export function WNTRMapViewer({
       setLoading(true)
       setError(null)
 
-      const result = await window.electronAPI.wntr.runSimulation({ simulationType: 'single' })
+      // `extended`, no `single`: este visor existe para recorrer la simulación en
+      // el tiempo, y `single` sólo devuelve el instante t=0 —escalares y un único
+      // `timestamps`—, con lo que la barra de tiempo se quedaba en un paso.
+      const result = await window.electronAPI.wntr.runSimulation({ simulationType: 'extended' })
 
       if (result.success && result.data) {
         setSimulationResults(result.data)
+        onSimulationResults?.(result.data)
         // Refresh the map overlay with new results
         if (showNetworkOverlay) {
           addNetworkToMap()
@@ -1077,20 +1100,10 @@ export function WNTRMapViewer({
             </p>
           </div>
 
+          {/* Cargar un .inp desde aqui solo tiene sentido cuando no hay red: con
+              una cargada, el boton competia con la red que ya se esta viendo. El
+              del estado vacio («No Network Loaded») sigue siendo la via. */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleFileUpload}
-              disabled={loading}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg",
-                "bg-primary text-primary-foreground hover:bg-primary/90",
-                "transition-colors disabled:opacity-50"
-              )}
-            >
-              <FileUp className="w-4 h-4" />
-              Load INP File
-            </button>
-
             {networkData && (
               <>
                 <button
@@ -1380,36 +1393,39 @@ export function WNTRMapViewer({
 
 
         {/* Selected Element Info */}
-        {(selectedNode || selectedLink) && (
+        {(lecturaNudoElegido || lecturaTramoElegido) && (
           <div className="absolute top-4 left-4 bg-background/95 backdrop-blur-sm rounded-lg p-4 max-w-sm shadow-lg border border-border">
-            {selectedNode && (
+            {lecturaNudoElegido && (
               <div className="space-y-2">
                 <h3 className="font-semibold flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-primary" />
-                  Node: {selectedNode.label}
+                  Node: {lecturaNudoElegido.label}
                 </h3>
                 <div className="text-sm space-y-1">
-                  <div>Type: <span className="font-medium capitalize">{selectedNode.type}</span></div>
-                  {selectedNode.elevation !== undefined && (
-                    <div>Elevation: <span className="font-medium">{selectedNode.elevation} m</span></div>
+                  <div>Type: <span className="font-medium capitalize">{lecturaNudoElegido.tipo}</span></div>
+                  {lecturaNudoElegido.cota !== undefined && (
+                    <div>Elevation: <span className="font-medium">{lecturaNudoElegido.cota} m</span></div>
                   )}
-                  {selectedNode.pressure !== undefined && (
-                    <div>Pressure: <span className="font-medium">{selectedNode.pressure?.toFixed(2)} m</span></div>
+                  {lecturaNudoElegido.presion !== undefined && (
+                    <div>Pressure: <span className="font-medium">{lecturaNudoElegido.presion.toFixed(2)} m</span></div>
                   )}
                 </div>
               </div>
             )}
 
-            {selectedLink && (
+            {lecturaTramoElegido && (
               <div className="space-y-2">
-                <h3 className="font-semibold">Link: {selectedLink.label}</h3>
+                <h3 className="font-semibold">Link: {lecturaTramoElegido.label}</h3>
                 <div className="text-sm space-y-1">
-                  <div>Type: <span className="font-medium capitalize">{selectedLink.type}</span></div>
-                  {selectedLink.length !== undefined && (
-                    <div>Length: <span className="font-medium">{selectedLink.length} m</span></div>
+                  <div>Type: <span className="font-medium capitalize">{lecturaTramoElegido.tipo}</span></div>
+                  {lecturaTramoElegido.longitud !== undefined && (
+                    <div>Length: <span className="font-medium">{lecturaTramoElegido.longitud} m</span></div>
                   )}
-                  {selectedLink.flowrate !== undefined && (
-                    <div>Flow: <span className="font-medium">{selectedLink.flowrate?.toFixed(4)} L/s</span></div>
+                  {lecturaTramoElegido.caudal !== undefined && (
+                    <div>Flow: <span className="font-medium">{lecturaTramoElegido.caudal.toFixed(4)} L/s</span></div>
+                  )}
+                  {lecturaTramoElegido.velocidad !== undefined && (
+                    <div>Velocity: <span className="font-medium">{lecturaTramoElegido.velocidad.toFixed(2)} m/s</span></div>
                   )}
                 </div>
               </div>
