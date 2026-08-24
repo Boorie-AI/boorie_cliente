@@ -66,6 +66,11 @@ interface WNTRAdvancedMapViewerProps {
   highlightedNodes?: string[];
   /** Red guardada que se muestra; el visor persiste ahí el EPSG declarado (#36). */
   networkId?: string | null;
+  /**
+   * Ruta del `.inp` que corresponde a la red mostrada, para que simular desde el
+   * visor pueda asegurarse de que el backend tiene ese fichero y no otro.
+   */
+  networkFilePath?: string | null;
 }
 
 export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
@@ -74,7 +79,8 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
   onDataLoaded,
   onSimulationCompleted,
   highlightedNodes,
-  networkId
+  networkId,
+  networkFilePath
 }) => {
   const [networkData, setNetworkData] = useState<NetworkData | null>(externalNetworkData || null);
   const [simulationResults, setSimulationResults] = useState<SimulationResults | null>(externalSimulationResults || null);
@@ -223,6 +229,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
               activeTimeStep={visualizationSettings.timeStep}
               highlightedNodes={highlightedNodes}
               networkId={networkId}
+              networkFilePath={networkFilePath}
               mapSettings={ajustesDelMapa}
               onMapSettingsChange={handleMapSettingsChange}
               onVerTopologia={verTopologia}

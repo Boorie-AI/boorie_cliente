@@ -7,6 +7,7 @@
 - [Código de Conducta](#código-de-conducta)
 - [¿Cómo puedo contribuir?](#cómo-puedo-contribuir)
 - [Proceso de Desarrollo](#proceso-de-desarrollo)
+- [Publicar una versión](PROCESO_DE_RELEASE.md)
 - [Guía de Estilo](#guía-de-estilo)
 - [Enviando Pull Requests](#enviando-pull-requests)
 - [Reportando Bugs](#reportando-bugs)

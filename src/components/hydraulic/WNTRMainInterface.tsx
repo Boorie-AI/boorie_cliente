@@ -1028,11 +1028,19 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             setLoadedNetworkPath(res.filePath ?? null);
                             // El backend debe quedarse con la misma red que se
                             // muestra, o las simulaciones correrian sobre otra.
+                            // La red se pinta antes de esperar esto —sale de la
+                            // base y es inmediato—, asi que quien simule tiene
+                            // que reasegurarse por su cuenta; si falla, se dice,
+                            // porque es la diferencia entre poder simular y no.
                             if (res.filePath) {
                               try {
-                                await window.electronAPI.wntr.loadINPFromPath(res.filePath);
+                                const carga = await window.electronAPI.wntr.loadINPFromPath(res.filePath);
+                                if (!carga?.success) {
+                                  setError(carga?.error || 'La red se puede ver, pero no se pudo preparar para simular.');
+                                }
                               } catch (err) {
                                 logger.warn('Could not reload INP file:', err);
+                                setError('La red se puede ver, pero no se pudo preparar para simular.');
                               }
                             }
                           }}
@@ -1166,8 +1174,6 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                       </>
                     )}
                   </Button>
-
-                  {isSimulating && <Progress value={simulationProgress} className="h-2" />}
 
                   {isSimulating && <Progress value={simulationProgress} className="h-2" />}
 
@@ -1989,6 +1995,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
           </button >
           <WNTRAdvancedMapViewer
             networkId={redGuardadaId}
+            networkFilePath={loadedNetworkPath}
             networkData={networkData}
             simulationResults={simulationResults?.hydraulic?.data}
             highlightedNodes={highlightedComponents}
@@ -2034,8 +2041,15 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
               setNetworkData(res.data);
               setLoadedNetworkPath(res.filePath ?? null);
               if (res.filePath) {
-                try { await window.electronAPI.wntr.loadINPFromPath(res.filePath); }
-                catch (err) { logger.warn('No se pudo recargar el .inp restaurado:', err); }
+                try {
+                  const carga = await window.electronAPI.wntr.loadINPFromPath(res.filePath);
+                  if (!carga?.success) {
+                    setError(carga?.error || 'La red restaurada se puede ver, pero no se pudo preparar para simular.');
+                  }
+                } catch (err) {
+                  logger.warn('No se pudo recargar el .inp restaurado:', err);
+                  setError('La red restaurada se puede ver, pero no se pudo preparar para simular.');
+                }
               }
             }
             await refreshActiveNetworks();

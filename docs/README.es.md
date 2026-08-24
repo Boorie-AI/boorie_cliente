@@ -268,12 +268,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.15.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.15.0.AppImage`
-3. Ejecuta: `./Boorie-1.15.0.AppImage`
+1. Descarga `Boorie-1.21.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.21.0.AppImage`
+3. Ejecuta: `./Boorie-1.21.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.15.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.21.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
