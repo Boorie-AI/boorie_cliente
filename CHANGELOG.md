@@ -7,6 +7,28 @@ Todas las versiones liberadas de Boorie Cliente. El formato sigue
 La entrada superior debe coincidir con la versión de `package.json`. El proceso de
 actualización está descrito en `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.21.0] - 2026-08-24
+
+Arreglos en el visor de redes. El cuadro con las cifras de un nudo o una tubería ya sigue al
+control temporal, y el botón de simular del visor deja de parecer que no hace nada.
+
+- **El cuadro de un elemento se quedaba con las cifras del momento del clic.** Al pinchar un nudo o
+  una tubería aparecía su ficha —presión, caudal, velocidad—, pero mover el control temporal no la
+  cambiaba: seguía enseñando el paso que hubiera cuando la abriste, así que las cifras podían no
+  tener nada que ver con el instante que estabas mirando. Ahora se leen del paso vigente, tanto en
+  el esquema como en el mapa. La ficha de una tubería en el mapa enseña además la velocidad, que ya
+  se calculaba y no se mostraba.
+- **El botón «Simulate» del visor calculaba y no se veía el resultado.** La simulación corría de
+  verdad, pero lo que devolvía no llegaba a la barra de tiempo, ni a los colores de la red, ni al
+  panel de resultados, así que no había forma de saber que había pasado algo. Ya llega. Y calcula la
+  simulación completa en el tiempo, no sólo el instante inicial: eso último nunca había funcionado
+  por ese camino, aunque se pidiera.
+- **Se retira el botón de cargar un fichero `.inp` de la cabecera del visor.** Estaba junto a la red
+  que ya se está viendo y sólo llevaba a confusión. Cuando no hay ninguna red cargada, el visor
+  sigue ofreciendo cargarla en el centro, como hasta ahora.
+- Corregido de paso un consumo de memoria del mapa: cada vez que cambiabas de paso o tocabas los
+  ajustes de dibujo, el mapa acumulaba una copia más de sus detectores de clic, sin límite.
+
 ## [1.20.2] - 2026-08-21
 
 Arreglos de empaquetado. En Linux, la aplicación ya puede abrir su base de datos.
