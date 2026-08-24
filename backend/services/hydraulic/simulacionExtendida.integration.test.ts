@@ -51,7 +51,7 @@ function simular(tipo: 'single' | 'extended'): Promise<Resultado> {
     proceso.on('error', reject)
     proceso.on('close', code => {
       if (code !== 0) return reject(new Error(`python salió con ${code}: ${error}`))
-      try { resolve(JSON.parse(salida)) } catch (e) { reject(new Error(`salida no es JSON: ${salida.slice(0, 300)}`)) }
+      try { resolve(JSON.parse(salida)) } catch { reject(new Error(`salida no es JSON: ${salida.slice(0, 300)}`)) }
     })
   })
 }
