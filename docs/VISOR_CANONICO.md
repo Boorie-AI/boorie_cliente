@@ -200,6 +200,14 @@ cuando no puede ser, y la marca que se guardaba se escribe sólo si el satélite
 tumba la aplicación de verdad —con clave nueva, porque la anterior la escribía el
 código viejo en el primer arranque de cualquier equipo—.
 
+## Después: las cifras del visor
+
+Las etiquetas del esquema y la ficha del mapa daban el número tal como sale del
+motor, sin unidad y con quince decimales, y la leyenda rotulaba «L/s» sobre
+valores en m³/s. Se arregla en `src/services/network/unidades.ts`, que es ahora
+el único sitio que decide en qué unidad y con cuánta precisión se enseña cada
+magnitud. Ver [`INDICADORES_Y_UNIDADES.md`](INDICADORES_Y_UNIDADES.md) (#77).
+
 ## Fuera de alcance
 
 **El control temporal no refleja el tiempo real del modelo.** La barra rotula las

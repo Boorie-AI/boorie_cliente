@@ -212,8 +212,8 @@ export interface DiferenciaSimulaciones {
 
 const MAGNITUDES: Array<{ clave: string; nombre: string; unidad: string; lado: 'nudos' | 'tramos' }> = [
   { clave: 'pressure', nombre: 'Presión', unidad: 'm', lado: 'nudos' },
-  { clave: 'demand', nombre: 'Demanda', unidad: 'L/s', lado: 'nudos' },
-  { clave: 'flowrate', nombre: 'Caudal', unidad: 'L/s', lado: 'tramos' },
+  { clave: 'demand', nombre: 'Demanda', unidad: 'l/s', lado: 'nudos' },
+  { clave: 'flowrate', nombre: 'Caudal', unidad: 'l/s', lado: 'tramos' },
   { clave: 'velocity', nombre: 'Velocidad', unidad: 'm/s', lado: 'tramos' },
 ]
 

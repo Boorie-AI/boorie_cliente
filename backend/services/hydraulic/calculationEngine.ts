@@ -70,7 +70,7 @@ export class HydraulicCalculationEngine {
           symbol: 'Q',
           name: 'Flow rate',
           description: 'Volumetric flow rate',
-          units: ['m³/s', 'L/s', 'gpm'],
+          units: ['m³/s', 'l/s', 'gpm'],
           range: { min: 0, max: 10 }
         },
         {
@@ -192,7 +192,7 @@ export class HydraulicCalculationEngine {
           symbol: 'Qmax',
           name: 'Maximum hourly demand',
           description: 'Peak hour demand',
-          units: ['m³/h', 'L/s', 'gpm'],
+          units: ['m³/h', 'l/s', 'gpm'],
           range: { min: 0, max: 10000 }
         },
         {
@@ -255,7 +255,7 @@ export class HydraulicCalculationEngine {
           symbol: 'Q',
           name: 'Flow rate',
           description: 'Pump flow rate',
-          units: ['m³/s', 'L/s'],
+          units: ['m³/s', 'l/s'],
           range: { min: 0, max: 10 }
         },
         {
@@ -380,7 +380,7 @@ export class HydraulicCalculationEngine {
   private getStandardUnit(param: FormulaParameter): string {
     // Infer type from units
     if (param.units.includes('m') || param.units.includes('ft')) return 'm'
-    if (param.units.includes('m³/s') || param.units.includes('L/s')) return 'm³/s'
+    if (param.units.includes('m³/s') || param.units.includes('l/s')) return 'm³/s'
     if (param.units.includes('m/s') || param.units.includes('ft/s')) return 'm/s'
     if (param.units.includes('Pa') || param.units.includes('kPa')) return 'Pa'
     if (param.units.includes('kg/m³')) return 'kg/m³'
@@ -692,6 +692,8 @@ class UnitConverter {
     this.addConversion('flow', {
       'm³/s': 1,
       'm3/s': 1,
+      'l/s': 0.001,
+      // La grafía anterior sigue reconociéndose: hay cálculos guardados con ella.
       'L/s': 0.001,
       'm³/h': 1/3600,
       'm3/h': 1/3600,

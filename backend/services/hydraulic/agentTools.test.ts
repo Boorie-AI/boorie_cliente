@@ -54,7 +54,7 @@ describe('consultar_elemento', () => {
     expect(r.nudos_extremos.map((n: any) => n.id)).toEqual(['J1', 'J2'])
   })
 
-  it('entrega diametros en mm y demandas en L/s, no en unidades de WNTR', () => {
+  it('entrega diametros en mm y demandas en l/s, no en unidades de WNTR', () => {
     // WNTR normaliza a SI: 0.075 m y 0.000231 m3/s. Son numeros que el modelo
     // lee mal o redondea a cero, asi que la conversion se hace aqui.
     const nudo = ejecutarHerramienta('consultar_elemento', { id: 'J1' }, RED) as any

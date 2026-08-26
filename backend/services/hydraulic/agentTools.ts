@@ -173,7 +173,7 @@ const ls = (m3s?: number | null) =>
  * Las unidades se convierten aqui, no en el modelo. WNTR normaliza a SI al
  * cargar el .inp, asi que los diametros vienen en metros y las demandas en
  * m3/s: numeros como 0.075 o 0.000231 que el modelo tiende a leer mal o a
- * redondear. Se le entregan ya en mm y L/s, con el nombre de campo diciendo la
+ * redondear. Se le entregan ya en mm y l/s, con el nombre de campo diciendo la
  * unidad, para que no tenga que hacer aritmetica.
  *
  * El nombre del campo va sin abreviar: probando con nemotron-mini, un

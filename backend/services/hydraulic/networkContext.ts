@@ -158,7 +158,7 @@ export function formatearContextoRed(resumen: ResumenRed | null, conHerramientas
     `Nudos de consumo: ${resumen.junctions} · Depósitos: ${resumen.tanks} · Embalses: ${resumen.reservoirs}`,
     `Tuberías: ${resumen.pipes} · Bombas: ${resumen.pumps} · Válvulas: ${resumen.valves}`,
     `Longitud total de tubería: ${km} km`,
-    `Demanda base total: ${ls} L/s`,
+    `Demanda base total: ${ls} l/s`,
   ]
 
   if (resumen.diametroMinMm !== null && resumen.diametroMaxMm !== null) {

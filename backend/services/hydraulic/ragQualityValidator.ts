@@ -215,7 +215,7 @@ export class RAGQualityValidator {
     }, 0)
     
     // Buscar unidades técnicas
-    const unitPatterns = /\b(m3\/s|L\/s|mca|kPa|bar|psi|mm|cm|m|km|gpm|cfs)\b/g
+    const unitPatterns = /\b(m3\/s|[lL]\/s|mca|kPa|bar|psi|mm|cm|m|km|gpm|cfs)\b/g
     const unitMatches = content.match(unitPatterns) || []
     
     // Calcular densidad técnica

@@ -138,6 +138,50 @@ describe('robustez', () => {
   })
 })
 
+describe('las etiquetas llevan unidad y no vuelcan la cifra en bruto (#77)', () => {
+  const RED_REAL = {
+    nodes: [{ id: '145', label: '145', type: 'junction', x: 1, y: 1, elevation: 0.3048, demand: 0.001743182126532 }],
+    links: [{ id: 'P1', label: 'P1', type: 'pipe', from: '145', to: '145', length: 1609.344, diameter: 0.4064 }],
+  }
+
+  it('la etiqueta de un nudo dice qué es cada cifra y en qué unidad', () => {
+    const g = construirGrafo(RED_REAL, {
+      node_results: { '145': { pressure: 31.245678, demand: 0.001743182126532 } },
+    })
+    expect(g.nodes[0].title).toBe('junction: 145\nCota: 0,3048 m\nDemanda: 1,74318 l/s\nPresión: 31,25 m')
+  })
+
+  it('la demanda se recorta a seis cifras significativas', () => {
+    const g = construirGrafo(RED_REAL)
+    expect(g.nodes[0].title).not.toContain('0.001743182126532')
+    expect(g.nodes[0].title).toContain('1,74318 l/s')
+  })
+
+  it('la etiqueta de un tramo también, con el diámetro en milímetros', () => {
+    const g = construirGrafo(RED_REAL, { link_results: { P1: { flowrate: 0.0475, velocity: 1.234 } } })
+    expect(g.edges[0].title).toBe('pipe: P1\nLongitud: 1.609,34 m\nDiámetro: 406,4 mm\nCaudal: 47,5 l/s\nVelocidad: 1,23 m/s')
+  })
+
+  it('con simulación la demanda es la del paso que se está viendo, no la del fichero', () => {
+    // En PDA un nudo con poca presión no recibe lo que pide: la etiqueta tiene
+    // que decir lo que recibe en ese instante.
+    const resultados = { node_results: { '145': { demand: [0.002, 0.0005, 0] } } }
+
+    expect(construirGrafo(RED_REAL, resultados, 0).nodes[0].title).toContain('Demanda: 2 l/s')
+    expect(construirGrafo(RED_REAL, resultados, 1).nodes[0].title).toContain('Demanda: 0,5 l/s')
+    expect(construirGrafo(RED_REAL, resultados, 2).nodes[0].title).toContain('Demanda: 0 l/s')
+  })
+
+  it('sin simulación se dice que la demanda es la base, en vez de hacerla pasar por la del paso', () => {
+    expect(construirGrafo(RED_REAL).nodes[0].title).toContain('Demanda base: 1,74318 l/s')
+  })
+
+  it('lo que no hay no aparece como línea vacía', () => {
+    const g = construirGrafo({ nodes: [{ id: 'X' }], links: [] })
+    expect(g.nodes[0].title).toBe('junction: X')
+  })
+})
+
 describe('la lectura del elemento elegido sigue al paso de la simulación (#74)', () => {
   const RESULTADOS = {
     node_results: { J1: { pressure: [30, 45, 12] } },
@@ -158,6 +202,15 @@ describe('la lectura del elemento elegido sigue al paso de la simulación (#74)'
     const paso2 = lecturaTramo(RED, RESULTADOS, 'P1', 2)
     expect(paso2?.caudal).toBe(-0.2)
     expect(paso2?.velocidad).toBe(0.7)
+  })
+
+  it('la demanda del nudo elegido también sigue al paso (#77)', () => {
+    const resultados = { node_results: { J1: { demand: [0.002, 0.0005] } } }
+
+    expect(lecturaNudo(RED, resultados, 'J1', 0)).toMatchObject({ demanda: 0.002, demandaSimulada: true })
+    expect(lecturaNudo(RED, resultados, 'J1', 1)).toMatchObject({ demanda: 0.0005, demandaSimulada: true })
+    // Sin simulación queda la base del fichero, y la lectura lo declara.
+    expect(lecturaNudo(RED, null, 'J1')).toMatchObject({ demanda: 5, demandaSimulada: false })
   })
 
   it('los datos que no dependen del tiempo salen de la red', () => {

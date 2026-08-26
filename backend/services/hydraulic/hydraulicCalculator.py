@@ -115,7 +115,7 @@ class HydraulicCalculator:
                         'symbol': 'Q',
                         'name': 'Flow Rate',
                         'description': 'Volumetric flow rate',
-                        'units': ['m³/s', 'L/s', 'gpm'],
+                        'units': ['m³/s', 'l/s', 'gpm'],
                         'defaultValue': 0.05
                     },
                     {
@@ -199,7 +199,7 @@ class HydraulicCalculator:
                         'symbol': 'Q',
                         'name': 'Flow Rate',
                         'description': 'Volumetric flow rate',
-                        'units': ['m³/s', 'L/s', 'gpm'],
+                        'units': ['m³/s', 'l/s', 'gpm'],
                         'defaultValue': 0.05
                     },
                     {
@@ -321,7 +321,7 @@ class HydraulicCalculator:
                 value *= 0.00064516
             
             # Flow rate conversions
-            elif unit == 'L/s':
+            elif unit in ('l/s', 'L/s'):  # la grafía anterior sigue valiendo
                 value /= 1000
             elif unit == 'gpm':
                 value *= 0.00006309

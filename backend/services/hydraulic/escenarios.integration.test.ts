@@ -46,6 +46,37 @@ const escenario = (red: string, definicion: Record<string, unknown>) =>
     ...definicion,
   } as never)
 
+/**
+ * Los indicadores del escenario que no admiten signo (#77).
+ *
+ * Son magnitudes de impacto: habitantes, nudos, volumen sin servir, horas de
+ * corte, caída de presión, disponibilidad. Ninguna significa nada por debajo de
+ * cero. Se dejan fuera a propósito la presión (`min_pressure` puede ser negativa
+ * y eso es un resultado hidráulico, no un error de cuenta) y el caudal, cuyo
+ * signo dice el sentido de circulación.
+ */
+const SIN_SIGNO = new Set([
+  'population_affected', 'affected_node_count', 'undelivered_volume_m3', 'undelivered_m3',
+  'outage_hours', 'max_outage_hours', 'hours_below_threshold', 'max_deficit_hours',
+  'pressure_drop', 'min_service_availability', 'total_m3', 'baseline_m3', 'attributable_m3',
+  'total_population', 'population_nodes', 'affected_connections', 'total_connections',
+])
+
+/** `raw_difference` guarda la resta sin recortar: ahí el negativo es el dato. */
+const buscarNegativos = (valor: unknown, ruta = ''): string[] => {
+  if (typeof valor === 'number') return valor < 0 ? [`${ruta} = ${valor}`] : []
+  if (Array.isArray(valor)) return valor.flatMap((v, i) => buscarNegativos(v, `${ruta}[${i}]`))
+  if (valor && typeof valor === 'object') {
+    return Object.entries(valor).flatMap(([k, v]) =>
+      k === 'raw_difference' ? [] : buscarNegativos(v, ruta ? `${ruta}.${k}` : k)
+    )
+  }
+  return []
+}
+
+const indicadoresNegativos = (data: Record<string, unknown>): string[] =>
+  buscarNegativos(data).filter(linea => SIN_SIGNO.has(linea.split(' = ')[0].split('.').pop()!.replace(/\[\d+\]$/, '')))
+
 describe.skipIf(!canRun)('motor de escenarios con WNTR real', () => {
   it('el escenario del criterio de aceptación devuelve demanda no satisfecha y clientes', async () => {
     const r = await escenario(CHAMISERO, {
@@ -160,6 +191,36 @@ describe.skipIf(!canRun)('motor de escenarios con WNTR real', () => {
 
     expect(r.success).toBe(false)
     expect(r.eventos?.[0].omitidos[0].motivo).toContain('pipe_break')
+  }, SIM_TIMEOUT)
+
+  it('ningún indicador de impacto sale en negativo (#77)', async () => {
+    // El cliente lo vio en la pantalla del escenario: la resta contra la corrida
+    // de referencia puede salir por debajo de cero —un corte redistribuye
+    // presiones y hay nudos que quedan mejor que antes— y el panel enseñaba
+    // habitantes y volúmenes negativos como si fueran impacto.
+    const r = await escenario(CHAMISERO, {
+      nombre: 'Terremoto: rotura de troncal y bomba fuera de servicio',
+      eventos: [
+        { tipo: 'pipe_break', elementos: [TRUNK_PIPE], desde_h: 1 },
+        { tipo: 'pump_outage', elementos: [NEUTRAL_PUMP], desde_h: 1 },
+      ],
+    })
+
+    expect(indicadoresNegativos(r.data as unknown as Record<string, unknown>)).toEqual([])
+  }, SIM_TIMEOUT)
+
+  it('el recorte no borra la resta con la que se calculó', async () => {
+    const r = await escenario(CHAMISERO, {
+      eventos: [{ tipo: 'pipe_break', elementos: [TRUNK_PIPE], desde_h: 2 }],
+    })
+
+    const a = r.data!.population.attributable_to_event
+    expect(a.population_affected).toBe(Math.max(0, a.raw_difference.population_affected))
+    expect(a.affected_node_count).toBe(Math.max(0, a.raw_difference.affected_node_count))
+    expect(a.undelivered_volume_m3).toBe(Math.max(0, a.raw_difference.undelivered_volume_m3))
+    expect(a.clipped_to_zero).toEqual(
+      Object.entries(a.raw_difference).filter(([, v]) => v < 0).map(([k]) => k).sort()
+    )
   }, SIM_TIMEOUT)
 
   it('un escenario sin eventos no llega a simularse', async () => {

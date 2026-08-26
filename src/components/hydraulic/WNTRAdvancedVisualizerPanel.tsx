@@ -10,6 +10,7 @@ import { comprobarSoporteSatelite } from '@/utils/webgl';
 import { etiquetaCorta, type Timeline } from '@/hooks/useSimulationTimeline';
 import { ETIQUETAS_SIMBOLOGIA, type Escala } from '@/services/network/simbologia';
 import { CAPAS, CAPAS_TODAS, contarPorTipo, hayCapasOcultas } from '@/services/network/capas';
+import { enUnidadDePresentacion, formatearMagnitud, unidadDe } from '@/services/network/unidades';
 
 // Función pura del entorno, no estado: se resuelve una vez al cargar el módulo.
 const SOPORTE_SATELITE = comprobarSoporteSatelite();
@@ -357,7 +358,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
 
               {/* La leyenda declara los tramos que hay en esta red y en este
                   paso. Los visores retirados los tenían escritos a mano —caudal
-                  0-200 L/s, velocidad 0-2 m/s—, así que mentían en cuanto la red
+                  0-200 l/s, velocidad 0-2 m/s—, así que mentían en cuanto la red
                   se salía de ese rango. */}
               {escala && (
                 <div className="space-y-1 text-xs text-gray-400">
@@ -373,7 +374,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                   <p className="pt-1 text-[11px] text-gray-500">
                     {escala.absoluta
                       ? 'Cortes de servicio, iguales en cualquier red.'
-                      : `Escala de esta red en este paso: ${escala.min.toFixed(2)} a ${escala.max.toFixed(2)} ${escala.unidad}.`}
+                      : `Escala de esta red en este paso: ${formatearMagnitud(escala.min, escala.magnitud, 3)} a ${formatearMagnitud(escala.max, escala.magnitud, 3)}.`}
                   </p>
                 </div>
               )}
@@ -396,9 +397,13 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
               <span>Nodos:</span>
               <span>{networkData?.nodes?.length || 0}</span>
             </div>
+            {/* Tuberías, no «enlaces»: el rótulo es de teoría de grafos y quien
+                lee esto proyecta redes. Y si dice tuberías, cuenta tuberías —el
+                total de tramos incluía bombas y válvulas—; el desglose completo
+                está arriba, en las capas. */}
             <div className="flex justify-between">
-              <span>Enlaces:</span>
-              <span>{networkData?.links?.length || 0}</span>
+              <span>Tuberías:</span>
+              <span>{cuentas.pipe}</span>
             </div>
             {simulationResults && (
               <div className="flex justify-between">
@@ -431,7 +436,9 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                   ),
                   datasets: [
                     {
-                      label: 'Demanda Total (L/s)',
+                      label: `Demanda Total (${unidadDe('demanda')})`,
+                      // La suma sale en m³/s, que es como la da el motor; la
+                      // etiqueta prometía l/s sobre ese valor sin convertir (#77).
                       data: simulationResults.timestamps.map((_, i) => {
                         let sum = 0;
                         if (simulationResults.node_results) {
@@ -439,7 +446,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                             if (node.demand && node.demand[i]) sum += node.demand[i];
                           });
                         }
-                        return sum;
+                        return enUnidadDePresentacion(sum, 'demanda');
                       }),
                       borderColor: 'rgb(59, 130, 246)',
                       backgroundColor: 'rgba(59, 130, 246, 0.5)',

@@ -18,7 +18,7 @@ const RED = {
     { id: 'J1', label: 'J1', type: 'junction', x: 0, y: 0, demand: 5 },
     { id: 'J2', label: 'J2', type: 'junction', x: 100, y: 50 },
   ],
-  links: [{ id: 'P1', label: 'P1', type: 'pipe', from: 'J1', to: 'J2', length: 120, diameter: 200 }],
+  links: [{ id: 'P1', label: 'P1', type: 'pipe', from: 'J1', to: 'J2', length: 120, diameter: 0.2 }],
 }
 
 const RESULTADOS = {
@@ -37,12 +37,12 @@ describe('el cuadro del elemento elegido (#74)', () => {
     )
 
     await elegir('selectNode', { nodes: ['J1'] })
-    expect(screen.getByText(/Presión: 30\.00 m/)).toBeInTheDocument()
+    expect(screen.getByText(/Presión: 30 m/)).toBeInTheDocument()
 
     rerender(<NetworkTopologyView networkData={RED} simulationResults={RESULTADOS} activeTimeStep={1} />)
 
-    expect(screen.getByText(/Presión: 45\.00 m/)).toBeInTheDocument()
-    expect(screen.queryByText(/Presión: 30\.00 m/)).not.toBeInTheDocument()
+    expect(screen.getByText(/Presión: 45 m/)).toBeInTheDocument()
+    expect(screen.queryByText(/Presión: 30 m/)).not.toBeInTheDocument()
   })
 
   it('el caudal y la velocidad del tramo elegido también', async () => {
@@ -51,14 +51,16 @@ describe('el cuadro del elemento elegido (#74)', () => {
     )
 
     await elegir('selectEdge', { edges: ['P1'], nodes: [] })
-    expect(screen.getByText(/Velocidad: 0\.40 m\/s/)).toBeInTheDocument()
+    expect(screen.getByText(/Velocidad: 0,4 m\/s/)).toBeInTheDocument()
 
     rerender(<NetworkTopologyView networkData={RED} simulationResults={RESULTADOS} activeTimeStep={2} />)
 
-    const cuadro = screen.getByText(/Velocidad: 0\.70 m\/s/)
-    expect(cuadro).toHaveTextContent(/Caudal: -0\.2000/)
-    // Lo que no depende del paso se queda como estaba.
-    expect(cuadro).toHaveTextContent(/Longitud: 120/)
+    const cuadro = screen.getByText(/Velocidad: 0,7 m\/s/)
+    // En l/s y con signo, que dice que circula al revés de como está declarado.
+    expect(cuadro).toHaveTextContent(/Caudal: −200 l\/s/)
+    // Lo que no depende del paso se queda como estaba, y con su unidad (#77).
+    expect(cuadro).toHaveTextContent(/Longitud: 120 m/)
+    expect(cuadro).toHaveTextContent(/Diámetro: 200 mm/)
   })
 
   it('pinchar un nudo no enseña un tramo cualquiera', async () => {
