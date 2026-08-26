@@ -11,8 +11,8 @@ const RED = {
 
 describe('la escala sale de los datos, no de un máximo escrito a mano', () => {
   it('una red de caudales pequeños reparte todos sus colores', () => {
-    // Con el máximo fijo de 200 L/s que usaba el visor retirado, una red que va
-    // de 1 a 5 L/s caía entera en el primer color y no se distinguía nada.
+    // Con el máximo fijo de 200 l/s que usaba el visor retirado, una red que va
+    // de 1 a 5 l/s caía entera en el primer color y no se distinguía nada.
     const escala = construirEscala('caudal', RED, {
       link_results: { P1: { flowrate: 1 }, P2: { flowrate: 5 } },
     })!
@@ -85,13 +85,24 @@ describe('casos límite', () => {
 
   it('todos los valores iguales dan un color y una leyenda con ese valor', () => {
     const escala = construirEscala('demanda', RED, {
-      node_results: { J1: { demand: 2 }, J2: { demand: 2 }, J3: { demand: 2 } },
+      node_results: { J1: { demand: 0.002 }, J2: { demand: 0.002 }, J3: { demand: 0.002 } },
     })!
 
     expect(escala.min).toBe(escala.max)
     expect(escala.leyenda).toHaveLength(1)
-    expect(escala.leyenda[0].etiqueta).toContain('2.00 L/s')
-    expect(escala.color(2)).toBeTruthy()
+    expect(escala.leyenda[0].etiqueta).toBe('2 l/s')
+    expect(escala.color(0.002)).toBeTruthy()
+  })
+
+  it('la leyenda convierte a la unidad que rotula (#77)', () => {
+    // El caudal llega del motor en m³/s y la leyenda promete l/s: sin convertir,
+    // una red con 47 l/s de punta se leía «0.00 a 0.05 l/s».
+    const escala = construirEscala('caudal', RED, {
+      link_results: { P1: { flowrate: 0 }, P2: { flowrate: 0.047 } },
+    })!
+
+    expect(escala.unidad).toBe('l/s')
+    expect(escala.leyenda[escala.leyenda.length - 1].etiqueta).toContain('47 l/s')
   })
 
   it('un elemento sin dato en ese paso se queda sin color, no con uno inventado', () => {

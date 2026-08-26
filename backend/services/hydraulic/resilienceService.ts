@@ -54,10 +54,23 @@ export interface PopulationImpact {
   event: PopulationSnapshot;
   /** Misma red sin el evento: separa el déficit crónico del causado por la interrupción. */
   baseline: PopulationSnapshot;
+  /**
+   * Impacto del evento sobre la referencia. Ninguno de los tres baja de cero
+   * (#77): la resta puede salir negativa —hay nudos que un corte deja mejor que
+   * antes— y como impacto atribuible eso no se puede leer.
+   */
   attributable_to_event: {
     population_affected: number;
     affected_node_count: number;
     undelivered_volume_m3: number;
+    /** La resta sin recortar, para que el recorte no borre el dato de origen. */
+    raw_difference: {
+      population_affected: number;
+      affected_node_count: number;
+      undelivered_volume_m3: number;
+    };
+    /** Qué campos hubo que recortar en esta ejecución. */
+    clipped_to_zero: string[];
   };
   connections: {
     persons_per_connection: number;
@@ -96,6 +109,7 @@ export interface SimulateFailureResult {
       id: string;
       min_pressure: number;
       baseline_min_pressure: number;
+      /** Caída respecto a la referencia, nunca negativa: donde el fallo mejora el nudo, cero. */
       pressure_drop: number;
       outage_hours: number;
     }>;

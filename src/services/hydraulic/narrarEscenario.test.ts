@@ -60,6 +60,24 @@ describe('narración de un escenario simulado', () => {
     expect(texto).not.toContain('null')
   })
 
+  it('un impacto negativo se cuenta como cero, no como habitantes en negativo (#77)', () => {
+    // Pasa de verdad: el escenario redistribuye presiones y deja algún nudo
+    // mejor que en la corrida de referencia, así que la resta sale por debajo de
+    // cero. Los resultados guardados antes del arreglo siguen trayéndola así.
+    const texto = narrarEscenario(resultado({
+      unmet_demand: { ...resultado().unmet_demand, attributable_m3: -12.5 },
+      population: {
+        ...resultado().population,
+        attributable_to_event: { population_affected: -118, affected_node_count: -3, undelivered_volume_m3: -12.5 },
+      },
+    }), 'run1')
+
+    expect(texto).not.toContain('−118')
+    expect(texto).not.toContain('−12,5')
+    expect(texto).toContain('**No deja a nadie sin servicio**')
+    expect(texto).toContain('0,0 m³')
+  })
+
   it('da las cifras atribuibles al evento, no las totales de la red', () => {
     const texto = narrarEscenario(resultado(), 'run1')
 

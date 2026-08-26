@@ -4,7 +4,7 @@
  * Los dos visores que se retiraron ofrecían más parámetros que el canónico
  * —presión, demanda, caudal y velocidad—, y esa capacidad sí merecía volver. Lo
  * que no vuelve es cómo la calculaban: sus escalas eran máximos fijos escritos a
- * mano (caudal 0-200 L/s, velocidad 0-2 m/s, demanda 0-50 L/s). Es el mismo
+ * mano (caudal 0-200 l/s, velocidad 0-2 m/s, demanda 0-50 l/s). Es el mismo
  * defecto que los husos codificados del #48: funciona con las redes con las que
  * se probó y satura en el color más alto para cualquier red mayor.
  *
@@ -12,6 +12,7 @@
  */
 
 import { valorEnPaso, type DatosRed, type ResultadosSimulacion } from './topologia'
+import { formatearMagnitud, unidadDe, type Magnitud } from './unidades'
 
 export type Simbologia = 'ninguna' | 'presion' | 'demanda' | 'caudal' | 'velocidad'
 
@@ -25,7 +26,10 @@ export interface Escala {
   parametro: Exclude<Simbologia, 'ninguna'>
   /** Sobre qué se aplica el color. */
   aplicaA: 'nudos' | 'tramos'
+  /** Magnitud física, para que quien enseñe `min` y `max` los convierta igual que la leyenda. */
+  magnitud: Magnitud
   unidad: string
+  /** En la unidad del motor (SI), que es la que compara el color. */
   min: number
   max: number
   /** `true` cuando los cortes son absolutos y no dependen de la red. */
@@ -34,29 +38,34 @@ export interface Escala {
   leyenda: TramoLeyenda[]
 }
 
+/**
+ * La unidad ya no se escribe aquí: la pone `unidades.ts`, que es también quien
+ * convierte. La leyenda declaraba «l/s» sobre valores en m³/s tal como salen del
+ * motor, así que una red con 47 l/s de punta se leía «0.00 a 0.05 l/s» (#77).
+ */
 const PARAMETROS: Record<Exclude<Simbologia, 'ninguna'>, {
   aplicaA: 'nudos' | 'tramos'
   clave: string
-  unidad: string
+  magnitud: Magnitud
   rampa: string[]
 }> = {
-  presion: { aplicaA: 'nudos', clave: 'pressure', unidad: 'm', rampa: [] },
+  presion: { aplicaA: 'nudos', clave: 'pressure', magnitud: 'presion', rampa: [] },
   demanda: {
     aplicaA: 'nudos',
     clave: 'demand',
-    unidad: 'L/s',
+    magnitud: 'demanda',
     rampa: ['#f0f0f0', '#9ecae1', '#6baed6', '#3182bd', '#08519c'],
   },
   caudal: {
     aplicaA: 'tramos',
     clave: 'flowrate',
-    unidad: 'L/s',
+    magnitud: 'caudal',
     rampa: ['#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15'],
   },
   velocidad: {
     aplicaA: 'tramos',
     clave: 'velocity',
-    unidad: 'm/s',
+    magnitud: 'velocidad',
     rampa: ['#f7fbff', '#deebf7', '#c6dbef', '#6baed6', '#2171b5'],
   },
 }
@@ -72,10 +81,13 @@ const PRESION_BAJA = 20
 const PRESION_ALTA = 80
 const COLOR_PRESION = { baja: '#DC2626', normal: '#3B82F6', alta: '#F97316' }
 
-function formatear(valor: number, unidad: string): string {
-  const decimales = Math.abs(valor) >= 100 ? 0 : Math.abs(valor) >= 10 ? 1 : 2
-  return `${valor.toFixed(decimales)} ${unidad}`
-}
+/**
+ * Los cortes de la leyenda se leen de un vistazo: tres cifras significativas,
+ * no las seis de la ficha de un elemento.
+ */
+const CIFRAS_LEYENDA = 3
+const formatear = (valor: number, magnitud: Magnitud): string =>
+  formatearMagnitud(valor, magnitud, CIFRAS_LEYENDA) ?? '—'
 
 /** Valores del parámetro en el paso pedido, para todos los elementos. */
 function valores(
@@ -114,7 +126,8 @@ export function construirEscala(
     return {
       parametro: 'presion',
       aplicaA: 'nudos',
-      unidad: def.unidad,
+      magnitud: def.magnitud,
+      unidad: unidadDe(def.magnitud),
       min: Math.min(...v),
       max: Math.max(...v),
       absoluta: true,
@@ -153,19 +166,20 @@ export function construirEscala(
 
   const leyenda: TramoLeyenda[] =
     rango === 0
-      ? [{ color: rampa[rampa.length - 1], etiqueta: formatear(min, def.unidad) }]
+      ? [{ color: rampa[rampa.length - 1], etiqueta: formatear(min, def.magnitud) }]
       : rampa.map((c, i) => ({
           color: c,
-          etiqueta: `${formatear(min + (rango * i) / rampa.length, def.unidad)} – ${formatear(
+          etiqueta: `${formatear(min + (rango * i) / rampa.length, def.magnitud)} – ${formatear(
             min + (rango * (i + 1)) / rampa.length,
-            def.unidad
+            def.magnitud
           )}`,
         }))
 
   return {
     parametro: simbologia,
     aplicaA: def.aplicaA,
-    unidad: def.unidad,
+    magnitud: def.magnitud,
+    unidad: unidadDe(def.magnitud),
     min,
     max,
     absoluta: false,

@@ -39,15 +39,26 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.21.1
+### 🚀 Última Versión - v1.22.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.21.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.1/Boorie-1.21.1-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.21.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.1/Boorie-Setup-1.21.1.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.21.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.1/Boorie-1.21.1.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.22.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.22.0/Boorie-1.22.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.22.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.22.0/Boorie-Setup-1.22.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.22.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.22.0/Boorie-1.22.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.22.0
+- El escenario de denegación de servicio enseñaba impactos en negativo: «−118 habitantes afectados» no es una cifra que se pueda leer, porque nadie recupera un servicio que no había perdido. Ningún indicador de impacto baja ya de cero, y cuando se recorta el panel lo dice para que un cero no se confunda con una medida.
+- La presión residual y el caudal siguen pudiendo ser negativos: ahí el signo es información, no un error de cuenta.
+- Los campos del escenario ya no aceptan valores negativos, y avisan antes de lanzar la simulación en lugar de después de esperar un minuto.
+- Las cifras del visor llevan su unidad: la etiqueta de un nudo decía `Demanda: 0.001743182126532` y ahora dice `Demanda: 1,74318 l/s`. Caudales y demandas en litros por segundo, diámetros en milímetros.
+- La leyenda de colores mentía sobre el caudal: rotulaba «L/s» sobre valores en metros cúbicos por segundo, así que una red con 830 l/s de punta se leía «0.83». Le pasaba lo mismo al resumen de la simulación y a la gráfica de demanda total.
+- La demanda de un nudo no cambiaba con el control temporal: se enseñaba la del fichero, que es un valor fijo. Con una simulación cargada es ahora la de ese instante; sin ella, la etiqueta dice «Demanda base».
+- Importar una red no importaba nada: creaba un proyecto vacío y pedía volver a elegir el mismo fichero desde dentro. Ahora crea el proyecto, carga la red y la deja abierta en el visor, y el botón se parte en «Importar red (.inp)» e «Importar proyecto (.json)».
+- El resumen del visor dice «Tuberías» en vez de «Enlaces» —y cuenta tuberías: antes sumaba también bombas y válvulas—.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.22.0).
 
 ### 📝 Novedades en v1.21.1
 - Simular justo después de abrir una red guardada fallaba: la red aparecía al instante pero prepararla para simular tarda un poco más, y en ese hueco la aplicación decía que no había ningún fichero cargado. Ya espera lo que tenga que esperar.
@@ -275,12 +286,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.21.1.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.21.1.AppImage`
-3. Ejecuta: `./Boorie-1.21.1.AppImage`
+1. Descarga `Boorie-1.22.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.22.0.AppImage`
+3. Ejecuta: `./Boorie-1.22.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.21.1.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.22.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 

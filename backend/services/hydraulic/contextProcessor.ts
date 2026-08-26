@@ -249,7 +249,7 @@ export class HydraulicContextProcessor {
     const defaults: Record<string, string> = {
       'diameter': 'mm',
       'length': 'm',
-      'flow': 'L/s',
+      'flow': 'l/s',
       'pressure': 'mca'
     }
     return defaults[parameter] || ''

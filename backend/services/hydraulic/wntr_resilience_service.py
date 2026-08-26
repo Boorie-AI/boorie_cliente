@@ -533,7 +533,12 @@ class WNTRResilienceService:
         """
         exp = expected_demand(wn)
         dem = results.node['demand'].loc[:, exp.columns]
-        wsa = water_service_availability(exp, dem).fillna(1.0)
+        # Recortada por abajo a cero (#77): un nudo que en algún instante devuelve
+        # agua a la red sale con demanda entregada negativa y arrastra la
+        # disponibilidad por debajo de cero. «Disponibilidad de servicio -0,3» no
+        # significa nada; el nudo ya cuenta como afectado con cero, que es lo que
+        # el umbral mira.
+        wsa = water_service_availability(exp, dem).fillna(1.0).clip(lower=0.0)
         impacted = population_impacted(pop.reindex(wsa.columns).fillna(0.0), wsa, np.less, threshold)
 
         # Integración por intervalos (Riemann por la izquierda). Una simulación
@@ -585,6 +590,34 @@ class WNTRResilienceService:
             'min_service_availability': float(wsa.to_numpy().min()) if wsa.size else 1.0,
         }
 
+    @staticmethod
+    def _attributable(event, baseline):
+        """
+        Lo que añade el evento sobre la corrida de referencia, nunca negativo (#77).
+
+        La resta puede salir por debajo de cero sin que nada esté mal: cerrar una
+        tubería redistribuye presiones, y hay nudos que quedan mejor que sin el
+        corte. Como impacto atribuible, «-118 habitantes afectados» no se puede
+        leer —nadie recupera el servicio que no había perdido—, así que el
+        indicador se queda en cero.
+
+        La resta en bruto se conserva en `raw_difference`: recortar la cifra que
+        se enseña no es motivo para perder el dato con el que se calculó, y una
+        diferencia negativa grande sí es algo que mirar en la red.
+        """
+        raw = {
+            'population_affected': event['population_affected'] - baseline['population_affected'],
+            'affected_node_count': event['affected_node_count'] - baseline['affected_node_count'],
+            'undelivered_volume_m3': event['undelivered_volume_m3'] - baseline['undelivered_volume_m3'],
+        }
+        return {
+            'population_affected': max(0, raw['population_affected']),
+            'affected_node_count': max(0, raw['affected_node_count']),
+            'undelivered_volume_m3': max(0.0, raw['undelivered_volume_m3']),
+            'raw_difference': raw,
+            'clipped_to_zero': sorted(k for k, v in raw.items() if v < 0),
+        }
+
     def _population_impact(self, wn_base, res_base, wn_ev, res_ev, opts):
         """Población afectada a partir de las dos corridas que ya hizo simulate_failure."""
         demand_module = float(opts.get('demand_module_lphd', DEFAULT_DEMAND_MODULE_LPHD))
@@ -620,11 +653,7 @@ class WNTRResilienceService:
             'baseline': baseline,
             # Sin corrida de referencia, el déficit crónico de la red se
             # atribuiría entero al evento.
-            'attributable_to_event': {
-                'population_affected': event['population_affected'] - baseline['population_affected'],
-                'affected_node_count': event['affected_node_count'] - baseline['affected_node_count'],
-                'undelivered_volume_m3': event['undelivered_volume_m3'] - baseline['undelivered_volume_m3'],
-            },
+            'attributable_to_event': self._attributable(event, baseline),
             'connections': connections,
             'excluded_negative_demand_nodes': negative_nodes,
             'traceability': {
@@ -715,7 +744,10 @@ class WNTRResilienceService:
                         'id': node_name,
                         'min_pressure': min_p,
                         'baseline_min_pressure': baseline_min_p,
-                        'pressure_drop': baseline_min_p - min_p,
+                        # Una caída no es negativa: donde el fallo deja el nudo
+                        # mejor que antes, la caída es cero y la mejora se lee en
+                        # las dos presiones, que van al lado (#77).
+                        'pressure_drop': max(0.0, baseline_min_p - min_p),
                         'outage_hours': outage_hours
                     })
             affected_nodes.sort(key=lambda n: n['outage_hours'], reverse=True)
@@ -825,7 +857,7 @@ class WNTRResilienceService:
                         'id': str(nudo),
                         'min_pressure': min_p,
                         'baseline_min_pressure': min_base,
-                        'pressure_drop': min_base - min_p,
+                        'pressure_drop': max(0.0, min_base - min_p),
                         'hours_below_threshold': horas,
                     })
             nudos_bajo_minimo.sort(key=lambda n: n['hours_below_threshold'], reverse=True)

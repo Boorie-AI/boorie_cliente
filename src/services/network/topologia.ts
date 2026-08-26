@@ -1,4 +1,5 @@
 import { nudoVisible, tramoVisible, type CapasVisibles } from './capas'
+import { etiquetaMagnitud } from './unidades'
 
 /**
  * Grafo topológico de la red para el visor de vis-network (#37).
@@ -107,6 +108,13 @@ export interface LecturaNudo {
   label: string
   tipo: string
   cota?: number
+  /**
+   * En m³/s, como todo lo que viene del motor. Es la del paso vigente cuando hay
+   * simulación, y la base del fichero cuando no.
+   */
+  demanda?: number
+  /** `false` cuando la demanda que se da es la base y no la del paso simulado. */
+  demandaSimulada: boolean
   presion?: number
 }
 
@@ -137,11 +145,15 @@ export function lecturaNudo(
   const n = datos?.nodes.find(x => x.id === id)
   if (!n) return null
 
+  const demandaDelPaso = valorEnPaso(resultados?.node_results?.[id]?.demand, paso)
+
   return {
     id,
     label: String(n.label ?? n.id),
     tipo: String(n.type ?? 'junction'),
     cota: typeof n.elevation === 'number' ? n.elevation : undefined,
+    demanda: demandaDelPaso ?? (typeof n.demand === 'number' ? n.demand : undefined),
+    demandaSimulada: typeof demandaDelPaso === 'number',
     presion: valorEnPaso(resultados?.node_results?.[id]?.pressure, paso),
   }
 }
@@ -264,15 +276,27 @@ export function construirGrafo(
 
     const res = resultados?.node_results?.[n.id]
     const presion = valorEnPaso(res?.pressure, paso)
+    // Con simulación, la demanda que interesa es la del paso que se está viendo,
+    // no la base del fichero: en PDA un nudo con poca presión no recibe lo que
+    // pide, y la etiqueta tiene que decir lo que recibe en ese instante.
+    const demandaDelPaso = valorEnPaso(res?.demand, paso)
     const porEscala =
       escala?.aplicaA === 'nudos'
         ? escala.color(valorEnPaso(res?.[escala.parametro === 'presion' ? 'pressure' : 'demand'], paso))
         : null
 
-    const detalles = [`${tipo}: ${n.label ?? n.id}`]
-    if (typeof n.elevation === 'number') detalles.push(`Cota: ${n.elevation}`)
-    if (typeof n.demand === 'number') detalles.push(`Demanda: ${n.demand}`)
-    if (typeof presion === 'number') detalles.push(`Presión: ${presion.toFixed(2)} m`)
+    // Cada cifra con su unidad y sin los quince decimales con los que sale del
+    // motor: la etiqueta decía «Demanda: 0.001743182126532», que no dice si son
+    // litros, metros cúbicos o por segundo, y de la que sólo el principio es
+    // dato (#77).
+    const detalles = [
+      `${tipo}: ${n.label ?? n.id}`,
+      etiquetaMagnitud('Cota', n.elevation, 'cota'),
+      typeof demandaDelPaso === 'number'
+        ? etiquetaMagnitud('Demanda', demandaDelPaso, 'demanda')
+        : etiquetaMagnitud('Demanda base', n.demand, 'demanda'),
+      etiquetaMagnitud('Presión', presion, 'presion'),
+    ].filter((d): d is string => d !== null)
 
     const punto = proyectar ? coordenadas(n) : null
     const xy = punto && proyectar ? proyectar(punto[0], punto[1]) : null
@@ -307,11 +331,13 @@ export function construirGrafo(
           ? escala.color(valorEnPaso(res?.[escala.parametro === 'caudal' ? 'flowrate' : 'velocity'], paso))
           : null
 
-      const detalles = [`${tipo}: ${l.label ?? l.id}`]
-      if (typeof l.length === 'number') detalles.push(`Longitud: ${l.length}`)
-      if (typeof l.diameter === 'number') detalles.push(`Diámetro: ${l.diameter}`)
-      if (typeof caudal === 'number') detalles.push(`Caudal: ${caudal.toFixed(4)}`)
-      if (typeof velocidad === 'number') detalles.push(`Velocidad: ${velocidad.toFixed(2)} m/s`)
+      const detalles = [
+        `${tipo}: ${l.label ?? l.id}`,
+        etiquetaMagnitud('Longitud', l.length, 'longitud'),
+        etiquetaMagnitud('Diámetro', l.diameter, 'diametro'),
+        etiquetaMagnitud('Caudal', caudal, 'caudal'),
+        etiquetaMagnitud('Velocidad', velocidad, 'velocidad'),
+      ].filter((d): d is string => d !== null)
 
       const grosor =
         typeof caudal === 'number'

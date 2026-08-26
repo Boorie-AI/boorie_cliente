@@ -68,6 +68,15 @@ const entero = (n: number) => {
 }
 
 /**
+ * Ningún indicador de impacto se narra en negativo (#77).
+ *
+ * El motor ya los recorta, pero esta narración también se escribe sobre
+ * escenarios guardados antes del arreglo, que el historial vuelve a contar tal
+ * cual. «Deja sin servicio a −118 habitantes» no es una cifra que se pueda leer.
+ */
+const impacto = (n: number) => Math.max(0, n)
+
+/**
  * @param runId Identificador de la ejecución registrada, para que la cifra sea
  *   rastreable hasta ella. Sin él la narración lo dice, en vez de callarlo.
  */
@@ -81,7 +90,7 @@ export function narrarEscenario(r: ResultadoEscenario, runId?: string | null): s
 
   // Lo primero, lo que el escenario causa; el total de la red va después, porque
   // mezclarlos es lo que produce cifras alarmantes y falsas.
-  const habitantes = p.attributable_to_event.population_affected
+  const habitantes = impacto(p.attributable_to_event.population_affected)
   if (habitantes > 0) {
     const clientes = p.connections
       ? ` (unas ${entero(p.connections.affected_connections)} acometidas a ${numero(p.connections.persons_per_connection, 0)} habitantes por acometida)`
@@ -91,17 +100,17 @@ export function narrarEscenario(r: ResultadoEscenario, runId?: string | null): s
     lineas.push('**No deja a nadie sin servicio** que no lo estuviera ya antes del evento.')
   }
 
-  lineas.push(`Demanda no satisfecha atribuible al escenario: **${numero(u.attributable_m3)} m³**.`)
+  lineas.push(`Demanda no satisfecha atribuible al escenario: **${numero(impacto(u.attributable_m3))} m³**.`)
 
   if (p.baseline.population_affected > 0) {
     lineas.push(
-      `La red ya arrastraba un déficit propio de ${entero(p.baseline.population_affected)} habitantes ` +
-      `y ${numero(u.baseline_m3)} m³ sin el evento, y no se le atribuye al escenario.`
+      `La red ya arrastraba un déficit propio de ${entero(impacto(p.baseline.population_affected))} habitantes ` +
+      `y ${numero(impacto(u.baseline_m3))} m³ sin el evento, y no se le atribuye al escenario.`
     )
   }
 
   if (u.max_deficit_hours > 0) {
-    lineas.push(`El nudo peor parado está sin servicio pleno ${numero(u.max_deficit_hours)} h.`)
+    lineas.push(`El nudo peor parado está sin servicio pleno ${numero(impacto(u.max_deficit_hours))} h.`)
   }
 
   const peores = u.by_node.slice(0, 5)
@@ -109,7 +118,7 @@ export function narrarEscenario(r: ResultadoEscenario, runId?: string | null): s
     lineas.push('')
     lineas.push('Nudos más afectados:')
     for (const n of peores) {
-      lineas.push(`- **${n.id}**: ${numero(n.undelivered_m3)} m³ sin servir, ${numero(n.outage_hours)} h de déficit, disponibilidad mínima ${numero(n.min_service_availability * 100, 0)}%.`)
+      lineas.push(`- **${n.id}**: ${numero(impacto(n.undelivered_m3))} m³ sin servir, ${numero(impacto(n.outage_hours))} h de déficit, disponibilidad mínima ${numero(impacto(n.min_service_availability * 100), 0)}%.`)
     }
   }
 

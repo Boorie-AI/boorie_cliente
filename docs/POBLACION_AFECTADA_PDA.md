@@ -84,6 +84,18 @@ WNTR avisa con `Exceeded maximum number of trials` cuando un paso no converge; l
 
 Ocurre de hecho al cerrar las troncales `8062` y `7913` de la red de pruebas.
 
+### 7. La diferencia con la referencia no se enseña en negativo
+
+La resta `event − baseline` puede salir por debajo de cero sin que nada esté mal:
+el evento redistribuye presiones y hay nudos que quedan mejor que sin él. Como
+impacto atribuible eso no se puede leer, así que los tres campos de
+`attributable_to_event` se recortan a cero y la resta en bruto se conserva en
+`raw_difference`, con `clipped_to_zero` diciendo qué hubo que recortar.
+
+Mismo criterio que el punto 2: se recorta y **se declara**. Ver
+[`INDICADORES_Y_UNIDADES.md`](INDICADORES_Y_UNIDADES.md) (#77), que recoge la
+regla completa —qué indicador admite signo y cuál no— para todo el escenario.
+
 ## Trazabilidad
 
 Todo resultado incluye un bloque `traceability` con el modo de demanda, el simulador, la versión de WNTR, el módulo de demanda usado, el consumo per cápita derivado, el umbral, las presiones de PDA, la ventana simulada y el paso. Es lo que permite reproducir una cifra meses después.

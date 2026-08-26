@@ -46,7 +46,7 @@ export interface FormulaParameter {
 
 export interface UnitSystem {
   length: 'meters' | 'feet'
-  flow: 'm3/s' | 'L/s' | 'gpm' | 'cfs'
+  flow: 'm3/s' | 'l/s' | 'gpm' | 'cfs'
   pressure: 'mH2O' | 'kPa' | 'psi' | 'bar'
   diameter: 'mm' | 'inches'
 }

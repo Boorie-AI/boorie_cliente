@@ -80,7 +80,7 @@ describe('resumen de la red para el agente', () => {
     const texto = formatearContextoRed(construirResumenRed(VILLA))
     expect(texto).toContain('Red: villa_100_casas.inp')
     expect(texto).toContain('1.03 km')     // 1030 m
-    expect(texto).toContain('1.16 L/s')    // 0.001155 m3/s
+    expect(texto).toContain('1.16 l/s')    // 0.001155 m3/s
     expect(texto).toContain('Nudos de consumo: 5')
     expect(texto).toContain('Tuberías: 6')
   })

@@ -16,6 +16,8 @@ import { InstantaneasProyecto } from './InstantaneasProyecto';
 import { PanelEnergia } from './PanelEnergia';
 import { Project, NetworkAsset, CalculationAsset } from '../../types/project';
 import { hydraulicService } from '@/services/hydraulic/hydraulicService';
+import { importarRed } from '@/services/hydraulic/importarRed';
+import { enUnidadDePresentacion } from '@/services/network/unidades';
 import {
   FileUp, Play, Network, History, Camera,
   RefreshCw, AlertCircle,
@@ -108,6 +110,22 @@ const AvisoDuracion: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     <span>{children}</span>
   </p>
 );
+
+/**
+ * Ningún parámetro del escenario de denegación de servicio admite un valor
+ * negativo (#77): una duración de -4 h, un módulo de demanda negativo o una
+ * presión de servicio bajo cero no describen nada que el motor pueda simular. El
+ * campo los rechaza aquí, que es donde se escriben, en vez de dejar que el error
+ * suba desde Python cuando ya se ha esperado a la simulación.
+ */
+const sinNegativos = (valor: string): number => Math.max(0, Number(valor) || 0);
+
+/**
+ * Lo mismo, al enseñar. No sobra por hacerse ya en el motor: los resultados de
+ * las simulaciones anteriores están guardados con las cifras de entonces, y el
+ * historial los vuelve a pintar tal cual.
+ */
+const impacto = (valor: number | undefined | null): number => Math.max(0, valor ?? 0);
 
 export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   projectId: _projectId,
@@ -252,10 +270,48 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       const newProject = toViewModel(created);
       setProjects(prev => [newProject, ...prev]);
       await selectProjectGlobal(created.id);
+      // Devuelve el proyecto porque la importación de una red lo necesita para
+      // guardarla dentro sin esperar a que el store se propague.
+      return newProject;
     } catch (e) {
       logger.error('Failed to create project:', e);
+      return null;
     }
   }, [toViewModel, selectProjectGlobal]);
+
+  /**
+   * Importar un .inp desde la raíz de proyectos (#77). El qué está en
+   * `importarRed`, que es donde puede probarse; aquí sólo se le pasan los tres
+   * efectos y se coloca el resultado: la red delante y el visor abierto.
+   */
+  const handleImportNetwork = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const r = await importarRed<NetworkData>({
+        elegirFichero: () => window.electronAPI.wntr.loadINPFile(),
+        crearProyecto: handleCreateProject,
+        guardarRed: datos => window.electronAPI.networkRepository.save(datos),
+      });
+
+      if (r.estado === 'cancelado') return;
+      if (r.estado === 'error') {
+        setError(r.mensaje);
+        return;
+      }
+      if (r.avisoAlGuardar) logger.warn('No se guardó la red importada en el proyecto:', r.avisoAlGuardar);
+
+      setNetworkData(r.red);
+      setLoadedNetworkPath(r.filePath ?? null);
+      await refreshActiveNetworks();
+      await refreshProjects();
+      setCurrentView('wntr');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo importar la red');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [handleCreateProject, refreshActiveNetworks, refreshProjects, setCurrentView]);
 
   const handleSelectProject = useCallback((project: Project) => {
     selectProjectGlobal(project.id);
@@ -769,6 +825,21 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       return;
     }
 
+    // El cero lo admite el campo pero no la simulación, y el motor sólo lo dice
+    // después de arrancar Python y cargar la red.
+    if (failureDurationHours <= 0) {
+      setFailureError('La duración de la simulación tiene que ser mayor que cero');
+      return;
+    }
+    if (demandModuleLphd <= 0) {
+      setFailureError('El módulo de demanda tiene que ser mayor que cero');
+      return;
+    }
+    if (availabilityThreshold <= 0 || availabilityThreshold > 1) {
+      setFailureError('El umbral de servicio tiene que estar entre 0 y 1');
+      return;
+    }
+
     setIsSimulatingFailure(true);
     setFailureError(null);
     try {
@@ -922,6 +993,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
           onSelectProject={handleSelectProject}
           onOpenProject={handleOpenProject}
           onCreateProject={handleCreateProject}
+          onImportNetwork={handleImportNetwork}
           onDeleteProject={handleDeleteProject}
           activeProjectId={activeProjectId}
         />
@@ -1220,11 +1292,13 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                   <div className="font-mono">{simulationResults.hydraulic.data.stats.pressure?.max?.toFixed(2)}</div>
                                 </div>
                               </div>
-                              <div className="text-[10px] text-muted-foreground font-semibold mt-2">FLOW (LPS) / VEL (m/s)</div>
+                              {/* El caudal sale del motor en m³/s y la cabecera promete l/s: sin
+                                  convertir, una punta de 830 l/s se leía «0.83 l/s» (#77). */}
+                              <div className="text-[10px] text-muted-foreground font-semibold mt-2">FLOW (l/s) / VEL (m/s)</div>
                               <div className="grid grid-cols-2 gap-1 text-xs">
                                 <div>
                                   <div className="text-[9px] text-muted-foreground">Max Flow</div>
-                                  <div className="font-mono">{simulationResults.hydraulic.data.stats.flow?.max?.toFixed(2)}</div>
+                                  <div className="font-mono">{enUnidadDePresentacion(simulationResults.hydraulic.data.stats.flow?.max ?? 0, 'caudal').toFixed(2)}</div>
                                 </div>
                                 <div>
                                   <div className="text-[9px] text-muted-foreground">Max Vel</div>
@@ -1329,11 +1403,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                   <div className="font-mono">{simulationResults.scenario.data.stats.pressure?.max?.toFixed(2)}</div>
                                 </div>
                               </div>
-                              <div className="text-[10px] text-muted-foreground font-semibold mt-2">LINK STATS</div>
+                              <div className="text-[10px] text-muted-foreground font-semibold mt-2">FLOW (l/s) / VEL (m/s)</div>
                               <div className="grid grid-cols-2 gap-1 text-xs">
                                 <div>
                                   <div className="text-[9px] text-muted-foreground">Max Flow</div>
-                                  <div className="font-mono">{simulationResults.scenario.data.stats.flow?.max?.toFixed(2)}</div>
+                                  <div className="font-mono">{enUnidadDePresentacion(simulationResults.scenario.data.stats.flow?.max ?? 0, 'caudal').toFixed(2)}</div>
                                 </div>
                                 <div>
                                   <div className="text-[9px] text-muted-foreground">Max Vel</div>
@@ -1469,8 +1543,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                       <div className="text-[10px] text-muted-foreground mb-1">Umbral de diámetro (mm)</div>
                       <input
                         type="number"
+                        min={0}
                         value={skeletonizeThresholdMm}
-                        onChange={(e) => setSkeletonizeThresholdMm(Number(e.target.value))}
+                        onChange={(e) => setSkeletonizeThresholdMm(sinNegativos(e.target.value))}
                         className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                       />
                     </div>
@@ -1546,8 +1621,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         <div className="text-[10px] text-muted-foreground mb-1">Inicio falla (h)</div>
                         <input
                           type="number"
+                          min={0}
                           value={failureStartHours}
-                          onChange={(e) => setFailureStartHours(Number(e.target.value))}
+                          onChange={(e) => setFailureStartHours(sinNegativos(e.target.value))}
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         />
                       </div>
@@ -1555,8 +1631,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         <div className="text-[10px] text-muted-foreground mb-1">Restaurar en (h, opcional)</div>
                         <input
                           type="number"
+                          min={0}
                           value={failureRestoreHours}
-                          onChange={(e) => setFailureRestoreHours(e.target.value)}
+                          onChange={(e) => setFailureRestoreHours(e.target.value === '' ? '' : String(sinNegativos(e.target.value)))}
                           placeholder="permanente"
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         />
@@ -1565,8 +1642,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         <div className="text-[10px] text-muted-foreground mb-1">Duración simulación (h)</div>
                         <input
                           type="number"
+                          min={0}
                           value={failureDurationHours}
-                          onChange={(e) => setFailureDurationHours(Number(e.target.value))}
+                          onChange={(e) => setFailureDurationHours(sinNegativos(e.target.value))}
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         />
                       </div>
@@ -1574,8 +1652,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         <div className="text-[10px] text-muted-foreground mb-1">Presión mínima (m)</div>
                         <input
                           type="number"
+                          min={0}
                           value={minPressureThreshold}
-                          onChange={(e) => setMinPressureThreshold(Number(e.target.value))}
+                          onChange={(e) => setMinPressureThreshold(sinNegativos(e.target.value))}
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         />
                       </div>
@@ -1583,8 +1662,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         <div className="text-[10px] text-muted-foreground mb-1">Módulo de demanda (l/hab/día)</div>
                         <input
                           type="number"
+                          min={0}
                           value={demandModuleLphd}
-                          onChange={(e) => setDemandModuleLphd(Number(e.target.value))}
+                          onChange={(e) => setDemandModuleLphd(sinNegativos(e.target.value))}
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         />
                       </div>
@@ -1592,9 +1672,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         <div className="text-[10px] text-muted-foreground mb-1">Umbral de servicio (0-1)</div>
                         <input
                           type="number"
+                          min={0}
+                          max={1}
                           step="0.05"
                           value={availabilityThreshold}
-                          onChange={(e) => setAvailabilityThreshold(Number(e.target.value))}
+                          onChange={(e) => setAvailabilityThreshold(Math.min(1, sinNegativos(e.target.value)))}
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         />
                       </div>
@@ -1602,8 +1684,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         <div className="text-[10px] text-muted-foreground mb-1">Presión de servicio pleno (m)</div>
                         <input
                           type="number"
+                          min={0}
                           value={requiredPressure}
-                          onChange={(e) => setRequiredPressure(Number(e.target.value))}
+                          onChange={(e) => setRequiredPressure(sinNegativos(e.target.value))}
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         />
                       </div>
@@ -1611,8 +1694,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         <div className="text-[10px] text-muted-foreground mb-1">Hab./acometida (opcional)</div>
                         <input
                           type="number"
+                          min={0}
                           value={personsPerConnection}
-                          onChange={(e) => setPersonsPerConnection(e.target.value)}
+                          onChange={(e) => setPersonsPerConnection(e.target.value === '' ? '' : String(sinNegativos(e.target.value)))}
                           placeholder="sin clientes"
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         />
@@ -1672,7 +1756,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                 variant={highlightedComponents.includes(n.id) ? "default" : "outline"}
                                 className="text-[10px] h-5 cursor-pointer hover:bg-primary/20"
                                 onClick={() => setHighlightedComponents(prev => prev.includes(n.id) ? prev.filter(x => x !== n.id) : [...prev, n.id])}
-                                title={`Presión residual: ${n.min_pressure.toFixed(2)}m · ${n.outage_hours.toFixed(1)}h fuera de servicio`}
+                                title={`Presión residual: ${n.min_pressure.toFixed(2)} m · ${impacto(n.outage_hours).toFixed(1)} h fuera de servicio`}
                               >
                                 {n.id}
                               </Badge>
@@ -1688,17 +1772,27 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                 <div className="grid grid-cols-3 gap-2 mt-1">
                                   <div>
                                     <div className="text-[9px] text-muted-foreground">Habitantes</div>
-                                    <div className="font-mono text-sm">{failureResult.population.attributable_to_event.population_affected.toLocaleString()}</div>
+                                    <div className="font-mono text-sm">{impacto(failureResult.population.attributable_to_event.population_affected).toLocaleString()}</div>
                                   </div>
                                   <div>
                                     <div className="text-[9px] text-muted-foreground">Nudos</div>
-                                    <div className="font-mono text-sm">{failureResult.population.attributable_to_event.affected_node_count}</div>
+                                    <div className="font-mono text-sm">{impacto(failureResult.population.attributable_to_event.affected_node_count)}</div>
                                   </div>
                                   <div>
                                     <div className="text-[9px] text-muted-foreground">No entregado (m³)</div>
-                                    <div className="font-mono text-sm">{failureResult.population.attributable_to_event.undelivered_volume_m3.toFixed(1)}</div>
+                                    <div className="font-mono text-sm">{impacto(failureResult.population.attributable_to_event.undelivered_volume_m3).toFixed(1)}</div>
                                   </div>
                                 </div>
+                                {failureResult.population.attributable_to_event.clipped_to_zero?.length > 0 && (
+                                  <div className="text-[10px] text-muted-foreground mt-1">
+                                    En esta interrupción la red queda mejor que en la corrida de referencia en{' '}
+                                    {failureResult.population.attributable_to_event.clipped_to_zero.length === 1
+                                      ? 'un indicador'
+                                      : `${failureResult.population.attributable_to_event.clipped_to_zero.length} indicadores`}
+                                    : el impacto atribuible se enseña como cero, porque nadie recupera un servicio que no
+                                    había perdido.
+                                  </div>
+                                )}
                               </div>
 
                               <div className="pt-2 border-t">
@@ -1706,21 +1800,21 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                 <div className="grid grid-cols-3 gap-2 mt-1">
                                   <div>
                                     <div className="text-[9px] text-muted-foreground">Habitantes</div>
-                                    <div className="font-mono text-sm">{failureResult.population.event.population_affected.toLocaleString()}</div>
+                                    <div className="font-mono text-sm">{impacto(failureResult.population.event.population_affected).toLocaleString()}</div>
                                   </div>
                                   <div>
                                     <div className="text-[9px] text-muted-foreground">Déficit máx. (h)</div>
-                                    <div className="font-mono text-sm">{failureResult.population.event.max_outage_hours.toFixed(1)}</div>
+                                    <div className="font-mono text-sm">{impacto(failureResult.population.event.max_outage_hours).toFixed(1)}</div>
                                   </div>
                                   <div>
                                     <div className="text-[9px] text-muted-foreground">No entregado (m³)</div>
-                                    <div className="font-mono text-sm">{failureResult.population.event.undelivered_volume_m3.toFixed(1)}</div>
+                                    <div className="font-mono text-sm">{impacto(failureResult.population.event.undelivered_volume_m3).toFixed(1)}</div>
                                   </div>
                                 </div>
                                 <div className="text-[10px] text-muted-foreground mt-1">
                                   Sin el evento la red ya dejaba sin servicio a{' '}
-                                  {failureResult.population.baseline.population_affected.toLocaleString()} hab. de un total de{' '}
-                                  {failureResult.population.total_population.toLocaleString()}.
+                                  {impacto(failureResult.population.baseline.population_affected).toLocaleString()} hab. de un total de{' '}
+                                  {impacto(failureResult.population.total_population).toLocaleString()}.
                                 </div>
                               </div>
 
@@ -1753,8 +1847,8 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                       <div key={n.id} className="flex justify-between font-mono text-[11px]">
                                         <span>{n.id}</span>
                                         <span className="text-muted-foreground">
-                                          {n.population_affected.toLocaleString()} hab · {n.outage_hours.toFixed(1)} h ·{' '}
-                                          {(n.min_service_availability * 100).toFixed(1)}%
+                                          {impacto(n.population_affected).toLocaleString()} hab · {impacto(n.outage_hours).toFixed(1)} h ·{' '}
+                                          {impacto(n.min_service_availability * 100).toFixed(1)}%
                                         </span>
                                       </div>
                                     ))}
@@ -1911,8 +2005,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         <div className="text-[10px] text-muted-foreground mb-1">PGV máximo (cm/s)</div>
                         <input
                           type="number"
+                          min={0}
                           value={fragilityMaxIntensity}
-                          onChange={(e) => setFragilityMaxIntensity(Number(e.target.value))}
+                          onChange={(e) => setFragilityMaxIntensity(sinNegativos(e.target.value))}
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         />
                       </div>

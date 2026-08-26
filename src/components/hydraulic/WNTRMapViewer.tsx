@@ -18,6 +18,7 @@ import { comprobarSoporteSatelite } from '@/utils/webgl'
 import { construirEscala, type Simbologia } from '@/services/network/simbologia'
 import { nudoVisible, tramoVisible, type CapasVisibles } from '@/services/network/capas'
 import { lecturaNudo, lecturaTramo, valorEnPaso } from '@/services/network/topologia'
+import { formatearMagnitud, type Magnitud } from '@/services/network/unidades'
 import { useProjectStore } from '@/stores/projectStore'
 import { CRSSelector } from './CRSSelector'
 // Las definiciones proj4 viven en `@/services/geo/crs`, no aqui: cuando cada
@@ -143,6 +144,13 @@ const highlightStrokeWidth = (ids?: string[]) =>
 
 const highlightStrokeColor = (ids?: string[]) =>
   ['case', isHighlighted(ids), '#FACC15', '#ffffff'] as unknown as mapboxgl.ExpressionSpecification
+
+/** Una línea de la ficha del elemento elegido; sin dato no hay línea. */
+function FichaMagnitud({ rotulo, valor, magnitud }: { rotulo: string; valor?: number; magnitud: Magnitud }) {
+  const texto = formatearMagnitud(valor, magnitud)
+  if (!texto) return null
+  return <div>{rotulo}: <span className="font-medium">{texto}</span></div>
+}
 
 export function WNTRMapViewer({
   networkData: propNetworkData,
@@ -1411,38 +1419,38 @@ export function WNTRMapViewer({
         {/* Selected Element Info */}
         {(lecturaNudoElegido || lecturaTramoElegido) && (
           <div className="absolute top-4 left-4 bg-background/95 backdrop-blur-sm rounded-lg p-4 max-w-sm shadow-lg border border-border">
+            {/* Las mismas magnitudes, con las mismas unidades y el mismo formato
+                que la etiqueta del esquema: las dos vistas leen de `unidades.ts`.
+                Aquí el caudal se rotulaba «l/s» sobre el valor en m³/s que da el
+                motor, que es peor que no poner unidad (#77). */}
             {lecturaNudoElegido && (
               <div className="space-y-2">
                 <h3 className="font-semibold flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-primary" />
-                  Node: {lecturaNudoElegido.label}
+                  Nudo: {lecturaNudoElegido.label}
                 </h3>
                 <div className="text-sm space-y-1">
-                  <div>Type: <span className="font-medium capitalize">{lecturaNudoElegido.tipo}</span></div>
-                  {lecturaNudoElegido.cota !== undefined && (
-                    <div>Elevation: <span className="font-medium">{lecturaNudoElegido.cota} m</span></div>
-                  )}
-                  {lecturaNudoElegido.presion !== undefined && (
-                    <div>Pressure: <span className="font-medium">{lecturaNudoElegido.presion.toFixed(2)} m</span></div>
-                  )}
+                  <div>Tipo: <span className="font-medium capitalize">{lecturaNudoElegido.tipo}</span></div>
+                  <FichaMagnitud rotulo="Cota" valor={lecturaNudoElegido.cota} magnitud="cota" />
+                  <FichaMagnitud
+                    rotulo={lecturaNudoElegido.demandaSimulada ? 'Demanda' : 'Demanda base'}
+                    valor={lecturaNudoElegido.demanda}
+                    magnitud="demanda"
+                  />
+                  <FichaMagnitud rotulo="Presión" valor={lecturaNudoElegido.presion} magnitud="presion" />
                 </div>
               </div>
             )}
 
             {lecturaTramoElegido && (
               <div className="space-y-2">
-                <h3 className="font-semibold">Link: {lecturaTramoElegido.label}</h3>
+                <h3 className="font-semibold">Tramo: {lecturaTramoElegido.label}</h3>
                 <div className="text-sm space-y-1">
-                  <div>Type: <span className="font-medium capitalize">{lecturaTramoElegido.tipo}</span></div>
-                  {lecturaTramoElegido.longitud !== undefined && (
-                    <div>Length: <span className="font-medium">{lecturaTramoElegido.longitud} m</span></div>
-                  )}
-                  {lecturaTramoElegido.caudal !== undefined && (
-                    <div>Flow: <span className="font-medium">{lecturaTramoElegido.caudal.toFixed(4)} L/s</span></div>
-                  )}
-                  {lecturaTramoElegido.velocidad !== undefined && (
-                    <div>Velocity: <span className="font-medium">{lecturaTramoElegido.velocidad.toFixed(2)} m/s</span></div>
-                  )}
+                  <div>Tipo: <span className="font-medium capitalize">{lecturaTramoElegido.tipo}</span></div>
+                  <FichaMagnitud rotulo="Longitud" valor={lecturaTramoElegido.longitud} magnitud="longitud" />
+                  <FichaMagnitud rotulo="Diámetro" valor={lecturaTramoElegido.diametro} magnitud="diametro" />
+                  <FichaMagnitud rotulo="Caudal" valor={lecturaTramoElegido.caudal} magnitud="caudal" />
+                  <FichaMagnitud rotulo="Velocidad" valor={lecturaTramoElegido.velocidad} magnitud="velocidad" />
                 </div>
               </div>
             )}
@@ -1454,7 +1462,7 @@ export function WNTRMapViewer({
               }}
               className="mt-2 text-xs text-muted-foreground hover:text-foreground"
             >
-              Close
+              Cerrar
             </button>
           </div>
         )}

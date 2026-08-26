@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.21.1
+### 🚀 Latest Release - v1.22.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.21.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.1/Boorie-1.21.1-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.21.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.1/Boorie-Setup-1.21.1.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.21.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.1/Boorie-1.21.1.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.22.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.22.0/Boorie-1.22.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.22.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.22.0/Boorie-Setup-1.22.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.22.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.22.0/Boorie-1.22.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.22.0**: A pass over the figures the application shows: those of the service-denial scenario and those on the viewer's labels. The scenario used to report impacts as negative numbers — «−118 people affected» is not a figure anyone can read, since nobody regains a service they had not lost. It came from subtracting the reference run from the event run, and that subtraction can legitimately land below zero: a shutdown redistributes pressures and some nodes end up better off than without it. No impact indicator drops below zero now — people, nodes, undelivered volume, outage hours, pressure drop and availability — and when a figure is clipped the panel says so, so a zero is not mistaken for a measurement. Residual pressure and flow can still be negative: there the sign is information, not a miscount. The scenario's fields no longer accept negative values either, and they warn before launching the simulation instead of after a minute of waiting. On the viewer, figures now carry their unit: a node's label used to read `Demanda: 0.001743182126532` without saying of what, and now reads `Demanda: 1,74318 l/s`; flows and demands are shown in litres per second and diameters in millimetres, which is how a network is designed. The colour legend was lying about flow — it was labelled «L/s» over values in cubic metres per second, so a network peaking at 830 l/s read «0.83» — and so were the simulation summary and the total-demand chart. A node's demand did not change with the time control: it showed the file's value, a constant, while the pressure next to it did follow the step; with a simulation loaded it is now the demand at that instant, and without one the label says «Demanda base» so a file value and a result are never confused. Importing a network was not importing anything: it created an empty project and asked you to open it and pick the same file again from inside; it now creates the project, loads the network and leaves it open in the viewer, with the button split into «Importar red (.inp)» and «Importar proyecto (.json)». See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.22.0).
 - **v1.21.1**: Fixes. No new features and no changes in how the application is used. Simulating right after opening a saved network used to fail: the network appeared on screen immediately —its data comes from the database— but getting it ready to simulate takes a moment longer, and in that gap the network looked ready while pressing «Simulate» in the viewer reported that no file was loaded. It now waits for whatever it needs to wait for. And if preparing the network fails, it says so: until now there was no way to tell you could view it but not simulate it. Two progress bars were also being drawn instead of one while simulating, and the installation instructions in the Spanish and Catalan READMEs, which pointed at version 1.15.0, are corrected. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.21.1).
 - **v1.21.0**: Fixes in the network viewer. The box with a node's or a pipe's figures now follows the time control: when you clicked an element you got its pressure, flow and velocity, but moving the time slider did not change them — it kept showing the step that was active when you opened it, so the figures could have nothing to do with the instant you were looking at. They are now read from the current step, both in the schematic and on the map, and a pipe's box on the map also shows the velocity, which was already being computed and not displayed. The viewer's «Simulate» button no longer looks broken either: it did run the simulation, but what it produced never reached the time bar, the network colours or the results panel, so there was no way to tell anything had happened. It does now — and it computes the full simulation over time instead of only the initial instant, which had never worked through that path even when asked for. The button that loaded an `.inp` file is removed from the viewer's header: it sat next to the network you were already looking at and only caused confusion; when no network is loaded the viewer still offers to load one in the centre, as before. A memory leak in the map is fixed along the way: every time you changed step or touched the drawing settings, the map piled up another copy of its click detectors, with no limit. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.21.0).
 - **v1.20.2**: Packaging fixes. On Linux, the application can now open its database. It used to open with none —no projects, no networks, no conversations— because the package picked a component built for Alpine, which cannot be loaded on Ubuntu, Debian, Fedora or any other common distribution, so the application never connected. It now picks the one that matches your system and checks it before using it. If you were using the AppImage and could not see your data, nothing was lost: the file was never opened. The installer no longer carries databases inside either: until now it shipped somebody else's test database, with AI providers configured in it, and whoever built the installer from source also put their own in, with their projects. Only the table definitions are packaged; every installation creates its own on startup, as it already did. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.20.2).
@@ -98,12 +99,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.21.1.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.21.1.AppImage`
-3. Run: `./Boorie-1.21.1.AppImage`
+1. Download `Boorie-1.22.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.22.0.AppImage`
+3. Run: `./Boorie-1.22.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.21.1.exe` from the link above
+1. Download `Boorie-Setup-1.22.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 
