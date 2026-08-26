@@ -9,6 +9,40 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.22.0] - 2026-08-25
+
+Repaso de las cifras que enseña la aplicación: las del escenario de denegación de servicio y las
+de las etiquetas del visor. Cambia lo que se lee en pantalla, así que conviene mirarlo antes de dar
+por buena una comparación con capturas anteriores.
+
+- **El escenario de denegación de servicio enseñaba impactos en negativo.** «−118 habitantes
+  afectados» no es una cifra que se pueda leer: nadie recupera un servicio que no había perdido.
+  Salía de restar la simulación de referencia a la del evento, y esa resta puede quedar por debajo
+  de cero sin que nada esté mal —un corte redistribuye presiones y hay nudos que acaban mejor que
+  sin él—. Ahora ningún indicador de impacto baja de cero: habitantes, nudos, volumen sin servir,
+  horas de corte, caída de presión y disponibilidad. Cuando se recorta, el panel lo dice, para que
+  un cero no se confunda con una medida. La presión residual y el caudal siguen pudiendo ser
+  negativos: ahí el signo es información, no un error de cuenta.
+- **Los campos del escenario ya no aceptan valores negativos** —una duración de −4 h o un módulo de
+  demanda negativo no describen nada que se pueda simular—, y avisan antes de lanzar la simulación
+  en lugar de después de esperar un minuto.
+- **Las cifras del visor llevan su unidad.** La etiqueta de un nudo decía `Demanda:
+  0.001743182126532`, sin decir de qué. Ahora dice `Demanda: 1,74318 l/s`. Caudales y demandas se
+  enseñan en litros por segundo y los diámetros en milímetros, que es como se proyecta una red.
+- **La leyenda de colores mentía sobre el caudal.** Rotulaba «L/s» sobre valores en metros cúbicos
+  por segundo, así que una red con 830 l/s de punta se leía «0.83». Le pasaba lo mismo al resumen
+  de la simulación y a la gráfica de demanda total.
+- **La demanda de un nudo no cambiaba con el control temporal.** Se enseñaba la del fichero, que es
+  un valor fijo, mientras la presión de al lado sí seguía al paso. Con una simulación cargada, la
+  demanda es ahora la de ese instante; sin ella, la etiqueta dice «Demanda base» para que no se
+  confundan un dato del fichero y un resultado.
+- **Importar una red no importaba nada.** Creaba un proyecto vacío y pedía abrirlo y volver a elegir
+  el mismo fichero desde dentro. Ahora crea el proyecto, carga la red y la deja abierta en el visor.
+  El botón se parte en dos, «Importar red (.inp)» e «Importar proyecto (.json)», que eran dos cosas
+  distintas bajo el mismo rótulo.
+- La unidad se escribe `l/s` en toda la aplicación, y el resumen del visor dice «Tuberías» en vez de
+  «Enlaces» —y cuenta tuberías: antes sumaba también bombas y válvulas—.
+
 ## [1.21.1] - 2026-08-24
 
 Correcciones. No hay funciones nuevas ni cambios en la forma de usar la aplicación.

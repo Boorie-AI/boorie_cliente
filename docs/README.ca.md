@@ -39,15 +39,26 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.21.1
+### 🚀 Última Versió - v1.22.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.21.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.1/Boorie-1.21.1-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.21.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.1/Boorie-Setup-1.21.1.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.21.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.21.1/Boorie-1.21.1.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.22.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.22.0/Boorie-1.22.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.22.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.22.0/Boorie-Setup-1.22.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.22.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.22.0/Boorie-1.22.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.22.0
+- L'escenari de denegació de servei mostrava impactes en negatiu: «−118 habitants afectats» no és una xifra que es pugui llegir, perquè ningú no recupera un servei que no havia perdut. Cap indicador d'impacte no baixa ja de zero, i quan es retalla el plafó ho diu perquè un zero no es confongui amb una mesura.
+- La pressió residual i el cabal poden continuar sent negatius: aquí el signe és informació, no un error de compte.
+- Els camps de l'escenari ja no accepten valors negatius, i avisen abans de llançar la simulació en lloc de després d'esperar un minut.
+- Les xifres del visor porten la seva unitat: l'etiqueta d'un node deia `Demanda: 0.001743182126532` i ara diu `Demanda: 1,74318 l/s`. Cabals i demandes en litres per segon, diàmetres en mil·límetres.
+- La llegenda de colors mentia sobre el cabal: retolava «L/s» sobre valors en metres cúbics per segon, així que una xarxa amb 830 l/s de punta es llegia «0.83». Li passava el mateix al resum de la simulació i al gràfic de demanda total.
+- La demanda d'un node no canviava amb el control temporal: es mostrava la del fitxer, que és un valor fix. Amb una simulació carregada ara és la d'aquell instant; sense simulació, l'etiqueta diu «Demanda base».
+- Importar una xarxa no importava res: creava un projecte buit i demanava tornar a triar el mateix fitxer des de dins. Ara crea el projecte, carrega la xarxa i la deixa oberta al visor, i el botó es parteix en «Importar red (.inp)» i «Importar proyecto (.json)».
+- El resum del visor diu «Tuberías» en lloc de «Enlaces» —i compta canonades: abans hi sumava també bombes i vàlvules—.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.22.0).
 
 ### 📝 Novetats a v1.21.1
 - Simular just després d'obrir una xarxa desada fallava: la xarxa apareixia a l'instant però preparar-la per simular triga una mica més, i en aquell buit l'aplicació deia que no hi havia cap fitxer carregat. Ja espera el que hagi d'esperar.
@@ -275,12 +286,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.21.1.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.21.1.AppImage`
-3. Executa: `./Boorie-1.21.1.AppImage`
+1. Descarrega `Boorie-1.22.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.22.0.AppImage`
+3. Executa: `./Boorie-1.22.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.21.1.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.22.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
