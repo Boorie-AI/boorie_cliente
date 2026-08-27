@@ -9,6 +9,16 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.23.1] - 2026-08-27
+
+Corrección. No hay funciones nuevas ni cambios en la forma de usar la aplicación.
+
+- **Después de parar la reproducción, el botón de reproducir no volvía a arrancarla.** Se pulsaba
+  «stop», la barra de tiempo volvía al primer paso —correcto— y a partir de ahí «play» ya no hacía
+  nada: había que volver a cargar la red para poder reproducir otra vez. Le pasaba lo mismo, aunque
+  costaba más darse cuenta, después de ir al principio, ir al final o arrastrar la barra con el
+  ratón: cualquier forma de mover el paso a mano dejaba la reproducción muerta.
+
 ## [1.23.0] - 2026-08-27
 
 La curva de demanda del panel del visor, que decía cero y no decía en qué unidad.
