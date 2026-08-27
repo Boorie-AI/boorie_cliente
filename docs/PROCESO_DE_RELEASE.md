@@ -68,19 +68,27 @@ artefactos (3 instaladores, 2 blockmaps, 3 `latest*.yml`).
 
 ### Comprobar que hay **un** borrador, no dos
 
-Las tres plataformas publican a la vez y cada una crea el borrador si no lo
-encuentra. En la v1.23.1 salieron **dos releases en borrador con el mismo tag**:
-una con siete artefactos y otra con el `.dmg.blockmap` suelto. Publicar la
-primera habría dejado a macOS sin descarga diferencial, y el borrador huérfano
-ahí colgando.
-
 ```bash
 gh api repos/Boorie-AI/boorie_cliente/releases --jq '.[] | select(.draft==true) | "\(.id) \(.tag_name)"'
 ```
 
-Si hay dos: bajar los artefactos del huérfano, subirlos al que tenga el resto
-—`gh release upload` necesita estar dentro del repositorio; si no, va por
-`upload_url` con `curl`— y borrar el huérfano antes de publicar.
+Tiene que salir **uno solo**, con los ocho artefactos.
+
+Salían dos: las tres plataformas publican en paralelo y cada una creaba la
+release si no la encontraba, así que cuando dos llegaban a la vez las dos la
+creaban y los artefactos quedaban repartidos. Pasó en la v1.23.1 y en la
+v1.24.0; publicar el borrador equivocado deja a macOS sin su `.dmg.blockmap`
+—y sin descarga diferencial— o a Windows sin instalador.
+
+Desde el #85 el workflow crea el borrador **antes** de la matriz, en el job
+`preparar-release`, y los tres builds sólo suben ahí. Si vuelven a aparecer dos,
+ese arreglo no ha funcionado: hay que decirlo en el issue en lugar de
+consolidarlos otra vez a mano.
+
+Y si aun así hay que consolidarlos: bajar los artefactos del huérfano, subirlos
+al que tenga el resto —`gh release upload` necesita estar dentro del
+repositorio; si no, va por `upload_url` con `curl`— y borrar el huérfano antes de
+publicar.
 
 ```bash
 UP=$(gh api repos/Boorie-AI/boorie_cliente/releases/<id-bueno> --jq .upload_url | sed 's/{.*}//')
