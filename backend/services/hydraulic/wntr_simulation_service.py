@@ -227,6 +227,23 @@ class WNTRSimulationService:
                 return
 
             wn.options.quality.parameter = parameter
+            if parameter == 'CHEMICAL':
+                # Sin sustancia declarada en el fichero —ni fuentes de calidad ni
+                # calidad inicial en ningún nudo— EPANET devuelve ceros en toda la
+                # red. Un cero que sólo significa «aquí no había nada que simular»
+                # es lo mismo que enseñaba el relleno de antes.
+                hay_fuentes = len(wn.source_name_list) > 0
+                hay_inicial = any(wn.get_node(n).initial_quality for n in wn.node_name_list)
+                if not hay_fuentes and not hay_inicial:
+                    print(json.dumps({
+                        'success': False,
+                        'error': 'Esta red no declara ninguna sustancia: no tiene fuentes de calidad '
+                                 'ni calidad inicial en sus nudos, así que la simulación química '
+                                 'daría cero en toda la red. Se declara en el fichero .inp, '
+                                 'en las secciones [SOURCES] y [QUALITY].',
+                    }))
+                    return
+
             if parameter == 'TRACE':
                 # Sin nudo trazado no hay nada que trazar, y EPANET devolvería
                 # ceros en toda la red sin decir por qué.

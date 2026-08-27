@@ -18,6 +18,7 @@ import { Project, NetworkAsset, CalculationAsset } from '../../types/project';
 import { hydraulicService } from '@/services/hydraulic/hydraulicService';
 import { importarRed } from '@/services/hydraulic/importarRed';
 import { enUnidadDePresentacion } from '@/services/network/unidades';
+import { tipoNudo } from '@/services/network/capas';
 import {
   FileUp, Play, Network, History, Camera,
   RefreshCw, AlertCircle,
@@ -463,6 +464,16 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   const [highlightedComponents, setHighlightedComponents] = useState<string[]>([]);
   const [simulationDuration, setSimulationDuration] = useState<number>(24);
   const [simulationTimestep, setSimulationTimestep] = useState<number>(60); // minutes
+
+  /**
+   * Qué se sigue en la simulación de calidad. Hasta ahora sólo se pedía la edad
+   * del agua, y era lo único que el motor sabía dar; ahora que simula de verdad,
+   * el trazador y la sustancia son igual de válidos y hacían falta desde la
+   * pantalla (docs/CALIDAD_DEL_AGUA.md).
+   */
+  const [qualityParameter, setQualityParameter] = useState<'AGE' | 'TRACE' | 'CHEMICAL'>('AGE');
+  /** Desde qué fuente se traza. Sin nudo no hay nada que trazar. */
+  const [traceNode, setTraceNode] = useState<string>('');
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
   // «Simulaciones» en el menú entra en esta vista pidiendo su pestaña (#35).
   const seccionPedida = useAppStore(s => s.seccionRed);
@@ -611,6 +622,19 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
 
   // Run ALL simulations sequentially
+  /**
+   * Desde dónde se puede trazar: embalses y depósitos, que es de donde sale el
+   * agua. Trazar desde un nudo de consumo lo admite EPANET pero no responde a
+   * ninguna pregunta que alguien se haga sobre una red.
+   */
+  const fuentesDeTrazado = useMemo(
+    () => (networkData?.nodes ?? [])
+      .filter(n => tipoNudo(n) === 'reservoir' || tipoNudo(n) === 'tank')
+      .map(n => String(n.id)),
+    [networkData]
+  );
+  const fuenteElegida = fuentesDeTrazado.includes(traceNode) ? traceNode : fuentesDeTrazado[0] ?? '';
+
   const handleRunAllSimulations = useCallback(async () => {
     if (!networkData) return;
 
@@ -644,9 +668,15 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       setSimulationProgress(40);
 
       // 2. Water Quality
+      // La misma ventana que la hidráulica: las tres simulaciones del ciclo se
+      // guardan juntas y hablaban de periodos distintos —aquí iban 24 h y 1 h
+      // fijas, que además el motor de entonces ni miraba—.
       const qualityRes = await window.electronAPI.wntr.runWaterQualitySimulation({
         network_file: networkData.name,
-        parameter: 'age', duration: 24, timestep: 1
+        parameter: qualityParameter,
+        duration: simulationDuration,
+        timestep: simulationTimestep / 60,
+        ...(qualityParameter === 'TRACE' ? { trace_node: fuenteElegida } : {}),
       });
       setSimulationResults(prev => ({ ...prev, quality: qualityRes }));
       setSimulationProgress(70);
@@ -687,7 +717,8 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       setIsSimulating(false);
       // setSimulationProgress(0); // Leave at 100 to show success
     }
-  }, [networkData, loadedNetworkPath, onSimulationComplete, simulationDuration, simulationTimestep, currentProject, handleSaveCalculationToProject]);
+  }, [networkData, loadedNetworkPath, onSimulationComplete, simulationDuration, simulationTimestep,
+      qualityParameter, fuenteElegida, currentProject, handleSaveCalculationToProject]);
 
   // --- Resilience routines handlers (epic #26) ---
 
@@ -1212,8 +1243,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         <div className="text-[10px] text-muted-foreground mb-1">Duration (hours)</div>
                         <input
                           type="number"
+                          min={0}
                           value={simulationDuration}
-                          onChange={(e) => setSimulationDuration(Number(e.target.value))}
+                          onChange={(e) => setSimulationDuration(sinNegativos(e.target.value))}
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         />
                       </div>
@@ -1221,11 +1253,46 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         <div className="text-[10px] text-muted-foreground mb-1">Timestep (mins)</div>
                         <input
                           type="number"
+                          min={0}
                           value={simulationTimestep}
-                          onChange={(e) => setSimulationTimestep(Number(e.target.value))}
+                          onChange={(e) => setSimulationTimestep(sinNegativos(e.target.value))}
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         />
                       </div>
+                    </div>
+
+                    {/* Qué se sigue en la simulación de calidad. Antes sólo se
+                        pedía la edad del agua porque era lo único que el motor
+                        sabía dar. */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">Calidad del agua</div>
+                        <select
+                          value={qualityParameter}
+                          onChange={(e) => setQualityParameter(e.target.value as 'AGE' | 'TRACE' | 'CHEMICAL')}
+                          className="w-full bg-transparent text-sm border-b border-border focus:outline-none focus:border-primary"
+                        >
+                          <option value="AGE">Edad del agua</option>
+                          <option value="TRACE" disabled={fuentesDeTrazado.length === 0}>
+                            Trazador desde una fuente
+                          </option>
+                          <option value="CHEMICAL">Sustancia del fichero</option>
+                        </select>
+                      </div>
+                      {qualityParameter === 'TRACE' && (
+                        <div className="bg-background p-2 rounded border">
+                          <div className="text-[10px] text-muted-foreground mb-1">Fuente que se traza</div>
+                          <select
+                            value={fuenteElegida}
+                            onChange={(e) => setTraceNode(e.target.value)}
+                            className="w-full bg-transparent text-sm border-b border-border focus:outline-none focus:border-primary"
+                          >
+                            {fuentesDeTrazado.map(id => (
+                              <option key={id} value={id}>{id}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
                   </div>
 

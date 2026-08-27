@@ -64,6 +64,26 @@ Medido sobre las redes del repositorio: `Net3` en 0,1 s, `Chamisero`
 **84 valores distintos entre 97 nudos** — lo que el sustituto no podía dar, que
 era exactamente uno.
 
+## Qué se puede pedir desde la pantalla
+
+Los tres parámetros, no sólo la edad: un desplegable junto a la duración y el
+paso. Cuando se elige el trazador aparece un segundo selector con **los embalses
+y los depósitos** de la red cargada —de donde sale el agua—; trazar desde un nudo
+de consumo lo admite EPANET, pero no responde a ninguna pregunta que alguien se
+haga sobre una red. Si la red no tiene ninguna fuente, la opción se deshabilita
+en vez de abrir un selector vacío.
+
+La sustancia se rechaza cuando el `.inp` no declara ninguna —ni `[SOURCES]` ni
+`[QUALITY]`—, que es el caso de las dos redes del repositorio. EPANET devolvería
+ceros en toda la red, y un cero que sólo significa «aquí no había nada que
+simular» es lo mismo que enseñaba el relleno de antes. Se dice, y se dice dónde
+se declara.
+
+La calidad usa además **la misma ventana de tiempo que la hidráulica**. Antes
+mandaba 24 h y paso de 1 h fijos —que el motor de entonces ni miraba—, así que
+las tres simulaciones del ciclo se guardaban juntas hablando de periodos
+distintos.
+
 ## Lo que ya estaba guardado
 
 Las ejecuciones anteriores siguen en los proyectos de quien ya usaba Boorie. **No
@@ -76,10 +96,6 @@ comprueba sobre el JSON sin parsear: el historial lista docenas de ejecuciones y
 los resultados de una sola pesan megabytes.
 
 ## Fuera de alcance
-
-**El selector de parámetro.** La interfaz sólo pide `AGE`; trazador y químico
-funcionan en el servicio y están probados, pero no hay forma de pedirlos desde la
-pantalla. Cuando la haya, el trazador necesita además elegir el nudo.
 
 **Comprobarlo en macOS.** No hay equipo donde hacerlo. El cambio no lo necesita
 —si el simulador arranca se usa, y si no, se dice—, pero mientras nadie lo
