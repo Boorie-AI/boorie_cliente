@@ -173,6 +173,25 @@ esa vista, en lugar de dejar que parezca un fallo.
 escalarla al máximo de cada modelo escondería justamente los nudos por debajo del
 mínimo. La leyenda distingue los dos casos.
 
+## El reproductor se quedaba muerto tras cualquier salto
+
+Lo encontró el cliente con la secuencia más corta posible: **«stop» y luego
+«play»**, y ya no arrancaba. El botón no tenía la culpa.
+
+El avance se calcula con el reloj real, y para distinguir un avance propio de un
+salto del usuario se guarda el último paso emitido: si el paso vigente no es ése,
+alguien ha movido la barra y hay que recolocar el origen del reloj. Lo que
+faltaba era **darlo por emitido al recolocar**. Sin esa línea, la condición
+seguía cumpliéndose en todos los fotogramas: el origen se recolocaba sesenta
+veces por segundo, nunca llegaba a acumularse un paso entero y la reproducción no
+volvía a emitir jamás.
+
+Afectaba a los cuatro caminos que mueven el paso por fuera —«stop», ir al
+principio, ir al final y arrastrar la barra—, no sólo al que se reportó. Queda
+cubierto en `useSimulationTimeline.test.ts`, con los fotogramas y el reloj
+sustituidos para poder mandar sobre los dos; las tres pruebas del salto fallan
+sin el arreglo.
+
 ## Fuera de alcance
 
 ****El acumulado de retraso en el repintado.**** El issue #45 lo dejaba como
