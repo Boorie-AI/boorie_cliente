@@ -2,7 +2,8 @@
 
 Sale de la revisión de las cifras que enseña la aplicación, la que se hizo tras
 dos versiones seguidas corrigiendo unidades ([#79](https://github.com/Boorie-AI/boorie_cliente/issues/79)).
-Fue el primer hallazgo y el único que no era de rótulos.
+Fue el primer hallazgo y el único que no era de rótulos; se abrió aparte como
+[#83](https://github.com/Boorie-AI/boorie_cliente/issues/83).
 
 ## Lo que había
 

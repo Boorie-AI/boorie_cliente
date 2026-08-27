@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.23.1
+### 🚀 Latest Release - v1.24.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.23.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.1/Boorie-1.23.1-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.23.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.1/Boorie-Setup-1.23.1.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.23.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.1/Boorie-1.23.1.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.24.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.24.0/Boorie-1.24.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.24.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.24.0/Boorie-Setup-1.24.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.24.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.24.0/Boorie-1.24.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.24.0**: Water quality is now actually simulated. If you have saved quality simulations from before, look at them: their figures did not come from any simulation. The water quality simulation was not simulating anything — it computed the hydraulic model and then filled the quality in by hand: for water age, a straight line from zero to the simulation's duration, **the same at every node**; for trace and chemical, zeros. It was shown in the same card as the real figures and with the same «Completed», and the only warning was a footnote, in English. On the Net3 example network it gave an average age of 83.9 hours when the real one is 6.1. EPANET's engine now resolves it, which is the one that knows how. If quality cannot be simulated, it says so: the reason it was filled in by hand was a problem on macOS, but the filler applied on all three systems; it is now always attempted and, when it fails, the card explains why instead of showing a number, with the other two simulations of the cycle saved all the same. You can also choose what to follow — water age, a trace from the reservoir or tank you pick, or the substance your file declares — where before only age was possible, and the substance warns when the file declares none instead of returning zero across the network. Figures carry their unit: hours for age, per cent for trace, mg/L for the substance. And your earlier quality simulations are still there, marked «sin simular» in the network history so they can be told apart six months from now. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.24.0).
 - **v1.23.1**: A fix. No new features and no changes in how the application is used. After stopping playback, the play button would not start it again: you pressed «stop», the time bar returned to the first step —correct— and from then on «play» did nothing, so you had to load the network again to play it. The same thing happened, though it was harder to notice, after jumping to the start, jumping to the end, or dragging the bar with the mouse: any way of moving the step by hand left playback dead. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.23.1).
 - **v1.23.0**: The demand curve in the viewer's panel, which read zero and did not say in what unit. The system demand curve came out flat and pinned to the axis: it summed the demand of every node in the simulation, and tanks and reservoirs carry it too —negative, because it is what they supply— so it cancelled out against the consumption nodes. On the Net3 example network the curve was worth 0.0000000149 instead of the 680 l/s the network actually consumes, which is why the vertical scale appeared in exponential notation. It now sums only the consumption nodes and the curve runs from 500 to 900 l/s, with the shape of consumption across the day. Both charts now say what unit they are in, in the title and on the vertical axis — «Curva de Demanda (l/s)» and «Caudal de Bombas (l/s)». The unit had already been added in the previous version, but to the series name, which is the one thing these charts do not display. And the pump flow was unconverted: it was drawn in cubic metres per second as it comes out of the engine, so an 800 l/s pump appeared as 0.8; it is now in l/s, as its label promises. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.23.0).
 - **v1.22.0**: A pass over the figures the application shows: those of the service-denial scenario and those on the viewer's labels. The scenario used to report impacts as negative numbers — «−118 people affected» is not a figure anyone can read, since nobody regains a service they had not lost. It came from subtracting the reference run from the event run, and that subtraction can legitimately land below zero: a shutdown redistributes pressures and some nodes end up better off than without it. No impact indicator drops below zero now — people, nodes, undelivered volume, outage hours, pressure drop and availability — and when a figure is clipped the panel says so, so a zero is not mistaken for a measurement. Residual pressure and flow can still be negative: there the sign is information, not a miscount. The scenario's fields no longer accept negative values either, and they warn before launching the simulation instead of after a minute of waiting. On the viewer, figures now carry their unit: a node's label used to read `Demanda: 0.001743182126532` without saying of what, and now reads `Demanda: 1,74318 l/s`; flows and demands are shown in litres per second and diameters in millimetres, which is how a network is designed. The colour legend was lying about flow — it was labelled «L/s» over values in cubic metres per second, so a network peaking at 830 l/s read «0.83» — and so were the simulation summary and the total-demand chart. A node's demand did not change with the time control: it showed the file's value, a constant, while the pressure next to it did follow the step; with a simulation loaded it is now the demand at that instant, and without one the label says «Demanda base» so a file value and a result are never confused. Importing a network was not importing anything: it created an empty project and asked you to open it and pick the same file again from inside; it now creates the project, loads the network and leaves it open in the viewer, with the button split into «Importar red (.inp)» and «Importar proyecto (.json)». See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.22.0).
@@ -101,12 +102,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.23.1.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.23.1.AppImage`
-3. Run: `./Boorie-1.23.1.AppImage`
+1. Download `Boorie-1.24.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.24.0.AppImage`
+3. Run: `./Boorie-1.24.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.23.1.exe` from the link above
+1. Download `Boorie-Setup-1.24.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 

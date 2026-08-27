@@ -39,15 +39,23 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.23.1
+### 🚀 Última Versión - v1.24.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.23.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.1/Boorie-1.23.1-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.23.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.1/Boorie-Setup-1.23.1.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.23.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.1/Boorie-1.23.1.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.24.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.24.0/Boorie-1.24.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.24.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.24.0/Boorie-Setup-1.24.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.24.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.24.0/Boorie-1.24.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.24.0
+- La simulación de calidad del agua no simulaba nada: rellenaba la edad del agua con una recta de cero a la duración, la misma en todos los nudos, y ceros para el trazador y la sustancia. En Net3 daba 83,9 horas de media cuando la real es 6,1. Ahora la resuelve el motor de EPANET.
+- Si la calidad no se puede simular, se dice, en lugar de enseñar un número. Las otras dos simulaciones del ciclo se guardan igual.
+- Se puede elegir qué seguir: la edad del agua, un trazador desde el embalse o el depósito que elijas, o la sustancia que declare tu fichero.
+- Las cifras llevan su unidad: horas, por ciento o mg/L según lo que se siga.
+- Tus simulaciones de calidad anteriores siguen ahí, marcadas como «sin simular» en el historial de la red. No se borra nada.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.24.0).
 
 ### 📝 Novedades en v1.23.1
 - Después de parar la reproducción, el botón de reproducir no volvía a arrancarla: se pulsaba «stop», la barra volvía al primer paso y a partir de ahí «play» ya no hacía nada, había que volver a cargar la red.
@@ -298,12 +306,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.23.1.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.23.1.AppImage`
-3. Ejecuta: `./Boorie-1.23.1.AppImage`
+1. Descarga `Boorie-1.24.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.24.0.AppImage`
+3. Ejecuta: `./Boorie-1.24.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.23.1.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.24.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 

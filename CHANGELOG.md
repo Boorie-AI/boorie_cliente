@@ -9,6 +9,32 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.24.0] - 2026-08-27
+
+La calidad del agua se simula de verdad. Si tienes simulaciones de calidad guardadas de antes,
+míralas: sus cifras no salían de ninguna simulación.
+
+- **La simulación de calidad del agua no simulaba nada.** Calculaba el modelo hidráulico y después
+  rellenaba la calidad a mano: para la edad del agua, una recta de cero a la duración de la
+  simulación, **la misma en todos los nudos**; para el trazador y la sustancia, ceros. Se enseñaba
+  en la misma tarjeta que las cifras reales y con el mismo «Completed», y lo único que lo advertía
+  era una nota al pie, en inglés. En la red de ejemplo Net3 daba una edad media de 83,9 horas,
+  cuando la real es de 6,1. Ahora la resuelve el motor de EPANET, que es el que sabe hacerlo.
+- **Si la calidad no se puede simular, se dice.** El motivo por el que se rellenaba a mano era un
+  problema en macOS, pero el relleno se aplicaba en los tres sistemas. Ahora se intenta siempre y,
+  cuando falla, la tarjeta explica por qué en lugar de enseñar un número. Las otras dos
+  simulaciones del ciclo se guardan igual.
+- **Se puede elegir qué seguir**: la edad del agua, un trazador desde el embalse o el depósito que
+  elijas, o la sustancia que declare tu fichero. Antes sólo se podía la edad. La sustancia avisa
+  cuando el fichero no declara ninguna, en vez de devolver cero en toda la red.
+- **Las cifras llevan su unidad**: horas para la edad, por ciento para el trazador, mg/L para la
+  sustancia. Antes la tarjeta decía «PARAMETER: AGE» y los números iban sin unidad.
+- **Tus simulaciones de calidad anteriores siguen ahí, marcadas.** No se borra nada: en el
+  historial de la red aparecen con la etiqueta «sin simular», para que dentro de seis meses se
+  distingan de las buenas.
+- La calidad usa además la misma duración y el mismo paso que el resto de la simulación. Antes iba
+  siempre a 24 horas con paso de una hora, aunque hubieras pedido otra cosa.
+
 ## [1.23.1] - 2026-08-27
 
 Corrección. No hay funciones nuevas ni cambios en la forma de usar la aplicación.
