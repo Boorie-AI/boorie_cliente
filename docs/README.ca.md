@@ -39,15 +39,20 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.23.0
+### 🚀 Última Versió - v1.23.1
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.23.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.0/Boorie-1.23.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.23.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.0/Boorie-Setup-1.23.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.23.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.0/Boorie-1.23.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.23.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.1/Boorie-1.23.1-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.23.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.1/Boorie-Setup-1.23.1.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.23.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.1/Boorie-1.23.1.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.23.1
+- Després d'aturar la reproducció, el botó de reproduir no la tornava a engegar: es premia «stop», la barra tornava al primer pas i a partir d'aquí «play» ja no feia res, calia tornar a carregar la xarxa.
+- Li passava el mateix, encara que costava més adonar-se'n, després d'anar al principi, anar al final o arrossegar la barra amb el ratolí: qualsevol manera de moure el pas a mà deixava la reproducció morta.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.23.1).
 
 ### 📝 Novetats a v1.23.0
 - La corba de demanda del sistema sortia plana i enganxada a l'eix: sumava la demanda de tots els nodes, i els dipòsits i els embassaments també la porten —en negatiu, perquè és el que aporten—, així que es cancel·lava amb la dels nodes de consum. A la xarxa d'exemple Net3 valia 0,0000000149 en lloc dels 680 l/s que consumeix la xarxa de debò, d'aquí l'escala vertical en notació exponencial.
@@ -293,12 +298,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.23.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.23.0.AppImage`
-3. Executa: `./Boorie-1.23.0.AppImage`
+1. Descarrega `Boorie-1.23.1.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.23.1.AppImage`
+3. Executa: `./Boorie-1.23.1.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.23.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.23.1.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
