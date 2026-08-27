@@ -10,6 +10,7 @@ import { comprobarSoporteSatelite } from '@/utils/webgl';
 import { etiquetaCorta, type Timeline } from '@/hooks/useSimulationTimeline';
 import { ETIQUETAS_SIMBOLOGIA, type Escala } from '@/services/network/simbologia';
 import { CAPAS, CAPAS_TODAS, contarPorTipo, hayCapasOcultas } from '@/services/network/capas';
+import { demandaDelSistema } from '@/services/network/demandaSistema';
 import { enUnidadDePresentacion, formatearMagnitud, unidadDe } from '@/services/network/unidades';
 
 // Función pura del entorno, no estado: se resuelve una vez al cargar el módulo.
@@ -127,6 +128,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
 }) => {
   const settings = ajustes;
   const cuentas = React.useMemo(() => contarPorTipo(networkData), [networkData]);
+
 
   const handleSettingChange = <K extends keyof AjustesVisor>(key: K, value: AjustesVisor[K]) => {
     onCambio({ ...ajustes, [key]: value });
@@ -425,7 +427,11 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
             <CardHeader className="pb-2">
               <CardTitle className="text-white text-sm flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-green-400" />
-                Curva de Demanda
+                {/* La unidad, en el título y en el eje: son los dos sitios que se
+                    ven siempre. Estaba sólo en el nombre de la serie, que esta
+                    gráfica no enseña —la leyenda está apagada—, así que quien la
+                    miraba seguía viendo números pelados (#79). */}
+                Curva de Demanda ({unidadDe('demanda')})
               </CardTitle>
             </CardHeader>
             <CardContent className="h-40">
@@ -439,15 +445,10 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                       label: `Demanda Total (${unidadDe('demanda')})`,
                       // La suma sale en m³/s, que es como la da el motor; la
                       // etiqueta prometía l/s sobre ese valor sin convertir (#77).
-                      data: simulationResults.timestamps.map((_, i) => {
-                        let sum = 0;
-                        if (simulationResults.node_results) {
-                          Object.values(simulationResults.node_results).forEach((node: any) => {
-                            if (node.demand && node.demand[i]) sum += node.demand[i];
-                          });
-                        }
-                        return enUnidadDePresentacion(sum, 'demanda');
-                      }),
+                      // Sólo los nudos de consumo: sumar también lo que aportan
+                      // depósitos y embalses dejaba la curva en cero (#79).
+                      data: demandaDelSistema(networkData, simulationResults, simulationResults.timestamps.length)
+                        .map(q => enUnidadDePresentacion(q, 'demanda')),
                       borderColor: 'rgb(59, 130, 246)',
                       backgroundColor: 'rgba(59, 130, 246, 0.5)',
                       borderWidth: 2,
@@ -467,7 +468,12 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                   },
                   scales: {
                     x: { display: true, ticks: { maxTicksLimit: 6, color: '#888' }, grid: { display: false } },
-                    y: { display: true, ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    y: {
+                      display: true,
+                      title: { display: true, text: unidadDe('demanda'), color: '#888', font: { size: 10 } },
+                      ticks: { color: '#888' },
+                      grid: { color: 'rgba(255,255,255,0.05)' },
+                    }
                   }
                 }}
               />
@@ -480,7 +486,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
               <CardHeader className="pb-2">
                 <CardTitle className="text-white text-sm flex items-center gap-2">
                   <Activity className="h-4 w-4 text-blue-400" />
-                  Caudal de Bombas
+                  Caudal de Bombas ({unidadDe('caudal')})
                 </CardTitle>
               </CardHeader>
               <CardContent className="h-40">
@@ -493,7 +499,11 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                       .filter((l: any) => l.type?.toLowerCase() === 'pump')
                       .map((pump: any, idx: number) => ({
                         label: pump.id,
-                        data: simulationResults.link_results[pump.id]?.flowrate || [],
+                        // Igual que la demanda: el motor lo da en m³/s y aquí se
+                        // lee en l/s. Sin convertir, una bomba de 80 l/s salía
+                        // como 0,08 y la gráfica no se podía leer.
+                        data: (simulationResults.link_results[pump.id]?.flowrate || [])
+                          .map((q: number) => enUnidadDePresentacion(q, 'caudal')),
                         borderColor: `hsl(${(idx + 2) * 137.5 % 360}, 70%, 50%)`,
                         backgroundColor: 'transparent',
                         borderWidth: 2,
@@ -513,7 +523,12 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                     },
                     scales: {
                       x: { display: true, ticks: { maxTicksLimit: 6, color: '#888' }, grid: { display: false } },
-                      y: { display: true, ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                      y: {
+                        display: true,
+                        title: { display: true, text: unidadDe('caudal'), color: '#888', font: { size: 10 } },
+                        ticks: { color: '#888' },
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                      }
                     }
                   }}
                 />

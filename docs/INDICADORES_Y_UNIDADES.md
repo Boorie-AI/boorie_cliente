@@ -274,6 +274,50 @@ entero sin ninguno de ellos.
 
 ---
 
+## 4. La curva de demanda del panel (#79)
+
+Lo reportó el cliente sobre la v1.22.0, y son dos cosas distintas bajo la misma
+queja.
+
+### La unidad estaba donde no se ve
+
+El cambio anterior puso la unidad en el `label` del conjunto de datos… que es lo
+único que esta gráfica no enseña: tiene la leyenda apagada (`legend: { display:
+false }`). Quien la miraba seguía viendo el título «Curva de Demanda» y un eje de
+números pelados.
+
+La unidad va ahora en el **título de la tarjeta** y en el **eje**, que son los dos
+sitios que se ven siempre. Alcanza también a «Caudal de Bombas», que estaba igual
+y además pintaba m³/s sin convertir: una bomba de 800 l/s salía como `0,8`.
+
+La lección, que vale para el resto: una unidad puesta donde el usuario no la lee
+no es una unidad puesta. Un test de «el label contiene l/s» habría pasado con el
+defecto delante.
+
+### La curva estaba en cero
+
+La otra mitad de la queja —«la escala vertical no se ajusta al orden de magnitud
+de los valores de demanda»— no era de rótulos. La serie sumaba `demand` de
+**todos** los nudos de los resultados, y los depósitos y los embalses también la
+traen, en negativo: es lo que aportan. En una red en equilibrio lo que entra es lo
+que sale, así que la suma se cancelaba.
+
+Medido sobre `Net3`, en el primer paso:
+
+| Qué se suma | Resultado |
+|---|---|
+| Todos los nudos | 1,49·10⁻⁸ m³/s |
+| Sólo los nudos de consumo | 0,680 m³/s = **680 l/s** |
+| Depósitos y embalses | −0,680 m³/s |
+
+Por eso el eje salía rotulado `…E-13` y la curva era una recta pegada al cero.
+Ahora suma sólo los nudos de consumo, en `src/services/network/demandaSistema.ts`
+—una cuenta, no una decisión de dibujo, así que sale del componente y tiene
+pruebas—, y en `Net3` la curva va de 500 a 900 l/s con la forma del patrón
+diario.
+
+---
+
 ## Y en la aplicación de verdad
 
 Los tests no ven lo que ve un usuario, así que se condujo la aplicación con la
