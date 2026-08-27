@@ -7,6 +7,8 @@
  */
 
 /** Lo mínimo que hace falta de una versión para decidir si se conserva. */
+import { enUnidadDePresentacion, unidadDe, type Magnitud } from '../../../src/services/network/unidades'
+
 export interface VersionRetenible {
   id: string
   versionNumber: number
@@ -210,11 +212,20 @@ export interface DiferenciaSimulaciones {
   soloEnB: string[]
 }
 
-const MAGNITUDES: Array<{ clave: string; nombre: string; unidad: string; lado: 'nudos' | 'tramos' }> = [
-  { clave: 'pressure', nombre: 'Presión', unidad: 'm', lado: 'nudos' },
-  { clave: 'demand', nombre: 'Demanda', unidad: 'l/s', lado: 'nudos' },
-  { clave: 'flowrate', nombre: 'Caudal', unidad: 'l/s', lado: 'tramos' },
-  { clave: 'velocity', nombre: 'Velocidad', unidad: 'm/s', lado: 'tramos' },
+/**
+ * Qué se compara y en qué unidad se lee (#87).
+ *
+ * La unidad ya no se escribe aquí: la decide `unidades.ts`, que es también quien
+ * convierte. Estaba puesta a mano —«l/s»— sobre los valores tal como salen del
+ * motor, que van en m³/s, así que una diferencia de 50 l/s se leía «0.05 l/s».
+ * Es el mismo defecto que tenía la leyenda del visor, corregido en la v1.22.0;
+ * aquí quedó vivo, y estas cifras llegan al chat y al historial.
+ */
+const MAGNITUDES: Array<{ clave: string; nombre: string; magnitud: Magnitud; lado: 'nudos' | 'tramos' }> = [
+  { clave: 'pressure', nombre: 'Presión', magnitud: 'presion', lado: 'nudos' },
+  { clave: 'demand', nombre: 'Demanda', magnitud: 'demanda', lado: 'nudos' },
+  { clave: 'flowrate', nombre: 'Caudal', magnitud: 'caudal', lado: 'tramos' },
+  { clave: 'velocity', nombre: 'Velocidad', magnitud: 'velocidad', lado: 'tramos' },
 ]
 
 /** Toma el valor de un paso concreto, o el escalar si no es una serie. */
@@ -245,11 +256,15 @@ export function compararSimulaciones(
     const tablaB = m.lado === 'nudos' ? b.node_results : b.link_results
     if (!tablaA || !tablaB) continue
 
+    // Se convierte al leer, así que todo lo que sale de aquí —los mayores, las
+    // medias y el máximo— está ya en la unidad que se rotula.
     const cambios: CambioMagnitud[] = []
     for (const id of Object.keys(tablaA)) {
-      const antes = enPaso(tablaA[id]?.[m.clave], paso)
-      const despues = enPaso(tablaB[id]?.[m.clave], paso)
-      if (typeof antes !== 'number' || typeof despues !== 'number') continue
+      const crudoAntes = enPaso(tablaA[id]?.[m.clave], paso)
+      const crudoDespues = enPaso(tablaB[id]?.[m.clave], paso)
+      if (typeof crudoAntes !== 'number' || typeof crudoDespues !== 'number') continue
+      const antes = enUnidadDePresentacion(crudoAntes, m.magnitud)
+      const despues = enUnidadDePresentacion(crudoDespues, m.magnitud)
       cambios.push({ id, antes, despues, delta: despues - antes })
     }
     if (cambios.length === 0) continue
@@ -257,7 +272,7 @@ export function compararSimulaciones(
     const absolutos = cambios.map(c => Math.abs(c.delta))
     magnitudes.push({
       magnitud: m.nombre,
-      unidad: m.unidad,
+      unidad: unidadDe(m.magnitud),
       comparados: cambios.length,
       mayores: [...cambios]
         .sort((x, y) => Math.abs(y.delta) - Math.abs(x.delta))

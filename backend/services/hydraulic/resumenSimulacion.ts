@@ -14,6 +14,7 @@
  * texto, sin tocar la base ni el almacén vectorial.
  */
 
+import { enUnidadDePresentacion, unidadDe } from '../../../src/services/network/unidades'
 import { compararSimulaciones, resumirDiferenciaSimulaciones, type ResultadosSimulacion } from './versionado'
 
 /** Resultados tal como los deja `wntr_simulation_service.py` en `data`. */
@@ -312,7 +313,12 @@ function documentoEstadistico(e: EjecucionIndexable): DocumentoSimulacion {
       'RANGOS DE LAS MAGNITUDES HIDRÁULICAS',
       `Presión (m): mínima ${num(st.pressure?.min)}, máxima ${num(st.pressure?.max)}, media ${num(st.pressure?.mean)}`,
       `Velocidad (m/s): mínima ${num(st.velocity?.min)}, máxima ${num(st.velocity?.max)}, media ${num(st.velocity?.mean)}`,
-      `Caudal (m³/s): mínimo ${num(st.flow?.min, 4)}, máximo ${num(st.flow?.max, 4)}, medio ${num(st.flow?.mean, 4)}`,
+      // En l/s como el resto de la aplicación. El motor los da en m³/s, y este
+      // mismo documento traía el caudal en dos unidades distintas: aquí en m³/s
+      // y en el bloque de comparación en l/s (#87).
+      `Caudal (${unidadDe('caudal')}): mínimo ${num(enUnidadDePresentacion(st.flow?.min ?? 0, 'caudal'), 2)}, ` +
+        `máximo ${num(enUnidadDePresentacion(st.flow?.max ?? 0, 'caudal'), 2)}, ` +
+        `medio ${num(enUnidadDePresentacion(st.flow?.mean ?? 0, 'caudal'), 2)}`,
     ].join('\n'),
     palabrasClave: ['presión', 'velocidad', 'caudal', 'estadísticas', e.nombreRed],
   }
