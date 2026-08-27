@@ -80,6 +80,13 @@ export function useSimulationTimeline({
       if (pasoRef.current !== emitidoRef.current) {
         origen = ahora
         pasoOrigen = pasoRef.current
+        // Y se da por emitido, que es lo que faltaba: sin esta línea la
+        // condición seguía cumpliéndose en **todos** los fotogramas, el origen
+        // del reloj se recolocaba en cada uno y nunca llegaba a acumularse un
+        // paso entero. La reproducción quedaba muerta después de cualquier salto
+        // del usuario —«stop», ir al principio o al final, arrastrar la barra— y
+        // «play» ya no volvía a arrancarla.
+        emitidoRef.current = pasoRef.current
       }
 
       const transcurridos = Math.floor(((ahora - origen) * velocidad) / MS_POR_PASO)
