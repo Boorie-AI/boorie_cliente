@@ -39,15 +39,22 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.22.0
+### 🚀 Última Versió - v1.23.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.22.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.22.0/Boorie-1.22.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.22.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.22.0/Boorie-Setup-1.22.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.22.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.22.0/Boorie-1.22.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.23.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.0/Boorie-1.23.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.23.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.0/Boorie-Setup-1.23.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.23.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.0/Boorie-1.23.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.23.0
+- La corba de demanda del sistema sortia plana i enganxada a l'eix: sumava la demanda de tots els nodes, i els dipòsits i els embassaments també la porten —en negatiu, perquè és el que aporten—, així que es cancel·lava amb la dels nodes de consum. A la xarxa d'exemple Net3 valia 0,0000000149 en lloc dels 680 l/s que consumeix la xarxa de debò, d'aquí l'escala vertical en notació exponencial.
+- Ara suma només els nodes de consum i la corba va de 500 a 900 l/s, amb la forma del consum al llarg del dia.
+- Els dos gràfics diuen en quina unitat estan, al títol i a l'eix vertical: «Curva de Demanda (l/s)» i «Caudal de Bombas (l/s)».
+- El cabal de les bombes estava sense convertir: una bomba de 800 l/s apareixia com a 0,8. Ara va en l/s, com promet el seu rètol.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.23.0).
 
 ### 📝 Novetats a v1.22.0
 - L'escenari de denegació de servei mostrava impactes en negatiu: «−118 habitants afectats» no és una xifra que es pugui llegir, perquè ningú no recupera un servei que no havia perdut. Cap indicador d'impacte no baixa ja de zero, i quan es retalla el plafó ho diu perquè un zero no es confongui amb una mesura.
@@ -286,12 +293,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.22.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.22.0.AppImage`
-3. Executa: `./Boorie-1.22.0.AppImage`
+1. Descarrega `Boorie-1.23.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.23.0.AppImage`
+3. Executa: `./Boorie-1.23.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.22.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.23.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
