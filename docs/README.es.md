@@ -39,15 +39,21 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.24.0
+### 🚀 Última Versión - v1.25.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.24.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.24.0/Boorie-1.24.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.24.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.24.0/Boorie-Setup-1.24.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.24.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.24.0/Boorie-1.24.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.25.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.25.0/Boorie-1.25.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.25.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.25.0/Boorie-Setup-1.25.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.25.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.25.0/Boorie-1.25.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.25.0
+- Al comparar dos simulaciones, el caudal y la demanda salían mil veces más pequeños de lo que decía su unidad: se rotulaban en litros por segundo y los números iban en metros cúbicos por segundo. Comparando la simulación normal de la red de ejemplo con la de una tubería cerrada, el caudal aparecía como 0,82 l/s cuando eran 824,87.
+- Afectaba también a lo que el chat sabe de tus simulaciones, porque esas cifras se guardan para que las pueda consultar.
+- El propio resumen se contradecía: en un párrafo daba el caudal en metros cúbicos por segundo y en otro, sobre los mismos datos, en litros por segundo. Ahora todo el resumen habla en litros por segundo.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.25.0).
 
 ### 📝 Novedades en v1.24.0
 - La simulación de calidad del agua no simulaba nada: rellenaba la edad del agua con una recta de cero a la duración, la misma en todos los nudos, y ceros para el trazador y la sustancia. En Net3 daba 83,9 horas de media cuando la real es 6,1. Ahora la resuelve el motor de EPANET.
@@ -306,12 +312,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.24.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.24.0.AppImage`
-3. Ejecuta: `./Boorie-1.24.0.AppImage`
+1. Descarga `Boorie-1.25.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.25.0.AppImage`
+3. Ejecuta: `./Boorie-1.25.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.24.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.25.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
