@@ -39,6 +39,12 @@ interface Simulacion {
   /** Cómo va su indexación en el RAG del proyecto (#41). */
   estadoIndexacion?: EstadoIndexacion
   errorIndexacion?: string | null
+  /**
+   * «Calidad del Agua» anterior a la v1.23.0: sus cifras no salieron de ninguna
+   * simulación. Se marca aquí porque es donde se vuelven a encontrar meses
+   * después, cuando ya no hay forma de distinguirlas.
+   */
+  calidadSintetica?: boolean
 }
 
 type EstadoIndexacion = 'pendiente' | 'indexando' | 'indexada' | 'fallida' | 'omitida'
@@ -363,6 +369,14 @@ export function HistorialRed({
                       <span className="truncate">
                         {sim.tipo}
                         <span className="ml-2 text-muted-foreground">{t('networkHistory.versionInline', { number: sim.versionNumber })}</span>
+                        {sim.calidadSintetica && (
+                          <span
+                            className="ml-2 rounded border border-amber-500/50 px-1 text-[10px] text-amber-600"
+                            title={t('networkHistory.syntheticQualityHelp')}
+                          >
+                            {t('networkHistory.syntheticQuality')}
+                          </span>
+                        )}
                       </span>
                       <span className="ml-2 shrink-0 text-muted-foreground">{fecha(sim.createdAt)}</span>
                     </button>

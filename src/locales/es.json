@@ -334,6 +334,8 @@
       "compareRuns": "No se pudieron comparar",
       "index": "No se pudo indexar",
       "export": "No se pudo exportar"
-    }
+    },
+    "syntheticQuality": "sin simular",
+    "syntheticQualityHelp": "Esta ejecución no simuló la calidad del agua: las cifras las generó una versión anterior de Boorie para rellenar la pantalla. Vuelve a simular para tener datos reales."
   }
 }

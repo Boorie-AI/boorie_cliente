@@ -8,6 +8,7 @@ import os
 import wntr
 import warnings
 import time
+import numpy as np
 
 # Suppress specific WNTR warnings that are informational only
 warnings.filterwarnings('ignore', message='Changing the headloss formula from')
@@ -181,77 +182,125 @@ class WNTRSimulationService:
         except Exception as e:
             print(json.dumps({'success': False, 'error': str(e)}))
 
+    # Unidad de cada parámetro de calidad, para que la interfaz no tenga que
+    # adivinarla. La edad sale de EPANET en segundos y se entrega en horas, que
+    # es como se lee un tiempo de residencia; el trazador es un porcentaje del
+    # caudal que viene del nudo trazado.
+    QUALITY_UNITS = {'AGE': 'h', 'TRACE': '%', 'CHEMICAL': 'mg/L'}
+
     def run_water_quality(self, inp_file, options=None):
-        """Run water quality simulation (Simulated/Mock for stability on macOS)"""
-        # NOTE: Real WQ requires EpanetSimulator, which causes SIGKILL/SIGTRAP on this macOS env.
-        # We fallback to WNTRSimulator (Hydraulic) and generate synthetic WQ data to ensure UI functionality.
+        """
+        Simulación de calidad del agua con el motor de EPANET.
+
+        Aquí no había simulación: se corría el modelo hidráulico y la calidad se
+        fabricaba a mano —para la edad, una recta de cero a la duración, idéntica
+        en todos los nudos; para el resto, ceros—, y se presentaba junto a las
+        cifras reales con un «Completed». La razón escrita era que el
+        EpanetSimulator se caía en macOS, pero el sustituto se aplicaba en las
+        tres plataformas.
+
+        La calidad la resuelve EPANET y sólo EPANET: el WNTRSimulator no
+        transporta solutos. Así que se usa el que hay, y **si falla se dice**, en
+        lugar de rellenar el hueco con un número que parece una medida. Es el
+        mismo criterio que gobierna el motor de escenarios: ninguna cifra sale de
+        una estimación.
+        """
         start_time = time.time()
         options = options or {}
         try:
             wn = self.load_network(inp_file)
-            
-            # Use WNTRSimulator (Hydraulic only, stable)
-            self._prepare_wntr_simulator(wn)
-            sim = wntr.sim.WNTRSimulator(wn)
-            results = sim.run_sim()
-            
-            # Synthetic WQ Data Generation
-            parameter = options.get('parameter', 'AGE').upper()
-            duration = wn.options.time.duration
-            steps = len(results.node['pressure'].index)
-            
+
+            if 'duration' in options:
+                wn.options.time.duration = float(options['duration']) * 3600
+            if 'timestep' in options:
+                ts_seconds = float(options['timestep']) * 3600
+                wn.options.time.hydraulic_timestep = ts_seconds
+                wn.options.time.report_timestep = ts_seconds
+
+            parameter = str(options.get('parameter', 'AGE')).upper()
+            if parameter not in self.QUALITY_UNITS:
+                print(json.dumps({
+                    'success': False,
+                    'error': f'Parámetro de calidad desconocido: {parameter}. Admitidos: '
+                             + ', '.join(sorted(self.QUALITY_UNITS)),
+                }))
+                return
+
+            wn.options.quality.parameter = parameter
+            if parameter == 'TRACE':
+                # Sin nudo trazado no hay nada que trazar, y EPANET devolvería
+                # ceros en toda la red sin decir por qué.
+                trace_node = options.get('trace_node')
+                if not trace_node:
+                    print(json.dumps({
+                        'success': False,
+                        'error': 'Para trazar hace falta decir desde qué nudo se traza (`trace_node`).',
+                    }))
+                    return
+                if trace_node not in wn.node_name_list:
+                    print(json.dumps({
+                        'success': False,
+                        'error': f'El nudo a trazar «{trace_node}» no existe en la red.',
+                    }))
+                    return
+                wn.options.quality.trace_node = trace_node
+
+            # El paso de calidad es propio y más fino que el hidráulico; en cero,
+            # EPANET no transporta nada.
+            if wn.options.time.quality_timestep <= 0:
+                wn.options.time.quality_timestep = 300.0
+
+            results = wntr.sim.EpanetSimulator(wn).run_sim()
+
+            quality = results.node['quality']
+            if parameter == 'AGE':
+                quality = quality / 3600.0
+
+            pressure = results.node['pressure']
             node_results = {}
             for node_name in wn.node_name_list:
-                # Generate synthetic data based on parameter
-                if parameter == 'AGE':
-                    # Linear increase 0 -> duration (simplified age)
-                    quality = [i * (duration/steps) / 3600.0 for i in range(steps)] 
-                elif parameter == 'TRACE':
-                    # Random or constant 0/100? Let's say 0 unless close to source?
-                    quality = [0.0] * steps
-                else:
-                    quality = [0.0] * steps
-                    
                 node_results[node_name] = {
-                    'quality': quality,
-                    'pressure': results.node['pressure'].loc[:, node_name].tolist()
+                    'quality': quality.loc[:, node_name].tolist(),
+                    'pressure': pressure.loc[:, node_name].tolist(),
                 }
 
-            # Calculate WQ Stats
-            all_quality = []
-            for n in node_results.values():
-                all_quality.extend(n['quality'])
-            
-            import numpy as np
+            valores = quality.to_numpy()
             stats = {
                 'quality': {
-                    'min': float(np.min(all_quality)) if all_quality else 0,
-                    'max': float(np.max(all_quality)) if all_quality else 0,
-                    'mean': float(np.mean(all_quality)) if all_quality else 0,
-                    'parameter': parameter
+                    'min': float(np.min(valores)) if valores.size else 0.0,
+                    'max': float(np.max(valores)) if valores.size else 0.0,
+                    'mean': float(np.mean(valores)) if valores.size else 0.0,
+                    'parameter': parameter,
+                    'unit': self.QUALITY_UNITS[parameter],
                 }
             }
 
-            result = {
+            print(json.dumps({
                 'success': True,
                 'data': {
-                    'status': 'Completed (Simulated)',
+                    'status': 'Completed',
                     'execution_time': time.time() - start_time,
                     'node_results': node_results,
                     'link_results': {},
-                    'timestamps': results.node['pressure'].index.tolist(),
+                    'timestamps': quality.index.tolist(),
                     'stats': stats,
                     'summary': {
                         'nodes': len(wn.node_name_list),
                         'duration': wn.options.time.duration,
                         'parameter': parameter,
-                        'note': 'Using Hydraulic Simulator + Synthetic WQ due to macOS EpanetSimulator instability.'
+                        'unit': self.QUALITY_UNITS[parameter],
+                        'simulator': 'EpanetSimulator',
                     }
                 }
-            }
-            print(json.dumps(result))
+            }))
         except Exception as e:
-            print(json.dumps({'success': False, 'error': str(e)}))
+            # El motivo se entrega tal cual: en macOS, donde este simulador ha
+            # dado problemas, es lo único que distingue «esta red no se puede
+            # simular» de «este equipo no puede».
+            print(json.dumps({
+                'success': False,
+                'error': f'No se pudo simular la calidad del agua: {e}',
+            }))
 
     def _prepare_wntr_simulator(self, wn):
         """Helper to prepare network for WNTRSimulator"""

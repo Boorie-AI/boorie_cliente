@@ -334,6 +334,8 @@
       "compareRuns": "No s'han pogut comparar",
       "index": "No s'ha pogut indexar",
       "export": "No s'ha pogut exportar"
-    }
+    },
+    "syntheticQuality": "sense simular",
+    "syntheticQualityHelp": "Aquesta execució no va simular la qualitat de l'aigua: les xifres les va generar una versió anterior de Boorie per omplir la pantalla. Torna a simular per tenir dades reals."
   }
 }

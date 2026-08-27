@@ -1329,43 +1329,56 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     )}
 
                     {/* Water Quality Results */}
-                    {simulationResults?.quality?.data && (
+                    {simulationResults?.quality && (
                       <Card>
                         <CardHeader className="p-3 pb-0">
                           <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Water Quality</CardTitle>
                         </CardHeader>
                         <CardContent className="p-3 text-sm space-y-2">
-                          <div className="flex justify-between">
-                            <span>Status:</span>
-                            <span className="font-medium text-green-600">Completed</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Duration:</span>
-                            <span className="font-mono">{simulationResults.quality.data.execution_time?.toFixed(2)}s</span>
-                          </div>
-                          {/* WQ Stats */}
-                          {simulationResults.quality.data.stats?.quality && (
-                            <div className="pt-2 border-t space-y-2">
-                              <div className="text-[10px] text-muted-foreground font-semibold">PARAMETER: {simulationResults.quality.data.stats.quality.parameter}</div>
-                              <div className="grid grid-cols-3 gap-1 text-xs">
-                                <div>
-                                  <div className="text-[9px] text-muted-foreground">Min</div>
-                                  <div className="font-mono">{simulationResults.quality.data.stats.quality.min?.toFixed(2)}</div>
-                                </div>
-                                <div>
-                                  <div className="text-[9px] text-muted-foreground">Avg</div>
-                                  <div className="font-mono">{simulationResults.quality.data.stats.quality.mean?.toFixed(2)}</div>
-                                </div>
-                                <div>
-                                  <div className="text-[9px] text-muted-foreground">Max</div>
-                                  <div className="font-mono">{simulationResults.quality.data.stats.quality.max?.toFixed(2)}</div>
-                                </div>
+                          {/* Cuando no se puede simular se dice por qué, en vez de
+                              rellenar el hueco con cifras: la calidad la resuelve
+                              el motor de EPANET, que en algún equipo puede no
+                              arrancar. */}
+                          {!simulationResults.quality.success ? (
+                            <Alert variant="destructive" className="text-xs">
+                              <AlertCircle className="h-3 w-3 inline mr-1" />
+                              {simulationResults.quality.error || 'No se pudo simular la calidad del agua.'}
+                            </Alert>
+                          ) : (
+                            <>
+                              <div className="flex justify-between">
+                                <span>Status:</span>
+                                <span className="font-medium text-green-600">Completed</span>
                               </div>
-                            </div>
+                              <div className="flex justify-between">
+                                <span>Duration:</span>
+                                <span className="font-mono">{simulationResults.quality.data.execution_time?.toFixed(2)}s</span>
+                              </div>
+                              {/* WQ Stats */}
+                              {simulationResults.quality.data.stats?.quality && (
+                                <div className="pt-2 border-t space-y-2">
+                                  <div className="text-[10px] text-muted-foreground font-semibold">
+                                    {simulationResults.quality.data.stats.quality.parameter}
+                                    {simulationResults.quality.data.stats.quality.unit && ` (${simulationResults.quality.data.stats.quality.unit})`}
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-1 text-xs">
+                                    <div>
+                                      <div className="text-[9px] text-muted-foreground">Min</div>
+                                      <div className="font-mono">{simulationResults.quality.data.stats.quality.min?.toFixed(2)}</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-[9px] text-muted-foreground">Avg</div>
+                                      <div className="font-mono">{simulationResults.quality.data.stats.quality.mean?.toFixed(2)}</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-[9px] text-muted-foreground">Max</div>
+                                      <div className="font-mono">{simulationResults.quality.data.stats.quality.max?.toFixed(2)}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </>
                           )}
-                          <div className="text-xs text-muted-foreground font-mono mt-1 opacity-75">
-                            {simulationResults.quality.data.summary?.note}
-                          </div>
                         </CardContent>
                       </Card>
                     )}

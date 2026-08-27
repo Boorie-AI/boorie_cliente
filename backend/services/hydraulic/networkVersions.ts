@@ -12,6 +12,7 @@
  */
 
 import type { PrismaClient } from '@prisma/client'
+import { esCalidadSintetica } from './calidadSintetica'
 import {
   construirPaquete,
   describirPaquete,
@@ -58,6 +59,12 @@ export interface DatosSimulacion {
   /** Cómo va su indexación en el RAG (#41), para poder decirlo en la lista. */
   estadoIndexacion?: string
   errorIndexacion?: string | null
+  /**
+   * Las ejecuciones de «Calidad del Agua» anteriores a la v1.23.0, cuyas cifras
+   * no salieron de ninguna simulación. Se marcan en la lista en vez de borrarlas:
+   * son datos del usuario.
+   */
+  calidadSintetica?: boolean
 }
 
 const formatearVersion = (v: any, simulaciones = 0): DatosVersion => ({
@@ -253,6 +260,7 @@ export class NetworkVersionService {
       createdAt: r.createdAt,
       estadoIndexacion: r.estadoIndexacion,
       errorIndexacion: r.errorIndexacion,
+      calidadSintetica: esCalidadSintetica(r.results),
     }))
   }
 
