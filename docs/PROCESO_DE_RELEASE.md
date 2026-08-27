@@ -66,6 +66,29 @@ git push origin vX.Y.Z
 El workflow `release.yml` construye en las tres plataformas y deja un **borrador** con sus 8
 artefactos (3 instaladores, 2 blockmaps, 3 `latest*.yml`).
 
+### Comprobar que hay **un** borrador, no dos
+
+Las tres plataformas publican a la vez y cada una crea el borrador si no lo
+encuentra. En la v1.23.1 salieron **dos releases en borrador con el mismo tag**:
+una con siete artefactos y otra con el `.dmg.blockmap` suelto. Publicar la
+primera habría dejado a macOS sin descarga diferencial, y el borrador huérfano
+ahí colgando.
+
+```bash
+gh api repos/Boorie-AI/boorie_cliente/releases --jq '.[] | select(.draft==true) | "\(.id) \(.tag_name)"'
+```
+
+Si hay dos: bajar los artefactos del huérfano, subirlos al que tenga el resto
+—`gh release upload` necesita estar dentro del repositorio; si no, va por
+`upload_url` con `curl`— y borrar el huérfano antes de publicar.
+
+```bash
+UP=$(gh api repos/Boorie-AI/boorie_cliente/releases/<id-bueno> --jq .upload_url | sed 's/{.*}//')
+curl -s -X POST -H "Authorization: token $(gh auth token)" \
+  -H "Content-Type: application/octet-stream" --data-binary @<fichero> "$UP?name=<fichero>"
+gh api -X DELETE repos/Boorie-AI/boorie_cliente/releases/<id-huérfano>
+```
+
 ### Verificar los artefactos antes de publicar
 
 No vale con que el CI esté verde. Lo que se entrega es el artefacto.
@@ -84,6 +107,15 @@ gh api -H "Accept: application/octet-stream" repos/Boorie-AI/boorie_cliente/rele
 7z e -y setup.exe '$PLUGINSDIR/app-64.7z'
 7z x -y app-64.7z 'resources/.prisma/client/schema.prisma' -o./x
 grep -A3 '^datasource' x/resources/.prisma/client/schema.prisma
+```
+
+- [ ] **Cuando el cambio es del renderer**, el `.py` no sirve para comprobarlo: ese
+      código va minificado dentro de `app.asar`. Se extrae y se busca la mecánica,
+      que sobrevive al minificado aunque los nombres no.
+
+```bash
+npx @electron/asar list x/resources/app.asar | grep '^/dist/assets/.*\.js$'
+npx @electron/asar extract-file x/resources/app.asar dist/assets/index-XXXX.js
 ```
 
 - [ ] **Ejecutar el paquete de Linux** y ver que la base de datos conecta. El AppImage salió
