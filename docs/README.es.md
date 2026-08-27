@@ -39,15 +39,22 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.22.0
+### 🚀 Última Versión - v1.23.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.22.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.22.0/Boorie-1.22.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.22.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.22.0/Boorie-Setup-1.22.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.22.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.22.0/Boorie-1.22.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.23.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.0/Boorie-1.23.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.23.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.0/Boorie-Setup-1.23.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.23.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.23.0/Boorie-1.23.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.23.0
+- La curva de demanda del sistema salía plana y pegada al eje: sumaba la demanda de todos los nudos, y los depósitos y los embalses también la traen —en negativo, porque es lo que aportan—, así que se cancelaba con la de los nudos de consumo. En la red de ejemplo Net3 valía 0,0000000149 en vez de los 680 l/s que consume la red de verdad, de ahí la escala vertical en notación exponencial.
+- Ahora suma sólo los nudos de consumo y la curva va de 500 a 900 l/s, con la forma del consumo a lo largo del día.
+- Las dos gráficas dicen en qué unidad están, en el título y en el eje vertical: «Curva de Demanda (l/s)» y «Caudal de Bombas (l/s)».
+- El caudal de las bombas estaba sin convertir: una bomba de 800 l/s aparecía como 0,8. Ahora va en l/s, como promete su rótulo.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.23.0).
 
 ### 📝 Novedades en v1.22.0
 - El escenario de denegación de servicio enseñaba impactos en negativo: «−118 habitantes afectados» no es una cifra que se pueda leer, porque nadie recupera un servicio que no había perdido. Ningún indicador de impacto baja ya de cero, y cuando se recorta el panel lo dice para que un cero no se confunda con una medida.
@@ -286,12 +293,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.22.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.22.0.AppImage`
-3. Ejecuta: `./Boorie-1.22.0.AppImage`
+1. Descarga `Boorie-1.23.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.23.0.AppImage`
+3. Ejecuta: `./Boorie-1.23.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.22.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.23.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 

@@ -9,6 +9,23 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.23.0] - 2026-08-27
+
+La curva de demanda del panel del visor, que decía cero y no decía en qué unidad.
+
+- **La curva de demanda del sistema salía plana y pegada al eje.** Sumaba la demanda de todos los
+  nudos de la simulación, y los depósitos y los embalses también la traen —en negativo, porque es
+  lo que aportan—, así que se cancelaba con la de los nudos de consumo: en la red de ejemplo Net3
+  la curva valía 0,0000000149 en vez de los 680 l/s que consume la red de verdad. De ahí que la
+  escala vertical apareciera en notación exponencial. Ahora suma sólo los nudos de consumo y la
+  curva va de 500 a 900 l/s, con la forma del consumo a lo largo del día.
+- **Las dos gráficas dicen ahora en qué unidad están**, en el título y en el eje vertical: «Curva
+  de Demanda (l/s)» y «Caudal de Bombas (l/s)». La unidad ya se había añadido en la versión
+  anterior, pero al nombre de la serie, que es lo único que estas gráficas no enseñan.
+- **El caudal de las bombas estaba sin convertir.** Se dibujaba en metros cúbicos por segundo tal
+  como sale del motor, así que una bomba de 800 l/s aparecía como 0,8. Ahora va en l/s, como
+  promete su rótulo.
+
 ## [1.22.0] - 2026-08-25
 
 Repaso de las cifras que enseña la aplicación: las del escenario de denegación de servicio y las
