@@ -318,6 +318,38 @@ diario.
 
 ---
 
+## 5. La comparación de simulaciones (#87)
+
+El mismo defecto que la leyenda del visor, en otro sitio y vivo hasta ahora: la
+tabla de magnitudes de `versionado.ts` declaraba `l/s` a mano y los valores se
+leían crudos de los resultados, en m³/s. Factor mil.
+
+Y no se quedaba en una pantalla. Esas cifras alimentan **el resumen que se indexa
+para el chat** y la comparación del historial, donde además el mismo documento se
+contradecía: un párrafo declaraba «Caudal (m³/s): máximo 0,83» —correcto— y otro
+«Caudal (l/s): cambio medio 0,003» sobre los mismos datos.
+
+La unidad deja de escribirse a mano: la tabla nombra la **magnitud** y de la
+unidad y la conversión se encarga `unidades.ts`, igual que en el visor. Y el
+bloque de estadísticas pasa también a l/s, para que el documento entero hable en
+la misma unidad.
+
+**Cómo lo alcanza el proceso principal.** `unidades.ts` vive en `src/`, y el
+backend lo importa por ruta relativa. No es una excepción: `hydraulic.handler.ts`
+ya importa así `src/types/hydraulic`, y `tsc -p tsconfig.electron.json` lo compila
+a `dist/src/`, que es lo que viaja en el paquete. El módulo es puro y no arrastra
+nada del navegador.
+
+Medido en la aplicación, comparando la simulación hidráulica de `Net3` con la
+interrupción de la tubería `103`:
+
+| | Antes | Ahora |
+|---|---|---|
+| Caudal | `hasta 0.82 l/s` | `hasta 824.87 l/s` |
+| Presión | `hasta 26.65 m` | igual, ya estaba bien |
+
+---
+
 ## Y en la aplicación de verdad
 
 Los tests no ven lo que ve un usuario, así que se condujo la aplicación con la

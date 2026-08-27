@@ -39,15 +39,21 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.24.0
+### 🚀 Última Versió - v1.25.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.24.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.24.0/Boorie-1.24.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.24.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.24.0/Boorie-Setup-1.24.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.24.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.24.0/Boorie-1.24.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.25.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.25.0/Boorie-1.25.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.25.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.25.0/Boorie-Setup-1.25.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.25.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.25.0/Boorie-1.25.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.25.0
+- En comparar dues simulacions, el cabal i la demanda sortien mil vegades més petits del que deia la seva unitat: es retolaven en litres per segon i els números anaven en metres cúbics per segon. Comparant la simulació normal de la xarxa d'exemple amb la d'una canonada tancada, el cabal apareixia com a 0,82 l/s quan eren 824,87.
+- Afectava també el que el xat sap de les teves simulacions, perquè aquestes xifres es desen perquè les pugui consultar.
+- El mateix resum es contradeia: en un paràgraf donava el cabal en metres cúbics per segon i en un altre, sobre les mateixes dades, en litres per segon. Ara tot el resum parla en litres per segon.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.25.0).
 
 ### 📝 Novetats a v1.24.0
 - La simulació de qualitat de l'aigua no simulava res: omplia l'edat de l'aigua amb una recta de zero a la durada, la mateixa a tots els nodes, i zeros per al traçador i la substància. A Net3 donava 83,9 hores de mitjana quan la real és 6,1. Ara la resol el motor d'EPANET.
@@ -306,12 +312,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.24.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.24.0.AppImage`
-3. Executa: `./Boorie-1.24.0.AppImage`
+1. Descarrega `Boorie-1.25.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.25.0.AppImage`
+3. Executa: `./Boorie-1.25.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.24.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.25.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 

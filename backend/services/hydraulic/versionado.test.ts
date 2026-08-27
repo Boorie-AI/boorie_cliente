@@ -190,6 +190,42 @@ describe('comparación entre dos ejecuciones de simulación', () => {
     expect(presion.igual).toBe(1)
   })
 
+  it('el caudal y la demanda se comparan en la unidad que se rotula (#87)', () => {
+    // El motor los da en m³/s y la comparación promete l/s. Sin convertir, una
+    // diferencia de 50 l/s se leía «0.05 l/s»: un factor de mil en una cifra que
+    // acaba en el chat y en el historial.
+    const antes = { link_results: { P1: { flowrate: 0.01 } }, node_results: { J1: { demand: 0.002 } } }
+    const despues = { link_results: { P1: { flowrate: 0.06 } }, node_results: { J1: { demand: 0.0035 } } }
+
+    const d = compararSimulaciones(antes, despues)
+    const caudal = d.magnitudes.find(m => m.magnitud === 'Caudal')!
+    const demanda = d.magnitudes.find(m => m.magnitud === 'Demanda')!
+
+    expect(caudal.unidad).toBe('l/s')
+    expect(caudal.deltaMaximo).toBeCloseTo(50)
+    expect(caudal.mayores[0]).toMatchObject({ id: 'P1', antes: 10, despues: 60 })
+
+    expect(demanda.unidad).toBe('l/s')
+    expect(demanda.deltaMaximo).toBeCloseTo(1.5)
+  })
+
+  it('la presión y la velocidad ya vienen en su unidad y no se tocan', () => {
+    const antes = { node_results: { J1: { pressure: 40 } }, link_results: { P1: { velocity: 1 } } }
+    const despues = { node_results: { J1: { pressure: 42 } }, link_results: { P1: { velocity: 1.2 } } }
+
+    const d = compararSimulaciones(antes, despues)
+    expect(d.magnitudes.find(m => m.magnitud === 'Presión')!.deltaMaximo).toBeCloseTo(2)
+    expect(d.magnitudes.find(m => m.magnitud === 'Velocidad')!.deltaMaximo).toBeCloseTo(0.2)
+  })
+
+  it('el resumen de una línea cita la cifra ya convertida', () => {
+    const antes = { link_results: { P1: { flowrate: 0.01 } } }
+    const despues = { link_results: { P1: { flowrate: 0.06 } } }
+
+    expect(resumirDiferenciaSimulaciones(compararSimulaciones(antes, despues)))
+      .toBe('Caudal: hasta 50.00 l/s')
+  })
+
   it('dos ejecuciones idénticas lo dicen, en vez de fingir cambios', () => {
     expect(resumirDiferenciaSimulaciones(compararSimulaciones(A, A))).toBe('Resultados idénticos')
   })

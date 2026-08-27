@@ -9,6 +9,20 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.25.0] - 2026-08-27
+
+Las cifras de la comparación de simulaciones estaban mil veces por debajo de lo que decían.
+
+- **Al comparar dos simulaciones, el caudal y la demanda salían mil veces más pequeños de lo que
+  decía su unidad.** Se rotulaban en litros por segundo pero los números iban en metros cúbicos por
+  segundo, así que una diferencia de 50 l/s se leía «0,05 l/s». Comparando la simulación normal de
+  la red de ejemplo con la de una tubería cerrada, el caudal aparecía como 0,82 l/s cuando eran
+  824,87. Es el mismo fallo que se corrigió en el visor en la 1.22.0, que aquí había quedado vivo.
+- **Afectaba también a lo que el chat sabe de tus simulaciones**, porque esas cifras se guardan
+  para que las pueda consultar. Y el propio resumen se contradecía: en un párrafo daba el caudal en
+  metros cúbicos por segundo y en otro, sobre los mismos datos, en litros por segundo. Ahora todo
+  el resumen habla en litros por segundo.
+
 ## [1.24.0] - 2026-08-27
 
 La calidad del agua se simula de verdad. Si tienes simulaciones de calidad guardadas de antes,
