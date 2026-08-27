@@ -14,8 +14,53 @@ env:
   PYTHON_VERSION: '3.11'
 
 jobs:
+  # El borrador se crea aquí y una sola vez (#85).
+  #
+  # Los tres sistemas de la matriz de abajo corren en paralelo y los tres lanzan
+  # `electron-builder --publish always`, que busca la release por tag y la crea
+  # si no la encuentra. Cuando dos llegan a la vez, las dos ven que no existe y
+  # las dos la crean: salen dos borradores con el mismo tag y los artefactos
+  # repartidos entre ellos. Pasó en la v1.23.1 y en la v1.24.0, y publicar el
+  # equivocado deja a macOS sin su blockmap —adiós descarga diferencial— o a
+  # Windows sin instalador.
+  #
+  # Creándolo antes, los tres se lo encuentran hecho y sólo suben sus ficheros.
+  preparar-release:
+    name: Preparar la release
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Averiguar el tag
+        id: tag
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            # Lanzado a mano: el tag sale de la versión que declare el paquete.
+            TAG="v$(node -p "require('./package.json').version")"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Release: $TAG"
+
+      - name: Crear el borrador si no existe
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Ya existe una release para $TAG; los artefactos irán a ésa."
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --title "$TAG" --notes ""
+            echo "Borrador creado para $TAG."
+          fi
+
   build-and-publish:
     name: Build & Publish (${{ matrix.os }})
+    needs: preparar-release
     strategy:
       fail-fast: false
       matrix:
