@@ -39,15 +39,22 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.25.0
+### 🚀 Última Versió - v1.26.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.25.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.25.0/Boorie-1.25.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.25.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.25.0/Boorie-Setup-1.25.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.25.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.25.0/Boorie-1.25.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.26.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.26.0/Boorie-1.26.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.26.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.26.0/Boorie-Setup-1.26.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.26.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.26.0/Boorie-1.26.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.26.0
+- Els passos de la calculadora ja diuen en quina unitat estan. El resultat final sempre portava la seva, però els passos que el justifiquen sortien com a números solts. I la unitat no és la del resultat: en un cop d'ariet, el primer pas és en pascals, el segon en bars i el tercer en metres.
+- El resultat de la calculadora es mostra amb xifres significatives en lloc de quatre decimals fixos, que deixaven un cabal en metres cúbics per segon amb dues xifres útils.
+- La corba de fragilitat sísmica diu què mesura el seu eix vertical: «Probabilidad de fallo (0–1)».
+- Es retira la fila «Diameter» del plafó de topologia, que sortia sempre buida i el nom de la qual es confonia amb el diàmetre d'una canonada.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.26.0).
 
 ### 📝 Novetats a v1.25.0
 - En comparar dues simulacions, el cabal i la demanda sortien mil vegades més petits del que deia la seva unitat: es retolaven en litres per segon i els números anaven en metres cúbics per segon. Comparant la simulació normal de la xarxa d'exemple amb la d'una canonada tancada, el cabal apareixia com a 0,82 l/s quan eren 824,87.
@@ -312,12 +319,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.25.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.25.0.AppImage`
-3. Executa: `./Boorie-1.25.0.AppImage`
+1. Descarrega `Boorie-1.26.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.26.0.AppImage`
+3. Executa: `./Boorie-1.26.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.25.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.26.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 

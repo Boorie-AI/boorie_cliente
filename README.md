@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.25.0
+### 🚀 Latest Release - v1.26.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.25.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.25.0/Boorie-1.25.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.25.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.25.0/Boorie-Setup-1.25.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.25.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.25.0/Boorie-1.25.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.26.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.26.0/Boorie-1.26.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.26.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.26.0/Boorie-Setup-1.26.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.26.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.26.0/Boorie-1.26.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.26.0**: Three figures that did not say what they were, on three different screens. The calculator's steps now state their unit: the final result always carried one, but the steps that justify it —where a calculation is actually checked— came out as bare numbers, and the unit is not the result's: in a water hammer, the first step is in pascals, the second in bars and the third in metres. Where the quantity has no unit, such as a ratio between two lengths, none is invented. The calculator's result is also shown with significant figures instead of four fixed decimals, which left a flow in cubic metres per second with two useful digits. The seismic fragility curve now says what its vertical axis measures —«Probabilidad de fallo (0–1)»—, where it ran from 0 to 1 without explaining of what. And the «Diameter» row is removed from the topology panel: it always came out empty because it read a figure the analysis does not compute, and the name misled — on a water network it reads as pipe diameter when it referred to a graph measure. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.26.0).
 - **v1.25.0**: The figures in the simulation comparison were a thousand times below what they claimed. When comparing two simulations, flow and demand came out a thousand times smaller than their unit said: they were labelled in litres per second but the numbers were in cubic metres per second, so a difference of 50 l/s read «0.05 l/s». Comparing the example network's normal simulation against one with a pipe closed, flow appeared as 0.82 l/s when it was 824.87. It is the same fault fixed in the viewer in 1.22.0, which had survived here. It also affected what the chat knows about your simulations, because those figures are stored for it to consult, and the summary itself contradicted each other: one paragraph gave flow in cubic metres per second and another, on the same data, in litres per second. The whole summary now speaks in litres per second. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.25.0).
 - **v1.24.0**: Water quality is now actually simulated. If you have saved quality simulations from before, look at them: their figures did not come from any simulation. The water quality simulation was not simulating anything — it computed the hydraulic model and then filled the quality in by hand: for water age, a straight line from zero to the simulation's duration, **the same at every node**; for trace and chemical, zeros. It was shown in the same card as the real figures and with the same «Completed», and the only warning was a footnote, in English. On the Net3 example network it gave an average age of 83.9 hours when the real one is 6.1. EPANET's engine now resolves it, which is the one that knows how. If quality cannot be simulated, it says so: the reason it was filled in by hand was a problem on macOS, but the filler applied on all three systems; it is now always attempted and, when it fails, the card explains why instead of showing a number, with the other two simulations of the cycle saved all the same. You can also choose what to follow — water age, a trace from the reservoir or tank you pick, or the substance your file declares — where before only age was possible, and the substance warns when the file declares none instead of returning zero across the network. Figures carry their unit: hours for age, per cent for trace, mg/L for the substance. And your earlier quality simulations are still there, marked «sin simular» in the network history so they can be told apart six months from now. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.24.0).
 - **v1.23.1**: A fix. No new features and no changes in how the application is used. After stopping playback, the play button would not start it again: you pressed «stop», the time bar returned to the first step —correct— and from then on «play» did nothing, so you had to load the network again to play it. The same thing happened, though it was harder to notice, after jumping to the start, jumping to the end, or dragging the bar with the mouse: any way of moving the step by hand left playback dead. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.23.1).
@@ -103,12 +104,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.25.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.25.0.AppImage`
-3. Run: `./Boorie-1.25.0.AppImage`
+1. Download `Boorie-1.26.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.26.0.AppImage`
+3. Run: `./Boorie-1.26.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.25.0.exe` from the link above
+1. Download `Boorie-Setup-1.26.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 

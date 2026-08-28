@@ -9,6 +9,23 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.26.0] - 2026-08-27
+
+Tres cifras que no decían qué eran, en tres pantallas distintas.
+
+- **Los pasos de la calculadora ya dicen en qué unidad están.** El resultado final siempre llevaba
+  su unidad, pero los pasos que lo justifican —que son donde se comprueba un cálculo— salían como
+  números sueltos. Y la unidad no es la del resultado: en un golpe de ariete, el primer paso está
+  en pascales, el segundo en bares y el tercero en metros. Donde la magnitud no tiene unidad, como
+  una relación entre dos longitudes, no se inventa ninguna.
+- **El resultado de la calculadora se muestra con cifras significativas** en vez de cuatro
+  decimales fijos, que dejaban un caudal en metros cúbicos por segundo con dos cifras útiles.
+- **La curva de fragilidad sísmica dice qué mide su eje vertical.** Iba de 0 a 1 sin explicar de
+  qué; ahora rotula «Probabilidad de fallo (0–1)». El eje horizontal ya estaba bien.
+- **Se retira la fila «Diameter» del panel de topología**, que salía siempre vacía porque leía un
+  dato que el análisis no calcula. Además el nombre confundía: en una red de agua se lee como
+  diámetro de tubería, cuando se refería a una medida del grafo.
+
 ## [1.25.0] - 2026-08-27
 
 Las cifras de la comparación de simulaciones estaban mil veces por debajo de lo que decían.
