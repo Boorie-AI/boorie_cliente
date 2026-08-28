@@ -53,6 +53,7 @@
 - Los pasos de la calculadora ya dicen en qué unidad están. El resultado final siempre llevaba la suya, pero los pasos que lo justifican salían como números sueltos. Y la unidad no es la del resultado: en un golpe de ariete, el primer paso está en pascales, el segundo en bares y el tercero en metros.
 - El resultado de la calculadora se muestra con cifras significativas en vez de cuatro decimales fijos, que dejaban un caudal en metros cúbicos por segundo con dos cifras útiles.
 - La curva de fragilidad sísmica dice qué mide su eje vertical: «Probabilidad de fallo (0–1)».
+- El botón «Calculate» de la calculadora ya no flota sobre los campos: se quedaba pegado abajo y tapaba el último parámetro mientras se rellenaba.
 - Se retira la fila «Diameter» del panel de topología, que salía siempre vacía y cuyo nombre confundía con el diámetro de una tubería.
 - Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.26.0).
 

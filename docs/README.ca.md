@@ -53,6 +53,7 @@
 - Els passos de la calculadora ja diuen en quina unitat estan. El resultat final sempre portava la seva, però els passos que el justifiquen sortien com a números solts. I la unitat no és la del resultat: en un cop d'ariet, el primer pas és en pascals, el segon en bars i el tercer en metres.
 - El resultat de la calculadora es mostra amb xifres significatives en lloc de quatre decimals fixos, que deixaven un cabal en metres cúbics per segon amb dues xifres útils.
 - La corba de fragilitat sísmica diu què mesura el seu eix vertical: «Probabilidad de fallo (0–1)».
+- El botó «Calculate» de la calculadora ja no flota sobre els camps: es quedava enganxat a baix i tapava l'últim paràmetre mentre s'omplia.
 - Es retira la fila «Diameter» del plafó de topologia, que sortia sempre buida i el nom de la qual es confonia amb el diàmetre d'una canonada.
 - Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.26.0).
 

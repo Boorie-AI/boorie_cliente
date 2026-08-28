@@ -416,6 +416,11 @@ export function HydraulicCalculator() {
                       ))}
                     </div>
                     
+                    {/* Al final de los campos y quieto ahí. Con `sticky bottom-0`
+                        se quedaba pegado al borde inferior y flotaba por encima
+                        de los propios campos: en fórmulas con varios parámetros
+                        —pérdida de carga, bombeo— tapaba el último mientras se
+                        rellenaba. */}
                     <button
                       onClick={handleCalculate}
                       disabled={calculating}
@@ -424,8 +429,7 @@ export function HydraulicCalculator() {
                         "bg-primary text-primary-foreground",
                         "hover:bg-primary/90 transition-all",
                         "disabled:opacity-50 disabled:cursor-not-allowed",
-                        "flex items-center justify-center gap-3",
-                        "sticky bottom-0 shadow-lg"
+                        "flex items-center justify-center gap-3"
                       )}
                     >
                       {calculating ? (

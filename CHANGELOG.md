@@ -25,6 +25,9 @@ Tres cifras que no decían qué eran, en tres pantallas distintas.
 - **Se retira la fila «Diameter» del panel de topología**, que salía siempre vacía porque leía un
   dato que el análisis no calcula. Además el nombre confundía: en una red de agua se lee como
   diámetro de tubería, cuando se refería a una medida del grafo.
+- **El botón «Calculate» de la calculadora ya no flota sobre los campos.** Se quedaba pegado al
+  borde inferior de la ventana y tapaba el último parámetro mientras se rellenaba, sobre todo en
+  las fórmulas con varios: pérdida de carga y bombeo. Ahora está debajo del último campo.
 
 ## [1.25.0] - 2026-08-27
 
