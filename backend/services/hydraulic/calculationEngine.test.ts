@@ -52,6 +52,19 @@ describe('cada paso intermedio dice en qué unidad está', () => {
     expect(r.intermediateSteps!.map(p => p.unit)).toEqual(['Pa', 'kPa'])
   })
 
+  it('el caudal se ofrece primero en l/s, que es la unidad de la aplicación (#89)', () => {
+    // No se le quita ninguna opción a quien calcula: sólo cambia cuál se ofrece
+    // por defecto, que es la primera de la lista.
+    const caudales = motor.getAvailableFormulas()
+      .flatMap(f => f.parameters)
+      .filter(p => p.units.includes('l/s'))
+
+    expect(caudales.length).toBeGreaterThan(0)
+    for (const p of caudales) {
+      expect(p.units[0]).toBe('l/s')
+    }
+  })
+
   it('ningún paso se queda sin declarar su unidad, aunque sea vacía', () => {
     const r = motor.calculate('tank-volume', {
       Qmax: m(0.05, 'm³/s'),

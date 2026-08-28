@@ -70,7 +70,7 @@ export class HydraulicCalculationEngine {
           symbol: 'Q',
           name: 'Flow rate',
           description: 'Volumetric flow rate',
-          units: ['m³/s', 'l/s', 'gpm'],
+          units: ['l/s', 'm³/s', 'gpm'],
           range: { min: 0, max: 10 }
         },
         {
@@ -192,7 +192,7 @@ export class HydraulicCalculationEngine {
           symbol: 'Qmax',
           name: 'Maximum hourly demand',
           description: 'Peak hour demand',
-          units: ['m³/h', 'l/s', 'gpm'],
+          units: ['l/s', 'm³/h', 'gpm'],
           range: { min: 0, max: 10000 }
         },
         {
@@ -255,7 +255,7 @@ export class HydraulicCalculationEngine {
           symbol: 'Q',
           name: 'Flow rate',
           description: 'Pump flow rate',
-          units: ['m³/s', 'l/s'],
+          units: ['l/s', 'm³/s'],
           range: { min: 0, max: 10 }
         },
         {

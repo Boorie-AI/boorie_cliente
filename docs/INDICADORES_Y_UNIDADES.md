@@ -386,6 +386,34 @@ decimales fijos, que dejaban un caudal en m³/s con dos cifras (`0.0017`).
 
 ---
 
+## 7. Una unidad por magnitud (#91)
+
+El último punto de la revisión, y el único que no era un error: cada cifra
+declaraba su unidad, pero no era la misma según la pantalla. Quien comparaba dos
+de ellas tenía que traducir de cabeza.
+
+| Dónde | Antes | Ahora |
+|---|---|---|
+| Panel de energía · «Q medio» | `0.8242 m³/s` | `824,179 l/s` |
+| Panel de energía · punto óptimo | `m³/s` | `l/s` |
+| Calculadora · unidad por defecto | `m³/s` | `l/s` |
+| Calculadora · continuidad y orificio | `0.10602 m³/s` | `106,02 l/s` |
+| Panel de análisis · nivel de servicio | `0.9812` | `98,1 %` |
+
+**En la calculadora no se le quita ninguna opción a quien calcula.** m³/s y gpm
+siguen ahí; lo que cambia es cuál se ofrece primero, que es la que se aplica si
+no se toca el desplegable. Y el resultado en l/s no esconde la conversión: se
+añade un paso —«Convert to l/s»— que la deja a la vista, para que la cifra siga
+siendo comprobable a mano. Es la misma idea que ya usaban «Convert to kPa» y
+«Convert to liters».
+
+Con esto, el caudal se lee en litros por segundo en **toda** la aplicación: las
+etiquetas del visor, la leyenda, la ficha del elemento, el resumen de la
+simulación, la comparación de versiones, lo que recibe el chat, el panel de
+energía y la calculadora.
+
+---
+
 ## Y en la aplicación de verdad
 
 Los tests no ven lo que ve un usuario, así que se condujo la aplicación con la
