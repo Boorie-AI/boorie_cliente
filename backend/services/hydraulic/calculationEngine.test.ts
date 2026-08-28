@@ -1,0 +1,69 @@
+import { describe, it, expect } from 'vitest'
+import { HydraulicCalculationEngine } from './calculationEngine'
+
+/**
+ * Los pasos intermedios de la calculadora (#89).
+ *
+ * Son lo que un ingeniero mira para comprobar un cálculo, y se pintaban como
+ * «fórmula = 0.0017», sin decir de qué. La unidad no puede salir del resultado
+ * final: en Darcy-Weisbach la altura de velocidad va en metros y la relación L/D
+ * no tiene unidad, así que la trae cada paso.
+ */
+const motor = new HydraulicCalculationEngine()
+
+const m = (value: number, unit: string) => ({ value, unit })
+
+describe('cada paso intermedio dice en qué unidad está', () => {
+  it('Darcy-Weisbach: metros donde son metros, y nada donde es una relación', () => {
+    const r = motor.calculate('darcy-weisbach', {
+      f: m(0.02, 'dimensionless'),
+      L: m(1000, 'm'),
+      D: m(0.3, 'm'),
+      V: m(1.5, 'm/s'),
+    })
+
+    const pasos = r.intermediateSteps!
+    expect(pasos.map(p => p.unit)).toEqual(['m', '', 'm'])
+    expect(r.result.unit).toBe('m')
+  })
+
+  it('la potencia de bombeo pasa de vatios a kilovatios, y lo dice', () => {
+    const r = motor.calculate('pump-power', {
+      ρ: m(1000, 'kg/m³'),
+      g: m(9.81, 'm/s²'),
+      Q: m(0.05, 'm³/s'),
+      H: m(30, 'm'),
+      η: m(0.75, 'dimensionless'),
+    })
+
+    const pasos = r.intermediateSteps!
+    expect(pasos.map(p => p.unit)).toEqual(['W', 'W', 'kW'])
+    // Y la conversión es de verdad: el último paso es el primero entre mil.
+    expect(pasos[2].result).toBeCloseTo(pasos[1].result / 1000, 6)
+  })
+
+  it('el golpe de ariete distingue los pascales de los kilopascales', () => {
+    const r = motor.calculate('water-hammer', {
+      ρ: m(1000, 'kg/m³'),
+      c: m(1200, 'm/s'),
+      ΔV: m(1.5, 'm/s'),
+    })
+
+    expect(r.intermediateSteps!.map(p => p.unit)).toEqual(['Pa', 'kPa'])
+  })
+
+  it('ningún paso se queda sin declarar su unidad, aunque sea vacía', () => {
+    const r = motor.calculate('tank-volume', {
+      Qmax: m(0.05, 'm³/s'),
+      t: m(8, 'h'),   // el tiempo de regulación se pide en horas, entre 2 y 24
+      Vfire: m(100, 'm³'),
+      Vemergency: m(50, 'm³'),
+    })
+
+    for (const paso of r.intermediateSteps!) {
+      expect(paso).toHaveProperty('unit')
+      expect(typeof paso.unit).toBe('string')
+    }
+    expect(r.intermediateSteps!.map(p => p.unit)).toEqual(['m³', 'm³', 'm³'])
+  })
+})

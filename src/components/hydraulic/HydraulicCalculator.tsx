@@ -1,3 +1,4 @@
+import { cifrasSignificativas } from '@/services/network/unidades'
 import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import { useClarity } from '@/components/ClarityProvider'
@@ -477,8 +478,12 @@ export function HydraulicCalculator() {
                         </div>
                       </div>
                       
+                      {/* Cifras significativas, no cuatro decimales fijos: con
+                          `toFixed(4)` un caudal en m³/s quedaba en 0.0017 —dos
+                          cifras— y una longitud arrastraba cuatro decimales que
+                          sobran (#89). */}
                       <div className="text-3xl font-bold text-primary">
-                        {result.result.value.toFixed(4)} {result.result.unit}
+                        {cifrasSignificativas(result.result.value, 6)} {result.result.unit}
                       </div>
                     </div>
                     
@@ -489,8 +494,12 @@ export function HydraulicCalculator() {
                           {result.intermediateSteps.map((step, index) => (
                             <div key={index} className="text-sm">
                               <div className="text-muted-foreground">{step.description}</div>
+                              {/* Cada paso con su unidad, que no siempre es la
+                                  del resultado final: aquí es donde se comprueba
+                                  el cálculo, y un número suelto no se comprueba. */}
                               <div className="font-mono text-foreground bg-muted px-2 py-1 rounded mt-1">
-                                {step.formula} = {step.result.toFixed(4)}
+                                {step.formula} = {cifrasSignificativas(step.result, 6)}
+                                {step.unit ? ` ${step.unit}` : ''}
                               </div>
                             </div>
                           ))}

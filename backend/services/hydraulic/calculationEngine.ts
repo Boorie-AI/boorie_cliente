@@ -424,17 +424,22 @@ export class HydraulicCalculationEngine {
       {
         description: 'Calculate velocity head',
         formula: 'V²/(2g)',
-        result: (V * V) / (2 * g)
+        result: (V * V) / (2 * g),
+        unit: 'm'
       },
       {
         description: 'Calculate L/D ratio',
         formula: 'L/D',
-        result: L / D
+        result: L / D,
+        // Una relación entre dos longitudes no tiene unidad, y decir que la
+        // tiene sería peor que no decir nada.
+        unit: ''
       },
       {
         description: 'Calculate head loss',
         formula: 'hf = f × (L/D) × (V²/2g)',
-        result: f * (L / D) * (V * V) / (2 * g)
+        result: f * (L / D) * (V * V) / (2 * g),
+        unit: 'm'
       }
     ]
     
@@ -455,7 +460,8 @@ export class HydraulicCalculationEngine {
       {
         description: 'Apply Hazen-Williams formula',
         formula: 'hf = 10.67 × (Q/C)^1.852 × L / D^4.8704',
-        result: 10.67 * Math.pow(Q / C, 1.852) * L / Math.pow(D, 4.8704)
+        result: 10.67 * Math.pow(Q / C, 1.852) * L / Math.pow(D, 4.8704),
+        unit: 'm'
       }
     ]
     
@@ -492,7 +498,9 @@ export class HydraulicCalculationEngine {
         steps.push({
           description: `Iteration ${iterations}`,
           formula: '1/√f = -2 × log10(ε/(3.7×D) + 2.51/(Re×√f))',
-          result: f
+          result: f,
+          // El factor de fricción es adimensional.
+          unit: ''
         })
       }
     }
@@ -511,12 +519,14 @@ export class HydraulicCalculationEngine {
       {
         description: 'Apply Joukowsky equation',
         formula: 'ΔP = ρ × c × ΔV',
-        result: ρ * c * ΔV
+        result: ρ * c * ΔV,
+        unit: 'Pa'
       },
       {
         description: 'Convert to kPa',
         formula: 'ΔP / 1000',
-        result: (ρ * c * ΔV) / 1000
+        result: (ρ * c * ΔV) / 1000,
+        unit: 'kPa'
       }
     ]
     
@@ -536,17 +546,20 @@ export class HydraulicCalculationEngine {
       {
         description: 'Calculate regulation volume',
         formula: 'Vreg = Qmax × t',
-        result: Qmax * t
+        result: Qmax * t,
+        unit: 'm³'
       },
       {
         description: 'Add fire reserve',
         formula: 'Vreg + Vfire',
-        result: Qmax * t + Vfire
+        result: Qmax * t + Vfire,
+        unit: 'm³'
       },
       {
         description: 'Add emergency reserve',
         formula: 'Vreg + Vfire + Vemergency',
-        result: Qmax * t + Vfire + Vemergency
+        result: Qmax * t + Vfire + Vemergency,
+        unit: 'm³'
       }
     ]
     
@@ -566,17 +579,20 @@ export class HydraulicCalculationEngine {
       {
         description: 'Calculate hydraulic power',
         formula: 'Phyd = ρ × g × Q × H',
-        result: ρ * g * Q * H
+        result: ρ * g * Q * H,
+        unit: 'W'
       },
       {
         description: 'Apply efficiency',
         formula: 'P = Phyd / η',
-        result: (ρ * g * Q * H) / η
+        result: (ρ * g * Q * H) / η,
+        unit: 'W'
       },
       {
         description: 'Convert to kW',
         formula: 'P / 1000',
-        result: (ρ * g * Q * H) / (η * 1000)
+        result: (ρ * g * Q * H) / (η * 1000),
+        unit: 'kW'
       }
     ]
     

@@ -350,6 +350,42 @@ interrupción de la tubería `103`:
 
 ---
 
+## 6. Las tres cifras que quedaban sin decir qué eran (#89)
+
+**La curva de fragilidad.** El eje horizontal llevaba su título, `PGV (cm/s)`; el
+vertical iba de 0 a 1 sin decir de qué, porque el nombre de la serie está en una
+leyenda apagada. Mismo patrón que el #79. Ahora rotula «Probabilidad de fallo
+(0–1)».
+
+**«Diameter» en el panel de topología.** Leía `basic_metrics.diameter`, un campo
+que el servicio no devuelve —sólo manda `nodes`, `edges`, `density` y
+`average_degree`—, así que la fila salía siempre con la etiqueta y la celda en
+blanco. Se retira. El nombre era además equívoco: en una aplicación de redes de
+agua, «Diameter» junto a «Density» se lee como diámetro de tubería, no como el
+camino más largo entre dos nudos.
+
+**Los pasos de la calculadora.** El resultado final llevaba su unidad; los pasos
+que lo justifican, no —y son donde se comprueba un cálculo—. La unidad no puede
+salir del resultado: en Darcy-Weisbach la altura de velocidad va en metros, la
+relación L/D no tiene unidad y el número de Reynolds tampoco. Ahora la trae cada
+paso, y vacía donde la magnitud es adimensional, que es más honesto que
+inventarle una.
+
+Hubo que tocar **los dos motores**: el de Python, que es el que responde, y el de
+TypeScript, que es el respaldo cuando Python falla. Se descubrió al conducir la
+aplicación: los pasos que salían en pantalla no eran los que yo había cambiado.
+
+El resultado se formatea además con cifras significativas en vez de cuatro
+decimales fijos, que dejaban un caudal en m³/s con dos cifras (`0.0017`).
+
+| | Antes | Ahora |
+|---|---|---|
+| Golpe de ariete, paso 1 | `= 2400000` | `= 2.400.000 Pa` |
+| Golpe de ariete, paso 2 | `= 24` | `= 24 bar` |
+| Golpe de ariete, paso 3 | `= 244.6484` | `= 244,648 m` |
+
+---
+
 ## Y en la aplicación de verdad
 
 Los tests no ven lo que ve un usuario, así que se condujo la aplicación con la

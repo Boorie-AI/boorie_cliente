@@ -1550,7 +1550,6 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         <CardContent className="p-3 text-sm space-y-1">
                           <div className="flex justify-between"><span>Density:</span> <span className="font-mono">{analysisResults.topology.data.topology_metrics.basic_metrics?.density?.toFixed(4)}</span></div>
                           <div className="flex justify-between"><span>Avg Degree:</span> <span className="font-mono">{analysisResults.topology.data.topology_metrics.basic_metrics?.average_degree?.toFixed(2)}</span></div>
-                          <div className="flex justify-between"><span>Diameter:</span> <span className="font-mono">{analysisResults.topology.data.topology_metrics.basic_metrics?.diameter}</span></div>
                         </CardContent>
                       </Card>
                     )}
@@ -2130,7 +2129,15 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                 plugins: { legend: { display: false } },
                                 scales: {
                                   x: { title: { display: true, text: 'PGV (cm/s)', font: { size: 9 } }, ticks: { maxTicksLimit: 6, font: { size: 9 } } },
-                                  y: { min: 0, max: 1, ticks: { font: { size: 9 } } }
+                                  // El eje horizontal ya decía qué medía; el vertical iba de 0
+                                  // a 1 sin decirlo, y el nombre de la serie no se ve porque
+                                  // esta gráfica tiene la leyenda apagada (#89).
+                                  y: {
+                                    min: 0,
+                                    max: 1,
+                                    title: { display: true, text: 'Probabilidad de fallo (0–1)', font: { size: 9 } },
+                                    ticks: { font: { size: 9 } },
+                                  }
                                 }
                               }}
                             />
