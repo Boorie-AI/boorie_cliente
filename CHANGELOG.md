@@ -9,6 +9,21 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.27.0] - 2026-08-27
+
+El caudal se lee en litros por segundo en toda la aplicación.
+
+- **El panel de energía daba el caudal en metros cúbicos por segundo** mientras el visor y la
+  comparación de simulaciones lo daban en litros por segundo. Una bomba de 824 l/s aparecía como
+  «0.8242 m³/s», y había que contar decimales para reconocerla en la otra pantalla. Ahora dice
+  «824,179 l/s».
+- **La calculadora ofrece l/s por defecto** en los campos de caudal, y devuelve en l/s el resultado
+  de la ecuación de continuidad y del flujo por orificio. No se pierde ninguna opción: metros
+  cúbicos por segundo y galones por minuto siguen en el desplegable, y la conversión aparece como
+  un paso más del cálculo, para poder comprobarla a mano.
+- **El nivel de servicio por presión se enseña en porcentaje en los dos sitios donde aparece.**
+  Salía como «98,1 %» en el panel de indicadores y como «0.9812» en el de análisis.
+
 ## [1.26.0] - 2026-08-27
 
 Tres cifras que no decían qué eran, en tres pantallas distintas.

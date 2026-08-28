@@ -39,15 +39,21 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.26.0
+### 🚀 Última Versió - v1.27.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.26.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.26.0/Boorie-1.26.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.26.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.26.0/Boorie-Setup-1.26.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.26.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.26.0/Boorie-1.26.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.27.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.27.0/Boorie-1.27.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.27.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.27.0/Boorie-Setup-1.27.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.27.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.27.0/Boorie-1.27.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.27.0
+- El plafó d'energia donava el cabal en metres cúbics per segon mentre el visor i la comparació de simulacions el donaven en litres per segon: una bomba de 824 l/s apareixia com a «0.8242 m³/s». Ara diu «824,179 l/s».
+- La calculadora ofereix l/s per defecte als camps de cabal i retorna en l/s el resultat de l'equació de continuïtat i del flux per orifici. No es perd cap opció, i la conversió apareix com un pas més del càlcul.
+- El nivell de servei per pressió es mostra en percentatge als dos llocs on apareix; sortia com a «98,1 %» en un i «0.9812» en l'altre.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.27.0).
 
 ### 📝 Novetats a v1.26.0
 - Els passos de la calculadora ja diuen en quina unitat estan. El resultat final sempre portava la seva, però els passos que el justifiquen sortien com a números solts. I la unitat no és la del resultat: en un cop d'ariet, el primer pas és en pascals, el segon en bars i el tercer en metres.
@@ -320,12 +326,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.26.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.26.0.AppImage`
-3. Executa: `./Boorie-1.26.0.AppImage`
+1. Descarrega `Boorie-1.27.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.27.0.AppImage`
+3. Executa: `./Boorie-1.27.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.26.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.27.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 

@@ -39,15 +39,21 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.26.0
+### 🚀 Última Versión - v1.27.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.26.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.26.0/Boorie-1.26.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.26.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.26.0/Boorie-Setup-1.26.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.26.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.26.0/Boorie-1.26.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.27.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.27.0/Boorie-1.27.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.27.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.27.0/Boorie-Setup-1.27.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.27.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.27.0/Boorie-1.27.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.27.0
+- El panel de energía daba el caudal en metros cúbicos por segundo mientras el visor y la comparación de simulaciones lo daban en litros por segundo: una bomba de 824 l/s aparecía como «0.8242 m³/s». Ahora dice «824,179 l/s».
+- La calculadora ofrece l/s por defecto en los campos de caudal y devuelve en l/s el resultado de la ecuación de continuidad y del flujo por orificio. No se pierde ninguna opción, y la conversión aparece como un paso más del cálculo.
+- El nivel de servicio por presión se enseña en porcentaje en los dos sitios donde aparece; salía como «98,1 %» en uno y «0.9812» en el otro.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.27.0).
 
 ### 📝 Novedades en v1.26.0
 - Los pasos de la calculadora ya dicen en qué unidad están. El resultado final siempre llevaba la suya, pero los pasos que lo justifican salían como números sueltos. Y la unidad no es la del resultado: en un golpe de ariete, el primer paso está en pascales, el segundo en bares y el tercero en metros.
@@ -320,12 +326,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.26.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.26.0.AppImage`
-3. Ejecuta: `./Boorie-1.26.0.AppImage`
+1. Descarga `Boorie-1.27.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.27.0.AppImage`
+3. Ejecuta: `./Boorie-1.27.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.26.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.27.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
