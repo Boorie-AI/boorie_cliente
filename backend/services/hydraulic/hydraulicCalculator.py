@@ -27,9 +27,19 @@ class CalculationResult:
 
 @dataclass
 class IntermediateStep:
+    """
+    Un paso del cálculo, con **su** unidad (#89).
+
+    No vale la del resultado final: en Darcy-Weisbach la altura de velocidad va
+    en metros, la relación L/D no tiene unidad y el número de Reynolds tampoco.
+    Los pasos son donde se comprueba un cálculo, y un número suelto no se
+    comprueba. Vacía cuando la magnitud es adimensional, que es más honesto que
+    inventarle una.
+    """
     description: str
     formula: str
     result: float
+    unit: str = ''
 
 
 @dataclass
@@ -352,17 +362,20 @@ class HydraulicCalculator:
             IntermediateStep(
                 description="Calculate velocity head",
                 formula=f"V²/(2g) = {V}²/(2×{self.gravity})",
-                result=V**2 / (2 * self.gravity)
+                result=V**2 / (2 * self.gravity),
+                unit="m"
             ),
             IntermediateStep(
                 description="Calculate L/D ratio",
                 formula=f"L/D = {L}/{D}",
-                result=L/D
+                result=L/D,
+                unit=""
             ),
             IntermediateStep(
                 description="Calculate Reynolds number",
                 formula=f"Re = VD/ν = {V}×{D}/{self.kinematic_viscosity}",
-                result=Re
+                result=Re,
+                unit=""
             )
         ]
         
@@ -407,12 +420,14 @@ class HydraulicCalculator:
             IntermediateStep(
                 description="Calculate pipe area",
                 formula=f"A = π×D²/4 = π×{D}²/4",
-                result=A
+                result=A,
+                unit="m²"
             ),
             IntermediateStep(
                 description="Calculate velocity",
                 formula=f"V = Q/A = {Q}/{A}",
-                result=V
+                result=V,
+                unit="m/s"
             )
         ]
         
@@ -453,12 +468,14 @@ class HydraulicCalculator:
             IntermediateStep(
                 description="Calculate flow rate",
                 formula=f"Q = A×V = {A}×{V}",
-                result=Q
+                result=Q,
+                unit="m³/s"
             ),
             IntermediateStep(
                 description="Calculate equivalent diameter",
                 formula=f"D = √(4A/π) = √(4×{A}/π)",
-                result=D_equiv
+                result=D_equiv,
+                unit="m"
             )
         ]
         
@@ -494,12 +511,14 @@ class HydraulicCalculator:
             IntermediateStep(
                 description="Calculate theoretical velocity",
                 formula=f"V = √(2gh) = √(2×{self.gravity}×{h})",
-                result=V
+                result=V,
+                unit="m/s"
             ),
             IntermediateStep(
                 description="Calculate theoretical flow",
                 formula=f"Q_theo = A×V = {A}×{V}",
-                result=A * V
+                result=A * V,
+                unit="m³/s"
             )
         ]
         
@@ -539,12 +558,14 @@ class HydraulicCalculator:
             IntermediateStep(
                 description="Calculate hydraulic power",
                 formula=f"P_hyd = ρgQH = {self.water_density}×{self.gravity}×{Q}×{H}",
-                result=P_hydraulic
+                result=P_hydraulic,
+                unit="W"
             ),
             IntermediateStep(
                 description="Calculate shaft power",
                 formula=f"P_shaft = P_hyd/η = {P_hydraulic}/{η}",
-                result=P_shaft
+                result=P_shaft,
+                unit="W"
             )
         ]
         
@@ -587,17 +608,20 @@ class HydraulicCalculator:
             IntermediateStep(
                 description="Calculate tank area",
                 formula=f"A = π×D²/4 = π×{D}²/4",
-                result=A_surface
+                result=A_surface,
+                unit="m²"
             ),
             IntermediateStep(
                 description="Calculate volume in m³",
                 formula=f"V = A×H = {A_surface}×{H}",
-                result=V
+                result=V,
+                unit="m³"
             ),
             IntermediateStep(
                 description="Convert to liters",
                 formula=f"V = {V}×1000",
-                result=V_liters
+                result=V_liters,
+                unit="L"
             )
         ]
         
@@ -641,17 +665,20 @@ class HydraulicCalculator:
             IntermediateStep(
                 description="Calculate pressure rise in Pa",
                 formula=f"ΔP = ρ×c×ΔV = {self.water_density}×{c}×{ΔV}",
-                result=ΔP
+                result=ΔP,
+                unit="Pa"
             ),
             IntermediateStep(
                 description="Convert to bar",
                 formula=f"ΔP = {ΔP}/100000",
-                result=ΔP_bar
+                result=ΔP_bar,
+                unit="bar"
             ),
             IntermediateStep(
                 description="Calculate head rise",
                 formula=f"ΔH = ΔP/(ρg) = {ΔP}/({self.water_density}×{self.gravity})",
-                result=ΔH
+                result=ΔH,
+                unit="m"
             )
         ]
         

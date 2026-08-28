@@ -64,6 +64,12 @@ export interface Step {
   description: string
   formula: string
   result: number
+  /**
+   * La unidad de **este** paso, que no siempre es la del resultado final: en
+   * Darcy-Weisbach, la altura de velocidad va en metros y la relación L/D no
+   * tiene unidad. Vacía cuando el paso es adimensional (#89).
+   */
+  unit: string
 }
 
 export interface WNTRModel {

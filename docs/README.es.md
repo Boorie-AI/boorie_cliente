@@ -39,15 +39,23 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.25.0
+### 🚀 Última Versión - v1.26.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.25.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.25.0/Boorie-1.25.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.25.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.25.0/Boorie-Setup-1.25.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.25.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.25.0/Boorie-1.25.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.26.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.26.0/Boorie-1.26.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.26.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.26.0/Boorie-Setup-1.26.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.26.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.26.0/Boorie-1.26.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.26.0
+- Los pasos de la calculadora ya dicen en qué unidad están. El resultado final siempre llevaba la suya, pero los pasos que lo justifican salían como números sueltos. Y la unidad no es la del resultado: en un golpe de ariete, el primer paso está en pascales, el segundo en bares y el tercero en metros.
+- El resultado de la calculadora se muestra con cifras significativas en vez de cuatro decimales fijos, que dejaban un caudal en metros cúbicos por segundo con dos cifras útiles.
+- La curva de fragilidad sísmica dice qué mide su eje vertical: «Probabilidad de fallo (0–1)».
+- El botón «Calculate» de la calculadora ya no flota sobre los campos: se quedaba pegado abajo y tapaba el último parámetro mientras se rellenaba.
+- Se retira la fila «Diameter» del panel de topología, que salía siempre vacía y cuyo nombre confundía con el diámetro de una tubería.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.26.0).
 
 ### 📝 Novedades en v1.25.0
 - Al comparar dos simulaciones, el caudal y la demanda salían mil veces más pequeños de lo que decía su unidad: se rotulaban en litros por segundo y los números iban en metros cúbicos por segundo. Comparando la simulación normal de la red de ejemplo con la de una tubería cerrada, el caudal aparecía como 0,82 l/s cuando eran 824,87.
@@ -312,12 +320,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.25.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.25.0.AppImage`
-3. Ejecuta: `./Boorie-1.25.0.AppImage`
+1. Descarga `Boorie-1.26.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.26.0.AppImage`
+3. Ejecuta: `./Boorie-1.26.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.25.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.26.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
