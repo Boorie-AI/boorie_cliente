@@ -125,7 +125,7 @@ class HydraulicCalculator:
                         'symbol': 'Q',
                         'name': 'Flow Rate',
                         'description': 'Volumetric flow rate',
-                        'units': ['m³/s', 'l/s', 'gpm'],
+                        'units': ['l/s', 'm³/s', 'gpm'],
                         'defaultValue': 0.05
                     },
                     {
@@ -209,7 +209,7 @@ class HydraulicCalculator:
                         'symbol': 'Q',
                         'name': 'Flow Rate',
                         'description': 'Volumetric flow rate',
-                        'units': ['m³/s', 'l/s', 'gpm'],
+                        'units': ['l/s', 'm³/s', 'gpm'],
                         'defaultValue': 0.05
                     },
                     {
@@ -472,6 +472,12 @@ class HydraulicCalculator:
                 unit="m³/s"
             ),
             IntermediateStep(
+                description="Convert to l/s",
+                formula=f"Q × 1000 = {Q}×1000",
+                result=Q * 1000,
+                unit="l/s"
+            ),
+            IntermediateStep(
                 description="Calculate equivalent diameter",
                 formula=f"D = √(4A/π) = √(4×{A}/π)",
                 result=D_equiv,
@@ -488,7 +494,10 @@ class HydraulicCalculator:
             warnings.append("Very high velocity - check pipe rating.")
             
         return CalculationResponse(
-            result={'value': Q, 'unit': 'm³/s'},
+            # En l/s, como el resto de la aplicación (#89 · H3). El paso anterior
+            # deja la conversión a la vista para que la cifra siga siendo
+            # comprobable.
+            result={'value': Q * 1000, 'unit': 'l/s'},
             inputs=inputs,
             intermediate_steps=[asdict(step) for step in steps],
             warnings=warnings,
@@ -519,6 +528,12 @@ class HydraulicCalculator:
                 formula=f"Q_theo = A×V = {A}×{V}",
                 result=A * V,
                 unit="m³/s"
+            ),
+            IntermediateStep(
+                description="Apply discharge coefficient and convert to l/s",
+                formula=f"Q = Cd×A×V×1000 = {Cd}×{A}×{V}×1000",
+                result=Q * 1000,
+                unit="l/s"
             )
         ]
         
@@ -532,7 +547,8 @@ class HydraulicCalculator:
             recommendations.append("Low discharge coefficient - check for sharp edges.")
         
         return CalculationResponse(
-            result={'value': Q, 'unit': 'm³/s'},
+            # En l/s, como el resto de la aplicación (#89 · H3).
+            result={'value': Q * 1000, 'unit': 'l/s'},
             inputs=inputs,
             intermediate_steps=[asdict(step) for step in steps],
             warnings=warnings,

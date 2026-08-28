@@ -1590,7 +1590,14 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           </div>
                           <div className="flex justify-between">
                             <span>Service:</span>
-                            <span className="font-mono">{analysisResults.resilience.data.resilience_metrics?.serviceability?.pressure_serviceability?.toFixed(4) || 'N/A'}</span>
+                            {/* En porcentaje, como en el panel de indicadores: es
+                                una fracción de nudos, y la misma cifra salía aquí
+                                como 0.9812 y allí como 98,1 % (#89 · H3). */}
+                            <span className="font-mono">
+                              {typeof analysisResults.resilience.data.resilience_metrics?.serviceability?.pressure_serviceability === 'number'
+                                ? `${(analysisResults.resilience.data.resilience_metrics.serviceability.pressure_serviceability * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </span>
                           </div>
                         </CardContent>
                       </Card>

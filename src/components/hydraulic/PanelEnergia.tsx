@@ -1,3 +1,4 @@
+import { formatearMagnitud } from '@/services/network/unidades'
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -378,7 +379,7 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
                   </div>
                   <div className="text-[10px] text-muted-foreground">
                     {b.horas_en_marcha.toFixed(1)} h en marcha · {b.potencia_media_kw.toFixed(1)} kW medios ·
-                    {' '}pico {b.potencia_maxima_kw.toFixed(1)} kW · Q medio {b.caudal_medio_m3s.toFixed(4)} m³/s
+                    {' '}pico {b.potencia_maxima_kw.toFixed(1)} kW · Q medio {formatearMagnitud(b.caudal_medio_m3s, 'caudal')}
                   </div>
                   {b.eficiencia && (
                     <div className="text-[10px] text-muted-foreground">
@@ -391,7 +392,7 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
                   {b.punto_optimo && (
                     <Alert className="text-[10px] py-1">
                       Su curva da {b.punto_optimo.punto_optimo.eficiencia_pct.toFixed(1)}% a{' '}
-                      {b.punto_optimo.punto_optimo.caudal_m3s.toFixed(4)} m³/s, y está trabajando al{' '}
+                      {formatearMagnitud(b.punto_optimo.punto_optimo.caudal_m3s, 'caudal')}, y está trabajando al{' '}
                       {b.punto_optimo.eficiencia_en_operacion_pct.toFixed(1)}%
                       {b.punto_optimo.desviacion_caudal_pct !== null &&
                         ` con el caudal ${Math.abs(b.punto_optimo.desviacion_caudal_pct).toFixed(0)}% ${b.punto_optimo.desviacion_caudal_pct < 0 ? 'por debajo' : 'por encima'} del óptimo`}
