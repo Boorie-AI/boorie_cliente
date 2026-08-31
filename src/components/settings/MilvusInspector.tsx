@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import { cn } from '@/utils/cn'
@@ -25,6 +26,7 @@ interface CollectionDescription {
 }
 
 export function MilvusInspector() {
+  const { t } = useTranslation()
     const [collections, setCollections] = useState<string[]>([])
     const [selectedCollection, setSelectedCollection] = useState<string | null>(null)
     const [stats, setStats] = useState<CollectionStats | null>(null)
@@ -194,7 +196,7 @@ export function MilvusInspector() {
                                             <div className="text-2xl font-bold">
                                                 {stats?.row_count !== undefined ? stats.row_count.toLocaleString() : '-'}
                                             </div>
-                                            <p className="text-xs text-muted-foreground">Total Rows</p>
+                                            <p className="text-xs text-muted-foreground">{t('milvus.totalRows')}</p>
                                         </CardContent>
                                     </Card>
 
@@ -220,7 +222,7 @@ export function MilvusInspector() {
                                 <Card className="flex-1 flex flex-col min-h-0">
                                     <CardHeader className="py-3 border-b bg-muted/30">
                                         <div className="flex justify-between items-center">
-                                            <CardTitle className="text-sm font-medium">Data Preview (Max 50)</CardTitle>
+                                            <CardTitle className="text-sm font-medium">{t('milvus.preview')}</CardTitle>
                                             <Badge>{data.length} records</Badge>
                                         </div>
                                     </CardHeader>
@@ -263,7 +265,7 @@ export function MilvusInspector() {
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg">
                                 <Database className="h-12 w-12 mb-4 opacity-20" />
-                                <p>Select a collection to inspect</p>
+                                <p>{t('milvus.pickCollection')}</p>
                             </div>
                         )}
                     </div>
@@ -278,7 +280,7 @@ export function MilvusInspector() {
                             <div className="flex gap-2">
                                 <input
                                     className="flex-1 px-3 py-2 border rounded-md bg-transparent"
-                                    placeholder="Enter your query related to stored documents..."
+                                    placeholder={t('milvus.queryHint')}
                                     value={ragQuery}
                                     onChange={(e) => setRagQuery(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleRagQuery()}

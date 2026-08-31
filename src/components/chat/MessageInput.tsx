@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useRef, useEffect } from 'react'
 import { useChatStore } from '@/stores/chatStore'
@@ -22,6 +23,7 @@ type SpeechRecognitionInstance = {
 }
 
 export function MessageInput() {
+  const { t } = useTranslation()
   const [message, setMessage] = useState('')
   const [isRecording, setIsRecording] = useState(false)
   const [attachment, setAttachment] = useState<PendingAttachment | null>(null)
@@ -166,7 +168,7 @@ export function MessageInput() {
             type="button"
             onClick={() => setAttachment(null)}
             className="text-muted-foreground hover:text-foreground"
-            title="Remove attachment"
+            title={t('chatInput.removeFile')}
           >
             <X size={14} />
           </button>
@@ -187,7 +189,7 @@ export function MessageInput() {
           type="button"
           onClick={handleFileAttach}
           className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors flex items-center justify-center"
-          title="Attach file"
+          title={t('chatInput.attach')}
         >
           <Paperclip size={20} />
         </button>
@@ -211,7 +213,7 @@ export function MessageInput() {
                 )
               }
             }}
-            placeholder="Type your message... (Press Enter to send, Shift+Enter for new line)"
+            placeholder={t('chatInput.placeholder')}
             className="w-full p-3 bg-input text-foreground border border-border rounded-lg focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 resize-none min-h-[44px] max-h-[200px] placeholder-muted-foreground transition-all duration-200"
             rows={1}
             disabled={isLoading}
@@ -237,7 +239,7 @@ export function MessageInput() {
           type="submit"
           disabled={(!message.trim() && !attachment) || isLoading}
           className="p-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-          title="Send message"
+          title={t('chatInput.send')}
         >
           <Send size={20} />
         </button>

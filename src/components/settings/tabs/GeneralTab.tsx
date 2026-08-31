@@ -361,7 +361,7 @@ export function GeneralTab() {
           </div>
           <div className="space-y-3">
             <div>
-              <label className="text-sm font-medium text-card-foreground">Mapbox Access Token</label>
+              <label className="text-sm font-medium text-card-foreground">{t('mapViewer.mapboxToken')}</label>
               <p className="text-sm text-muted-foreground">
                 Necesario para visualizar redes hidráulicas sobre el mapa (WNTR Network Visualization).
                 Consigue un token gratuito en{' '}

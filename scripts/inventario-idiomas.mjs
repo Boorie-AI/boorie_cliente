@@ -35,10 +35,27 @@ const vivo = (p) => {
   return new RegExp(`from '[^']*/${n}'|from '\\./${n}'`).test(todoElCodigo)
 }
 
-const ENTRE = />\s*([A-Za-zÁÉÍÓÚÑáéíóúñ][^<>{}\n]{2,80}?)\s*</g
-const ATRIBUTO = /(?:placeholder|title|aria-label|label)="([^"{}\n]{3,80})"/g
+/**
+ * Exigir que el texto empiece por letra dejaba fuera lo que lleva delante un
+ * emoji o un paréntesis —«✅ Indexed», «(1 chunks)»—, que se ve igual de mal.
+ */
+const ENTRE = />\s*([^<>{}\n]{3,200}?)\s*</g
+const ATRIBUTO = /(?:placeholder|title|aria-label|label)="([^"{}\n]{3,200})"/g
+/**
+ * Un texto metido en una expresión —las dos ramas de un ternario, sobre todo—
+ * no está entre `>` y `<` y se colaba entero: así apareció en pantalla «General
+ * chat: this conversation is not linked to any project».
+ */
+const LITERAL = /^\s*["']([^"'`\n]{6,200})["']\s*[,:)]?\s*$/gm
 /** Siglas, cifras, unidades y URLs no son texto que traducir. */
 const RUIDO = /^(?:[A-Z0-9_\-.]{1,12}|https?:\/\/|nvapi|[\d\s.,%/·—-]+|m³.*|l\/s|kWh|PGV.*|EPSG.*)$/
+/**
+ * El barrido entre `>` y `<` a veces pilla el final de una expresión JSX
+ * —`m.type === 'local') && (`—, que es código, no texto.
+ */
+const CODIGO = /===|=>|&&|\?\.|React\./
+/** Las clases de Tailwind son texto, pero no de los que lee nadie. */
+const CLASES = /(^|\s)(flex|grid|block|inline|absolute|relative|fixed|sticky|truncate|overflow-|w-|h-|p[xytblr]?-|m[xytblr]?-|bg-|text-|border|rounded|hover:|focus:|group-|data-\[|transition|duration-|gap-|space-|min-|max-|shadow|z-\d|items-|justify-|font-|leading-|opacity-|animate-|cursor-|select-none|outline-none)/
 const MARCA_ES = /[áéíóúñ¿¡Á-Ú]/
 const FUNCIONALES_ES = new Set(
   'de la el los las un una para con sin por al del y o que se su sus no hay más como este esta cada'.split(' ')
@@ -56,13 +73,25 @@ const PALABRAS_EN = new Set(
    'reference options history previous appear here powered engine scientific professional hydraulic project ' +
    'name type location details additional notes budget manager country city region select cancel close open ' +
    'add remove show hide view chart graph data preview health clusters providers available token url test ' +
-   'move keep general conversation conversations chat message messages').split(' ')
+   'move keep general conversation conversations chat message messages ' +
+   // Añadidas al abrir el Wisdom Center: el recuento daba cero y la pantalla
+   // seguía teniendo inglés a la vista.
+   'all my categories category folder refresh documents document knowledge indexed chunks ' +
+   'unified center wisdom upload processing failed pending ready model models provider embedding ' +
+   'total items file files size date time value welcome ready assistant').split(' ')
 )
 
 const esEspanol = (c) =>
   MARCA_ES.test(c) || c.toLowerCase().match(/[a-záéíóúñ]+/g)?.some((p) => FUNCIONALES_ES.has(p))
 
+/**
+ * Texto que cita la interfaz de otro programa y por eso no se traduce: quien
+ * lee el aviso tiene delante el instalador de Python en inglés.
+ */
+const CITAS = new Set(['Add python.exe to PATH', 'ollama pull all-minilm'])
+
 const pareceIngles = (c) =>
+  !CITAS.has(c) &&
   !esEspanol(c) && (c.toLowerCase().match(/[a-z]+/g) ?? []).some((p) => PALABRAS_EN.has(p))
 
 const porFichero = new Map()
@@ -73,8 +102,11 @@ for (const p of todos.filter(vivo)) {
   const cadenas = new Set()
   for (const m of src.matchAll(ENTRE)) if (!m[1].startsWith('{')) cadenas.add(m[1].trim())
   for (const m of src.matchAll(ATRIBUTO)) cadenas.add(m[1].trim())
+  for (const m of src.matchAll(LITERAL)) cadenas.add(m[1].trim())
 
-  const fuera = [...cadenas].filter((c) => c && !RUIDO.test(c))
+  const fuera = [...cadenas]
+    .map((c) => c.replace(/^[^\p{L}(]+/u, '').trim())   // el emoji de delante no es texto
+    .filter((c) => c && /\p{L}{3}/u.test(c) && !RUIDO.test(c) && !CODIGO.test(c) && !CLASES.test(c))
   const noEspanol = fuera.filter((c) => !esEspanol(c))
   const enIngles = fuera.filter(pareceIngles)
   espanol += fuera.length - noEspanol.length
@@ -94,7 +126,9 @@ if (argLista !== -1) {
   process.exit(0)
 }
 
-const conI18n = todos.filter(vivo).filter((p) => fuente.get(p).includes('useTranslation')).length
+// La llamada, no la palabra: en un componente el hook estaba comentado y aun así
+// contaba como traducido.
+const conI18n = todos.filter(vivo).filter((p) => /(?<!\/\/\s*)const \{ t \} = useTranslation\(/.test(fuente.get(p))).length
 console.log(`textos escritos a mano, fuera del diccionario: ${espanol + otro}`)
 console.log(`  de ellos, en inglés: ${ingles}   <- se ven mal hoy, en una aplicación que se usa en español`)
 console.log(`  el resto está en castellano: ${espanol + otro - ingles}   <- se ve bien hoy y rompe al cambiar de idioma`)

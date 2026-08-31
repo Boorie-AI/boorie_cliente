@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import {
@@ -13,6 +14,7 @@ interface VectorGraphViewerProps {
 }
 
 export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
+  const { t } = useTranslation()
 
   // State
   const [loading, setLoading] = useState(false)
@@ -113,14 +115,14 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
         <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="flex items-center gap-3">
             <Network className="w-6 h-6 text-primary" />
-            <h2 className="text-xl font-bold text-foreground">🔗 Vector Graph & RAG Health</h2>
+            <h2 className="text-xl font-bold text-foreground">🔗 {t('vectorGraph.header')}</h2>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={loadAllData}
               disabled={loading}
               className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-              title="Refresh Data"
+              title={t('vectorGraph.refresh')}
             >
               <RefreshCw className={`w - 4 h - 4 ${loading ? 'animate-spin' : ''} `} />
             </button>
@@ -144,7 +146,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
           >
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4" />
-              System Health
+              {t('vectorGraph.health')}
             </div>
           </button>
           <button
@@ -156,7 +158,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
           >
             <div className="flex items-center gap-2">
               <Network className="w-4 h-4" />
-              Vector Graph
+              {t('vectorGraph.title')}
             </div>
           </button>
           <button
@@ -168,7 +170,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
           >
             <div className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
-              Clusters
+              {t('vectorGraph.clusters')}
             </div>
           </button>
         </div>
@@ -179,7 +181,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <RefreshCw className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-                <p className="text-muted-foreground">Loading vector graph data...</p>
+                <p className="text-muted-foreground">{t('vectorGraph.loading')}</p>
               </div>
             </div>
           ) : (
@@ -237,7 +239,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                       <div className="bg-card border border-border rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <BookOpen className="w-4 h-4 text-green-500" />
-                          <h3 className="font-medium">Documents</h3>
+                          <h3 className="font-medium">{t('vectorGraph.documents')}</h3>
                         </div>
                         <div className="text-2xl font-bold text-foreground">
                           {healthData.metrics.documents.total}
@@ -275,7 +277,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                           {healthData.metrics.performance.avgProcessingTime}ms
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          Avg search time
+                          {t('vectorGraph.avgSearch')}
                         </div>
                       </div>
                     )}
@@ -285,13 +287,13 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                       <div className="bg-card border border-border rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <Target className="w-4 h-4 text-red-500" />
-                          <h3 className="font-medium">Quality</h3>
+                          <h3 className="font-medium">{t('vectorGraph.quality')}</h3>
                         </div>
                         <div className="text-2xl font-bold text-foreground">
                           {healthData.metrics.performance.avgResponseQuality.toFixed(1)}/5
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          Response quality
+                          {t('vectorGraph.answerQuality')}
                         </div>
                       </div>
                     )}
@@ -301,7 +303,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                       <div className="bg-card border border-border rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <Grid className="w-4 h-4 text-cyan-500" />
-                          <h3 className="font-medium">Chunks</h3>
+                          <h3 className="font-medium">{t('vectorGraph.chunks')}</h3>
                         </div>
                         <div className="text-2xl font-bold text-foreground">
                           {healthData.metrics.chunks.total}
@@ -316,7 +318,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                   {/* Categories */}
                   {healthData.metrics.categories && (
                     <div className="bg-card border border-border rounded-lg p-4">
-                      <h3 className="font-medium mb-3">📊 Category Distribution</h3>
+                      <h3 className="font-medium mb-3">📊 {t('vectorGraph.distribution')}</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {healthData.metrics.categories.map((cat: any, index: number) => (
                           <div key={index} className="flex justify-between text-sm">
@@ -336,27 +338,27 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                   {/* Graph Controls */}
                   <div className="flex flex-wrap gap-4 items-center p-4 bg-muted/20 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <label className="text-sm font-medium">Limit:</label>
+                      <label className="text-sm font-medium">{t('vectorGraph.limit')}</label>
                       <select
                         value={viewOptions.limit}
                         onChange={(e) => setViewOptions(prev => ({ ...prev, limit: Number(e.target.value) }))}
                         className="px-3 py-1 bg-background border border-border rounded text-sm"
                       >
-                        <option value={50}>50 nodes</option>
-                        <option value={100}>100 nodes</option>
-                        <option value={200}>200 nodes</option>
-                        <option value={500}>500 nodes</option>
+                        <option value={50}>{t('vectorGraph.nodesOption', { count: 50 })}</option>
+                        <option value={100}>{t('vectorGraph.nodesOption', { count: 100 })}</option>
+                        <option value={200}>{t('vectorGraph.nodesOption', { count: 200 })}</option>
+                        <option value={500}>{t('vectorGraph.nodesOption', { count: 500 })}</option>
                       </select>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <label className="text-sm font-medium">Category:</label>
+                      <label className="text-sm font-medium">{t('vectorGraph.category')}</label>
                       <select
                         value={viewOptions.category}
                         onChange={(e) => setViewOptions(prev => ({ ...prev, category: e.target.value }))}
                         className="px-3 py-1 bg-background border border-border rounded text-sm"
                       >
-                        <option value="">All Categories</option>
+                        <option value="">{t('vectorGraph.allCategories')}</option>
                         <option value="fuentes-hidrologia">Fuentes e Hidrología</option>
                         <option value="obras-toma">Obras de Toma</option>
                         <option value="hidraulica-aducciones">Hidráulica y Aducciones</option>
@@ -374,7 +376,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                       disabled={loading}
                       className="px-4 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90 transition-colors"
                     >
-                      Update Graph
+                      {t('vectorGraph.update')}
                     </button>
                   </div>
 
@@ -383,22 +385,22 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div className="bg-card border border-border rounded-lg p-3 text-center">
                         <div className="text-2xl font-bold text-foreground">{graphData.statistics.totalNodes || 0}</div>
-                        <div className="text-sm text-muted-foreground">Nodes</div>
+                        <div className="text-sm text-muted-foreground">{t('vectorGraph.nodes')}</div>
                       </div>
                       <div className="bg-card border border-border rounded-lg p-3 text-center">
                         <div className="text-2xl font-bold text-foreground">{graphData.statistics.totalEdges || 0}</div>
-                        <div className="text-sm text-muted-foreground">Connections</div>
+                        <div className="text-sm text-muted-foreground">{t('vectorGraph.connections')}</div>
                       </div>
                       <div className="bg-card border border-border rounded-lg p-3 text-center">
                         <div className="text-2xl font-bold text-foreground">{graphData.statistics.categories || 0}</div>
-                        <div className="text-sm text-muted-foreground">Categories</div>
+                        <div className="text-sm text-muted-foreground">{t('vectorGraph.categories')}</div>
                       </div>
                       <div className="bg-card border border-border rounded-lg p-3 text-center">
                         <div className="text-2xl font-bold text-foreground">
                           {graphData.statistics.categoryStats ?
                             (Object.values(graphData.statistics.categoryStats as Record<string, any>).reduce((sum: number, cat: any) => sum + cat.avgChunkSize, 0) / (Object.keys(graphData.statistics.categoryStats).length || 1)).toFixed(0) : 0}
                         </div>
-                        <div className="text-sm text-muted-foreground">Avg Chunk Size</div>
+                        <div className="text-sm text-muted-foreground">{t('vectorGraph.avgChunk')}</div>
                       </div>
                     </div>
                   )}
@@ -451,11 +453,11 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
 
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Chunks:</span>
+                            <span className="text-muted-foreground">{t('vectorGraph.chunksLabel')}</span>
                             <span className="font-medium">{cluster.chunkCount}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Avg Size:</span>
+                            <span className="text-muted-foreground">{t('vectorGraph.avgSizeLabel')}</span>
                             <span className="font-medium">{cluster.avgChunkSize} chars</span>
                           </div>
                           <div className="flex justify-between">

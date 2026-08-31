@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import { useChatStore } from '@/stores/chatStore'
@@ -15,6 +16,7 @@ interface ProjectSelectorProps {
 }
 
 export function ProjectSelector({ selectedProjectId, onProjectSelect, className }: ProjectSelectorProps) {
+  const { t } = useTranslation()
   const [projects, setProjects] = useState<HydraulicProject[]>([])
   const [loading, setLoading] = useState(true)
   const activeConversationId = useChatStore(state => state.activeConversationId)
@@ -147,7 +149,7 @@ export function ProjectSelector({ selectedProjectId, onProjectSelect, className 
             "hover:bg-accent/50 hover:text-foreground transition-colors",
             "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           )}
-          title="Clear project selection"
+          title={t('chatInput.clearProject')}
         >
           <X size={14} />
         </button>

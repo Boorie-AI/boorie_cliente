@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 
@@ -6,7 +7,7 @@ import { cn } from '@/utils/cn'
 import { databaseService } from '@/services/database'
 
 export function SystemPromptPanel() {
-  // const { t } = useTranslation()
+  const { t } = useTranslation()
   const [systemPrompt, setSystemPrompt] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -121,7 +122,7 @@ INSTRUCCIONES:
               <FileText className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-card-foreground">System Prompt</h2>
+              <h2 className="text-xl font-semibold text-card-foreground">{t('settings.systemPrompt')}</h2>
               <p className="text-sm text-muted-foreground">
                 Configura el prompt del sistema que se usará en todas las conversaciones
               </p>
@@ -184,7 +185,7 @@ INSTRUCCIONES:
                   onClick={testSystemPrompt}
                   className="px-3 py-2 text-sm border border-border rounded-lg text-foreground hover:bg-accent transition-colors"
                 >
-                  Test DB
+                  {t('settings.testDb')}
                 </button>
                 <button
                   onClick={saveSystemPrompt}

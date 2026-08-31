@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import mapboxgl from 'mapbox-gl'
@@ -165,6 +166,7 @@ export function WNTRMapViewer({
   onNetworkLoaded,
   onSimulationResults
 }: WNTRMapViewerProps) {
+  const { t } = useTranslation()
   // Priority: token pasted in Settings → General (persisted, works in the
   // packaged app) over the VITE_MAPBOX_ACCESS_TOKEN build-time env var.
   const { token: MAPBOX_ACCESS_TOKEN } = useMapboxToken()
@@ -298,7 +300,7 @@ export function WNTRMapViewer({
 
     // Check if Mapbox token is available
     if (!MAPBOX_ACCESS_TOKEN) {
-      setError('Mapbox access token not configured. Add it in ⚙️ Settings → General.')
+      setError(t('mapViewer.mapboxMissing'))
       return
     }
 
@@ -429,8 +431,7 @@ export function WNTRMapViewer({
           // No `setWarning` exists in this component, so surface the hint via
           // the same error channel used elsewhere.
           setError(
-            'WebGL not available. The map requires hardware acceleration. You can still load networks and view them in the network viewer. ' +
-            'Try restarting the application or use the Network Graph view instead of Map view.'
+            t('mapViewer.webglMissing')
           )
         } else {
           setError(`Failed to initialize map: ${err.message}`)
@@ -1118,9 +1119,9 @@ export function WNTRMapViewer({
       <div className="border-b border-border p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">WNTR Network Visualization</h1>
+            <h1 className="text-2xl font-semibold text-foreground">{t('mapViewer.title')}</h1>
             <p className="text-muted-foreground mt-1">
-              Water distribution networks overlaid on OpenStreetMap
+              {t('mapViewer.subtitle')}
             </p>
           </div>
 
@@ -1159,7 +1160,7 @@ export function WNTRMapViewer({
                     "transition-colors"
                   )}
                 >
-                  Center on Network
+                  {t('mapViewer.center')}
                 </button>
 
                 <button
@@ -1172,7 +1173,7 @@ export function WNTRMapViewer({
                   )}
                 >
                   <Play className="w-4 h-4" />
-                  Simulate
+                  {t('mapViewer.simulate')}
                 </button>
 
                 <button
@@ -1183,7 +1184,7 @@ export function WNTRMapViewer({
                     "bg-secondary text-secondary-foreground hover:bg-secondary/80",
                     "transition-colors disabled:opacity-50"
                   )}
-                  title="Export as GeoJSON"
+                  title={t('mapViewer.exportGeoJson')}
                 >
                   <Download className="w-4 h-4" />
                 </button>
@@ -1211,22 +1212,22 @@ export function WNTRMapViewer({
           <div className="mt-4 space-y-2">
             <div className="flex gap-4 text-sm">
               <span className="text-muted-foreground">
-                <strong className="text-foreground">{networkData.summary.junctions}</strong> Junctions
+                <strong className="text-foreground">{networkData.summary.junctions}</strong> {t('mapViewer.junctions')}
               </span>
               <span className="text-muted-foreground">
-                <strong className="text-foreground">{networkData.summary.tanks}</strong> Tanks
+                <strong className="text-foreground">{networkData.summary.tanks}</strong> {t('mapViewer.tanks')}
               </span>
               <span className="text-muted-foreground">
-                <strong className="text-foreground">{networkData.summary.reservoirs}</strong> Reservoirs
+                <strong className="text-foreground">{networkData.summary.reservoirs}</strong> {t('mapViewer.reservoirs')}
               </span>
               <span className="text-muted-foreground">
-                <strong className="text-foreground">{networkData.summary.pipes}</strong> Pipes
+                <strong className="text-foreground">{networkData.summary.pipes}</strong> {t('mapViewer.pipes')}
               </span>
               <span className="text-muted-foreground">
-                <strong className="text-foreground">{networkData.summary.pumps}</strong> Pumps
+                <strong className="text-foreground">{networkData.summary.pumps}</strong> {t('mapViewer.pumps')}
               </span>
               <span className="text-muted-foreground">
-                <strong className="text-foreground">{networkData.summary.valves}</strong> Valves
+                <strong className="text-foreground">{networkData.summary.valves}</strong> {t('mapViewer.valves')}
               </span>
             </div>
 
@@ -1340,21 +1341,21 @@ export function WNTRMapViewer({
           <div className="w-full h-full flex items-center justify-center bg-muted/20">
             <div className="text-center max-w-md p-8">
               <Map className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-foreground mb-2">Mapbox Configuration Required</h3>
+              <h3 className="text-xl font-semibold text-foreground mb-2">{t('mapViewer.mapboxRequired')}</h3>
               <p className="text-muted-foreground mb-4">
-                To visualize EPANET networks on the map, you need to configure a Mapbox access token.
+                {t('mapViewer.mapboxNeeded')}
               </p>
               <div className="bg-card rounded-lg p-4 text-left border border-border">
-                <p className="text-sm font-medium mb-2">Setup Instructions:</p>
+                <p className="text-sm font-medium mb-2">{t('mapViewer.mapboxSteps')}</p>
                 <ol className="text-sm text-muted-foreground space-y-2">
-                  <li>1. Create a free account at <a href="https://account.mapbox.com/auth/signup/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">mapbox.com</a></li>
-                  <li>2. Copy your access token from the dashboard</li>
-                  <li>3. Open <strong>⚙️ Settings → General</strong> in Boorie</li>
-                  <li>4. Paste it into the <strong>Mapbox Access Token</strong> field and click Save</li>
+                  <li>1. {t('mapViewer.mapboxStep1')} <a href="https://account.mapbox.com/auth/signup/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">mapbox.com</a></li>
+                  <li>2. {t('mapViewer.mapboxStep2')}</li>
+                  <li>3. {t('mapViewer.mapboxStep3')} <strong>⚙️ {t('mapViewer.settingsPath')}</strong> {t('mapViewer.mapboxInBoorie')}</li>
+                  <li>4. {t('mapViewer.mapboxStep4')} <strong>{t('mapViewer.mapboxToken')}</strong> {t('mapViewer.mapboxFieldHint')}</li>
                 </ol>
               </div>
               <p className="text-xs text-muted-foreground mt-4">
-                The map view integrates WNTR networks with OpenStreetMap data for geographic visualization.
+                {t('mapViewer.mapboxNote')}
               </p>
             </div>
           </div>
@@ -1375,7 +1376,7 @@ export function WNTRMapViewer({
                   }}>
                   <div className="text-center">
                     <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                    <p className="text-sm font-medium">Cambiando estilo del mapa...</p>
+                    <p className="text-sm font-medium">{t('mapViewer.changingStyle')}</p>
                     <p className="text-xs text-muted-foreground mt-1">Haz clic para cancelar</p>
                   </div>
                 </div>
@@ -1388,9 +1389,9 @@ export function WNTRMapViewer({
                 <div className="bg-background/90 backdrop-blur-sm rounded-lg p-6 border border-border pointer-events-auto">
                   <div className="text-center">
                     <Map className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-lg font-medium mb-2">No Network Loaded</p>
+                    <p className="text-lg font-medium mb-2">{t('mapViewer.noNetwork')}</p>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Load an EPANET .inp file to visualize the network on the map
+                      {t('mapViewer.loadHint')}
                     </p>
                     <button
                       onClick={handleFileUpload}
@@ -1401,7 +1402,7 @@ export function WNTRMapViewer({
                       )}
                     >
                       <FileUp className="w-4 h-4" />
-                      Load INP File
+                      {t('mapViewer.loadInp')}
                     </button>
                   </div>
                 </div>
@@ -1488,7 +1489,7 @@ export function WNTRMapViewer({
                 onClick={() => setError(null)}
                 className="text-xs text-destructive/80 hover:text-destructive mt-1"
               >
-                Dismiss
+                {t('mapViewer.dismiss')}
               </button>
             </div>
           </div>

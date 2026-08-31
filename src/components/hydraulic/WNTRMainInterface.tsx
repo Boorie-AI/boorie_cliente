@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useClarity } from '@/components/ClarityProvider';
@@ -134,6 +135,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   onSimulationComplete,
   modo = 'red'
 }) => {
+  const { t } = useTranslation();
   // Clarity tracking
   const { trackEvent, isReady: clarityReady } = useClarity();
 
@@ -1203,7 +1205,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
               <Database className="h-4 w-4 flex-shrink-0 text-primary" />
               <span className="font-semibold truncate" title={networkData.name}>{networkData.name}</span>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setNetworkData(null)} title="Close Network">
+            <Button variant="ghost" size="icon" onClick={() => setNetworkData(null)} title={t('networkView.closeNetwork')}>
               <FileUp className="h-4 w-4" />
             </Button>
           </div>
@@ -1211,13 +1213,13 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
           <Tabs value={pestana} onValueChange={setPestana} className="flex-1 flex flex-col min-h-0">
             <div className="px-4 pt-2 border-b bg-muted/10">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="simulate" title="Simulation">
+                <TabsTrigger value="simulate" title={t('networkView.tabs.simulate')}>
                   <Play className="h-4 w-4" />
                 </TabsTrigger>
-                <TabsTrigger value="analyze" title="Analysis">
+                <TabsTrigger value="analyze" title={t('networkView.tabs.analyze')}>
                   <Target className="h-4 w-4" />
                 </TabsTrigger>
-                <TabsTrigger value="resilience" title="Resilience">
+                <TabsTrigger value="resilience" title={t('networkView.tabs.resilience')}>
                   <ShieldAlert className="h-4 w-4" />
                 </TabsTrigger>
 
@@ -1230,17 +1232,17 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                 <div className="space-y-4">
                   <h3 className="font-semibold text-sm flex items-center gap-2">
                     <Activity className="h-4 w-4 text-blue-500" />
-                    Hydraulic Simulation
+                    {t('networkView.sim.title')}
                   </h3>
 
                   <div className="p-3 bg-muted/20 rounded-lg text-sm space-y-2">
                     <p className="text-xs text-muted-foreground">
-                      Run comprehensive analysis including Hydraulic, Water Quality, and Scenario simulations sequentially.
+                      {t('networkView.sim.description')}
                     </p>
 
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">Duration (hours)</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.sim.duration')}</div>
                         <input
                           type="number"
                           min={0}
@@ -1250,7 +1252,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         />
                       </div>
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">Timestep (mins)</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.sim.timestep')}</div>
                         <input
                           type="number"
                           min={0}
@@ -1309,7 +1311,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     ) : (
                       <>
                         <Play className="h-4 w-4 mr-2" />
-                        Run All Simulations
+                        {t('networkView.sim.run')}
                       </>
                     )}
                   </Button>
@@ -1322,58 +1324,58 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {simulationResults?.hydraulic?.data ? (
                       <Card>
                         <CardHeader className="p-3 pb-0">
-                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Hydraulic</CardTitle>
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">{t('networkView.sim.hydraulic')}</CardTitle>
                         </CardHeader>
                         <CardContent className="p-3 text-sm space-y-2">
                           <div className="flex justify-between">
-                            <span>Status:</span>
-                            <span className="font-medium text-green-600">Completed</span>
+                            <span>{t('networkView.sim.status')}</span>
+                            <span className="font-medium text-green-600">{t('networkView.sim.completed')}</span>
                           </div>
                           {/* Simular desde el visor no mide el tiempo de ejecución,
                               y la fila se quedaba en un «s» suelto. */}
                           {simulationResults.hydraulic.data.execution_time !== undefined && (
                             <div className="flex justify-between">
-                              <span>Duration:</span>
+                              <span>{t('networkView.sim.duration_')}</span>
                               <span className="font-mono">{simulationResults.hydraulic.data.execution_time.toFixed(2)}s</span>
                             </div>
                           )}
                           <div className="flex justify-between">
-                            <span>Nodes/Links:</span>
+                            <span>{t('networkView.sim.nodesLinks')}</span>
                             <span className="font-mono">{Object.keys(simulationResults.hydraulic.data.node_results || {}).length}/{Object.keys(simulationResults.hydraulic.data.link_results || {}).length}</span>
                           </div>
                           {/* Detailed Stats */}
                           {simulationResults.hydraulic.data.stats && (
                             <div className="pt-2 border-t space-y-2">
-                              <div className="text-[10px] text-muted-foreground font-semibold">PRESSURE (m)</div>
+                              <div className="text-[10px] text-muted-foreground font-semibold">{t('networkView.sim.pressure')}</div>
                               <div className="grid grid-cols-3 gap-1 text-xs">
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Min</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.min')}</div>
                                   <div className="font-mono">{simulationResults.hydraulic.data.stats.pressure?.min?.toFixed(2)}</div>
                                 </div>
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Avg</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.avg')}</div>
                                   <div className="font-mono">{simulationResults.hydraulic.data.stats.pressure?.mean?.toFixed(2)}</div>
                                 </div>
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Max</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.max')}</div>
                                   <div className="font-mono">{simulationResults.hydraulic.data.stats.pressure?.max?.toFixed(2)}</div>
                                 </div>
                               </div>
                               {/* El caudal sale del motor en m³/s y la cabecera promete l/s: sin
                                   convertir, una punta de 830 l/s se leía «0.83 l/s» (#77). */}
-                              <div className="text-[10px] text-muted-foreground font-semibold mt-2">FLOW (l/s) / VEL (m/s)</div>
+                              <div className="text-[10px] text-muted-foreground font-semibold mt-2">{t('networkView.sim.flowVel')}</div>
                               <div className="grid grid-cols-2 gap-1 text-xs">
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Max Flow</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.maxFlow')}</div>
                                   <div className="font-mono">{enUnidadDePresentacion(simulationResults.hydraulic.data.stats.flow?.max ?? 0, 'caudal').toFixed(2)}</div>
                                 </div>
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Max Vel</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.maxVel')}</div>
                                   <div className="font-mono">{simulationResults.hydraulic.data.stats.velocity?.max?.toFixed(2)}</div>
                                 </div>
                               </div>
                               <div className="flex justify-between text-xs mt-1">
-                                <div className="text-[10px] text-muted-foreground">Total Length</div>
+                                <div className="text-[10px] text-muted-foreground">{t('networkView.sim.totalLength')}</div>
                                 <div className="font-mono">{simulationResults.hydraulic.data.stats.flow?.total_demand?.toFixed(2)} km</div>
                               </div>
                             </div>
@@ -1384,12 +1386,12 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                       simulationResults?.hydraulic?.success === false ? (
                         <Alert variant="destructive" className="mt-2 text-xs">
                           <AlertCircle className="h-3 w-3 inline mr-1" />
-                          <span className="font-semibold">Error:</span> {simulationResults.hydraulic.error || "Unknown error"}
+                          <span className="font-semibold">{t('networkView.sim.error')}</span> {simulationResults.hydraulic.error || t('networkView.sim.unknownError')}
                         </Alert>
                       ) : (
                         !isSimulating && (
                           <div className="text-xs text-muted-foreground text-center p-4 border border-dashed rounded bg-muted/20">
-                            Results will appear here.
+                            {t('networkView.sim.empty')}
                           </div>
                         )
                       )
@@ -1399,7 +1401,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {simulationResults?.quality && (
                       <Card>
                         <CardHeader className="p-3 pb-0">
-                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Water Quality</CardTitle>
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">{t('networkView.sim.waterQuality')}</CardTitle>
                         </CardHeader>
                         <CardContent className="p-3 text-sm space-y-2">
                           {/* Cuando no se puede simular se dice por qué, en vez de
@@ -1414,11 +1416,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           ) : (
                             <>
                               <div className="flex justify-between">
-                                <span>Status:</span>
-                                <span className="font-medium text-green-600">Completed</span>
+                                <span>{t('networkView.sim.status')}</span>
+                                <span className="font-medium text-green-600">{t('networkView.sim.completed')}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span>Duration:</span>
+                                <span>{t('networkView.sim.duration_')}</span>
                                 <span className="font-mono">{simulationResults.quality.data.execution_time?.toFixed(2)}s</span>
                               </div>
                               {/* WQ Stats */}
@@ -1430,15 +1432,15 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                   </div>
                                   <div className="grid grid-cols-3 gap-1 text-xs">
                                     <div>
-                                      <div className="text-[9px] text-muted-foreground">Min</div>
+                                      <div className="text-[9px] text-muted-foreground">{t('networkView.sim.min')}</div>
                                       <div className="font-mono">{simulationResults.quality.data.stats.quality.min?.toFixed(2)}</div>
                                     </div>
                                     <div>
-                                      <div className="text-[9px] text-muted-foreground">Avg</div>
+                                      <div className="text-[9px] text-muted-foreground">{t('networkView.sim.avg')}</div>
                                       <div className="font-mono">{simulationResults.quality.data.stats.quality.mean?.toFixed(2)}</div>
                                     </div>
                                     <div>
-                                      <div className="text-[9px] text-muted-foreground">Max</div>
+                                      <div className="text-[9px] text-muted-foreground">{t('networkView.sim.max')}</div>
                                       <div className="font-mono">{simulationResults.quality.data.stats.quality.max?.toFixed(2)}</div>
                                     </div>
                                   </div>
@@ -1458,20 +1460,20 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         </CardHeader>
                         <CardContent className="p-3 text-sm space-y-2">
                           <div className="flex justify-between">
-                            <span>Status:</span>
-                            <span className="font-medium text-green-600">Completed</span>
+                            <span>{t('networkView.sim.status')}</span>
+                            <span className="font-medium text-green-600">{t('networkView.sim.completed')}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Duration:</span>
+                            <span>{t('networkView.sim.duration_')}</span>
                             <span className="font-mono">{simulationResults.scenario.data.execution_time?.toFixed(2)}s</span>
                           </div>
                           {/* Scenario Stats */}
                           {simulationResults.scenario.data.stats && (
                             <div className="pt-2 border-t space-y-2">
-                              <div className="text-[10px] text-muted-foreground font-semibold">PRESSURE (m)</div>
+                              <div className="text-[10px] text-muted-foreground font-semibold">{t('networkView.sim.pressure')}</div>
                               <div className="grid grid-cols-3 gap-1 text-xs">
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Min</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.min')}</div>
                                   <div className="font-mono">{simulationResults.scenario.data.stats.pressure?.min?.toFixed(2)}</div>
                                 </div>
                                 <div>
@@ -1479,18 +1481,18 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                   <div className="font-mono">{simulationResults.scenario.data.stats.pressure?.mean?.toFixed(2)}</div>
                                 </div>
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Max</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.max')}</div>
                                   <div className="font-mono">{simulationResults.scenario.data.stats.pressure?.max?.toFixed(2)}</div>
                                 </div>
                               </div>
-                              <div className="text-[10px] text-muted-foreground font-semibold mt-2">FLOW (l/s) / VEL (m/s)</div>
+                              <div className="text-[10px] text-muted-foreground font-semibold mt-2">{t('networkView.sim.flowVel')}</div>
                               <div className="grid grid-cols-2 gap-1 text-xs">
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Max Flow</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.maxFlow')}</div>
                                   <div className="font-mono">{enUnidadDePresentacion(simulationResults.scenario.data.stats.flow?.max ?? 0, 'caudal').toFixed(2)}</div>
                                 </div>
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Max Vel</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.maxVel')}</div>
                                   <div className="font-mono">{simulationResults.scenario.data.stats.velocity?.max?.toFixed(2)}</div>
                                 </div>
                               </div>
@@ -1513,7 +1515,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                 <div className="space-y-4">
                   <h3 className="font-semibold text-sm flex items-center gap-2">
                     <Target className="h-4 w-4 text-purple-500" />
-                    Network Analysis
+                    {t('networkView.analysis.title')}
                   </h3>
 
                   {/* Eficiencia energética del bombeo (#42) */}
@@ -1534,7 +1536,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     ) : (
                       <>
                         <Target className="h-4 w-4 mr-2" />
-                        Run All Analyses
+                        {t('networkView.analysis.run')}
                       </>
                     )}
                   </Button>
@@ -1545,11 +1547,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {analysisResults.topology?.data && (
                       <Card>
                         <CardHeader className="p-3 pb-0">
-                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Topology</CardTitle>
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">{t('networkView.analysis.topology')}</CardTitle>
                         </CardHeader>
                         <CardContent className="p-3 text-sm space-y-1">
-                          <div className="flex justify-between"><span>Density:</span> <span className="font-mono">{analysisResults.topology.data.topology_metrics.basic_metrics?.density?.toFixed(4)}</span></div>
-                          <div className="flex justify-between"><span>Avg Degree:</span> <span className="font-mono">{analysisResults.topology.data.topology_metrics.basic_metrics?.average_degree?.toFixed(2)}</span></div>
+                          <div className="flex justify-between"><span>{t('networkView.analysis.density')}:</span> <span className="font-mono">{analysisResults.topology.data.topology_metrics.basic_metrics?.density?.toFixed(4)}</span></div>
+                          <div className="flex justify-between"><span>{t('networkView.analysis.avgDegree')}:</span> <span className="font-mono">{analysisResults.topology.data.topology_metrics.basic_metrics?.average_degree?.toFixed(2)}</span></div>
                         </CardContent>
                       </Card>
                     )}
@@ -1557,7 +1559,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {analysisResults.criticality?.data && (
                       <Card>
                         <CardHeader className="p-3 pb-0">
-                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Criticality</CardTitle>
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">{t('networkView.analysis.criticality')}</CardTitle>
                         </CardHeader>
                         <CardContent className="p-3 text-sm space-y-1">
                           <div className="text-xs text-muted-foreground mb-1">Top Critical Nodes:</div>
@@ -1580,16 +1582,16 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {analysisResults.resilience?.data && (
                       <Card>
                         <CardHeader className="p-3 pb-0">
-                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Resilience</CardTitle>
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">{t('networkView.analysis.resilience')}</CardTitle>
                         </CardHeader>
                         <CardContent className="p-3 text-sm space-y-1">
                           {/* Accessing proper nested data based on known structure */}
                           <div className="flex justify-between">
-                            <span>Hydraulic:</span>
+                            <span>{t('networkView.analysis.hydraulic')}:</span>
                             <span className="font-mono">{analysisResults.resilience.data.resilience_metrics?.hydraulic?.todini_index?.toFixed(4) || 'N/A'}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Service:</span>
+                            <span>{t('networkView.analysis.service')}:</span>
                             {/* En porcentaje, como en el panel de indicadores: es
                                 una fracción de nudos, y la misma cifra salía aquí
                                 como 0.9812 y allí como 98,1 % (#89 · H3). */}

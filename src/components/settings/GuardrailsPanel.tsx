@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useEffect, useState } from 'react'
 import { Shield, ShieldCheck, ShieldAlert, RefreshCw, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
 import { cn } from '@/utils/cn'
@@ -45,6 +46,7 @@ const RAIL_LABELS: Record<RailName, { title: string; description: string }> = {
 }
 
 export function GuardrailsPanel() {
+  const { t } = useTranslation()
   const [settings, setSettings] = useState<GuardrailsSettings | null>(null)
   const [pingStatus, setPingStatus] = useState<{ ok: boolean; error?: string } | null>(null)
   const [violations, setViolations] = useState<Violation[]>([])
@@ -151,7 +153,7 @@ export function GuardrailsPanel() {
         <h3 className="font-semibold text-foreground mb-3">Modelo juez</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="text-xs text-muted-foreground">Provider</label>
+            <label className="text-xs text-muted-foreground">{t('settings.provider')}</label>
             <select
               value={settings.judgeProvider}
               onChange={(e) => update({ judgeProvider: e.target.value as any })}
@@ -174,7 +176,7 @@ export function GuardrailsPanel() {
           <div>
             {settings.judgeProvider === 'ollama' ? (
               <>
-                <label className="text-xs text-muted-foreground">Ollama URL</label>
+                <label className="text-xs text-muted-foreground">{t('settings.ollamaUrl')}</label>
                 <input
                   type="text"
                   value={settings.ollamaBaseUrl}

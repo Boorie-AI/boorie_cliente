@@ -49,6 +49,25 @@ avanzado, sólo ha movido código.
 
 Un componente que nadie importa no cuenta: no se le enseña a nadie.
 
+### Lo que no ve, y cómo se ha ido enterando
+
+Llegó a decir **cero en inglés** con el Wisdom Center lleno de inglés en
+pantalla. Cada agujero apareció al abrir la aplicación, no al leer código, y
+cada uno está tapado:
+
+| Lo que se le escapaba | Ejemplo que lo delató |
+|---|---|
+| Un hook `useTranslation` **comentado** contaba como traducido | `UnifiedWisdomPanel` |
+| Texto que no empieza por letra | «✅ Indexed», «(1 chunks)» |
+| Frases de más de 80 caracteres | «To visualize EPANET networks on the map…» |
+| Texto dentro de una expresión, como las dos ramas de un ternario | «General chat: this conversation is not linked to any project» |
+| Palabras inglesas que no estaban en su lista | «Upload Folder», «All Categories», «My Documents» |
+
+Quedan dos que no tapa: el texto **mezclado con una expresión** en la misma
+línea —`📊 Model: {provider.model}`— y las palabras inglesas que aún no conoce.
+De ahí que el paso de abrir la pantalla no sea una formalidad: **es el que
+encuentra**, y el recuento sólo sirve para ir detrás comprobando que baja.
+
 ## El orden: primero el español
 
 Es el idioma en el que se usa la aplicación, así que es donde una mezcla molesta
@@ -122,11 +141,36 @@ valga:
 | | En inglés | Total fuera del diccionario | Componentes con i18n |
 |---|---:|---:|---:|
 | Punto de partida | 133 | 513 | 12 de 64 |
-| Tras la primera tanda | **87** | 451 | 15 de 64 |
+| Tras la primera tanda | 87 | 451 | 15 de 64 |
+| Tras la segunda y la tercera | **0** | 363 | 29 de 64 |
 
-Pantallas convertidas en esa tanda: crear proyecto (`NewProjectDialog`), cabecera
-del chat (`ChatHeader`) y calculadora (`HydraulicCalculator`).
+Las tres cifras se miden con el script de hoy, que ve más que el del principio
+—por eso el «total» sube y baja: no es que aparezca texto, es que se mira mejor—.
 
-Lo que queda con más inglés, por si sirve de orden para la siguiente:
-`UnifiedWisdomPanel` (19), `WNTRMainInterface` (17), `WNTRMapViewer` (10),
-`VectorGraphViewer` (9) y `ProjectConversationsList` (6).
+Pantallas convertidas: crear proyecto, cabecera del chat y calculadora (primera
+tanda); visor de red y mapa (segunda); Wisdom Center, grafo de vectores, chat
+completo —modelos, adjuntos, proyectos, Wisdom—, barra de ventana, diálogos y
+las tres pestañas de ajustes que quedaban (tercera).
+
+Comprobadas en la aplicación: proyectos, calculadora, chat general, Wisdom
+Center, grafo de vectores, ajustes y visor de red sobre `Net3 2.inp`.
+
+### Un caso que no es de componentes
+
+El título de una conversación nueva se escribía en inglés desde
+`chatStore.ts`. Ahora sale del diccionario con `i18n.t`, que fuera de React
+funciona igual. Queda **guardado** en el idioma en que se creó, como cualquier
+otro dato que escribe quien usa Boorie: cambiar de idioma no reescribe lo ya
+guardado.
+
+### Los plurales
+
+«(1 fragmentos)» se leía mal. i18next elige la forma según el `count`, pero
+para eso hacen falta las dos claves —`_one` y `_other`—; con una sola no hay
+plural que valga. Están así los fragmentos indexados, el recuento de documentos
+y el de nudos del grafo.
+
+### Lo que queda para las fases 2 y 3
+
+Los 363 textos escritos a mano en castellano. Se ven bien hoy y rompen al
+cambiar de idioma, que es justo lo que van a mirar las dos fases siguientes.

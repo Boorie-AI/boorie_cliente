@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { getOllamaBaseUrl } from '@/config/ollama';
 import { useState, useEffect } from 'react'
@@ -19,6 +20,7 @@ interface Model {
 }
 
 export function ModelSelector() {
+  const { t } = useTranslation()
   const { setCurrentView } = useAppStore()
   const { conversations, activeConversationId, updateConversationModel } = useChatStore()
   const { getSelectedModels } = useAIConfigStore()
@@ -171,9 +173,9 @@ export function ModelSelector() {
             ) : (
               <AlertCircle size={16} className="text-yellow-600" />
             )}
-            <Select.Value placeholder="Select Model">
+            <Select.Value placeholder={t('models.select')}>
               <span className="font-medium text-sm">
-                {availableModels.find(m => m.id === selectedModel)?.name || 'Select Model'}
+                {availableModels.find(m => m.id === selectedModel)?.name || t('models.select')}
               </span>
             </Select.Value>
           </div>
@@ -194,7 +196,7 @@ export function ModelSelector() {
               {ollamaStatus === 'available' && availableModels.some(m => m.type === 'local') && (
                 <>
                   <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Local Models (Ollama)
+                    {t('models.localOllama')}
                   </div>
                   {availableModels
                     .filter(m => m.type === 'local')
@@ -224,7 +226,7 @@ export function ModelSelector() {
               {ollamaStatus === 'unavailable' && (
                 <>
                   <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Local Models
+                    {t('models.local')}
                   </div>
                   <div className="px-3 py-3 text-sm text-muted-foreground">
                     <div className="flex items-center space-x-2 mb-2">
@@ -235,7 +237,7 @@ export function ModelSelector() {
                       onClick={() => setCurrentView('settings')}
                       className="text-primary hover:underline text-xs"
                     >
-                      Configure Ollama in Settings
+                      {t('models.configOllama')}
                     </button>
                   </div>
                   <Select.Separator className="h-px bg-border my-1" />
@@ -244,7 +246,7 @@ export function ModelSelector() {
 
               {/* API Models Section */}
               <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                API Models
+                {t('models.api')}
               </div>
               {availableModels
                 .filter(m => m.type === 'api')
@@ -284,7 +286,7 @@ export function ModelSelector() {
                 )}
               >
                 <Settings size={16} />
-                <span>Configure API Providers</span>
+                <span>{t('models.configure')}</span>
               </button>
             </Select.Viewport>
           </Select.Content>

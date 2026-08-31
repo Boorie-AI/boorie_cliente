@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import { Minus, X, Maximize2, Minimize2 } from 'lucide-react'
 import boorieIcon from '@/assets/boorie_icon_light.png'
 
 export function CustomTopBar() {
+  const { t } = useTranslation()
   const [isMaximized, setIsMaximized] = useState(false)
   const [isHovered, setIsHovered] = useState<string | null>(null)
 
@@ -168,7 +170,7 @@ export function CustomTopBar() {
               : 'hover:bg-red-500 hover:text-white'
             }
           `}
-          title="Close"
+          title={t('window.close')}
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <X className="w-4 h-4" />

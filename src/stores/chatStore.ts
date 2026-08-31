@@ -1,4 +1,5 @@
 import { logger } from '@/utils/logger'
+import i18n from '@/i18n'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { type ChatMessage } from '@/services/chat'
@@ -133,7 +134,7 @@ export const useChatStore = create<ChatState>()(
 
         const newConversation: Conversation = {
           id: crypto.randomUUID(),
-          title: 'New Conversation',
+          title: i18n.t('chat.newConversation'),
           messages: [],
           projectId,
           createdAt: new Date(),

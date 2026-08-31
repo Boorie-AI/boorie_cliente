@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import Graph from '@/components/common/VisNetworkGraph'
@@ -25,6 +26,7 @@ export function DynamicVectorGraph({
   onNodeDoubleClick,
   onEdgeSelect
 }: DynamicVectorGraphProps) {
+  const { t } = useTranslation()
   const graphRef = useRef<any>(null)
 
   // State
@@ -376,7 +378,7 @@ export function DynamicVectorGraph({
         <div className="flex flex-col gap-3">
           {/* Layout Controls */}
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-2 block">Layout</label>
+            <label className="text-xs font-medium text-muted-foreground mb-2 block">{t('vectorGraph.layout')}</label>
             <div className="flex gap-1">
               {(['force', 'hierarchical', 'circular'] as const).map(layout => (
                 <button
@@ -387,7 +389,7 @@ export function DynamicVectorGraph({
                     : 'bg-muted hover:bg-muted/80'
                     }`}
                 >
-                  {layout === 'force' ? 'Force' : layout === 'hierarchical' ? 'Tree' : 'Circle'}
+                  {layout === 'force' ? t('vectorGraph.force') : layout === 'hierarchical' ? t('vectorGraph.tree') : t('vectorGraph.circle')}
                 </button>
               ))}
             </div>
@@ -401,21 +403,21 @@ export function DynamicVectorGraph({
                 ? 'bg-green-100 text-green-700 hover:bg-green-200'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
-              title={isPhysicsEnabled ? 'Stop Physics' : 'Start Physics'}
+              title={isPhysicsEnabled ? t('vectorGraph.stopPhysics') : t('vectorGraph.startPhysics')}
             >
               {isPhysicsEnabled ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             </button>
             <button
               onClick={resetView}
               className="p-2 bg-muted hover:bg-muted/80 rounded transition-colors"
-              title="Reset View"
+              title={t('vectorGraph.resetView')}
             >
               <RotateCcw className="w-4 h-4" />
             </button>
             <button
               onClick={exportNetwork}
               className="p-2 bg-muted hover:bg-muted/80 rounded transition-colors"
-              title="Export Image"
+              title={t('vectorGraph.exportImage')}
             >
               <Download className="w-4 h-4" />
             </button>
@@ -427,7 +429,7 @@ export function DynamicVectorGraph({
               <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search nodes..."
+                placeholder={t('vectorGraph.searchNodes')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-7 pr-3 py-1 text-xs bg-background border border-border rounded"
@@ -442,7 +444,7 @@ export function DynamicVectorGraph({
               onChange={(e) => setFilterOptions(prev => ({ ...prev, category: e.target.value }))}
               className="w-full px-2 py-1 text-xs bg-background border border-border rounded"
             >
-              <option value="">All Categories</option>
+              <option value="">{t('vectorGraph.allCategories')}</option>
               {Object.keys(categoryColors).map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
@@ -454,7 +456,7 @@ export function DynamicVectorGraph({
                 onChange={(e) => setFilterOptions(prev => ({ ...prev, nodeSize: e.target.value }))}
                 className="flex-1 px-2 py-1 text-xs bg-background border border-border rounded"
               >
-                <option value="default">Default Size</option>
+                <option value="default">{t('vectorGraph.defaultSize')}</option>
                 <option value="connections">By Connections</option>
                 <option value="content">By Content</option>
               </select>
@@ -464,9 +466,9 @@ export function DynamicVectorGraph({
                 onChange={(e) => setFilterOptions(prev => ({ ...prev, colorBy: e.target.value }))}
                 className="flex-1 px-2 py-1 text-xs bg-background border border-border rounded"
               >
-                <option value="category">By Category</option>
+                <option value="category">{t('vectorGraph.byCategory')}</option>
                 <option value="connections">By Connections</option>
-                <option value="size">By Size</option>
+                <option value="size">{t('vectorGraph.bySize')}</option>
               </select>
             </div>
 
@@ -477,7 +479,7 @@ export function DynamicVectorGraph({
                 onChange={(e) => setFilterOptions(prev => ({ ...prev, showLabels: e.target.checked }))}
                 className="rounded"
               />
-              Show Labels
+              {t('vectorGraph.showLabels')}
             </label>
           </div>
         </div>
@@ -496,7 +498,7 @@ export function DynamicVectorGraph({
         <div className="text-xs space-y-1">
           <div className="flex items-center gap-2">
             <NetworkIcon className="w-3 h-3" />
-            <span>{networkStats.totalNodes} nodes, {networkStats.totalEdges} edges</span>
+            <span>{t('vectorGraph.counts', { nodes: networkStats.totalNodes, edges: networkStats.totalEdges })}</span>
           </div>
           <div className="flex items-center gap-2">
             <Activity className="w-3 h-3" />

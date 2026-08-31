@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { Message } from '@/stores/chatStore'
 import { Copy, User, Bot } from 'lucide-react'
@@ -14,6 +15,7 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble({ message, isStreaming = false }: MessageBubbleProps) {
+  const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
   const propuesta = message.metadata?.propuesta_escenario
@@ -193,7 +195,7 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
           <button
             onClick={handleCopy}
             className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-            title="Copy message"
+            title={t('chatInput.copy')}
           >
             <Copy size={12} />
           </button>

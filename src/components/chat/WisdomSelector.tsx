@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useEffect, useRef } from 'react'
 import { Brain, ChevronDown, Search, Lightbulb, Check } from 'lucide-react'
@@ -19,6 +20,7 @@ interface WisdomSelectorProps {
 }
 
 export function WisdomSelector({ selectedConfig, onConfigChange, className }: WisdomSelectorProps) {
+  const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const [wisdomSources, setWisdomSources] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -145,7 +147,7 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
           {/* Header */}
           <div className="px-4 py-2 border-b border-border">
             <div className="flex items-center justify-between">
-              <h3 className="font-medium text-foreground">💡 Wisdom Configuration</h3>
+              <h3 className="font-medium text-foreground">💡 {t('chatInput.wisdomConfig')}</h3>
               <button
                 onClick={toggleWisdom}
                 className={cn(
@@ -166,7 +168,7 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
               <div className="px-4 py-3 border-b border-border">
                 <div className="flex items-center justify-between">
                   <label className="block text-sm font-medium text-foreground">
-                    Search Method
+                    {t('chatInput.searchMethod')}
                   </label>
                   <span className="text-sm text-primary font-medium">
                     RAG Agéntico ✨
@@ -248,7 +250,7 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
                   <Search className="w-3 h-3 absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Search sources..."
+                    placeholder={t('chatInput.searchSources')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-7 pr-2 py-1 text-xs bg-background border border-border rounded"
@@ -284,13 +286,13 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
             <div className="px-4 py-6 text-center">
               <Brain className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
               <p className="text-sm text-muted-foreground mb-3">
-                Enable Wisdom RAG to enhance your conversations with hydraulic engineering knowledge
+                {t('chatInput.wisdomHint')}
               </p>
               <button
                 onClick={toggleWisdom}
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
               >
-                Enable Wisdom
+                {t('chatInput.enableWisdom')}
               </button>
             </div>
           )}
