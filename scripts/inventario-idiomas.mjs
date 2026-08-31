@@ -39,7 +39,7 @@ const vivo = (p) => {
  * Exigir que el texto empiece por letra dejaba fuera lo que lleva delante un
  * emoji o un paréntesis —«✅ Indexed», «(1 chunks)»—, que se ve igual de mal.
  */
-const ENTRE = />\s*([^<>{}\n]{3,200}?)\s*</g
+const ENTRE = />\s*([^<>{}]{3,300}?)\s*</g
 const ATRIBUTO = /(?:placeholder|title|aria-label|label)="([^"{}\n]{3,200})"/g
 /**
  * Un texto metido en una expresión —las dos ramas de un ternario, sobre todo—
@@ -48,14 +48,14 @@ const ATRIBUTO = /(?:placeholder|title|aria-label|label)="([^"{}\n]{3,200})"/g
  */
 const LITERAL = /^\s*["']([^"'`\n]{6,200})["']\s*[,:)]?\s*$/gm
 /** Siglas, cifras, unidades y URLs no son texto que traducir. */
-const RUIDO = /^(?:[A-Z0-9_\-.]{1,12}|https?:\/\/|nvapi|[\d\s.,%/·—-]+|m³.*|l\/s|kWh|PGV.*|EPSG.*)$/
+const RUIDO = /^(?:[A-Z0-9_\-.]{1,12}|nvapi.*|[\d\s.,%/·—-]+|m³.*|l\/s|kWh|PGV.*|EPSG.*|[\w.-]+\.(?:sh|js|ts|tsx|py|json|inp|md|ai)|[a-z]+(?:_[a-z]+)+)$|^https?:\/\//
 /**
  * El barrido entre `>` y `<` a veces pilla el final de una expresión JSX
  * —`m.type === 'local') && (`—, que es código, no texto.
  */
-const CODIGO = /===|=>|&&|\?\.|React\./
+const CODIGO = /===|=>|&&|\?\.|React\.|^[a-z_$][\w$]*(\.[\w$]+)+$|^ollama pull |^case |: return|\?\s*\($|;|\buseState\b|\buseRef\b|\bconst \[|^\( |\/\*|^return \(|Parameters/
 /** Las clases de Tailwind son texto, pero no de los que lee nadie. */
-const CLASES = /(^|\s)(flex|grid|block|inline|absolute|relative|fixed|sticky|truncate|overflow-|w-|h-|p[xytblr]?-|m[xytblr]?-|bg-|text-|border|rounded|hover:|focus:|group-|data-\[|transition|duration-|gap-|space-|min-|max-|shadow|z-\d|items-|justify-|font-|leading-|opacity-|animate-|cursor-|select-none|outline-none)/
+const CLASES = /(^|\s)(flex|grid|block|inline|absolute|relative|fixed|sticky|truncate|overflow-|w-|h-|p[xytblr]?-|m[xytblr]?-|bg-|text-|border|rounded|hover:|focus:|group-|data-\[|transition|duration-|gap-|space-|min-|max-|shadow|z-\d|items-|justify-|font-|leading-|opacity-|animate-|cursor-|select-none|outline-none|disabled:|dark:|placeholder:|resize-)/
 const MARCA_ES = /[áéíóúñ¿¡Á-Ú]/
 const FUNCIONALES_ES = new Set(
   'de la el los las un una para con sin por al del y o que se su sus no hay más como este esta cada'.split(' ')
@@ -100,7 +100,8 @@ let espanol = 0, otro = 0, ingles = 0
 for (const p of todos.filter(vivo)) {
   const src = fuente.get(p)
   const cadenas = new Set()
-  for (const m of src.matchAll(ENTRE)) if (!m[1].startsWith('{')) cadenas.add(m[1].trim())
+  // Un párrafo repartido en varias líneas es un texto, no varios: se junta.
+  for (const m of src.matchAll(ENTRE)) if (!m[1].startsWith('{')) cadenas.add(m[1].replace(/\s+/g, ' ').trim())
   for (const m of src.matchAll(ATRIBUTO)) cadenas.add(m[1].trim())
   for (const m of src.matchAll(LITERAL)) cadenas.add(m[1].trim())
 
@@ -134,6 +135,12 @@ console.log(`  de ellos, en inglés: ${ingles}   <- se ven mal hoy, en una aplic
 console.log(`  el resto está en castellano: ${espanol + otro - ingles}   <- se ve bien hoy y rompe al cambiar de idioma`)
 console.log(`componentes vivos: ${todos.filter(vivo).length}  ·  con i18n: ${conI18n}`)
 console.log('\nreparto (total fuera del diccionario / de ellos en inglés):')
-for (const [p, v] of [...porFichero].sort((a, b) => b[1].enIngles.length - a[1].enIngles.length).slice(0, 15)) {
+// Con `--todos`, el reparto entero: en la fase 2 el orden que importa ya no es
+// cuánto inglés queda sino cuánto texto sigue fuera del diccionario.
+const cuantos = process.argv.includes('--todos') ? porFichero.size : 15
+const orden = [...porFichero].sort(
+  (a, b) => b[1].enIngles.length - a[1].enIngles.length || b[1].fuera.length - a[1].fuera.length
+)
+for (const [p, v] of orden.slice(0, cuantos)) {
   console.log(`  ${String(v.fuera.length).padStart(3)} / ${String(v.enIngles.length).padStart(3)} en inglés   ${p.replace('src/components/', '')}`)
 }

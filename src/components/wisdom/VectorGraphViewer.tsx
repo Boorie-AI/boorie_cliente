@@ -209,7 +209,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                   {/* Issues */}
                   {healthData.issues.length > 0 && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                      <h3 className="font-semibold text-yellow-800 mb-2">⚠️ Issues Found</h3>
+                      <h3 className="font-semibold text-yellow-800 mb-2">⚠️ {t('vectorGraph.issuesFound')}</h3>
                       <ul className="space-y-1">
                         {healthData.issues.map((issue: any, index: number) => (
                           <li key={index} className="text-sm text-yellow-700">• {issue}</li>
@@ -224,7 +224,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                     <div className="bg-card border border-border rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Database className="w-4 h-4 text-blue-500" />
-                        <h3 className="font-medium">Database</h3>
+                        <h3 className="font-medium">{t('vectorGraph.database')}</h3>
                       </div>
                       <div className="text-2xl font-bold text-foreground">
                         {healthData.metrics.databaseStatus === 'connected' ? '✅' : '❌'}
@@ -255,7 +255,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                       <div className="bg-card border border-border rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <Cpu className="w-4 h-4 text-purple-500" />
-                          <h3 className="font-medium">Embeddings</h3>
+                          <h3 className="font-medium">{t('vectorGraph.embeddings')}</h3>
                         </div>
                         <div className="text-2xl font-bold text-foreground">
                           {healthData.metrics.embeddings.coverage}%
@@ -271,7 +271,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                       <div className="bg-card border border-border rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <Zap className="w-4 h-4 text-yellow-500" />
-                          <h3 className="font-medium">Performance</h3>
+                          <h3 className="font-medium">{t('vectorGraph.performance')}</h3>
                         </div>
                         <div className="text-2xl font-bold text-foreground">
                           {healthData.metrics.performance.avgProcessingTime}ms
@@ -359,15 +359,15 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                         className="px-3 py-1 bg-background border border-border rounded text-sm"
                       >
                         <option value="">{t('vectorGraph.allCategories')}</option>
-                        <option value="fuentes-hidrologia">Fuentes e Hidrología</option>
-                        <option value="obras-toma">Obras de Toma</option>
-                        <option value="hidraulica-aducciones">Hidráulica y Aducciones</option>
-                        <option value="potabilizacion">Potabilización</option>
-                        <option value="almacenamiento">Almacenamiento</option>
-                        <option value="bombeo">Bombeo</option>
-                        <option value="redes-distribucion">Redes de Distribución</option>
-                        <option value="aguas-servidas">Aguas Servidas</option>
-                        <option value="tratamiento">Tratamiento</option>
+                        <option value="fuentes-hidrologia">{t('categories.fuentes-hidrologia')}</option>
+                        <option value="obras-toma">{t('categories.obras-toma')}</option>
+                        <option value="hidraulica-aducciones">{t('categories.hidraulica-aducciones')}</option>
+                        <option value="potabilizacion">{t('categories.potabilizacion')}</option>
+                        <option value="almacenamiento">{t('categories.almacenamiento')}</option>
+                        <option value="bombeo">{t('categories.bombeo')}</option>
+                        <option value="redes-distribucion">{t('categories.redes-distribucion')}</option>
+                        <option value="aguas-servidas">{t('categories.aguas-servidas')}</option>
+                        <option value="tratamiento">{t('categories.tratamiento')}</option>
                       </select>
                     </div>
 
@@ -427,9 +427,9 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                   ) : (
                     <div className="bg-card border border-border rounded-lg p-8 text-center">
                       <Network className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-foreground mb-2">No Graph Data</h3>
+                      <h3 className="text-lg font-semibold text-foreground mb-2">{t('vectorGraph.noGraph')}</h3>
                       <p className="text-muted-foreground">
-                        No vector data available for visualization. Try indexing some documents first.
+                        {t('vectorGraph.noGraphHint')}
                       </p>
                     </div>
                   )}
@@ -461,7 +461,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                             <span className="font-medium">{cluster.avgChunkSize} chars</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Density:</span>
+                            <span className="text-muted-foreground">{t('vectorGraph.density')}</span>
                             <span className="font-medium">{(cluster.density * 100).toFixed(1)}%</span>
                           </div>
                         </div>

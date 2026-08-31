@@ -84,7 +84,7 @@ export function DynamicVectorGraph({
   const createEdgeTooltip = useCallback((edge: any): string => {
     return `
       <div style="padding: 8px;">
-        <strong>Connection</strong><br/>
+        <strong>{t('vectorGraph.connection')}</strong><br/>
         Weight: ${edge.weight || 1}<br/>
         Type: ${edge.type || 'similarity'}
       </div>
@@ -457,8 +457,8 @@ export function DynamicVectorGraph({
                 className="flex-1 px-2 py-1 text-xs bg-background border border-border rounded"
               >
                 <option value="default">{t('vectorGraph.defaultSize')}</option>
-                <option value="connections">By Connections</option>
-                <option value="content">By Content</option>
+                <option value="connections">{t('vectorGraph.byConnections')}</option>
+                <option value="content">{t('vectorGraph.byContent')}</option>
               </select>
 
               <select
@@ -467,7 +467,7 @@ export function DynamicVectorGraph({
                 className="flex-1 px-2 py-1 text-xs bg-background border border-border rounded"
               >
                 <option value="category">{t('vectorGraph.byCategory')}</option>
-                <option value="connections">By Connections</option>
+                <option value="connections">{t('vectorGraph.byConnections')}</option>
                 <option value="size">{t('vectorGraph.bySize')}</option>
               </select>
             </div>

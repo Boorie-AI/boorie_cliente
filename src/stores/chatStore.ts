@@ -552,36 +552,23 @@ export const useChatStore = create<ChatState>()(
           let userFacingMessage: string
 
           if (errorMessage === 'GLOBAL_TIMEOUT') {
-            userFacingMessage = '**La solicitud tardó demasiado.** El sistema no pudo completar la operación en el tiempo límite (8 minutos).\n\n' +
-              'Posibles causas:\n' +
-              '- El modelo de IA está sobrecargado o es demasiado grande\n' +
-              '- La búsqueda en la base de conocimiento (RAG) está tardando mucho\n' +
-              '- Problemas de conexión con el proveedor de IA\n\n' +
-              'Sugerencias:\n' +
-              '1. Intente enviar su mensaje nuevamente\n' +
-              '2. Pruebe con un modelo más pequeño o rápido\n' +
-              '3. Desactive temporalmente el Wisdom Center si está habilitado'
+            userFacingMessage = i18n.t('messages.chatTimeout')
           } else if (errorMessage.includes('Cannot connect to Ollama') || errorMessage.includes('ECONNREFUSED')) {
-            userFacingMessage = '**No se puede conectar con Ollama.** Asegúrese de que Ollama esté ejecutándose.\n\n' +
-              '1. Abra una terminal y ejecute: `ollama serve`\n' +
-              '2. Verifique que esté activo en http://127.0.0.1:11434\n' +
-              '3. Intente enviar su mensaje nuevamente.'
+            userFacingMessage = i18n.t('messages.chatNoOllama')
           } else if (errorMessage.includes('not found') && errorMessage.includes('ollama pull')) {
-            userFacingMessage = `**Modelo no disponible.** ${errorMessage}\n\nAbra una terminal y descargue el modelo antes de intentar nuevamente.`
+            userFacingMessage = i18n.t('messages.chatNoModel', { motivo: errorMessage })
           } else if (errorMessage.includes('timed out')) {
-            userFacingMessage = '**Tiempo de espera agotado.** El modelo está tardando demasiado en responder.\n\n' +
-              'Esto puede ocurrir con modelos grandes o en equipos con recursos limitados.\n' +
-              'Intente nuevamente o cambie a un modelo más pequeño.'
+            userFacingMessage = i18n.t('messages.chatSlowModel')
           } else if (errorMessage.includes('API key') || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-            userFacingMessage = '**Error de autenticación.** Verifique que su clave API sea correcta en Ajustes > Proveedores de IA.'
+            userFacingMessage = i18n.t('messages.chatBadKey')
           } else if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
-            userFacingMessage = '**Límite de solicitudes excedido.** Espere un momento e intente nuevamente.'
+            userFacingMessage = i18n.t('messages.chatRateLimit')
           } else if (errorMessage.includes('credit') || errorMessage.includes('billing') || errorMessage.includes('balance') || errorMessage.includes('quota')) {
-            userFacingMessage = '**Créditos insuficientes.** Verifique el saldo de su cuenta con el proveedor de IA.'
+            userFacingMessage = i18n.t('messages.chatNoCredit')
           } else if (errorMessage.includes('hydraulic_knowledge') || errorMessage.includes('does not exist in the current database')) {
-            userFacingMessage = '**Error de base de datos.** Algunas tablas no se encuentran. Reinicie la aplicación para reparar la base de datos automáticamente.'
+            userFacingMessage = i18n.t('messages.chatDatabase')
           } else {
-            userFacingMessage = `**Error al procesar su solicitud:** ${errorMessage}`
+            userFacingMessage = i18n.t('messages.chatOther', { motivo: errorMessage })
           }
 
           await get().addMessageToConversation(conversationId, {

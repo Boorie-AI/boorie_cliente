@@ -91,17 +91,17 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
 
   const getDisplayText = () => {
     if (!selectedConfig?.enabled) {
-      return 'No Wisdom'
+      return t('chatInput.noWisdom')
     }
     
     const { categories } = selectedConfig
     const categoryText = categories.length === 0 
-      ? 'All Categories'
+      ? t('chatInput.allCategories')
       : categories.length === 1
         ? categories[0]
-        : `${categories.length} Categories`
-    
-    return `${categoryText} • RAG Agéntico`
+        : t('chatInput.nCategories', { count: categories.length })
+
+    return t('chatInput.wisdomSummary', { categorias: categoryText })
   }
 
   // Solo usamos RAG Agéntico ahora
@@ -171,11 +171,11 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
                     {t('chatInput.searchMethod')}
                   </label>
                   <span className="text-sm text-primary font-medium">
-                    RAG Agéntico ✨
+                    {t('chatInput.agenticRag')}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Sistema inteligente con re-ranking y búsqueda web
+                  {t('chatInput.agenticHint')}
                 </p>
               </div>
 
@@ -226,7 +226,7 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
                 </div>
                 {selectedConfig.categories.length === 0 && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    No categories selected - will search all available wisdom
+                    {t('chatInput.allWisdom')}
                   </p>
                 )}
               </div>

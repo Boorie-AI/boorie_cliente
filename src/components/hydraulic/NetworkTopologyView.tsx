@@ -7,6 +7,7 @@
  * dónde esté la red, así que un esquema siempre se puede dibujar.
  */
 
+import { useTranslation } from 'react-i18next'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Info } from 'lucide-react'
 import VisNetworkGraph from '@/components/common/VisNetworkGraph'
@@ -33,6 +34,7 @@ export function NetworkTopologyView({
   escala,
   capas,
 }: NetworkTopologyViewProps) {
+  const { t } = useTranslation()
   const visRef = useRef<{ fit: () => void } | null>(null)
   // El id, no el texto: las cifras del cuadro dependen del paso, y guardar la
   // cadena ya formateada las congelaba en el paso que hubiera al pinchar (#74).
@@ -110,7 +112,7 @@ export function NetworkTopologyView({
   if (grafo.nodes.length === 0) {
     return (
       <div className="flex h-full items-center justify-center bg-muted/20">
-        <p className="text-sm text-muted-foreground">La red no tiene nudos que dibujar.</p>
+        <p className="text-sm text-muted-foreground">{t('viewer.noNodes')}</p>
       </div>
     )
   }

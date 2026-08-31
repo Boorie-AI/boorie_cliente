@@ -8,6 +8,7 @@
  * instantánea sujete.
  */
 
+import { useTranslation } from 'react-i18next'
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Camera, Download, RotateCcw, Share2, Trash2 } from 'lucide-react'
 import { logger } from '@/utils/logger'
@@ -52,6 +53,7 @@ export function InstantaneasProyecto({
   nombreProyecto,
   onRestaurado,
 }: InstantaneasProyectoProps) {
+  const { t } = useTranslation()
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [etiqueta, setEtiqueta] = useState('')
   const [cargando, setCargando] = useState(false)
@@ -146,9 +148,7 @@ export function InstantaneasProyecto({
             Instantáneas de {nombreProyecto}
           </DialogTitle>
           <DialogDescription>
-            Una instantánea anota qué versión de cada red estaba vigente. Sirve para volver al
-            estado completo de una entrega, y sujeta esas versiones para que la retención no las
-            pode.
+            {t('snapshots.snapshotHint')}
           </DialogDescription>
         </DialogHeader>
 
@@ -156,23 +156,22 @@ export function InstantaneasProyecto({
           <Input
             value={etiqueta}
             onChange={e => setEtiqueta(e.target.value)}
-            placeholder="Cómo la reconocerás: «Entrega de marzo»"
+            placeholder={t('snapshots.nameHint')}
             onKeyDown={e => { if (e.key === 'Enter') crear() }}
           />
           <Button size="sm" onClick={crear} disabled={!etiqueta.trim()} className="shrink-0">
             <Camera className="mr-2 h-3.5 w-3.5" />
-            Crear una Instantánea
+            {t('snapshots.create')}
           </Button>
         </div>
 
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs text-muted-foreground">
-            Un paquete lleva las redes con su `.inp` y su sistema de coordenadas, y se comprueba al
-            abrirlo: si llegó a medias o alguien lo editó, no se importa nada.
+            {t('snapshots.packageHint')}
           </p>
           <Button variant="outline" size="sm" className="shrink-0" onClick={importar}>
             <Download className="mr-2 h-3.5 w-3.5" />
-            Importar paquete
+            {t('snapshots.import')}
           </Button>
         </div>
 
@@ -183,11 +182,11 @@ export function InstantaneasProyecto({
         {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
 
         <div className="max-h-96 divide-y divide-border overflow-y-auto rounded-md border border-border">
-          {cargando && <p className="px-3 py-6 text-center text-sm text-muted-foreground">Cargando…</p>}
+          {cargando && <p className="px-3 py-6 text-center text-sm text-muted-foreground">{t('snapshots.loading')}</p>}
 
           {!cargando && snapshots.length === 0 && (
             <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-              Este proyecto todavía no tiene instantáneas.
+              {t('snapshots.empty')}
             </p>
           )}
 
@@ -203,7 +202,7 @@ export function InstantaneasProyecto({
                   <ul className="mt-1 space-y-0.5">
                     {s.redes.map(r => (
                       <li key={r.versionId} className="text-xs text-muted-foreground">
-                        {r.nombre} — versión {r.versionNumber}
+                        {r.nombre} — {t('snapshots.versionOf', { numero: r.versionNumber })}
                       </li>
                     ))}
                   </ul>
@@ -214,7 +213,7 @@ export function InstantaneasProyecto({
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
-                    title="Exportar para otra instalación de Boorie"
+                    title={t('snapshots.export')}
                     onClick={() => exportar(s)}
                   >
                     <Share2 className="h-3.5 w-3.5" />
@@ -223,7 +222,7 @@ export function InstantaneasProyecto({
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
-                    title="Devolver el proyecto a este estado"
+                    title={t('snapshots.restoreHint')}
                     onClick={() => setConfirmar(s)}
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
@@ -232,7 +231,7 @@ export function InstantaneasProyecto({
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-red-500"
-                    title="Borrar la instantánea (no borra las versiones)"
+                    title={t('snapshots.delete')}
                     onClick={() => borrar(s)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -248,16 +247,14 @@ export function InstantaneasProyecto({
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
             <div className="min-w-0 flex-1">
               <p>
-                Las {confirmar.redes.length} redes del proyecto volverán a como estaban en «
-                {confirmar.label}». El estado actual de cada una se guarda antes como una versión
-                nueva, así que no se pierde.
+                {t('snapshots.restoreAll', { count: confirmar.redes.length, etiqueta: confirmar.label })}
               </p>
               <div className="mt-2 flex gap-2">
                 <Button size="sm" onClick={() => restaurar(confirmar)}>
-                  Restaurar el proyecto
+                  {t('snapshots.restore')}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setConfirmar(null)}>
-                  Cancelar
+                  {t('snapshots.cancel')}
                 </Button>
               </div>
             </div>

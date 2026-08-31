@@ -120,7 +120,7 @@ export function CustomTopBar() {
               : 'hover:bg-gray-100 dark:hover:bg-gray-800'
             }
           `}
-          title="Minimize"
+          title={t('window.minimize')}
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <Minus className="w-4 h-4 text-gray-600 dark:text-gray-400" />

@@ -88,7 +88,7 @@ export function ProjectSelector({ selectedProjectId, onProjectSelect, className 
                   "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
                 )}
               >
-                <Select.ItemText>No project</Select.ItemText>
+                <Select.ItemText>{t('chatInput.noProject')}</Select.ItemText>
                 <Select.ItemIndicator className="ml-auto">
                   <Check size={14} />
                 </Select.ItemIndicator>
@@ -100,11 +100,11 @@ export function ProjectSelector({ selectedProjectId, onProjectSelect, className 
               
               {loading ? (
                 <div className="px-3 py-2 text-sm text-muted-foreground">
-                  Loading projects...
+                  {t('chatInput.loadingProjects')}
                 </div>
               ) : projects.length === 0 ? (
                 <div className="px-3 py-2 text-sm text-muted-foreground">
-                  No projects available
+                  {t('chatInput.noProjects')}
                 </div>
               ) : (
                 projects.map(project => (

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useEffect, useRef, useState } from 'react'
 import { Loader2, CheckCircle2, AlertTriangle, Download, Cpu } from 'lucide-react'
 import { cn } from '@/utils/cn'
@@ -31,6 +32,7 @@ interface SetupWizardProps {
 const TOTAL_STEPS_LABEL = 'Preparando NeMo Guardrails, Milvus Lite y motor WNTR'
 
 export function SetupWizard({ onComplete }: SetupWizardProps) {
+  const { t } = useTranslation()
   const [status, setStatus] = useState<SetupStatus | null>(null)
   const [installing, setInstalling] = useState(false)
   const [progress, setProgress] = useState<ProgressEvent | null>(null)
@@ -92,7 +94,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
       } else {
         // El evento de progreso 'error' ya trae el motivo real (qué import
         // falla y por qué). No lo pisamos con el código genérico.
-        setErrorMsg((prev) => prev || result?.error || 'Setup falló.')
+        setErrorMsg((prev) => prev || result?.error || t('messages.setupFailed'))
       }
     } catch (e: any) {
       setErrorMsg(e?.message ?? 'Setup falló.')
@@ -121,7 +123,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
               <Cpu className="w-6 h-6 text-primary" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-foreground">Preparando Boorie</h2>
+              <h2 className="text-xl font-semibold text-foreground">{t('setup.preparing')}</h2>
               <p className="text-sm text-muted-foreground mt-0.5">{TOTAL_STEPS_LABEL}</p>
             </div>
           </div>
@@ -132,13 +134,11 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           {!installing && status && !status.ready && (
             <>
               <div className="text-sm text-foreground/80">
-                Boorie necesita instalar algunas dependencias Python para activar la red agéntica de
-                NVIDIA NeMo Guardrails, la base vectorial Milvus Lite y el motor WNTR. Esto se hace
-                una sola vez y tarda unos minutos.
+                {t('setup.intro')}
               </div>
               {status.missing.length > 0 && (
                 <div className="rounded-lg border border-border p-4 space-y-2">
-                  <div className="text-xs font-medium text-muted-foreground">Paquetes pendientes:</div>
+                  <div className="text-xs font-medium text-muted-foreground">{t('setup.pending')}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {status.missing.map((m) => (
                       <span key={m} className="text-xs px-2 py-0.5 rounded-full bg-muted text-foreground/80">
@@ -159,7 +159,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                   )}
                   {status.pythonVersion && (
                     <div className="pt-1 text-[11px] text-muted-foreground">
-                      Intérprete: <span className="font-mono">{status.pythonPath}</span> ({status.pythonVersion})
+                      {t('setup.interpreter')} <span className="font-mono">{status.pythonPath}</span> ({status.pythonVersion})
                     </div>
                   )}
                 </div>
@@ -175,11 +175,11 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                 <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4 text-sm text-yellow-700 dark:text-yellow-400 flex gap-3 items-start">
                   <AlertTriangle className="w-5 h-5 flex-shrink-0" />
                   <div>
-                    No se encontró un Python compatible (3.10 – 3.13) en tu sistema. Instala la 3.13 desde{' '}
+                    {t('setup.noPython')}{' '}
                     <a className="underline" href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer">
                       python.org/downloads
                     </a>
-                    , marca <span className="font-mono">Add python.exe to PATH</span> y reinicia Boorie.
+                    {t('setup.checkPath')} <span className="font-mono">Add python.exe to PATH</span> {t('setup.thenRestart')}
                   </div>
                 </div>
               )}
@@ -220,14 +220,13 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
             <div className="space-y-2">
               <div className="flex items-center gap-3 text-sm text-green-600 dark:text-green-400">
                 <CheckCircle2 className="w-5 h-5" />
-                Todo listo. Boorie ya tiene los motores cargados.
+                {t('setup.ready')}
               </div>
               {status.optionalMissing.length > 0 && (
                 <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 text-xs text-yellow-700 dark:text-yellow-400 flex gap-2 items-start">
                   <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                   <div>
-                    Guardrails ({status.optionalMissing.join(', ')}) no se pudo instalar y quedará
-                    deshabilitado. Esto <strong>no</strong> afecta a RAG, Milvus ni WNTR, que funcionan con normalidad.
+                    {t('setup.guardrailsOff', { faltan: status.optionalMissing.join(', ') })} <strong>{t('setup.guardrailsNo')}</strong> {t('setup.guardrailsRest')}
                   </div>
                 </div>
               )}
@@ -272,7 +271,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                   'hover:bg-primary/90 transition-colors',
                 )}
               >
-                Comenzar
+                {t('setup.start')}
               </button>
             ) : (
               <button

@@ -184,7 +184,7 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
           <div className="text-center py-8">
             <MessageSquare size={32} className="mx-auto text-muted-foreground/30 mb-3" />
             <p className="text-sm text-muted-foreground">
-              No conversations in this project
+              {t('chatInput.noConversations')}
             </p>
             <p className="text-xs text-muted-foreground/70 mt-1">
               {t('projectConversations.empty')}

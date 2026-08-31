@@ -37,8 +37,11 @@ visor decía «Hydraulic Simulation» y «Duration (hours)» mientras el derecho
 ## Cómo se mide
 
 ```bash
-node scripts/inventario-idiomas.mjs               # el total y el reparto
+node scripts/inventario-idiomas.mjs                 # el total y el reparto
+node scripts/inventario-idiomas.mjs --todos         # el reparto entero, sin cortar
 node scripts/inventario-idiomas.mjs --lista Nombre  # las cadenas de un componente
+node scripts/texto-mezclado.mjs                     # texto pegado a expresiones
+node scripts/claves-sin-usar.mjs                    # claves que ya no usa nadie
 ```
 
 El script no es exacto y no pretende serlo: cuenta de más en palabras que son
@@ -63,8 +66,17 @@ cada uno está tapado:
 | Texto dentro de una expresión, como las dos ramas de un ternario | «General chat: this conversation is not linked to any project» |
 | Palabras inglesas que no estaban en su lista | «Upload Folder», «All Categories», «My Documents» |
 
-Quedan dos que no tapa: el texto **mezclado con una expresión** en la misma
-línea —`📊 Model: {provider.model}`— y las palabras inglesas que aún no conoce.
+En la fase 2 aparecieron dos más, y también están tapados: un **párrafo
+repartido en varias líneas** —el patrón se cortaba en el salto de línea— y las
+**clases de Tailwind**, que al admitir saltos empezaron a colarse como si fueran
+texto.
+
+Queda uno que no tapa: el texto **mezclado con una expresión** en la misma línea
+—`📊 Model: {provider.model}`, `{n} redes`—. Para eso hay un segundo barrido,
+`scripts/texto-mezclado.mjs`, escrito en la fase 2: busca marcas de castellano
+en plantillas y expresiones. Encontró 83 en `src/`, entre ellas todo el visor
+—las capas, la leyenda, el reloj— que el inventario daba por limpio.
+
 De ahí que el paso de abrir la pantalla no sea una formalidad: **es el que
 encuentra**, y el recuento sólo sirve para ir detrás comprobando que baja.
 
@@ -130,7 +142,8 @@ y en `calculationEngine.ts`—. Se muestran tal cual.
 Eso no se arregla traduciendo componentes, y tiene su propia decisión: o el motor
 devuelve claves en vez de texto y traduce quien lo enseña, o se traducen los
 textos del motor y se pierde el idioma para quien lo llame desde fuera de la
-interfaz. Va en su propia tanda.
+interfaz. Va en su propia tanda, junto con las narraciones del chat, que
+dependen del mismo motor.
 
 ## Avance
 
@@ -142,7 +155,8 @@ valga:
 |---|---:|---:|---:|
 | Punto de partida | 133 | 513 | 12 de 64 |
 | Tras la primera tanda | 87 | 451 | 15 de 64 |
-| Tras la segunda y la tercera | **0** | 363 | 29 de 64 |
+| Fin de la fase 1 | **0** | 363 | 29 de 64 |
+| Fin de la fase 2 | 0 | **18** | 42 de 64 |
 
 Las tres cifras se miden con el script de hoy, que ve más que el del principio
 —por eso el «total» sube y baja: no es que aparezca texto, es que se mira mejor—.
@@ -170,7 +184,55 @@ para eso hacen falta las dos claves —`_one` y `_other`—; con una sola no hay
 plural que valga. Están así los fragmentos indexados, el recuento de documentos
 y el de nudos del grafo.
 
-### Lo que queda para las fases 2 y 3
+## Fase 2: el inglés
 
-Los 363 textos escritos a mano en castellano. Se ven bien hoy y rompen al
-cambiar de idioma, que es justo lo que van a mirar las dos fases siguientes.
+Tiene dos mitades, y la primera no parece de inglés: **los 363 textos escritos a
+mano en castellano**. Mientras estén en el código, la aplicación en inglés
+enseña castellano; arreglar el inglés empieza por sacarlos del código. La
+segunda mitad sí es de redacción: repasar el inglés heredado.
+
+### Los 18 que quedan, y por qué
+
+Nombres propios y citas, que no se traducen: Boorie, Guardrails, Milvus
+Inspector, NVIDIA NeMo Guardrails, Ollama, `Rails`, los identificadores de
+modelo (`llama3.2:latest`) y las dos citas del instalador de Python
+—`Add python.exe to PATH` y `python.org/downloads`—, que quien lee el aviso
+tiene delante en inglés.
+
+### Lo que se decidió por el camino
+
+**Lo que se guarda queda en el idioma en que se escribió.** La descripción de un
+proyecto importado, el nombre de un cálculo, la descripción de una red
+esqueletizada: son datos del usuario, y cambiar de idioma no reescribe lo que ya
+está guardado. Lo mismo que el título de una conversación.
+
+**Los rótulos en inglés van en minúscula, salvo los nombres propios.** El
+diccionario heredado mezclaba «Recent Chats» con «Saved networks». Se
+normalizaron 68 valores de `en.json` a una sola forma; los nombres propios
+—Boorie Client, Wisdom Center, Ollama, Google Workspace, RAG— conservan sus
+mayúsculas. Y las comillas: «» en castellano y en catalán, “” en inglés.
+
+**Las claves que no usa nadie se van.** `scripts/claves-sin-usar.mjs` recorre el
+diccionario y el código; se quitaron 56 claves muertas —un bloque `rag` de una
+pantalla que no existe, un `sidebar.email`, media docena que yo mismo había
+duplicado al convertir el visor—. Una clave que nadie usa no se revisa y se
+pudre; y el script deja el número a la vista.
+
+**Las pruebas montan la interfaz de verdad.** `src/test/setup.ts` inicializa
+i18next en castellano. Sin eso, `t('projects.myProjects')` devuelve la clave y
+una prueba que busca «Importar red (.inp)» falla sin que nada esté roto.
+
+### Lo que no entra en la fase 2
+
+**El texto que genera el motor, no la interfaz.** Los nombres y descripciones de
+las fórmulas de la calculadora (111 y 33 avisos) y las narraciones de energía y
+de escenario que se escriben en el chat (`narrarEnergia.ts`,
+`narrarEscenario.ts`). Comparten una misma decisión y por eso van juntos en su
+propia tanda: la narración cita `candidata.titulo` y `candidata.motivo`, que
+vienen del recomendador en el backend, así que traducir sólo el narrador dejaría
+la frase a medias. O el motor devuelve claves, o se traduce el motor entero.
+
+### Lo que queda para la fase 3
+
+El catalán de todo lo escrito en las fases 1 y 2: unas 500 claves que se
+redactaron de una vez y nadie ha leído en pantalla.

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { formatearMagnitud } from '@/services/network/unidades'
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -54,6 +55,7 @@ const num = (v: string, porDefecto = 0) => {
 }
 
 export function PanelEnergia({ projectId, redId, hayRed }: Props) {
+  const { t } = useTranslation()
   const [tarifa, setTarifa] = useState<Tarifa | null>(null)
   const [propia, setPropia] = useState(false)
   const [solapados, setSolapados] = useState<Array<[string, string]>>([])
@@ -139,7 +141,7 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
   const verificar = async () => {
     const elementos = bombasMedida.split(',').map(s => s.trim()).filter(Boolean)
     if (elementos.length === 0) {
-      setError('Indica al menos una bomba para la medida')
+      setError(t('messages.needOnePump'))
       return
     }
     setVerificando(true)
@@ -208,29 +210,28 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
     <div className="space-y-4">
       <h3 className="font-semibold text-sm flex items-center gap-2">
         <Zap className="h-4 w-4 text-yellow-500" />
-        Eficiencia energética del bombeo
+        {t('energy.pumpEfficiency')}
       </h3>
 
       {/* Tarifa */}
       <div className="space-y-2 p-3 bg-muted/20 rounded-lg">
         <div className="flex items-center justify-between">
-          <h4 className="text-xs font-semibold">Tarifa eléctrica</h4>
+          <h4 className="text-xs font-semibold">{t('energy.tariff')}</h4>
           {projectId && (
             propia
-              ? <Badge variant="secondary" className="text-[10px]">Propia de este proyecto</Badge>
-              : <Badge variant="outline" className="text-[10px]">Heredada de la general</Badge>
+              ? <Badge variant="secondary" className="text-[10px]">{t('energy.ownOfProject')}</Badge>
+              : <Badge variant="outline" className="text-[10px]">{t('energy.inherited')}</Badge>
           )}
         </div>
         <p className="text-[11px] text-muted-foreground">
-          Sin precio no hay optimización económica, sólo aritmética hidráulica. El precio depende del país y de la
-          hora, así que es un dato del proyecto.
+          {t('energy.tariffIntro')}
         </p>
 
         {tarifa && (
           <>
             <div className="grid grid-cols-3 gap-2">
               <label className="text-[10px] text-muted-foreground">
-                Moneda
+                {t('energy.currency')}
                 <input
                   className="w-full bg-background border rounded px-2 py-1 font-mono text-sm"
                   value={tarifa.moneda}
@@ -249,7 +250,7 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
                 />
               </label>
               <label className="text-[10px] text-muted-foreground">
-                Eficiencia global (%)
+                {t('energy.globalEff')}
                 <input
                   type="number"
                   className="w-full bg-background border rounded px-2 py-1 font-mono text-sm"
@@ -261,7 +262,7 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
             </div>
 
             <div className="space-y-1">
-              <div className="text-[10px] text-muted-foreground">Bloques horarios</div>
+              <div className="text-[10px] text-muted-foreground">{t('energy.blocks')}</div>
               {tarifa.bloques.map((b, i) => (
                 <div key={i} className="flex items-center gap-1">
                   <input
@@ -314,11 +315,11 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
                     bloques: [...tarifa.bloques, { nombre: 'punta', desde_h: 18, hasta_h: 22, precio_kwh: tarifa.precio_kwh * 1.4 }],
                   })}
                 >
-                  <Plus className="h-3 w-3 mr-1" /> Añadir bloque
+                  <Plus className="h-3 w-3 mr-1" /> {t('energy.addBlock')}
                 </Button>
                 {projectId && propia && (
                   <Button size="sm" variant="ghost" className="text-xs" onClick={volverAHeredar} disabled={guardando}>
-                    Volver a heredar
+                    {t('energy.inheritAgain')}
                   </Button>
                 )}
               </div>
@@ -337,8 +338,8 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
       {/* Análisis */}
       <Button size="sm" className="w-full" onClick={analizar} disabled={!hayRed || analizando}>
         {analizando
-          ? <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> Analizando consumo...</>
-          : <><Gauge className="h-3.5 w-3.5 mr-2" /> Analizar consumo energético (24 h)</>}
+          ? <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> {t('energy.analyzing')}</>
+          : <><Gauge className="h-3.5 w-3.5 mr-2" /> {t('energy.analyze')}</>}
       </Button>
 
       {error && (
@@ -357,8 +358,7 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
               </span>
             </div>
             <div className="text-[10px] text-muted-foreground">
-              en 24 h · eficiencia {analisis.trazabilidad.eficiencia_global_pct}% ({analisis.trazabilidad.origen_eficiencia}) ·
-              {' '}{analisis.trazabilidad.intervalos} intervalos de {analisis.trazabilidad.paso_s} s
+              {t('energy.traceability', { eficiencia: analisis.trazabilidad.eficiencia_global_pct, origen: analisis.trazabilidad.origen_eficiencia, intervalos: analisis.trazabilidad.intervalos, paso: analisis.trazabilidad.paso_s })}
             </div>
 
             <div className="space-y-1">
@@ -383,19 +383,19 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
                   </div>
                   {b.eficiencia && (
                     <div className="text-[10px] text-muted-foreground">
-                      Eficiencia {b.eficiencia.media_pct.toFixed(1)}%
+                      {t('energy.efficiencyOf', { media: b.eficiencia.media_pct.toFixed(1) })}
                       {b.eficiencia.maxima_pct > b.eficiencia.minima_pct &&
-                        ` (entre ${b.eficiencia.minima_pct.toFixed(1)} y ${b.eficiencia.maxima_pct.toFixed(1)})`}
+                        t('energy.efficiencyRange', { min: b.eficiencia.minima_pct.toFixed(1), max: b.eficiencia.maxima_pct.toFixed(1) })}
                       {' — '}{b.eficiencia.origen}
                     </div>
                   )}
                   {b.punto_optimo && (
                     <Alert className="text-[10px] py-1">
-                      Su curva da {b.punto_optimo.punto_optimo.eficiencia_pct.toFixed(1)}% a{' '}
-                      {formatearMagnitud(b.punto_optimo.punto_optimo.caudal_m3s, 'caudal')}, y está trabajando al{' '}
+                      {t('energy.curveGives', { optima: b.punto_optimo.punto_optimo.eficiencia_pct.toFixed(1) })}{' '}
+                      {formatearMagnitud(b.punto_optimo.punto_optimo.caudal_m3s, 'caudal')}{t('energy.workingAt')}{' '}
                       {b.punto_optimo.eficiencia_en_operacion_pct.toFixed(1)}%
                       {b.punto_optimo.desviacion_caudal_pct !== null &&
-                        ` con el caudal ${Math.abs(b.punto_optimo.desviacion_caudal_pct).toFixed(0)}% ${b.punto_optimo.desviacion_caudal_pct < 0 ? 'por debajo' : 'por encima'} del óptimo`}
+                        t('energy.flowOff', { desviacion: Math.abs(b.punto_optimo.desviacion_caudal_pct).toFixed(0), sentido: b.punto_optimo.desviacion_caudal_pct < 0 ? t('energy.below') : t('energy.above') })}
                     </Alert>
                   )}
                 </div>
@@ -408,8 +408,8 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
       {/* Recomendaciones verificadas (#42) */}
       <Button size="sm" variant="secondary" className="w-full" onClick={recomendar} disabled={!hayRed || recomendando}>
         {recomendando
-          ? <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> Buscando y verificando medidas…</>
-          : <><Lightbulb className="h-3.5 w-3.5 mr-2" /> Recomendar medidas (verificadas por simulación)</>}
+          ? <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> {t('energy.searching')}</>
+          : <><Lightbulb className="h-3.5 w-3.5 mr-2" /> {t('energy.recommend')}</>}
       </Button>
 
       {motivoSinRecomendaciones && (
@@ -439,32 +439,29 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
                 </div>
                 <div className="text-[10px] text-muted-foreground">
                   {r.antes.energia_kwh.toFixed(1)} → {r.despues.energia_kwh.toFixed(1)} kWh ·
-                  {' '}un {Math.abs(r.ahorro.porcentaje_energia).toFixed(1)}% {r.ahorro.energia_kwh > 0 ? 'menos' : 'más'} ·
+                  {' '}{t('energy.lessMore', { porcentaje: Math.abs(r.ahorro.porcentaje_energia).toFixed(1), sentido: r.ahorro.energia_kwh > 0 ? t('energy.less') : t('energy.more') })} ·
                   {' '}<Badge variant="secondary" className="text-[9px]">{r.ahorro.origen}</Badge>
                 </div>
                 {/* Cero no es «consume más»: es que la medida no cambia nada, y
                     decirlo mal esconde que quizá no llegó a aplicarse. */}
                 {Math.abs(r.ahorro.energia_kwh) < 0.05 ? (
                   <Alert className="text-[10px] py-1">
-                    Simulada, esta medida <strong>no cambia el consumo</strong>. Suele significar que la red la
-                    absorbe —otra bomba compensa, o los depósitos ya cubrían esas horas.
+                    {t('energy.simulatedHere')} <strong>{t('energy.noChange')}</strong>{t('energy.noChangeHint')}
                   </Alert>
                 ) : r.ahorro.energia_kwh < 0 ? (
                   <Alert className="text-[10px] py-1">
-                    Simulada, esta medida <strong>no ahorra</strong>: la red consume más con ella. Se muestra igual,
-                    porque saber que no funciona también es información.
+                    {t('energy.simulatedHere')} <strong>{t('energy.noSaving')}</strong>{t('energy.noSavingHint')}
                   </Alert>
                 ) : null}
                 <div className="text-[10px] text-muted-foreground">
-                  Coste en servicio: {r.impacto_en_servicio.habitantes_afectados_atribuibles} habitantes ·
-                  {' '}{r.impacto_en_servicio.demanda_no_satisfecha_atribuible_m3.toFixed(1)} m³ sin servir
-                  {r.impacto_en_servicio.habitantes_afectados_atribuibles === 0 && ' — no deja a nadie sin agua'}
+                  {t('energy.serviceCost', { habitantes: r.impacto_en_servicio.habitantes_afectados_atribuibles, m3: r.impacto_en_servicio.demanda_no_satisfecha_atribuible_m3.toFixed(1) })}
+                  {r.impacto_en_servicio.habitantes_afectados_atribuibles === 0 && t('energy.nobodyLeft')}
                 </div>
                 {/* La cita de origen: es el criterio de aceptación del issue. */}
                 <div className="text-[10px] text-muted-foreground italic">
                   {r.runId
-                    ? <>Verificado en la simulación <code>{r.runId}</code>, en el historial del proyecto.</>
-                    : <>Verificado por simulación, pero no se pudo registrar en el historial.</>}
+                    ? <>{t('energy.checkedInSim')} <code>{r.runId}</code>, {t('energy.inHistoryOf')}</>
+                    : <>{t('energy.notRecorded')}</>}
                   {!r.convergio && ' ⚠️ alguna simulación no convergió.'}
                 </div>
 
@@ -479,7 +476,7 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
                 )}
               </>
             ) : (
-              <div className="text-[11px] text-destructive">No se pudo verificar: {r.error}</div>
+              <div className="text-[11px] text-destructive">{t('energy.notChecked', { motivo: r.error })}</div>
             )}
           </CardContent>
         </Card>
@@ -487,14 +484,13 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
 
       {/* Verificación de una medida */}
       <div className="space-y-2 p-3 bg-muted/20 rounded-lg">
-        <h4 className="text-xs font-semibold">Verificar una medida</h4>
+        <h4 className="text-xs font-semibold">{t('energy.checkMeasure')}</h4>
         <p className="text-[11px] text-muted-foreground">
-          Parar el bombeo en las horas caras y ver qué ahorra de verdad: se simula la red con la medida y se resta.
-          La cifra sale de WNTR, no de una estimación.
+          {t('energy.measureIntro')}
         </p>
         <div className="grid grid-cols-3 gap-2">
           <label className="text-[10px] text-muted-foreground col-span-3">
-            Bombas (separadas por comas)
+            {t('energy.pumpsList')}
             <input
               className="w-full bg-background border rounded px-2 py-1 font-mono text-sm"
               value={bombasMedida}
@@ -503,20 +499,20 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
             />
           </label>
           <label className="text-[10px] text-muted-foreground">
-            Desde (h)
+            {t('energy.from')}
             <input type="number" min={0} max={24} className="w-full bg-background border rounded px-2 py-1 font-mono text-sm"
               value={desdeH} onChange={e => setDesdeH(num(e.target.value))} />
           </label>
           <label className="text-[10px] text-muted-foreground">
-            Hasta (h)
+            {t('energy.to')}
             <input type="number" min={0} max={24} className="w-full bg-background border rounded px-2 py-1 font-mono text-sm"
               value={hastaH} onChange={e => setHastaH(num(e.target.value, 24))} />
           </label>
         </div>
         <Button size="sm" className="w-full" onClick={verificar} disabled={!hayRed || verificando}>
           {verificando
-            ? <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> Simulando la medida...</>
-            : <>Verificar ahorro por simulación</>}
+            ? <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> {t('energy.simulatingIt')}</>
+            : <>{t('energy.checkSaving')}</>}
         </Button>
 
         {verificacion && (
@@ -539,27 +535,23 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
               <div className="text-[10px] text-muted-foreground">
                 {verificacion.antes.energia_total_kwh.toFixed(1)} → {verificacion.despues.energia_total_kwh.toFixed(1)} kWh
                 {' '}(un {Math.abs(verificacion.ahorro.porcentaje_energia).toFixed(1)}% {ahorra ? 'menos' : 'más'}) ·
-                {' '}<Badge variant="secondary" className="text-[9px]">{ahorra ? 'ahorro' : 'consumo'} {verificacion.ahorro.origen}</Badge>
+                {' '}<Badge variant="secondary" className="text-[9px]">{ahorra ? t('energy.saving') : t('energy.consumption')} {verificacion.ahorro.origen}</Badge>
               </div>
               {!ahorra && (
                 <Alert className="text-[10px] py-1">
-                  Esta medida <strong>no</strong> ahorra: la red consume más con ella. Suele pasar al parar el
-                  bombeo en horas caras si los depósitos no tienen reserva para cubrirlas y hay que recuperarlos
-                  después.
+                  {t('energy.thisMeasure')} <strong>{t('energy.not')}</strong> {t('energy.noSavingLong')}
                 </Alert>
               )}
               <div className="text-[11px] border-t pt-2">
-                <div className="font-semibold mb-1">Lo que le cuesta al servicio</div>
+                <div className="font-semibold mb-1">{t('energy.costsUtility')}</div>
                 <div className="text-muted-foreground">
-                  {verificacion.impacto_en_servicio.habitantes_afectados_atribuibles} habitantes ·
-                  {' '}{verificacion.impacto_en_servicio.demanda_no_satisfecha_atribuible_m3.toFixed(1)} m³ sin servir ·
-                  {' '}{verificacion.impacto_en_servicio.nudos_afectados_atribuibles} nudos
-                  {verificacion.impacto_en_servicio.habitantes_afectados_atribuibles === 0 && ' — la medida no deja a nadie sin agua'}
+                  {t('energy.serviceDetail', { habitantes: verificacion.impacto_en_servicio.habitantes_afectados_atribuibles, m3: verificacion.impacto_en_servicio.demanda_no_satisfecha_atribuible_m3.toFixed(1), nudos: verificacion.impacto_en_servicio.nudos_afectados_atribuibles })}
+                  {verificacion.impacto_en_servicio.habitantes_afectados_atribuibles === 0 && t('energy.measureNobody')}
                 </div>
               </div>
               {!verificacion.convergence_warnings.converged && (
                 <Alert variant="destructive" className="text-[10px]">
-                  Alguna simulación no convergió: las cifras de esos instantes no son fiables.
+                  {t('energy.noConverge')}
                 </Alert>
               )}
             </CardContent>

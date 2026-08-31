@@ -11,6 +11,7 @@
  * (que son geograficas), y devuelve `null` en cuanto haria falta suponer.
  */
 
+import i18n from '@/i18n'
 import proj4 from 'proj4'
 
 export const WGS84 = 'EPSG:4326'
@@ -175,7 +176,7 @@ export type Transformador = (x: number, y: number) => [number, number]
  */
 export function crearTransformador(epsg: string): Transformador {
   if (!definirProyeccion(epsg)) {
-    throw new Error(`Sistema de coordenadas no soportado: ${epsg}`)
+    throw new Error(i18n.t('crs.unsupported', { epsg }))
   }
   if (epsg === WGS84) return (x, y) => [x, y]
 
@@ -188,7 +189,7 @@ export function crearTransformador(epsg: string): Transformador {
 /** Transformador inverso, de WGS84 al CRS original. Lo usa la exportacion. */
 export function crearTransformadorInverso(epsg: string): Transformador {
   if (!definirProyeccion(epsg)) {
-    throw new Error(`Sistema de coordenadas no soportado: ${epsg}`)
+    throw new Error(i18n.t('crs.unsupported', { epsg }))
   }
   if (epsg === WGS84) return (lon, lat) => [lon, lat]
 
@@ -240,9 +241,7 @@ export function pareceEsquematico(limites: LimitesProyectados): boolean {
 /** Explicacion de por que unas coordenadas de esquema no se pueden georreferenciar. */
 export function motivoEsquematico(limites: LimitesProyectados): string {
   return (
-    `Las coordenadas de esta red van de ${limites.minX} a ${limites.maxX} en X: son unidades de ` +
-    'dibujo, no una proyección. El fichero no dice dónde está la red, así que ningún EPSG la sitúa ' +
-    'en su sitio.'
+    i18n.t('crs.schematicWhy', { min: limites.minX, max: limites.maxX })
   )
 }
 
@@ -256,13 +255,13 @@ export function motivoEsquematico(limites: LimitesProyectados): string {
  */
 export function sugerirCRS(limites: LimitesProyectados | null): CRSResuelto {
   if (!limites) {
-    return { epsg: null, origen: 'desconocido', motivo: 'La red no trae coordenadas.' }
+    return { epsg: null, origen: 'desconocido', motivo: i18n.t('crs.noCoordinates') }
   }
   if (pareceGeografico(limites)) {
     return {
       epsg: WGS84,
       origen: 'sugerido',
-      motivo: 'Las coordenadas están en rango de longitud/latitud.',
+      motivo: i18n.t('crs.looksGeographic'),
     }
   }
   if (pareceEsquematico(limites)) {
@@ -278,7 +277,7 @@ export function sugerirCRS(limites: LimitesProyectados | null): CRSResuelto {
     epsg: null,
     origen: 'desconocido',
     motivo:
-      'Las coordenadas están proyectadas. El valor de X no identifica el huso —el mismo número es válido en los 60—, así que el sistema debe declararlo el ingeniero.',
+      i18n.t('crs.looksProjected'),
   }
 }
 
@@ -295,14 +294,14 @@ export function resolverCRS(
       return {
         epsg: normalizado,
         origen: 'declarado',
-        motivo: `Declarado en el proyecto: ${nombreCRS(normalizado)}.`,
+        motivo: i18n.t('crs.declaredIn', { nombre: nombreCRS(normalizado) }),
         esquematico: limites ? pareceEsquematico(limites) : false,
       }
     }
     return {
       epsg: null,
       origen: 'desconocido',
-      motivo: `El sistema declarado (${epsgDeclarado}) no se reconoce.`,
+      motivo: i18n.t('crs.notRecognised', { epsg: epsgDeclarado }),
     }
   }
   return sugerirCRS(limites)
@@ -368,7 +367,7 @@ export function validarCordura(
 
   return {
     ok: false,
-    aviso: `La red cae en ${lat.toFixed(4)}, ${lon.toFixed(4)}, fuera de ${codigo}, que es el país del proyecto. Revisa el sistema de coordenadas declarado.`,
+    aviso: i18n.t('crs.outsideCountry', { lat: lat.toFixed(4), lon: lon.toFixed(4), pais: codigo }),
   }
 }
 
@@ -400,7 +399,7 @@ export function reproyectarLimites(
   const lats = esquinas.map(c => c[1])
 
   if (lons.some(v => !Number.isFinite(v)) || lats.some(v => !Number.isFinite(v))) {
-    throw new Error(`La reproyección desde ${epsg} produjo coordenadas no finitas`)
+    throw new Error(i18n.t('crs.notFinite', { epsg }))
   }
 
   return {

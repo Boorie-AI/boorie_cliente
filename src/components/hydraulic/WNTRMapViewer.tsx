@@ -239,7 +239,7 @@ export function WNTRMapViewer({
     const cleanup = window.electronAPI?.onDisableSatelliteMode?.((data: { reason: string; message: string }) => {
       logger.warn('Received satellite disable request:', data)
       setSatelliteDisabled(true)
-      setError(`${data.message} - Modo satélite ha sido deshabilitado permanentemente.`)
+      setError(t('messages.satelliteOff', { motivo: data.message }))
 
       // Persist the disable state
       localStorage.setItem('satelite-tumbo-la-app', 'true')
@@ -365,7 +365,7 @@ export function WNTRMapViewer({
         })
 
         if (mapboxError && mapboxError.status === 401) {
-          setError('Token de acceso Mapbox inválido. Verifique su token en el archivo .env.')
+          setError(t('messages.mapboxBadToken'))
         } else if (mapSettings.baseMap === 'satellite' && e.error) {
           logger.warn('Satellite style failed, falling back to streets')
           try {
@@ -374,14 +374,14 @@ export function WNTRMapViewer({
               map.current.setStyle('mapbox://styles/mapbox/streets-v11')
               setSatelliteDisabled(true)
               setMapSettings(prev => ({ ...prev, baseMap: 'streets' }))
-              setError('Las imágenes satelitales fallaron. Se cambió a vista de calles automáticamente.')
+              setError(t('messages.satelliteFailed'))
             }
           } catch (fallbackError) {
             logger.error('Fallback error:', fallbackError)
-            setError(`Error del mapa: ${e.error?.message || 'Error desconocido'}. Intente recargar la página.`)
+            setError(t('messages.mapError', { motivo: e.error?.message || t('messages.unknownError') }))
           }
         } else {
-          setError(`Error del mapa: ${e.error?.message || 'Error desconocido'}`)
+          setError(t('messages.mapErrorShort', { motivo: e.error?.message || t('messages.unknownError') }))
         }
       })
 
@@ -526,13 +526,13 @@ export function WNTRMapViewer({
               map.current?.setStyle('mapbox://styles/mapbox/streets-v11')
               setMapSettings(prev => ({ ...prev, baseMap: 'streets' }))
             }
-            setError('Error al cargar imágenes satelitales. Se cambió a vista de calles.')
+            setError(t('messages.satelliteError'))
           } catch (revertError) {
             logger.error('Failed to revert to streets style:', revertError)
-            setError('Error crítico al cambiar vista del mapa. Recargue la página.')
+            setError(t('messages.mapStyleFatal'))
           }
         } else {
-          setError(`Error al cambiar vista del mapa: ${e.error?.message || 'Error desconocido'}`)
+          setError(t('messages.mapViewError', { motivo: e.error?.message || t('messages.unknownError') }))
         }
         // Remove the error handler after use
         map.current?.off('error', handleStyleError)
@@ -548,7 +548,7 @@ export function WNTRMapViewer({
       const timeoutId = setTimeout(() => {
         logger.warn('Style change timeout, resetting state')
         setStyleChanging(false)
-        setError('Tiempo de espera agotado al cambiar estilo. Intente de nuevo.')
+        setError(t('messages.mapStyleTimeout'))
         map.current?.off('error', handleStyleError)
       }, 5000) // 5 second timeout
 
@@ -565,7 +565,7 @@ export function WNTRMapViewer({
     } catch (error) {
       logger.error('Critical error changing map style:', error)
       setStyleChanging(false)
-      setError(`Error crítico al cambiar estilo del mapa: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      setError(t('messages.mapStyleError', { motivo: error instanceof Error ? error.message : t('messages.unknownError') }))
 
       // Revert to safe default if satellite fails
       if (mapSettings.baseMap === 'satellite') {
@@ -1047,7 +1047,7 @@ export function WNTRMapViewer({
     // El GeoJSON es WGS84 por definicion, asi que exportar sin CRS declarado
     // produciria un fichero con coordenadas falsas.
     if (!conversion) {
-      setError('Declara el sistema de coordenadas de la red antes de exportar a GeoJSON.')
+      setError(t('messages.crsBeforeExport'))
       return
     }
     const geoConversion = conversion
@@ -1197,7 +1197,7 @@ export function WNTRMapViewer({
                       ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                       : "bg-yellow-500 text-white hover:bg-yellow-600"
                   )}
-                  title="Sistema de coordenadas de la red"
+                  title={t('mapViewer.crsTitle')}
                 >
                   <Globe2 className="w-4 h-4" />
                   {crs.epsg ?? 'Declarar EPSG'}
@@ -1236,13 +1236,13 @@ export function WNTRMapViewer({
               <div className="flex items-center gap-2 text-muted-foreground">
                 <MapPin className="w-3 h-3" />
                 <span>
-                  Coordenadas del fichero:{' '}
+                  {t('crs.fileCoords')}{' '}
                   {networkData.coordinate_system?.type === 'geographic'
-                    ? 'geográficas (lon/lat)'
+                    ? t('crs.geographic')
                     : networkData.coordinate_system?.type === 'projected'
-                      ? 'proyectadas'
-                      : 'sin determinar'}
-                  {networkData.coordinate_system?.units && ` • unidades: ${networkData.coordinate_system.units}`}
+                      ? t('crs.projected')
+                      : t('crs.undetermined')}
+                  {networkData.coordinate_system?.units && t('crs.units', { unidades: networkData.coordinate_system.units })}
                 </span>
               </div>
 
@@ -1250,35 +1250,35 @@ export function WNTRMapViewer({
                 <div className="flex items-center gap-2 ml-5 text-muted-foreground">
                   <Globe2 className="w-3 h-3" />
                   <span>
-                    {crs.origen === 'declarado' ? 'Declarado' : 'Sugerido'}: {crs.epsg} —{' '}
+                    {crs.origen === 'declarado' ? t('crs.declared') : t('crs.suggested')}: {crs.epsg} —{' '}
                     {nombreCRS(crs.epsg)}
-                    {crs.origen === 'sugerido' && ' (sin confirmar)'}
+                    {crs.origen === 'sugerido' && t('crs.unconfirmed')}
                   </span>
                   <button
                     onClick={() => setMostrarSelectorCRS(true)}
                     className="underline hover:text-foreground"
                   >
-                    cambiar
+                    {t('mapViewer.change')}
                   </button>
                 </div>
               ) : (
                 <div className="ml-5 flex items-start gap-2 rounded-md border border-yellow-500/50 bg-yellow-500/10 px-3 py-2 text-yellow-700 dark:text-yellow-400">
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>
-                    Esta red no se puede situar en el mapa: {crs.motivo}{' '}
+                    {t('crs.cannotPlace', { motivo: crs.motivo })}{' '}
                     {/* Con coordenadas de esquema la salida buena es el esquema, no
                         declarar un EPSG: se ofrece primero. */}
                     {crs.esquematico && onVerTopologia ? (
                       <>
                         <button onClick={onVerTopologia} className="font-medium underline">
-                          Ver el esquema de la red
+                          {t('mapViewer.seeNetSchema')}
                         </button>
                         {' · '}
                         <button
                           onClick={() => setMostrarSelectorCRS(true)}
                           className="underline"
                         >
-                          declarar un EPSG de todos modos
+                          {t('mapViewer.declareAnyway')}
                         </button>
                       </>
                     ) : (
@@ -1287,13 +1287,13 @@ export function WNTRMapViewer({
                           onClick={() => setMostrarSelectorCRS(true)}
                           className="font-medium underline"
                         >
-                          Declarar sistema de coordenadas
+                          {t('mapViewer.declareCrs')}
                         </button>
                         {onVerTopologia && (
                           <>
                             {' · '}
                             <button onClick={onVerTopologia} className="font-medium underline">
-                              Ver el esquema de la red
+                              {t('mapViewer.seeNetSchema')}
                             </button>
                           </>
                         )}
@@ -1307,11 +1307,11 @@ export function WNTRMapViewer({
                 <div className="ml-5 flex items-start gap-2 rounded-md border border-yellow-500/50 bg-yellow-500/10 px-3 py-2 text-yellow-700 dark:text-yellow-400">
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>
-                    Ojo: {limitesRed && motivoEsquematico(limitesRed)} Se está dibujando donde{' '}
-                    {crs.epsg} manda para esos números, que no tiene por qué ser dónde está.{' '}
+                    {t('mapViewer.careful')} {limitesRed && motivoEsquematico(limitesRed)}{' '}
+                    {t('mapViewer.drawnWhere', { epsg: crs.epsg })}{' '}
                     {onVerTopologia && (
                       <button onClick={onVerTopologia} className="font-medium underline">
-                        Ver el esquema
+                        {t('mapViewer.seeSchema')}
                       </button>
                     )}
                   </span>
@@ -1372,12 +1372,12 @@ export function WNTRMapViewer({
                   onClick={() => {
                     logger.debug('User cancelled style change')
                     setStyleChanging(false)
-                    setError('Cambio de estilo cancelado por el usuario.')
+                    setError(t('messages.styleCancelled'))
                   }}>
                   <div className="text-center">
                     <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
                     <p className="text-sm font-medium">{t('mapViewer.changingStyle')}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Haz clic para cancelar</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t('mapViewer.clickCancel')}</p>
                   </div>
                 </div>
               </div>
@@ -1431,7 +1431,7 @@ export function WNTRMapViewer({
                   Nudo: {lecturaNudoElegido.label}
                 </h3>
                 <div className="text-sm space-y-1">
-                  <div>Tipo: <span className="font-medium capitalize">{lecturaNudoElegido.tipo}</span></div>
+                  <div>{t('mapViewer.type')} <span className="font-medium capitalize">{lecturaNudoElegido.tipo}</span></div>
                   <FichaMagnitud rotulo="Cota" valor={lecturaNudoElegido.cota} magnitud="cota" />
                   <FichaMagnitud
                     rotulo={lecturaNudoElegido.demandaSimulada ? 'Demanda' : 'Demanda base'}
@@ -1447,7 +1447,7 @@ export function WNTRMapViewer({
               <div className="space-y-2">
                 <h3 className="font-semibold">Tramo: {lecturaTramoElegido.label}</h3>
                 <div className="text-sm space-y-1">
-                  <div>Tipo: <span className="font-medium capitalize">{lecturaTramoElegido.tipo}</span></div>
+                  <div>{t('mapViewer.type')} <span className="font-medium capitalize">{lecturaTramoElegido.tipo}</span></div>
                   <FichaMagnitud rotulo="Longitud" valor={lecturaTramoElegido.longitud} magnitud="longitud" />
                   <FichaMagnitud rotulo="Diámetro" valor={lecturaTramoElegido.diametro} magnitud="diametro" />
                   <FichaMagnitud rotulo="Caudal" valor={lecturaTramoElegido.caudal} magnitud="caudal" />
@@ -1463,7 +1463,7 @@ export function WNTRMapViewer({
               }}
               className="mt-2 text-xs text-muted-foreground hover:text-foreground"
             >
-              Cerrar
+              {t('mapViewer.close')}
             </button>
           </div>
         )}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useCallback } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
@@ -36,6 +37,7 @@ const CATEGORIES = [
 ]
 
 export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUploadDialogProps) {
+  const { t } = useTranslation()
   const [folderStructure, setFolderStructure] = useState<FolderNode | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 })
@@ -80,15 +82,15 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
             setFolderStructure(rootNode)
           } else {
             logger.error('Root node is null or undefined')
-            alert('Error: estructura de carpetas inválida')
+            alert(t('messages.folderBadTree'))
           }
         } else {
-          alert('Error al leer la estructura de carpetas: ' + (structure.message || 'Unknown error'))
+          alert(t('messages.folderReadError') + (structure.message || 'Unknown error'))
         }
       }
     } catch (error) {
       logger.error('Error selecting folder:', error)
-      alert('Error al seleccionar carpeta')
+      alert(t('messages.folderPickError'))
     }
   }
 
@@ -184,9 +186,9 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
       unsubscribe()
 
       if (result.success) {
-        let message = `${result.processed || 0} documentos procesados exitosamente`
+        let message = t('bulkUpload.processedOk', { count: result.processed || 0 })
         if (result.errors && result.errors > 0) {
-          message += `, ${result.errors} errores`
+          message += t('bulkUpload.withErrors', { count: result.errors })
         }
         alert(message)
         onUploadComplete?.()
@@ -196,7 +198,7 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
       }
     } catch (error) {
       logger.error('Upload error:', error)
-      alert('Error al subir documentos')
+      alert(t('messages.uploadError'))
     } finally {
       setIsUploading(false)
     }
@@ -308,10 +310,10 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
           <div className="flex items-center justify-between p-6 border-b border-border">
             <div>
               <Dialog.Title className="text-lg font-semibold">
-                Subir Documentos en Lote
+                {t('bulkUpload.title')}
               </Dialog.Title>
               <Dialog.Description className="text-sm text-muted-foreground mt-1">
-                Selecciona una carpeta y elige qué archivos subir al sistema RAG
+                {t('bulkUpload.pickFilesHint')}
               </Dialog.Description>
             </div>
             <Dialog.Close className="p-2 hover:bg-accent rounded-lg transition-colors">
@@ -323,7 +325,7 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
             {/* Upload Mode Selection */}
             <div className="mb-4">
               <label className="text-sm font-medium mb-2 block">
-                Modo de carga:
+                {t('bulkUpload.uploadMode')}
               </label>
               <div className="flex gap-4">
                 <label className="flex items-center">
@@ -335,7 +337,7 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
                     onChange={(e) => setUploadMode(e.target.value as 'folder' | 'recursive')}
                     className="mr-2"
                   />
-                  <span className="text-sm">Solo carpeta seleccionada</span>
+                  <span className="text-sm">{t('bulkUpload.onlyFolder')}</span>
                 </label>
                 <label className="flex items-center">
                   <input
@@ -346,7 +348,7 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
                     onChange={(e) => setUploadMode(e.target.value as 'folder' | 'recursive')}
                     className="mr-2"
                   />
-                  <span className="text-sm">Carpeta y subcarpetas</span>
+                  <span className="text-sm">{t('bulkUpload.withSubfolders')}</span>
                 </label>
               </div>
             </div>
@@ -354,7 +356,7 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
             {/* Category Selection */}
             <div className="mb-6 space-y-3">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Categoría Principal:</label>
+                <label className="text-sm font-medium mb-1.5 block">{t('bulkUpload.mainCategory')}</label>
                 <select
                   value={primaryCategory}
                   onChange={(e) => {
@@ -370,7 +372,7 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Categorías Secundarias (Tags Semánticos):</label>
+                <label className="text-sm font-medium mb-1.5 block">{t('bulkUpload.tags')}</label>
                 <div className="grid grid-cols-2 gap-2 max-h-[120px] overflow-y-auto border border-border rounded p-2 bg-card/50">
                   {CATEGORIES.filter(c => c.id !== primaryCategory).map(cat => (
                     <label key={cat.id} className="flex items-center hover:bg-accent/50 p-1 rounded cursor-pointer">
@@ -398,26 +400,26 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
               <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
                 <Folder className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-sm text-muted-foreground mb-4">
-                  Selecciona una carpeta con documentos hidráulicos
+                  {t('bulkUpload.pickFolderHint')}
                 </p>
                 <button
                   onClick={handleSelectFolder}
                   className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
                 >
-                  Seleccionar Carpeta
+                  {t('bulkUpload.pickFolder')}
                 </button>
               </div>
             ) : (
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-medium">
-                    Estructura de carpetas
+                    {t('bulkUpload.folderTree')}
                   </h3>
                   <button
                     onClick={handleSelectFolder}
                     className="text-sm text-primary hover:underline"
                   >
-                    Cambiar carpeta
+                    {t('bulkUpload.changeFolder')}
                   </button>
                 </div>
 
@@ -435,7 +437,7 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
             {isUploading && (
               <div className="mt-4">
                 <div className="flex items-center justify-between text-sm mb-2">
-                  <span>Procesando documentos...</span>
+                  <span>{t('bulkUpload.processing')}</span>
                   <span>{uploadProgress.current} / {uploadProgress.total}</span>
                 </div>
                 <div className="w-full bg-secondary rounded-full h-2">
@@ -456,7 +458,7 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
               disabled={isUploading}
               className="px-4 py-2 text-sm hover:bg-accent rounded transition-colors"
             >
-              Cancelar
+              {t('bulkUpload.cancel')}
             </button>
             <button
               onClick={handleUpload}

@@ -87,13 +87,13 @@ export function GuardrailsPanel() {
   if (!api) {
     return (
       <div className="p-6 text-muted-foreground">
-        Guardrails API no disponible. Reinicia Boorie tras la actualización.
+        {t('guardrails.apiMissing')}
       </div>
     )
   }
 
   if (!settings) {
-    return <div className="p-6 text-muted-foreground">Cargando configuración…</div>
+    return <div className="p-6 text-muted-foreground">{t('guardrails.loading')}</div>
   }
 
   return (
@@ -104,15 +104,14 @@ export function GuardrailsPanel() {
         <div className="flex-1">
           <h2 className="text-xl font-semibold text-foreground">NVIDIA NeMo Guardrails</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Red agéntica de validación basada en Nemotron. Cada rail es un agente independiente
-            que aprueba, bloquea o avisa sobre el flujo de chat / RAG / WNTR.
+            {t('guardrails.intro')}
           </p>
         </div>
         <button
           onClick={load}
           disabled={loading}
           className="p-2 rounded-lg hover:bg-accent transition-colors"
-          title="Recargar"
+          title={t('guardrails.reload')}
         >
           <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
         </button>
@@ -131,17 +130,16 @@ export function GuardrailsPanel() {
         <div className="text-sm">
           {pingStatus?.ok ? (
             <>
-              <div className="font-medium text-green-900 dark:text-green-200">Servicio activo</div>
+              <div className="font-medium text-green-900 dark:text-green-200">{t('guardrails.serviceUp')}</div>
               <div className="text-green-800/80 dark:text-green-300/80 mt-0.5">
                 Juez: {settings.judgeModel} ({settings.judgeProvider})
               </div>
             </>
           ) : (
             <>
-              <div className="font-medium text-yellow-900 dark:text-yellow-200">Servicio no disponible</div>
+              <div className="font-medium text-yellow-900 dark:text-yellow-200">{t('guardrails.serviceDown')}</div>
               <div className="text-yellow-800/80 dark:text-yellow-300/80 mt-0.5">
-                {pingStatus?.error || 'No se pudo conectar al proceso Python.'} Modo fail-open: el chat funciona pero sin guardrails.
-                Ejecuta <code className="px-1 py-0.5 rounded bg-yellow-100 dark:bg-yellow-900/40">./setup-guardrails.sh</code> para instalar.
+                {pingStatus?.error || t('guardrails.cannotConnect')} {t('guardrails.failOpen')} <code className="px-1 py-0.5 rounded bg-yellow-100 dark:bg-yellow-900/40">./setup-guardrails.sh</code> {t('guardrails.toInstall')}
               </div>
             </>
           )}
@@ -150,7 +148,7 @@ export function GuardrailsPanel() {
 
       {/* Provider config */}
       <div className="bg-card rounded-lg border border-border p-4 mb-6">
-        <h3 className="font-semibold text-foreground mb-3">Modelo juez</h3>
+        <h3 className="font-semibold text-foreground mb-3">{t('guardrails.judgeModel')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="text-xs text-muted-foreground">{t('settings.provider')}</label>
@@ -164,7 +162,7 @@ export function GuardrailsPanel() {
             </select>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Modelo</label>
+            <label className="text-xs text-muted-foreground">{t('guardrails.model')}</label>
             <input
               type="text"
               value={settings.judgeModel}
@@ -204,10 +202,9 @@ export function GuardrailsPanel() {
       {/* Advisory toggle */}
       <div className="bg-card rounded-lg border border-border p-4 mb-6 flex items-start justify-between gap-4">
         <div>
-          <h3 className="font-semibold text-foreground">Modo aviso (advisory)</h3>
+          <h3 className="font-semibold text-foreground">{t('guardrails.advisoryMode')}</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Cuando está activo, los rails registran las violaciones pero <strong>no bloquean</strong> el flujo.
-            Útil para evaluar falsos positivos antes de poner en modo bloqueante.
+            {t('guardrails.advisoryHint')} <strong>{t('guardrails.dontBlock')}</strong> {t('guardrails.theFlow')}
           </p>
         </div>
         <Switch.Root
@@ -247,7 +244,7 @@ export function GuardrailsPanel() {
       <div className="bg-card rounded-lg border border-border overflow-hidden">
         {violations.length === 0 ? (
           <div className="p-6 text-center text-sm text-muted-foreground">
-            Sin violaciones registradas. Las que se registren aparecerán aquí.
+            {t('guardrails.noViolations')}
           </div>
         ) : (
           <div className="divide-y divide-border max-h-96 overflow-y-auto">

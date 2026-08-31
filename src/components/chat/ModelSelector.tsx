@@ -231,7 +231,7 @@ export function ModelSelector() {
                   <div className="px-3 py-3 text-sm text-muted-foreground">
                     <div className="flex items-center space-x-2 mb-2">
                       <AlertCircle size={16} className="text-yellow-600" />
-                      <span>Ollama not detected</span>
+                      <span>{t('chatInput.noOllama')}</span>
                     </div>
                     <button
                       onClick={() => setCurrentView('settings')}

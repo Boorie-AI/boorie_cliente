@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Database, AlertTriangle } from 'lucide-react'
 import type { InformeMigracion } from '@/services/migration/migrateProjectAssets'
@@ -20,6 +21,7 @@ export function MigracionAvisoDialog({
   informe: InformeMigracion | null
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   if (!informe) return null
 
   const hayProblemas = informe.redesIncompletas.length > 0 || informe.redesFallidas.length > 0
@@ -41,31 +43,28 @@ export function MigracionAvisoDialog({
               <Database className="h-5 w-5 shrink-0 text-primary" />
               <div className="min-w-0">
                 <Dialog.Title className="text-base font-semibold text-foreground">
-                  Tus redes y cálculos se han guardado en el proyecto
+                  {t('migration.saved')}
                 </Dialog.Title>
                 <Dialog.Description className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  Hasta ahora vivían solo en este equipo. Ahora forman parte del proyecto, así que el
-                  chat y el resto de la aplicación pueden usarlos.
+                  {t('migration.nowInProject')}
                 </Dialog.Description>
               </div>
             </div>
 
             <div className="mt-4 flex gap-8 rounded-lg border border-border bg-muted/30 p-4">
               <div>
-                <div className="text-xs text-muted-foreground">Redes</div>
+                <div className="text-xs text-muted-foreground">{t('migration.networks')}</div>
                 <div className="font-mono text-lg font-semibold text-foreground">{informe.redesMigradas}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Cálculos</div>
+                <div className="text-xs text-muted-foreground">{t('migration.calculations')}</div>
                 <div className="font-mono text-lg font-semibold text-foreground">{informe.calculosMigrados}</div>
               </div>
             </div>
 
             {informe.redesYaExistentes.length > 0 && (
               <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                {informe.redesYaExistentes.length === 1
-                  ? 'Una red estaba repetida y ya se encontraba guardada, así que no se ha duplicado.'
-                  : `${informe.redesYaExistentes.length} redes estaban repetidas y ya se encontraban guardadas, así que no se han duplicado.`}
+                {t('migration.duplicated', { count: informe.redesYaExistentes.length })}
               </p>
             )}
 
@@ -75,13 +74,10 @@ export function MigracionAvisoDialog({
                   <AlertTriangle className="h-4 w-4 shrink-0" />
                   <div>
                     <p className="font-medium">
-                      {informe.redesIncompletas.length === 1
-                        ? 'Una red se guardó sin su archivo .inp'
-                        : `${informe.redesIncompletas.length} redes se guardaron sin su archivo .inp`}
+                      {t('migration.noInp', { count: informe.redesIncompletas.length })}
                     </p>
                     <p className="mt-1 leading-relaxed">
-                      El archivo original ya no está donde estaba, así que puedes verlas pero no
-                      simularlas. Vuelve a importarlas cuando quieras recuperarlas:
+                      {t('migration.noInpHint')}
                     </p>
                     <ul className="mt-2 list-disc space-y-0.5 pl-4 font-mono">
                       {informe.redesIncompletas.map(r => (
@@ -96,7 +92,7 @@ export function MigracionAvisoDialog({
             {informe.redesFallidas.length > 0 && (
               <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-xs text-red-700 dark:text-red-400">
                 <p className="font-medium">
-                  {informe.redesFallidas.length === 1 ? 'Una red no se pudo guardar' : `${informe.redesFallidas.length} redes no se pudieron guardar`}
+                  {t('migration.failed', { count: informe.redesFallidas.length })}
                 </p>
                 <ul className="mt-2 list-disc space-y-0.5 pl-4">
                   {informe.redesFallidas.map(r => (
@@ -108,8 +104,7 @@ export function MigracionAvisoDialog({
 
             {hayProblemas && (
               <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-                Nada se ha borrado: los datos originales siguen guardados en este equipo, bajo la
-                clave <span className="font-mono">{CLAVE_OVERLAY}</span>.
+                {t('migration.nothingDeleted')} <span className="font-mono">{CLAVE_OVERLAY}</span>.
               </p>
             )}
 
@@ -120,7 +115,7 @@ export function MigracionAvisoDialog({
                 'bg-primary text-primary-foreground hover:bg-primary/90'
               )}
             >
-              Entendido
+              {t('migration.gotIt')}
             </button>
           </div>
         </Dialog.Content>
