@@ -16,7 +16,7 @@
     "collapseSidebar": "Collapse sidebar",
     "recentChats": "Recent chats",
     "noConversations": "No conversations yet",
-    "startNewChat": "Start a new chat to begin",
+    "startNewChat": "Start a new chat",
     "projects": "Projects",
     "calculator": "Calculator",
     "wntr": "WNTR network",
@@ -53,7 +53,7 @@
     "autoSave": "Auto-save conversations",
     "autoSaveDesc": "Automatically save your chat conversations to the database",
     "typingIndicators": "Show typing indicators",
-    "typingIndicatorsDesc": "Display \"AI is thinking…\" when the AI is generating responses",
+    "typingIndicatorsDesc": "Show “AI is thinking…” while the AI is generating a response",
     "language": "Language",
     "languageDesc": "Select your preferred language",
     "storage": "Storage",
@@ -82,9 +82,9 @@
       "title": "Simulations in the knowledge base",
       "advanced": "Advanced",
       "auto": "Index every simulation when it finishes",
-      "autoDesc": "Adds to the project's knowledge base a summary of the run, its statistics, the elements outside their thresholds and what changed since the previous run. This is what lets you ask the chat what problems the last simulation found.",
+      "autoDesc": "Adds to the project’s knowledge base a summary of the run, its statistics, the elements outside their thresholds and what changed since the previous run. This is what lets you ask the chat what problems the last simulation found.",
       "raw": "Also index the full time series",
-      "rawDesc": "Additionally stores the raw results, step by step. It does not improve the chat's answers —that is what the summaries are for— and takes up far more space; it is meant for fine-tuning stages.",
+      "rawDesc": "Additionally stores the raw results, step by step. It does not improve the chat’s answers —that is what the summaries are for— and takes up far more space; it is meant for fine-tuning stages.",
       "thresholds": "Thresholds that flag an anomaly",
       "thresholdsDesc": "The regulatory reference varies by country. The defaults are the values in common use: pressure between 14 and 70 m —in rural water systems the minimum drops to 7— and a maximum velocity of 3 m/s.",
       "minPressure": "Minimum pressure (m)",
@@ -105,7 +105,7 @@
     "python": {
       "title": "Python (WNTR)",
       "path": "Interpreter path",
-      "pathDesc": "Boorie detects Python automatically and prefers your system's. Set the path here only if WNTR lives in an environment it cannot find (conda, your own venv or an installation outside the usual paths).",
+      "pathDesc": "Boorie detects Python automatically and prefers your system’s. Set the path here only if WNTR lives in an environment it cannot find (conda, your own venv or an installation outside the usual paths).",
       "browse": "Browse…",
       "checking": "Checking…",
       "inUse": "Currently in use:",
@@ -133,7 +133,7 @@
     "noModelsDesc": "Install your first model to start using Ollama",
     "installFirstModel": "Install a model",
     "ollamaNotDetected": "Ollama not detected",
-    "ollamaNotDetectedDesc": "Ollama doesn't appear to be installed or running on your system",
+    "ollamaNotDetectedDesc": "Ollama doesn’t appear to be installed or running on your system",
     "downloadOllama": "Download Ollama",
     "apiKey": "API key",
     "enterApiKey": "Enter your API key",
@@ -180,9 +180,9 @@
     "disconnect": "Disconnect",
     "test": "Test",
     "refresh": "Refresh",
-    "tokenExpired": "Token expired - please reconnect",
-    "testSuccess": "Connection test successful",
-    "testFailed": "Connection test failed",
+    "tokenExpired": "The token has expired: connect again",
+    "testSuccess": "The connection test went through",
+    "testFailed": "The connection test failed",
     "confirmDisconnect": "Are you sure you want to disconnect from {{provider}}?",
     "outlook": "Outlook",
     "calendar": "Calendar",
@@ -197,7 +197,7 @@
   },
   "app": {
     "initializing": "Initializing Boorie",
-    "initializingDesc": "Please wait while we set everything up…"
+    "initializingDesc": "Hang on a moment while we set everything up…"
   },
   "onboarding": {
     "welcome": {
@@ -228,7 +228,7 @@
   "project": {
     "mismatch": {
       "title": "This conversation belongs to another project",
-      "body": "The conversation you opened belongs to “{{conversationProject}}”, but your active project is “{{activeProject}}”. If you don't switch, the assistant will answer using the context of “{{activeProject}}”.",
+      "body": "The conversation you opened belongs to “{{conversationProject}}”, but your active project is “{{activeProject}}”. If you don’t switch, the assistant will answer using the context of “{{activeProject}}”.",
       "switch": "Switch to “{{project}}”",
       "keep": "Stay in “{{project}}”",
       "bodyNoActive": "The conversation you opened belongs to “{{conversationProject}}” and there is no active project right now."
@@ -270,7 +270,7 @@
     "restoreVersion": "Restore this version",
     "simulationsOnNetwork": "Simulations on this network",
     "compareChosen": "Compare the two selected",
-    "indexNow": "Index this simulation into the project's knowledge base",
+    "indexNow": "Index this simulation into the project’s knowledge base",
     "indexing": {
       "pendiente": "not indexed",
       "indexando": "indexing…",
@@ -315,7 +315,7 @@
     },
     "placeholders": {
       "name": "e.g., Downtown water distribution upgrade",
-      "description": "The project's objective and scope, in a few lines…",
+      "description": "The project’s objective and scope, in a few lines…",
       "country": "Choose a country…",
       "region": "e.g., CDMX, Antioquia",
       "city": "e.g., Mexico City, Bogotá",
@@ -363,7 +363,7 @@
         "description": "Wastewater collection network"
       }
     },
-    "regulationsNote": "Depending on where the project is, that country's hydraulic regulations apply.",
+    "regulationsNote": "Depending on where the project is, that country’s hydraulic regulations apply.",
     "errors": {
       "nameRequired": "The project needs a name",
       "locationRequired": "Country and state or region are missing"
@@ -407,7 +407,9 @@
     "reference": "Quick reference",
     "referenceHint": "Formula documentation and tips",
     "export": "Export",
-    "exportHint": "Save and export your calculations"
+    "exportHint": "Save and export your calculations",
+    "validRange": "Valid range: {{min}} – {{max}}",
+    "enterValue": "Enter a value"
   },
   "networkView": {
     "tabs": {
@@ -725,8 +727,8 @@
   },
   "projectConversations": {
     "cancel": "Cancel",
-    "noProject": "Don't assign to any project",
-    "keepGeneral": "Keep in general",
+    "noProject": "Don’t assign to any project",
+    "keepGeneral": "Keep in General",
     "moveGeneral": "Move to general conversations",
     "remove": "Remove from project",
     "empty": "Start a new chat to add it here"
@@ -1123,7 +1125,41 @@
     "chatRateLimit": "**You have gone over the request limit.** Wait a moment and try again.",
     "chatNoCredit": "**Not enough credit.** Check your account balance with the AI provider.",
     "chatDatabase": "**Database error.** Some tables are missing. Restart the application to repair it.",
-    "chatOther": "**Your request could not be processed:** {{motivo}}"
+    "chatOther": "**Your request could not be processed:** {{motivo}}",
+    "noApi": "The application is not responding. Restart it and try again.",
+    "providerChanged": "The embedding provider could not be changed.",
+    "uploadFailed": "The documents could not be uploaded.",
+    "searchFound": "{{count}} documents found with the semantic search",
+    "searchFailed": "The semantic search could not be run. Try again.",
+    "confirmDeleteDoc": "Are you sure you want to delete this document?",
+    "exportedOk": "{{count}} documents exported.",
+    "exportFailed": "The export failed: {{motivo}}",
+    "confirmReindex": "Reindexing will delete the existing chunks and create them again. Continue?",
+    "reindexFailed": "Reindexing failed: {{motivo}}",
+    "reindexedOk": "The document has been reindexed.",
+    "reindexError": "The document could not be reindexed.",
+    "noneSelected": "You have not selected any document to delete",
+    "confirmDeleteMany": "Are you sure you want to delete the {{count}} selected documents? This cannot be undone.",
+    "deletedOk": "{{count}} documents deleted",
+    "deletedWithErrors": "{{count}} documents deleted, {{errores}} with errors",
+    "deleteFailed": "The documents could not be deleted.",
+    "ollamaFound": "Ollama answers: {{count}} embedding models out of {{total}}.",
+    "ollamaFailed": "Could not connect to Ollama: {{motivo}}",
+    "checkFailed": "The connection could not be checked: {{motivo}}",
+    "mapBadSize": "The map does not fit where it is: check the window size.",
+    "mapInitFailed": "The map could not be started: {{motivo}}",
+    "mapInitCheck": "The map could not be started. Check your Mapbox settings.",
+    "missingInputs": "Missing inputs: {{campos}}",
+    "confirmDeleteProject": "Are you sure you want to delete this project?",
+    "removeModelFailed": "The model {{modelo}} could not be removed: {{motivo}}",
+    "detailsFailed": "The details could not be read: {{motivo}}",
+    "ragQueryFailed": "The RAG query failed: {{motivo}}",
+    "promptSaved": "System prompt saved.",
+    "noFilesChosen": "You have not chosen any file to upload",
+    "docsInBase": "{{count}} documents in the knowledge base",
+    "selectedCount": "{{count}} selected",
+    "wisdomHints": "Shift+Enter searches by meaning • upload your own documents • switch between grid and list",
+    "localEmbeddings": " • local embedding models available"
   },
   "layers": {
     "junction": "Demand junctions",

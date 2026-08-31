@@ -543,7 +543,7 @@ export function UnifiedWisdomPanel() {
       }
     } catch (error) {
       logger.error('Error changing embedding provider:', error)
-      showNotification('Error changing embedding provider', 'error')
+      showNotification(t('messages.providerChanged'), 'error')
     } finally {
       setProviderChangeLoading(false)
     }
@@ -553,7 +553,7 @@ export function UnifiedWisdomPanel() {
   const handleUpload = async () => {
     // Check if electronAPI is available
     if (!window.electronAPI || !window.electronAPI.wisdom) {
-      showNotification('Error: Electron API not available. Please restart the application.', 'error')
+      showNotification(t('messages.noApi'), 'error')
       return
     }
 
@@ -592,7 +592,7 @@ export function UnifiedWisdomPanel() {
       }
     } catch (error) {
       logger.error('Error uploading documents:', error)
-      showNotification('Error uploading documents. Please check the console for details.', 'error')
+      showNotification(t('messages.uploadFailed'), 'error')
     } finally {
       setLoading(false)
       setUploadProgress(null) // Reset on finish
@@ -604,7 +604,7 @@ export function UnifiedWisdomPanel() {
 
     // Check if electronAPI is available
     if (!window.electronAPI || !window.electronAPI.wisdom) {
-      showNotification('Error: Electron API not available. Please restart the application.', 'error')
+      showNotification(t('messages.noApi'), 'error')
       return
     }
 
@@ -622,18 +622,18 @@ export function UnifiedWisdomPanel() {
       if (result.success) {
         // setSearchResults(result.results || [])
         // Show search results in a modal or overlay instead of switching tabs
-        showNotification(`Found ${result.results?.length || 0} relevant documents using semantic search`, 'success')
+        showNotification(t('messages.searchFound', { count: result.results?.length || 0 }), 'success')
       }
     } catch (error) {
       logger.error('Error searching documents:', error)
-      showNotification('Error performing semantic search. Please try again.', 'error')
+      showNotification(t('messages.searchFailed'), 'error')
     } finally {
       setLoading(false)
     }
   }
 
   const handleDelete = async (documentId: string) => {
-    if (!confirm('Are you sure you want to delete this document?')) return
+    if (!confirm(t('messages.confirmDeleteDoc'))) return
 
     setLoading(true)
     try {
@@ -662,9 +662,9 @@ export function UnifiedWisdomPanel() {
         includeContent: false,
       })
       if (result.success) {
-        showNotification(`Exported ${result.exportedCount} documents successfully.`, 'success')
+        showNotification(t('messages.exportedOk', { count: result.exportedCount }), 'success')
       } else {
-        showNotification(`Export failed: ${result.message}`, 'error')
+        showNotification(t('messages.exportFailed', { motivo: result.message }), 'error')
       }
     } catch (error) {
       logger.error('Export error:', error)
@@ -723,7 +723,7 @@ export function UnifiedWisdomPanel() {
   }, [apiAvailable])
 
   const handleForceIndex = async (documentId: string) => {
-    if (!confirm('Force reindexing will delete existing chunks and recreate them. Continue?')) return
+    if (!confirm(t('messages.confirmReindex'))) return
 
     setLoading(true)
     try {
@@ -737,10 +737,10 @@ export function UnifiedWisdomPanel() {
           await loadWisdomDocuments() // Refresh the list
           // El mensaje trae el número de fragmentos indexados: sin ese dato, un
           // "reindexado con éxito" podía significar cero chunks creados.
-          showNotification(result.message || 'Document reindexed successfully!', 'success')
+          showNotification(result.message || t('messages.reindexedOk'), 'success')
         } else {
           logger.error('❌ Reindexing failed:', result.message)
-          showNotification(`Reindexing failed: ${result.message}`, 'error')
+          showNotification(t('messages.reindexFailed', { motivo: result.message }), 'error')
         }
       } else {
         // Fallback: use update to trigger reprocessing
@@ -748,15 +748,15 @@ export function UnifiedWisdomPanel() {
         if (result.success) {
           logger.debug('✅ Document updated/reindexed successfully')
           await loadWisdomDocuments()
-          showNotification('Document reindexed successfully!', 'success')
+          showNotification(t('messages.reindexedOk'), 'success')
         } else {
           logger.error('❌ Reindexing failed:', result.message)
-          showNotification(`Reindexing failed: ${result.message}`, 'error')
+          showNotification(t('messages.reindexFailed', { motivo: result.message }), 'error')
         }
       }
     } catch (error) {
       logger.error('Error reindexing document:', error)
-      showNotification('Error reindexing document. Check console for details.', 'error')
+      showNotification(t('messages.reindexError'), 'error')
     } finally {
       setLoading(false)
     }
@@ -765,11 +765,11 @@ export function UnifiedWisdomPanel() {
   const handleBulkDelete = async () => {
     const selectedCount = selectedDocuments.size
     if (selectedCount === 0) {
-      showNotification('No documents selected for deletion', 'error')
+      showNotification(t('messages.noneSelected'), 'error')
       return
     }
 
-    if (!confirm(`Are you sure you want to delete ${selectedCount} selected documents? This action cannot be undone.`)) {
+    if (!confirm(t('messages.confirmDeleteMany', { count: selectedCount }))) {
       return
     }
 
@@ -798,13 +798,13 @@ export function UnifiedWisdomPanel() {
       await loadWisdomDocuments()
 
       if (errors === 0) {
-        showNotification(`Successfully deleted ${deleted} documents`, 'success')
+        showNotification(t('messages.deletedOk', { count: deleted }), 'success')
       } else {
-        showNotification(`Deleted ${deleted} documents with ${errors} errors`, 'error')
+        showNotification(t('messages.deletedWithErrors', { count: deleted, errores: errors }), 'error')
       }
     } catch (error) {
       logger.error('Error in bulk delete:', error)
-      showNotification('Error during bulk delete operation', 'error')
+      showNotification(t('messages.deleteFailed'), 'error')
     } finally {
       setLoading(false)
     }
@@ -1328,13 +1328,13 @@ export function UnifiedWisdomPanel() {
 
                                   if (result.success && result.available) {
                                     await loadEmbeddingProviders()
-                                    showNotification(`Ollama detected! Found ${result.models?.length || 0} embedding models out of ${result.totalModels || 0} total models.`, 'success')
+                                    showNotification(t('messages.ollamaFound', { count: result.models?.length || 0, total: result.totalModels || 0 }), 'success')
                                   } else {
-                                    showNotification(`Ollama connection failed: ${result.message || 'Unknown error'}`, 'error')
+                                    showNotification(t('messages.ollamaFailed', { motivo: result.message || t('messages.unknownError') }), 'error')
                                   }
                                 } catch (error: any) {
                                   logger.error('❌ Error checking connection:', error)
-                                  showNotification(`Connection check failed: ${error.message}`, 'error')
+                                  showNotification(t('messages.checkFailed', { motivo: error.message }), 'error')
                                 }
                               }}
                               className="text-xs px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition-colors"
@@ -1596,15 +1596,15 @@ export function UnifiedWisdomPanel() {
         <div className="mt-8 p-4 bg-muted/20 rounded-lg">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <div className="flex items-center gap-6">
-              <span>📚 {wisdomDocuments.length} documents in knowledge base</span>
-              <span>🔍 {selectedDocuments.size} selected</span>
+              <span>📚 {t('messages.docsInBase', { count: wisdomDocuments.length })}</span>
+              <span>🔍 {t('messages.selectedCount', { count: selectedDocuments.size })}</span>
               {ollamaStatus === 'available' && (
                 <span className="text-green-600">🚀 {t('wisdom.ollamaLocal')}</span>
               )}
             </div>
             <div className="text-xs">
-              💡 Use Shift+Enter for semantic search • Upload your own documents • Toggle grid/list view
-              {ollamaStatus === 'available' && ' • Local embedding models available'}
+              💡 {t('messages.wisdomHints')}
+              {ollamaStatus === 'available' && t('messages.localEmbeddings')}
             </div>
           </div>
         </div>

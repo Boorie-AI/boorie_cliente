@@ -85,7 +85,7 @@ export function MilvusInspector() {
 
         } catch (err: any) {
             logger.error(err)
-            setError(`Error fetching details: ${err.message}`)
+            setError(t('messages.detailsFailed', { motivo: err.message }))
         } finally {
             setInspectLoading(false)
         }
@@ -120,7 +120,7 @@ export function MilvusInspector() {
                 setError(result.error || 'Unknown error')
             }
         } catch (err: any) {
-            setError(`RAG Query failed: ${err.message}`)
+            setError(t('messages.ragQueryFailed', { motivo: err.message }))
         } finally {
             setRagLoading(false)
         }

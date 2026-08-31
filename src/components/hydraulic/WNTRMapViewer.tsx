@@ -288,7 +288,7 @@ export function WNTRMapViewer({
 
     if (containerRect.width === 0 || containerRect.height === 0) {
       logger.error('Map container has zero dimensions:', containerRect)
-      setError('Map container has invalid dimensions. Please check the layout.')
+      setError(t('messages.mapBadSize'))
       return
     }
 
@@ -434,10 +434,10 @@ export function WNTRMapViewer({
             t('mapViewer.webglMissing')
           )
         } else {
-          setError(`Failed to initialize map: ${err.message}`)
+          setError(t('messages.mapInitFailed', { motivo: err.message }))
         }
       } else {
-        setError('Failed to initialize map. Please check your Mapbox configuration.')
+        setError(t('messages.mapInitCheck'))
       }
     }
 

@@ -63,7 +63,7 @@ INSTRUCCIONES:
       if (success) {
         setLastSaved(new Date())
         logger.debug('✅ System prompt saved successfully')
-        alert('Prompt del sistema guardado correctamente')
+        alert(t('messages.promptSaved'))
       } else {
         logger.error('❌ Failed to save system prompt')
         alert(t('messages.promptNotSaved'))

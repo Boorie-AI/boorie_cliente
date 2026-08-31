@@ -41,6 +41,7 @@ node scripts/inventario-idiomas.mjs                 # el total y el reparto
 node scripts/inventario-idiomas.mjs --todos         # el reparto entero, sin cortar
 node scripts/inventario-idiomas.mjs --lista Nombre  # las cadenas de un componente
 node scripts/texto-mezclado.mjs                     # texto pegado a expresiones
+node scripts/avisos-sin-traducir.mjs                # alert, confirm, setError…
 node scripts/claves-sin-usar.mjs                    # claves que ya no usa nadie
 ```
 
@@ -71,11 +72,16 @@ repartido en varias líneas** —el patrón se cortaba en el salto de línea— 
 **clases de Tailwind**, que al admitir saltos empezaron a colarse como si fueran
 texto.
 
-Queda uno que no tapa: el texto **mezclado con una expresión** en la misma línea
-—`📊 Model: {provider.model}`, `{n} redes`—. Para eso hay un segundo barrido,
+Quedan dos que no tapa. El texto **mezclado con una expresión** en la misma
+línea —`📊 Model: {provider.model}`, `{n} redes`—: para eso hay un segundo barrido,
 `scripts/texto-mezclado.mjs`, escrito en la fase 2: busca marcas de castellano
 en plantillas y expresiones. Encontró 83 en `src/`, entre ellas todo el visor
 —las capas, la leyenda, el reloj— que el inventario daba por limpio.
+
+Y el texto que se pasa **a una llamada** —`alert('…')`, `showNotification('…')`,
+`setError('…')`—, que no está en el JSX en absoluto: ése lo busca
+`scripts/avisos-sin-traducir.mjs`, escrito en la fase 3 al encontrar una barra
+de pie entera en inglés en el Wisdom Center.
 
 De ahí que el paso de abrir la pantalla no sea una formalidad: **es el que
 encuentra**, y el recuento sólo sirve para ir detrás comprobando que baja.
@@ -157,6 +163,11 @@ valga:
 | Tras la primera tanda | 87 | 451 | 15 de 64 |
 | Fin de la fase 1 | **0** | 363 | 29 de 64 |
 | Fin de la fase 2 | 0 | **18** | 42 de 64 |
+| Fin de la fase 3 | 0 | 18 | 42 de 64 |
+
+La fase 3 no mueve esas cifras: no saca texto del código, revisa el que ya está
+en el diccionario. Lo que sí cambió: **1.024 claves** en los tres idiomas, 32
+avisos que no veía ningún script y una regla de estilo por idioma.
 
 Las tres cifras se miden con el script de hoy, que ve más que el del principio
 —por eso el «total» sube y baja: no es que aparezca texto, es que se mira mejor—.
@@ -232,7 +243,51 @@ propia tanda: la narración cita `candidata.titulo` y `candidata.motivo`, que
 vienen del recomendador en el backend, así que traducir sólo el narrador dejaría
 la frase a medias. O el motor devuelve claves, o se traduce el motor entero.
 
-### Lo que queda para la fase 3
+## Fase 3: el catalán
 
-El catalán de todo lo escrito en las fases 1 y 2: unas 500 claves que se
-redactaron de una vez y nadie ha leído en pantalla.
+El catalán se escribió de una vez, clave a clave, mientras se traducía a los
+otros dos idiomas. Esta fase es la primera vez que se lee entero.
+
+### Una regla de estilo por idioma
+
+- **Catalán: los botones en imperativo.** Es la norma del idioma en interfaces
+  —«Desa», «Cancel·la», «Afegeix»—, y el diccionario heredado iba en infinitivo
+  mientras el nuevo iba en imperativo. Se unificaron 49 rótulos.
+- **Catalán: el progreso, con «s’està».** «Carregant…» a secas es un calco; la
+  forma del idioma es «S’està carregant…». 32 mensajes.
+- **Los tres: minúscula salvo nombres propios.** Ya se había hecho en inglés en
+  la fase 2; faltaban 24 en castellano y 20 en catalán.
+- **Comillas y apóstrofos.** «» en castellano y catalán, “” en inglés; el
+  apóstrofo tipográfico —d’Ollama, l’aigua, don’t— en los tres, que el catalán
+  mezclaba con el recto en 54 valores.
+
+### Erratas que sólo salen leyendo
+
+- `ai.ollamaDesc` decía «Gestiona els teus models d’IA locals **with** Ollama».
+- `ai.addCustomModel` decía «Afegir Model **Personalitat**» por «personalitzat».
+- «Prova de connexió **exitosa**» es un calco; en catalán, «La prova de connexió
+  ha anat bé».
+- «Token expirat - **si us plau** reconnectar» era un calco doble, del inglés y
+  del castellano a la vez.
+- El nudo se llamaba «nus» en toda la aplicación menos en dos sitios, donde era
+  «node»; y «buscar» convivía con «cercar».
+- Una sigla inventada: APyS es castellana, y en catalán se había traducido como
+  «APiS», que no la usa nadie. Se dice entera.
+
+### El tercer barrido
+
+Abrir el Wisdom Center en catalán enseñó una barra de pie entera en inglés que
+ningún script veía: los avisos que se dan **desde una llamada** —`alert`,
+`confirm`, `showNotification`, `setError`— no están entre `>` y `<`, ni son
+atributos, ni son texto pegado a una expresión en el JSX. De ahí sale
+`scripts/avisos-sin-traducir.mjs`, el tercero: encontró **32**, casi todos en
+inglés, incluidos los de borrar documentos y los de Ollama.
+
+Son tres barridos porque son tres sitios distintos donde se esconde el texto:
+entre etiquetas, pegado a una expresión, y dentro de una llamada.
+
+### Lo que sigue fuera
+
+Lo mismo que en la fase 2: los nombres y descripciones de las fórmulas de la
+calculadora y las narraciones del chat, que van con el motor en su propia tanda.
+Se ven en la calculadora en catalán, en inglés, como es de esperar.

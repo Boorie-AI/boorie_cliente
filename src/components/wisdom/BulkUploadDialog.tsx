@@ -154,7 +154,7 @@ export function BulkUploadDialog({ open, onClose, onUploadComplete }: BulkUpload
     logger.debug('📁 Selected files for upload:', files)
 
     if (files.length === 0) {
-      alert('No hay archivos seleccionados para subir')
+      alert(t('messages.noFilesChosen'))
       return
     }
 

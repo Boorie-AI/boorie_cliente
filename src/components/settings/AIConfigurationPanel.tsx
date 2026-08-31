@@ -316,7 +316,7 @@ export function AIConfigurationPanel() {
     } catch (error) {
       logger.error('Failed to remove model:', error)
       // Show error to user
-      window.alert(`Failed to remove model ${modelToDelete}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      window.alert(t('messages.removeModelFailed', { modelo: modelToDelete, motivo: error instanceof Error ? error.message : t('messages.unknownError') }))
     }
   }
 

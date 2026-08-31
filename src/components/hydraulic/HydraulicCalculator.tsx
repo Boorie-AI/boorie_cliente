@@ -91,7 +91,7 @@ export function HydraulicCalculator() {
       .map(p => p.name)
     
     if (missingInputs.length > 0) {
-      setError(`Missing required inputs: ${missingInputs.join(', ')}`)
+      setError(t('messages.missingInputs', { campos: missingInputs.join(', ') }))
       return
     }
     
@@ -379,7 +379,7 @@ export function HydraulicCalculator() {
                               </p>
                               {param.range && (
                                 <p className="text-xs text-muted-foreground mt-1">
-                                  Valid range: {param.range.min} - {param.range.max}
+                                  {t('calculator.validRange', { min: param.range.min, max: param.range.max })}
                                 </p>
                               )}
                             </div>
@@ -396,7 +396,7 @@ export function HydraulicCalculator() {
                                 "focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary",
                                 "placeholder:text-muted-foreground"
                               )}
-                              placeholder={param.defaultValue?.toString() || 'Enter value'}
+                              placeholder={param.defaultValue?.toString() || t('calculator.enterValue')}
                               step="any"
                             />
                             

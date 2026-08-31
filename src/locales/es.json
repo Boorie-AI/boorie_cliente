@@ -14,9 +14,9 @@
     "settings": "Configuración",
     "expandSidebar": "Expandir barra lateral",
     "collapseSidebar": "Contraer barra lateral",
-    "recentChats": "Chats Recientes",
+    "recentChats": "Chats recientes",
     "noConversations": "No hay conversaciones aún",
-    "startNewChat": "Inicia un nuevo chat para comenzar",
+    "startNewChat": "Empieza un chat nuevo",
     "projects": "Proyectos",
     "calculator": "Calculadora",
     "wntr": "Red WNTR",
@@ -33,7 +33,7 @@
     "nuevaConversacion": "Nueva conversación"
   },
   "chat": {
-    "newConversation": "Nueva Conversación",
+    "newConversation": "Nueva conversación",
     "aiThinking": "La IA está pensando…",
     "redEnContexto": {
       "viendo": "El agente ve: {{red}}",
@@ -53,7 +53,7 @@
     "autoSave": "Guardar conversaciones automáticamente",
     "autoSaveDesc": "Guardar automáticamente tus conversaciones de chat en la base de datos",
     "typingIndicators": "Mostrar indicadores de escritura",
-    "typingIndicatorsDesc": "Mostrar \"La IA está pensando…\" cuando la IA está generando respuestas",
+    "typingIndicatorsDesc": "Mostrar «La IA está pensando…» cuando la IA está generando respuestas",
     "language": "Idioma",
     "languageDesc": "Selecciona tu idioma preferido",
     "storage": "Almacenamiento",
@@ -118,17 +118,17 @@
     "systemPrompt": "Instrucciones del sistema"
   },
   "ai": {
-    "localModels": "Modelos Locales (Ollama)",
+    "localModels": "Modelos locales (Ollama)",
     "apiProviders": "Proveedores de API",
     "ollamaConfiguration": "Configuración de Ollama",
     "ollamaDesc": "Gestiona tus modelos de IA locales con Ollama",
     "refresh": "Actualizar",
-    "installModel": "Instalar Modelo",
+    "installModel": "Instalar modelo",
     "install": "Instalar",
-    "popularModels": "Modelos Populares",
-    "modelName": "Nombre del Modelo",
+    "popularModels": "Modelos populares",
+    "modelName": "Nombre del modelo",
     "ollamaRunning": "Ollama está funcionando",
-    "installedModels": "Modelos Instalados",
+    "installedModels": "Modelos instalados",
     "noModels": "No hay modelos instalados",
     "noModelsDesc": "Instala tu primer modelo para comenzar a usar Ollama",
     "installFirstModel": "Instalar un modelo",
@@ -138,24 +138,24 @@
     "apiKey": "Clave API",
     "enterApiKey": "Ingresa tu clave API",
     "test": "Probar",
-    "availableModels": "Modelos Disponibles",
+    "availableModels": "Modelos disponibles",
     "modelFijadoAviso": "Boorie fija el modelo de las respuestas del chat: esta selección no lo cambia. Sirve para las claves y el catálogo de cada proveedor.",
     "checkingOllama": "Verificando instalación de Ollama…",
-    "apiProviderConfig": "Configuración de Proveedores de API",
+    "apiProviderConfig": "Configuración de proveedores de API",
     "apiProviderConfigDesc": "Configura tus proveedores de API para acceder a modelos de IA en la nube. Todos los proveedores están deshabilitados por defecto.",
-    "installOllamaModel": "Instalar Modelo de Ollama",
+    "installOllamaModel": "Instalar modelo de Ollama",
     "installing": "Instalando",
     "installationCompleted": "¡Instalación completada!",
     "progress": "Progreso",
-    "deleteModel": "Eliminar Modelo",
+    "deleteModel": "Eliminar modelo",
     "deleteModelDesc": "Esta acción no se puede deshacer",
     "deleteModelConfirm": "¿Estás seguro de que quieres eliminar",
     "deleteModelWarning": "Esto eliminará permanentemente el modelo de tu sistema. Siempre puedes reinstalarlo más tarde si es necesario.",
-    "addCustomModel": "Agregar Modelo Personalizado",
-    "modelId": "ID del Modelo",
+    "addCustomModel": "Agregar modelo personalizado",
+    "modelId": "ID del modelo",
     "description": "Descripción",
     "optional": "Opcional",
-    "addModel": "Agregar Modelo",
+    "addModel": "Agregar modelo",
     "fastEfficient": "Modelo rápido y eficiente",
     "openrouterConnected": "¡OpenRouter está conectado! Agrega modelos manualmente para comenzar.",
     "addFirstModel": "Agregar tu primer modelo",
@@ -167,7 +167,7 @@
     "tryDifferentSearch": "Prueba con un término de búsqueda diferente"
   },
   "accounts": {
-    "connectedAccounts": "Cuentas Conectadas",
+    "connectedAccounts": "Cuentas conectadas",
     "connectedAccountsDesc": "Conecta tus cuentas favoritas para una experiencia integrada con Boorie",
     "microsoft365": "Microsoft 365",
     "microsoft365Desc": "Conectar para acceder a Outlook, Calendario y OneDrive",
@@ -180,9 +180,9 @@
     "disconnect": "Desconectar",
     "test": "Probar",
     "refresh": "Actualizar",
-    "tokenExpired": "Token expirado - por favor reconectar",
-    "testSuccess": "Prueba de conexión exitosa",
-    "testFailed": "Prueba de conexión falló",
+    "tokenExpired": "El token ha caducado: vuelve a conectarte",
+    "testSuccess": "La prueba de conexión ha ido bien",
+    "testFailed": "La prueba de conexión ha fallado",
     "confirmDisconnect": "¿Estás seguro de que quieres desconectarte de {{provider}}?",
     "outlook": "Outlook",
     "calendar": "Calendario",
@@ -191,17 +191,17 @@
     "drive": "Drive"
   },
   "status": {
-    "currentSettings": "Configuración Actual",
+    "currentSettings": "Configuración actual",
     "enabled": "Habilitado",
     "disabled": "Deshabilitado"
   },
   "app": {
     "initializing": "Inicializando Boorie",
-    "initializingDesc": "Por favor espera mientras configuramos todo…"
+    "initializingDesc": "Espera un momento mientras lo preparamos todo…"
   },
   "onboarding": {
     "welcome": {
-      "title": "¡Bienvenido a Boorie!",
+      "title": "¡Te damos la bienvenida a Boorie!",
       "desc": "Boorie es tu cliente de IA local y en la nube diseñado para maximizar tu productividad, especialmente en ingeniería hidráulica."
     },
     "ai": {
@@ -209,15 +209,15 @@
       "setupDesc": "Para empezar, te recomendamos usar modelos locales para mayor privacidad y velocidad. ¡Instala Ollama para una experiencia completa!"
     },
     "rag": {
-      "title": "Base de Conocimientos (RAG)",
+      "title": "Base de conocimientos (RAG)",
       "desc": "Sube tus documentos técnicos y normativas. La IA podrá consultar esta información para darte respuestas precisas y fundamentadas."
     },
     "projects": {
-      "title": "Gestión de Proyectos",
+      "title": "Gestión de proyectos",
       "desc": "Organiza tus cálculos, redes y documentos por proyecto. Todo centralizado para tu comodidad."
     },
     "calculator": {
-      "title": "Herramientas de Ingeniería",
+      "title": "Herramientas de ingeniería",
       "desc": "Accede a calculadoras hidráulicas integradas y análisis de redes con WNTR de forma directa."
     },
     "red": {
@@ -407,7 +407,9 @@
     "reference": "Referencia rápida",
     "referenceHint": "Documentación de las fórmulas y consejos",
     "export": "Exportar",
-    "exportHint": "Guarda y exporta tus cálculos"
+    "exportHint": "Guarda y exporta tus cálculos",
+    "validRange": "Rango válido: {{min}} – {{max}}",
+    "enterValue": "Escribe un valor"
   },
   "networkView": {
     "tabs": {
@@ -486,8 +488,8 @@
     "peoplePerNode": "HABITANTES POR NUDO",
     "perConnection": "Hab./acometida (opcional)",
     "people": "Habitantes",
-    "matDuctile": "Hierro Dúctil",
-    "matCast": "Hierro Fundido",
+    "matDuctile": "Hierro dúctil",
+    "matCast": "Hierro fundido",
     "componentIds": "IDs de componentes (separados por coma)",
     "indicator": "Indicador",
     "resilienceInd": "Indicadores de resiliencia",
@@ -734,7 +736,7 @@
   "models": {
     "select": "Elegir modelo",
     "configure": "Configurar los proveedores de API",
-    "configOllama": "Configurar Ollama en Ajustes",
+    "configOllama": "Configurar Ollama en Configuración",
     "local": "Modelos locales",
     "localOllama": "Modelos locales (Ollama)",
     "api": "Modelos de API",
@@ -1123,7 +1125,41 @@
     "chatRateLimit": "**Has superado el límite de solicitudes.** Espera un momento y vuelve a intentarlo.",
     "chatNoCredit": "**No hay créditos suficientes.** Comprueba el saldo de tu cuenta con el proveedor de IA.",
     "chatDatabase": "**Error de base de datos.** Faltan algunas tablas. Reinicia la aplicación para repararla.",
-    "chatOther": "**No se pudo procesar tu solicitud:** {{motivo}}"
+    "chatOther": "**No se pudo procesar tu solicitud:** {{motivo}}",
+    "noApi": "La aplicación no responde. Reiníciala y vuelve a intentarlo.",
+    "providerChanged": "No se pudo cambiar el proveedor de embeddings.",
+    "uploadFailed": "No se pudieron subir los documentos.",
+    "searchFound": "{{count}} documentos encontrados con la búsqueda semántica",
+    "searchFailed": "No se pudo hacer la búsqueda semántica. Inténtalo otra vez.",
+    "confirmDeleteDoc": "¿Seguro que quieres borrar este documento?",
+    "exportedOk": "{{count}} documentos exportados.",
+    "exportFailed": "No se pudo exportar: {{motivo}}",
+    "confirmReindex": "Volver a indexar borrará los fragmentos que hay y los creará de nuevo. ¿Sigo?",
+    "reindexFailed": "No se pudo volver a indexar: {{motivo}}",
+    "reindexedOk": "Documento indexado de nuevo.",
+    "reindexError": "No se pudo volver a indexar el documento.",
+    "noneSelected": "No has elegido ningún documento para borrar",
+    "confirmDeleteMany": "¿Seguro que quieres borrar los {{count}} documentos elegidos? No se puede deshacer.",
+    "deletedOk": "{{count}} documentos borrados",
+    "deletedWithErrors": "{{count}} documentos borrados, {{errores}} con error",
+    "deleteFailed": "No se pudieron borrar los documentos.",
+    "ollamaFound": "Ollama responde: {{count}} modelos de embeddings de {{total}} en total.",
+    "ollamaFailed": "No se pudo conectar con Ollama: {{motivo}}",
+    "checkFailed": "No se pudo comprobar la conexión: {{motivo}}",
+    "mapBadSize": "El mapa no cabe donde está: revisa el tamaño de la ventana.",
+    "mapInitFailed": "No se pudo arrancar el mapa: {{motivo}}",
+    "mapInitCheck": "No se pudo arrancar el mapa. Revisa la configuración de Mapbox.",
+    "missingInputs": "Faltan datos de entrada: {{campos}}",
+    "confirmDeleteProject": "¿Seguro que quieres eliminar este proyecto?",
+    "removeModelFailed": "No se pudo eliminar el modelo {{modelo}}: {{motivo}}",
+    "detailsFailed": "No se pudieron leer los detalles: {{motivo}}",
+    "ragQueryFailed": "La consulta RAG falló: {{motivo}}",
+    "promptSaved": "Prompt del sistema guardado.",
+    "noFilesChosen": "No has elegido ningún archivo para subir",
+    "docsInBase": "{{count}} documentos en el conocimiento",
+    "selectedCount": "{{count}} elegidos",
+    "wisdomHints": "Mayús+Intro busca por significado • sube tus propios documentos • cambia entre cuadrícula y lista",
+    "localEmbeddings": " • hay modelos de embeddings en local"
   },
   "layers": {
     "junction": "Nudos de consumo",

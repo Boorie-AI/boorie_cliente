@@ -232,7 +232,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                                                 className="h-8 w-8 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    if (confirm('¿Seguro que deseas eliminar este proyecto?')) onDeleteProject(project.id);
+                                                    if (confirm(t('messages.confirmDeleteProject'))) onDeleteProject(project.id);
                                                 }}
                                                 title={t('projects.deleteProject')}
                                             >
