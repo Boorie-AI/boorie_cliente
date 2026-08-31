@@ -2170,7 +2170,15 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                     min: 0,
                                     max: fragilityResult.pipe_count,
                                     title: { display: true, text: `Tuberías afectadas (de ${fragilityResult.pipe_count})`, font: { size: 9 } },
-                                    ticks: { font: { size: 9 } },
+                                    // El tope de la escala es el número de tuberías, que
+                                    // rara vez es redondo: con los cortes automáticos, el
+                                    // «117» de Net3 quedaba pegado al «100». Menos marcas y
+                                    // enteras.
+                                    ticks: {
+                                      font: { size: 9 },
+                                      maxTicksLimit: 5,
+                                      callback: (v: string | number) => Math.round(Number(v)),
+                                    },
                                     grid: { drawOnChartArea: false },
                                   },
                                 }
