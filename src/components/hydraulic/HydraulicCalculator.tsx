@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { cifrasSignificativas } from '@/services/network/unidades'
 import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
@@ -22,6 +23,7 @@ import { hydraulicService } from '@/services/hydraulic/hydraulicService'
 import { HydraulicFormula, CalculationResult } from '@/types/hydraulic'
 
 export function HydraulicCalculator() {
+  const { t } = useTranslation()
   const { trackEvent, isReady: clarityReady } = useClarity()
   const [formulas, setFormulas] = useState<HydraulicFormula[]>([])
   const [selectedFormula, setSelectedFormula] = useState<HydraulicFormula | null>(null)
@@ -248,21 +250,21 @@ export function HydraulicCalculator() {
             <Calculator className="w-6 h-6 text-primary" />
             <div>
               <h1 className="text-2xl font-bold text-foreground">
-                Hydraulic Calculator
+                {t('calculator.title')}
               </h1>
               <p className="text-sm text-muted-foreground">
-                Professional engineering calculations powered by Python
+                {t('calculator.subtitle')}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-100/80 dark:bg-emerald-950/30">
               <Code2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
-              <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Python Engine</span>
+              <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{t('calculator.engine')}</span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-100/80 dark:bg-blue-950/30">
               <FlaskConical className="w-4 h-4 text-blue-700 dark:text-blue-400" />
-              <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">Scientific</span>
+              <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">{t('calculator.scientific')}</span>
             </div>
           </div>
         </div>
@@ -358,7 +360,7 @@ export function HydraulicCalculator() {
                   <div className="space-y-6">
                     <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                       <Droplets className="w-5 h-5 text-primary" />
-                      Input Parameters
+                      {t('calculator.inputs')}
                     </h3>
                     
                     <div className="grid gap-6">
@@ -435,12 +437,12 @@ export function HydraulicCalculator() {
                       {calculating ? (
                         <>
                           <RefreshCw className="w-5 h-5 animate-spin" />
-                          Calculating with Python...
+                          {t('calculator.calculating')}
                         </>
                       ) : (
                         <>
                           <Calculator className="w-5 h-5" />
-                          Calculate
+                          {t('calculator.calculate')}
                           <ArrowRight className="w-5 h-5" />
                         </>
                       )}
@@ -454,7 +456,7 @@ export function HydraulicCalculator() {
               <div className="w-96 bg-muted/20 flex flex-col">
                 <div className="p-8 pb-4">
                   <h3 className="text-lg font-semibold text-foreground">
-                    Results
+                    {t('calculator.results')}
                   </h3>
                 </div>
                 <div className="flex-1 px-8 pb-8 overflow-y-auto scrollbar-visible">
@@ -470,12 +472,12 @@ export function HydraulicCalculator() {
                   <div className="space-y-6">
                     <div className="bg-card p-6 rounded-lg border border-border">
                       <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-foreground">Calculation Result</h4>
+                        <h4 className="font-semibold text-foreground">{t('calculator.result')}</h4>
                         <div className="flex gap-2">
                           <button
                             onClick={copyResult}
                             className="p-2 rounded hover:bg-accent transition-colors"
-                            title="Copy result"
+                            title={t('calculator.copyResult')}
                           >
                             <Copy className="w-4 h-4" />
                           </button>
@@ -493,7 +495,7 @@ export function HydraulicCalculator() {
                     
                     {result.intermediateSteps && result.intermediateSteps.length > 0 && (
                       <div className="bg-card p-6 rounded-lg border border-border">
-                        <h4 className="font-semibold text-foreground mb-4">Calculation Steps</h4>
+                        <h4 className="font-semibold text-foreground mb-4">{t('calculator.steps')}</h4>
                         <div className="space-y-3">
                           {result.intermediateSteps.map((step, index) => (
                             <div key={index} className="text-sm">
@@ -515,7 +517,7 @@ export function HydraulicCalculator() {
                       <div className="bg-yellow-500/10 p-4 rounded-lg border border-yellow-500/20">
                         <h4 className="font-semibold text-yellow-700 dark:text-yellow-400 mb-2 flex items-center gap-2">
                           <AlertCircle className="w-5 h-5" />
-                          Warnings
+                          {t('calculator.warnings')}
                         </h4>
                         <ul className="list-disc list-inside space-y-1 text-sm">
                           {result.warnings.map((warning, index) => (
@@ -531,7 +533,7 @@ export function HydraulicCalculator() {
                       <div className="bg-green-500/10 p-4 rounded-lg border border-green-500/20">
                         <h4 className="font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
                           <CheckCircle className="w-5 h-5" />
-                          Recommendations
+                          {t('calculator.recommendations')}
                         </h4>
                         <ul className="list-disc list-inside space-y-1 text-sm">
                           {result.recommendations.map((rec, index) => (
@@ -548,24 +550,24 @@ export function HydraulicCalculator() {
                     <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
                       <Calculator className="w-12 h-12 mb-3 opacity-50" />
                       <p className="text-sm text-center">
-                        Enter values and click Calculate to see results
+                        {t('calculator.empty')}
                       </p>
                     </div>
                     
                     {/* Placeholder sections to ensure scrollbar visibility */}
                     <div className="bg-card/50 p-6 rounded-lg border border-border/50">
-                      <h4 className="font-semibold text-muted-foreground/50 mb-2">Calculation History</h4>
-                      <p className="text-sm text-muted-foreground/40">Previous calculations will appear here</p>
+                      <h4 className="font-semibold text-muted-foreground/50 mb-2">{t('calculator.history')}</h4>
+                      <p className="text-sm text-muted-foreground/40">{t('calculator.historyEmpty')}</p>
                     </div>
                     
                     <div className="bg-card/50 p-6 rounded-lg border border-border/50">
-                      <h4 className="font-semibold text-muted-foreground/50 mb-2">Quick Reference</h4>
-                      <p className="text-sm text-muted-foreground/40">Formula documentation and tips</p>
+                      <h4 className="font-semibold text-muted-foreground/50 mb-2">{t('calculator.reference')}</h4>
+                      <p className="text-sm text-muted-foreground/40">{t('calculator.referenceHint')}</p>
                     </div>
                     
                     <div className="bg-card/50 p-6 rounded-lg border border-border/50">
-                      <h4 className="font-semibold text-muted-foreground/50 mb-2">Export Options</h4>
-                      <p className="text-sm text-muted-foreground/40">Save and export your calculations</p>
+                      <h4 className="font-semibold text-muted-foreground/50 mb-2">{t('calculator.export')}</h4>
+                      <p className="text-sm text-muted-foreground/40">{t('calculator.exportHint')}</p>
                     </div>
                   </div>
                 )}
@@ -580,7 +582,7 @@ export function HydraulicCalculator() {
                   Select a {currentCategory.name} Formula
                 </h3>
                 <p className="text-muted-foreground">
-                  Choose a formula from the left panel to begin
+                  {t('calculator.chooseFormula')}
                 </p>
               </div>
             </div>

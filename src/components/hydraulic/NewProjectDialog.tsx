@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, MapPin, FileText } from 'lucide-react'
 import { cn } from '@/utils/cn'
@@ -11,6 +12,7 @@ interface NewProjectDialogProps {
 }
 
 export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialogProps) {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -30,12 +32,12 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
     e.preventDefault()
     
     if (!formData.name.trim()) {
-      setError('Project name is required')
+      setError(t('newProject.errors.nameRequired'))
       return
     }
     
     if (!formData.location.country || !formData.location.region) {
-      setError('Country and region are required')
+      setError(t('newProject.errors.locationRequired'))
       return
     }
     
@@ -57,18 +59,10 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
     }
   }
   
-  const projectTypes = [
-    { value: 'design', label: 'New Network Design', description: 'Design a new water distribution network' },
-    { value: 'analysis', label: 'Network Analysis', description: 'Analyze an existing network' },
-    { value: 'optimization', label: 'System Optimization', description: 'Optimize network performance' },
-    { value: 'troubleshooting', label: 'Problem Solving', description: 'Diagnose and solve network issues' }
-  ]
-  
-  const networkTypes = [
-    { value: 'distribution', label: 'Distribution Network', description: 'Secondary network for end users' },
-    { value: 'transmission', label: 'Transmission Main', description: 'Primary water transmission lines' },
-    { value: 'collection', label: 'Collection System', description: 'Wastewater collection network' }
-  ]
+  // Sólo los valores: el nombre y la explicación de cada uno salen del
+  // diccionario de idiomas, que es donde se traducen (#96).
+  const projectTypes = ['design', 'analysis', 'optimization', 'troubleshooting'] as const
+  const networkTypes = ['distribution', 'transmission', 'collection'] as const
   
   const countries = [
     { code: 'MX', name: 'México' },
@@ -92,7 +86,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
           {/* Header - Fixed */}
           <div className="flex items-center justify-between p-6 border-b border-border flex-shrink-0">
             <Dialog.Title className="text-xl font-semibold text-foreground">
-              Create New Hydraulic Project
+              {t('newProject.title')}
             </Dialog.Title>
             <Dialog.Close asChild>
               <button
@@ -119,12 +113,12 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-foreground flex items-center gap-2">
                 <FileText className="w-5 h-5" />
-                Project Information
+                {t('newProject.sections.info')}
               </h3>
               
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Project Name *
+                  {t('newProject.fields.name')}
                 </label>
                 <input
                   type="text"
@@ -136,13 +130,13 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                     "focus:outline-none focus:ring-2 focus:ring-ring",
                     "placeholder:text-muted-foreground"
                   )}
-                  placeholder="e.g., Downtown Water Distribution Upgrade"
+                  placeholder={t('newProject.placeholders.name')}
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Description
+                  {t('newProject.fields.description')}
                 </label>
                 <textarea
                   value={formData.description}
@@ -155,29 +149,29 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                     "placeholder:text-muted-foreground",
                     "resize-none"
                   )}
-                  placeholder="Brief description of the project objectives and scope..."
+                  placeholder={t('newProject.placeholders.description')}
                 />
               </div>
             </div>
             
             {/* Project Type */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-foreground">Project Type *</h3>
+              <h3 className="text-lg font-medium text-foreground">{t('newProject.sections.type')}</h3>
               <div className="grid grid-cols-2 gap-3">
                 {projectTypes.map((type) => (
                   <button
-                    key={type.value}
+                    key={type}
                     type="button"
-                    onClick={() => setFormData({ ...formData, type: type.value as ProjectType })}
+                    onClick={() => setFormData({ ...formData, type: type as ProjectType })}
                     className={cn(
                       "p-4 rounded-lg border text-left transition-all",
-                      formData.type === type.value
+                      formData.type === type
                         ? "border-primary bg-primary/10"
                         : "border-border hover:border-primary/50"
                     )}
                   >
-                    <div className="font-medium text-foreground mb-1">{type.label}</div>
-                    <div className="text-sm text-muted-foreground">{type.description}</div>
+                    <div className="font-medium text-foreground mb-1">{t(`newProject.types.${type}.label`)}</div>
+                    <div className="text-sm text-muted-foreground">{t(`newProject.types.${type}.description`)}</div>
                   </button>
                 ))}
               </div>
@@ -185,22 +179,22 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
             
             {/* Network Type */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-foreground">Network Type *</h3>
+              <h3 className="text-lg font-medium text-foreground">{t('newProject.sections.network')}</h3>
               <div className="grid grid-cols-1 gap-3">
                 {networkTypes.map((type) => (
                   <button
-                    key={type.value}
+                    key={type}
                     type="button"
-                    onClick={() => setFormData({ ...formData, networkType: type.value as NetworkType })}
+                    onClick={() => setFormData({ ...formData, networkType: type as NetworkType })}
                     className={cn(
                       "p-4 rounded-lg border text-left transition-all",
-                      formData.networkType === type.value
+                      formData.networkType === type
                         ? "border-primary bg-primary/10"
                         : "border-border hover:border-primary/50"
                     )}
                   >
-                    <div className="font-medium text-foreground mb-1">{type.label}</div>
-                    <div className="text-sm text-muted-foreground">{type.description}</div>
+                    <div className="font-medium text-foreground mb-1">{t(`newProject.networks.${type}.label`)}</div>
+                    <div className="text-sm text-muted-foreground">{t(`newProject.networks.${type}.description`)}</div>
                   </button>
                 ))}
               </div>
@@ -210,13 +204,13 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-foreground flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
-                Project Location
+                {t('newProject.sections.location')}
               </h3>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
-                    Country *
+                    {t('newProject.fields.country')}
                   </label>
                   <select
                     value={formData.location.country}
@@ -230,7 +224,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                       "focus:outline-none focus:ring-2 focus:ring-ring"
                     )}
                   >
-                    <option value="">Select country...</option>
+                    <option value="">{t('newProject.placeholders.country')}</option>
                     {countries.map((country) => (
                       <option key={country.code} value={country.name}>
                         {country.name}
@@ -241,7 +235,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                 
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
-                    State/Region *
+                    {t('newProject.fields.region')}
                   </label>
                   <input
                     type="text"
@@ -256,13 +250,13 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                       "focus:outline-none focus:ring-2 focus:ring-ring",
                       "placeholder:text-muted-foreground"
                     )}
-                    placeholder="e.g., CDMX, Antioquia"
+                    placeholder={t('newProject.placeholders.region')}
                   />
                 </div>
                 
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-foreground mb-2">
-                    City
+                    {t('newProject.fields.city')}
                   </label>
                   <input
                     type="text"
@@ -277,23 +271,23 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                       "focus:outline-none focus:ring-2 focus:ring-ring",
                       "placeholder:text-muted-foreground"
                     )}
-                    placeholder="e.g., Mexico City, Bogotá"
+                    placeholder={t('newProject.placeholders.city')}
                   />
                 </div>
               </div>
               
               <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-                <p>Based on your location, relevant hydraulic regulations will be automatically applied to your project.</p>
+                <p>{t('newProject.regulationsNote')}</p>
               </div>
             </div>
             
             {/* Additional Project Details */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-foreground">Additional Details</h3>
+              <h3 className="text-lg font-medium text-foreground">{t('newProject.sections.details')}</h3>
               
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Project Status
+                  {t('newProject.fields.status')}
                 </label>
                 <select
                   value={formData.status || 'planning'}
@@ -304,18 +298,18 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                     "focus:outline-none focus:ring-2 focus:ring-ring"
                   )}
                 >
-                  <option value="planning">Planning</option>
-                  <option value="design">Design</option>
-                  <option value="review">Review</option>
-                  <option value="approved">Approved</option>
-                  <option value="construction">Construction</option>
-                  <option value="completed">Completed</option>
+                  <option value="planning">{t('newProject.status.planning')}</option>
+                  <option value="design">{t('newProject.status.design')}</option>
+                  <option value="review">{t('newProject.status.review')}</option>
+                  <option value="approved">{t('newProject.status.approved')}</option>
+                  <option value="construction">{t('newProject.status.construction')}</option>
+                  <option value="completed">{t('newProject.status.completed')}</option>
                 </select>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Expected Start Date
+                  {t('newProject.fields.startDate')}
                 </label>
                 <input
                   type="date"
@@ -329,11 +323,11 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
               
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Project Budget (USD)
+                  {t('newProject.fields.budget')}
                 </label>
                 <input
                   type="number"
-                  placeholder="e.g., 1000000"
+                  placeholder={t('newProject.placeholders.budget')}
                   className={cn(
                     "w-full px-4 py-2 rounded-lg",
                     "bg-input border border-border",
@@ -345,11 +339,11 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
               
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Project Manager
+                  {t('newProject.fields.manager')}
                 </label>
                 <input
                   type="text"
-                  placeholder="Name of the project manager"
+                  placeholder={t('newProject.placeholders.manager')}
                   className={cn(
                     "w-full px-4 py-2 rounded-lg",
                     "bg-input border border-border",
@@ -361,11 +355,11 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
               
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Additional Notes
+                  {t('newProject.fields.notes')}
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Any additional information about the project..."
+                  placeholder={t('newProject.placeholders.notes')}
                   className={cn(
                     "w-full px-4 py-2 rounded-lg",
                     "bg-input border border-border",
@@ -391,7 +385,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                 "disabled:opacity-50"
               )}
             >
-              Cancel
+              {t('newProject.actions.cancel')}
             </button>
             <button
               type="submit"
@@ -403,7 +397,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                 "disabled:opacity-50 disabled:cursor-not-allowed"
               )}
             >
-              {creating ? 'Creating...' : 'Create Project'}
+              {creating ? t('newProject.actions.creating') : t('newProject.actions.create')}
             </button>
           </div>
         </form>

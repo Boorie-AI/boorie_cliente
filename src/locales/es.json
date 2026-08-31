@@ -337,5 +337,122 @@
     },
     "syntheticQuality": "sin simular",
     "syntheticQualityHelp": "Esta ejecución no simuló la calidad del agua: las cifras las generó una versión anterior de Boorie para rellenar la pantalla. Vuelve a simular para tener datos reales."
+  },
+  "newProject": {
+    "title": "Nuevo proyecto hidráulico",
+    "sections": {
+      "info": "Datos del proyecto",
+      "type": "Tipo de proyecto *",
+      "network": "Tipo de red *",
+      "location": "Ubicación del proyecto",
+      "details": "Otros datos"
+    },
+    "fields": {
+      "name": "Nombre del proyecto *",
+      "description": "Descripción",
+      "country": "País *",
+      "region": "Estado o provincia *",
+      "city": "Ciudad",
+      "startDate": "Fecha prevista de inicio",
+      "budget": "Presupuesto (USD)",
+      "manager": "Responsable del proyecto",
+      "status": "Estado del proyecto",
+      "notes": "Notas"
+    },
+    "placeholders": {
+      "name": "p. ej., Renovación de la red del centro",
+      "description": "Objetivo y alcance del proyecto, en pocas líneas…",
+      "country": "Elige un país…",
+      "region": "p. ej., CDMX, Antioquia",
+      "city": "p. ej., Ciudad de México, Bogotá",
+      "budget": "p. ej., 1000000",
+      "manager": "Quién dirige el proyecto",
+      "notes": "Cualquier otra cosa que convenga anotar…"
+    },
+    "status": {
+      "planning": "Planificación",
+      "design": "Diseño",
+      "review": "Revisión",
+      "approved": "Aprobado",
+      "construction": "Construcción",
+      "completed": "Terminado"
+    },
+    "types": {
+      "design": {
+        "label": "Diseño de red nueva",
+        "description": "Proyectar una red de distribución desde cero"
+      },
+      "analysis": {
+        "label": "Análisis de red",
+        "description": "Estudiar una red que ya existe"
+      },
+      "optimization": {
+        "label": "Optimización",
+        "description": "Mejorar el funcionamiento de la red"
+      },
+      "troubleshooting": {
+        "label": "Diagnóstico",
+        "description": "Encontrar y resolver problemas de la red"
+      }
+    },
+    "networks": {
+      "distribution": {
+        "label": "Red de distribución",
+        "description": "Red secundaria, la que llega al abonado"
+      },
+      "transmission": {
+        "label": "Conducción principal",
+        "description": "Arterias de transporte de agua"
+      },
+      "collection": {
+        "label": "Red de saneamiento",
+        "description": "Recogida de aguas residuales"
+      }
+    },
+    "regulationsNote": "Según dónde esté el proyecto, se aplican las normas hidráulicas de ese país.",
+    "errors": {
+      "nameRequired": "El proyecto necesita un nombre",
+      "locationRequired": "Faltan el país y el estado o provincia"
+    },
+    "actions": {
+      "cancel": "Cancelar",
+      "create": "Crear proyecto",
+      "creating": "Creando…"
+    }
+  },
+  "chatHeader": {
+    "newChat": "Nueva conversación",
+    "newChatHint": "Empezar una conversación",
+    "editTitle": "Pulsa para cambiar el título",
+    "titlePlaceholder": "Título de la conversación…",
+    "rename": "Cambiar el nombre",
+    "copy": "Copiar al portapapeles",
+    "exportJson": "Exportar como JSON",
+    "newProject": "Crear un proyecto",
+    "delete": "Borrar",
+    "deleteConversation": "Borrar la conversación"
+  },
+  "calculator": {
+    "title": "Calculadora hidráulica",
+    "subtitle": "Cálculos de ingeniería resueltos con Python",
+    "engine": "Motor Python",
+    "scientific": "Científica",
+    "inputs": "Datos de entrada",
+    "calculate": "Calcular",
+    "calculating": "Calculando con Python…",
+    "results": "Resultados",
+    "result": "Resultado",
+    "steps": "Pasos del cálculo",
+    "warnings": "Avisos",
+    "recommendations": "Recomendaciones",
+    "copyResult": "Copiar el resultado",
+    "empty": "Introduce los valores y pulsa «Calcular» para ver el resultado",
+    "chooseFormula": "Elige una fórmula del panel de la izquierda para empezar",
+    "history": "Cálculos anteriores",
+    "historyEmpty": "Aquí aparecerán los cálculos que hagas",
+    "reference": "Referencia rápida",
+    "referenceHint": "Documentación de las fórmulas y consejos",
+    "export": "Exportar",
+    "exportHint": "Guarda y exporta tus cálculos"
   }
 }

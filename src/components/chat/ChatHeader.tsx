@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { Conversation, useChatStore, type WisdomConfiguration } from '@/stores/chatStore'
 import { Edit2, MoreVertical, Trash2, Copy, Download, Plus, FolderPlus } from 'lucide-react'
@@ -17,6 +18,7 @@ interface ChatHeaderProps {
 }
 
 export function ChatHeader({ conversation }: ChatHeaderProps) {
+  const { t } = useTranslation()
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState(conversation.title)
   const [showMenu, setShowMenu] = useState(false)
@@ -133,10 +135,10 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
             "transition-all duration-200 hover:border-border",
             "bg-card/50 hover:bg-accent/50 flex-shrink-0"
           )}
-          title="Start a new conversation"
+          title={t('chatHeader.newChatHint')}
         >
           <Plus size={16} />
-          <span className="text-sm font-medium">New Chat</span>
+          <span className="text-sm font-medium">{t('chatHeader.newChat')}</span>
         </button>
         
         <ProjectSelector
@@ -161,7 +163,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
               "text-foreground placeholder-muted-foreground",
               "focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             )}
-            placeholder="Enter conversation title..."
+            placeholder={t('chatHeader.titlePlaceholder')}
           />
         ) : (
           <h2 
@@ -170,7 +172,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
               "flex-1 truncate transition-colors"
             )}
             onClick={() => setIsEditing(true)}
-            title="Click to edit title"
+            title={t('chatHeader.editTitle')}
           >
             {conversation.title}
           </h2>
@@ -209,7 +211,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
                 className="w-full flex items-center px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               >
                 <Edit2 size={16} className="mr-3" />
-                Rename
+                {t('chatHeader.rename')}
               </button>
               
               <button
@@ -217,7 +219,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
                 className="w-full flex items-center px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               >
                 <Copy size={16} className="mr-3" />
-                Copy to Clipboard
+                {t('chatHeader.copy')}
               </button>
               
               <button
@@ -225,7 +227,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
                 className="w-full flex items-center px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               >
                 <Download size={16} className="mr-3" />
-                Export as JSON
+                {t('chatHeader.exportJson')}
               </button>
               
               <div className="h-px bg-border my-1" />
@@ -238,7 +240,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
                 className="w-full flex items-center px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
               >
                 <FolderPlus size={16} className="mr-3" />
-                Create New Project
+                {t('chatHeader.newProject')}
               </button>
               
               <div className="h-px bg-border my-1" />
@@ -248,7 +250,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
                 className="w-full flex items-center px-4 py-2 text-sm text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
               >
                 <Trash2 size={16} className="mr-3" />
-                Delete
+                {t('chatHeader.delete')}
               </button>
             </div>
           )}
@@ -259,7 +261,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={confirmDeleteConversation}
-        title="Delete Conversation"
+        title={t('chatHeader.deleteConversation')}
         message="Are you sure you want to delete this conversation? This action cannot be undone."
         confirmText="Delete"
         cancelText="Cancel"

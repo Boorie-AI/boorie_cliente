@@ -337,5 +337,122 @@
     },
     "syntheticQuality": "sense simular",
     "syntheticQualityHelp": "Aquesta execució no va simular la qualitat de l'aigua: les xifres les va generar una versió anterior de Boorie per omplir la pantalla. Torna a simular per tenir dades reals."
+  },
+  "newProject": {
+    "title": "Nou projecte hidràulic",
+    "sections": {
+      "info": "Dades del projecte",
+      "type": "Tipus de projecte *",
+      "network": "Tipus de xarxa *",
+      "location": "Ubicació del projecte",
+      "details": "Altres dades"
+    },
+    "fields": {
+      "name": "Nom del projecte *",
+      "description": "Descripció",
+      "country": "País *",
+      "region": "Estat o província *",
+      "city": "Ciutat",
+      "startDate": "Data prevista d'inici",
+      "budget": "Pressupost (USD)",
+      "manager": "Responsable del projecte",
+      "status": "Estat del projecte",
+      "notes": "Notes"
+    },
+    "placeholders": {
+      "name": "p. ex., Renovació de la xarxa del centre",
+      "description": "Objectiu i abast del projecte, en poques línies…",
+      "country": "Tria un país…",
+      "region": "p. ex., CDMX, Antioquia",
+      "city": "p. ex., Ciutat de Mèxic, Bogotà",
+      "budget": "p. ex., 1000000",
+      "manager": "Qui dirigeix el projecte",
+      "notes": "Qualsevol altra cosa que convingui anotar…"
+    },
+    "status": {
+      "planning": "Planificació",
+      "design": "Disseny",
+      "review": "Revisió",
+      "approved": "Aprovat",
+      "construction": "Construcció",
+      "completed": "Acabat"
+    },
+    "types": {
+      "design": {
+        "label": "Disseny de xarxa nova",
+        "description": "Projectar una xarxa de distribució des de zero"
+      },
+      "analysis": {
+        "label": "Anàlisi de xarxa",
+        "description": "Estudiar una xarxa que ja existeix"
+      },
+      "optimization": {
+        "label": "Optimització",
+        "description": "Millorar el funcionament de la xarxa"
+      },
+      "troubleshooting": {
+        "label": "Diagnòstic",
+        "description": "Trobar i resoldre problemes de la xarxa"
+      }
+    },
+    "networks": {
+      "distribution": {
+        "label": "Xarxa de distribució",
+        "description": "Xarxa secundària, la que arriba a l'abonat"
+      },
+      "transmission": {
+        "label": "Conducció principal",
+        "description": "Artèries de transport d'aigua"
+      },
+      "collection": {
+        "label": "Xarxa de sanejament",
+        "description": "Recollida d'aigües residuals"
+      }
+    },
+    "regulationsNote": "Segons on sigui el projecte, s'apliquen les normes hidràuliques d'aquell país.",
+    "errors": {
+      "nameRequired": "El projecte necessita un nom",
+      "locationRequired": "Falten el país i l'estat o província"
+    },
+    "actions": {
+      "cancel": "Cancel·la",
+      "create": "Crea el projecte",
+      "creating": "S'està creant…"
+    }
+  },
+  "chatHeader": {
+    "newChat": "Nova conversa",
+    "newChatHint": "Comença una conversa",
+    "editTitle": "Prem per canviar el títol",
+    "titlePlaceholder": "Títol de la conversa…",
+    "rename": "Canvia el nom",
+    "copy": "Copia al porta-retalls",
+    "exportJson": "Exporta com a JSON",
+    "newProject": "Crea un projecte",
+    "delete": "Esborra",
+    "deleteConversation": "Esborra la conversa"
+  },
+  "calculator": {
+    "title": "Calculadora hidràulica",
+    "subtitle": "Càlculs d'enginyeria resolts amb Python",
+    "engine": "Motor Python",
+    "scientific": "Científica",
+    "inputs": "Dades d'entrada",
+    "calculate": "Calcula",
+    "calculating": "S'està calculant amb Python…",
+    "results": "Resultats",
+    "result": "Resultat",
+    "steps": "Passos del càlcul",
+    "warnings": "Avisos",
+    "recommendations": "Recomanacions",
+    "copyResult": "Copia el resultat",
+    "empty": "Introdueix els valors i prem «Calcula» per veure el resultat",
+    "chooseFormula": "Tria una fórmula del plafó de l'esquerra per començar",
+    "history": "Càlculs anteriors",
+    "historyEmpty": "Aquí apareixeran els càlculs que facis",
+    "reference": "Referència ràpida",
+    "referenceHint": "Documentació de les fórmules i consells",
+    "export": "Exporta",
+    "exportHint": "Desa i exporta els teus càlculs"
   }
 }
