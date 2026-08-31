@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { decirTexto } from '@/services/hydraulic/textoDelMotor'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Lightbulb, Play, X } from 'lucide-react'
@@ -49,7 +50,7 @@ export function PropuestaEnergia({ projectId, redId, onNarracion }: Props) {
       })
 
       if (!r?.success) {
-        setError(r?.error || 'No se pudieron calcular las medidas')
+        setError(r?.error || t('messages.measuresFailed'))
         setEstado('pendiente')
         return
       }
@@ -61,13 +62,21 @@ export function PropuestaEnergia({ projectId, redId, onNarracion }: Props) {
           .filter(x => x.runId && x.ahorro)
           .map(x => ({
             runId: x.runId as string,
-            titulo: x.candidata.titulo,
-            contexto: { medida: x.candidata.medida, naturaleza: x.candidata.naturaleza, ahorro: x.ahorro, motivo: x.candidata.motivo },
+            // Lo que se guarda es el texto ya escrito, en el idioma del
+            // momento: es un dato del proyecto, como el título de una
+            // conversación, y no se reescribe al cambiar de idioma.
+            titulo: decirTexto(t, x.candidata.titulo),
+            contexto: {
+              medida: x.candidata.medida,
+              naturaleza: x.candidata.naturaleza,
+              ahorro: x.ahorro,
+              motivo: decirTexto(t, x.candidata.motivo),
+            },
           })),
       )
       setEstado('hecho')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudieron calcular las medidas')
+      setError(e instanceof Error ? e.message : t('messages.measuresFailed'))
       setEstado('pendiente')
     }
   }

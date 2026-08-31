@@ -1,8 +1,16 @@
 import {
   HydraulicFormula,
   CalculationResult,
-  FormulaParameter
+  FormulaParameter,
+  AvisoDelMotor
 } from '../../../src/types/hydraulic'
+
+/**
+ * Un aviso del motor no es una frase: es una clave del diccionario y, si lleva
+ * cifras, sus datos. El motor no sabe en qué idioma se va a leer (#96).
+ */
+const aviso = (clave: string, datos?: Record<string, string | number>): AvisoDelMotor =>
+  datos ? { clave: `calc.msg.${clave}`, datos } : { clave: `calc.msg.${clave}` }
 
 export class HydraulicCalculationEngine {
   private formulas: Map<string, HydraulicFormula>
@@ -18,35 +26,35 @@ export class HydraulicCalculationEngine {
     // Darcy-Weisbach formula for head loss
     this.formulas.set('darcy-weisbach', {
       id: 'darcy-weisbach',
-      name: 'Darcy-Weisbach Head Loss',
+      nameKey: 'calc.formula.darcyWeisbach',
       category: 'head_loss',
       equation: 'hf = f * (L/D) * (V²/2g)',
       parameters: [
         {
           symbol: 'f',
-          name: 'Friction factor',
-          description: 'Darcy friction factor (dimensionless)',
+          nameKey: 'calc.param.frictionFactor',
+          descriptionKey: 'calc.paramDesc.frictionFactor',
           units: ['dimensionless'],
           range: { min: 0.008, max: 0.1 }
         },
         {
           symbol: 'L',
-          name: 'Pipe length',
-          description: 'Length of the pipe',
+          nameKey: 'calc.param.pipeLength',
+          descriptionKey: 'calc.paramDesc.pipeLength',
           units: ['m', 'ft'],
           range: { min: 0, max: 100000 }
         },
         {
           symbol: 'D',
-          name: 'Pipe diameter',
-          description: 'Internal diameter of the pipe',
+          nameKey: 'calc.param.pipeDiameter',
+          descriptionKey: 'calc.paramDesc.pipeDiameter',
           units: ['m', 'mm', 'in'],
           range: { min: 0.01, max: 10 }
         },
         {
           symbol: 'V',
-          name: 'Flow velocity',
-          description: 'Average flow velocity',
+          nameKey: 'calc.param.velocity',
+          descriptionKey: 'calc.paramDesc.velocity',
           units: ['m/s', 'ft/s'],
           range: { min: 0, max: 10 }
         }
@@ -62,36 +70,36 @@ export class HydraulicCalculationEngine {
     // Hazen-Williams formula
     this.formulas.set('hazen-williams', {
       id: 'hazen-williams',
-      name: 'Hazen-Williams Head Loss',
+      nameKey: 'calc.formula.hazenWilliams',
       category: 'head_loss',
       equation: 'hf = 10.67 * (Q/C)^1.852 * L / D^4.8704',
       parameters: [
         {
           symbol: 'Q',
-          name: 'Flow rate',
-          description: 'Volumetric flow rate',
+          nameKey: 'calc.param.flowRate',
+          descriptionKey: 'calc.paramDesc.flowRate',
           units: ['l/s', 'm³/s', 'gpm'],
           range: { min: 0, max: 10 }
         },
         {
           symbol: 'C',
-          name: 'Hazen-Williams coefficient',
-          description: 'Roughness coefficient',
+          nameKey: 'calc.param.hazenC',
+          descriptionKey: 'calc.paramDesc.hazenC',
           units: ['dimensionless'],
           defaultValue: 140,
           range: { min: 50, max: 150 }
         },
         {
           symbol: 'L',
-          name: 'Pipe length',
-          description: 'Length of the pipe',
+          nameKey: 'calc.param.pipeLength',
+          descriptionKey: 'calc.paramDesc.pipeLength',
           units: ['m', 'ft'],
           range: { min: 0, max: 100000 }
         },
         {
           symbol: 'D',
-          name: 'Pipe diameter',
-          description: 'Internal diameter',
+          nameKey: 'calc.param.pipeDiameter',
+          descriptionKey: 'calc.paramDesc.pipeDiameter',
           units: ['m', 'mm', 'in'],
           range: { min: 0.01, max: 10 }
         }
@@ -107,29 +115,29 @@ export class HydraulicCalculationEngine {
     // Colebrook-White formula for friction factor
     this.formulas.set('colebrook-white', {
       id: 'colebrook-white',
-      name: 'Colebrook-White Friction Factor',
+      nameKey: 'calc.formula.colebrook',
       category: 'flow',
       equation: '1/√f = -2 * log10(ε/(3.7*D) + 2.51/(Re*√f))',
       parameters: [
         {
           symbol: 'Re',
-          name: 'Reynolds number',
-          description: 'Reynolds number',
+          nameKey: 'calc.param.reynolds',
+          descriptionKey: 'calc.paramDesc.reynolds',
           units: ['dimensionless'],
           range: { min: 2000, max: 1e8 }
         },
         {
           symbol: 'ε',
-          name: 'Roughness',
-          description: 'Absolute roughness',
+          nameKey: 'calc.param.roughness',
+          descriptionKey: 'calc.paramDesc.roughness',
           units: ['m', 'mm'],
           defaultValue: 0.0015,
           range: { min: 0, max: 0.05 }
         },
         {
           symbol: 'D',
-          name: 'Diameter',
-          description: 'Pipe diameter',
+          nameKey: 'calc.param.pipeDiameter',
+          descriptionKey: 'calc.paramDesc.pipeDiameter',
           units: ['m', 'mm'],
           range: { min: 0.01, max: 10 }
         }
@@ -145,30 +153,30 @@ export class HydraulicCalculationEngine {
     // Water hammer - Joukowsky equation
     this.formulas.set('water-hammer', {
       id: 'water-hammer',
-      name: 'Water Hammer (Joukowsky)',
+      nameKey: 'calc.formula.waterHammer',
       category: 'water_hammer',
       equation: 'ΔP = ρ * c * ΔV',
       parameters: [
         {
           symbol: 'ρ',
-          name: 'Water density',
-          description: 'Density of water',
+          nameKey: 'calc.param.waterDensity',
+          descriptionKey: 'calc.paramDesc.waterDensity',
           units: ['kg/m³'],
           defaultValue: 1000,
           range: { min: 990, max: 1010 }
         },
         {
           symbol: 'c',
-          name: 'Wave speed',
-          description: 'Pressure wave speed',
+          nameKey: 'calc.param.waveSpeed',
+          descriptionKey: 'calc.paramDesc.waveSpeed',
           units: ['m/s'],
           defaultValue: 1200,
           range: { min: 200, max: 1500 }
         },
         {
           symbol: 'ΔV',
-          name: 'Velocity change',
-          description: 'Change in flow velocity',
+          nameKey: 'calc.param.velocityChange',
+          descriptionKey: 'calc.paramDesc.velocityChange',
           units: ['m/s'],
           range: { min: 0, max: 10 }
         }
@@ -184,37 +192,37 @@ export class HydraulicCalculationEngine {
     // Tank sizing formula
     this.formulas.set('tank-volume', {
       id: 'tank-volume',
-      name: 'Tank Volume Calculation',
+      nameKey: 'calc.formula.tankVolume',
       category: 'tank_sizing',
       equation: 'V = Qmax * t + Vfire + Vemergency',
       parameters: [
         {
           symbol: 'Qmax',
-          name: 'Maximum hourly demand',
-          description: 'Peak hour demand',
+          nameKey: 'calc.param.maxHourlyDemand',
+          descriptionKey: 'calc.paramDesc.maxHourlyDemand',
           units: ['l/s', 'm³/h', 'gpm'],
           range: { min: 0, max: 10000 }
         },
         {
           symbol: 't',
-          name: 'Regulation time',
-          description: 'Hours of regulation',
+          nameKey: 'calc.param.regulationTime',
+          descriptionKey: 'calc.paramDesc.regulationTime',
           units: ['h'],
           defaultValue: 4,
           range: { min: 2, max: 24 }
         },
         {
           symbol: 'Vfire',
-          name: 'Fire reserve',
-          description: 'Volume for fire protection',
+          nameKey: 'calc.param.fireReserve',
+          descriptionKey: 'calc.paramDesc.fireReserve',
           units: ['m³', 'L'],
           defaultValue: 0,
           range: { min: 0, max: 5000 }
         },
         {
           symbol: 'Vemergency',
-          name: 'Emergency reserve',
-          description: 'Emergency storage volume',
+          nameKey: 'calc.param.emergencyReserve',
+          descriptionKey: 'calc.paramDesc.emergencyReserve',
           units: ['m³', 'L'],
           defaultValue: 0,
           range: { min: 0, max: 5000 }
@@ -231,44 +239,44 @@ export class HydraulicCalculationEngine {
     // Pump power calculation
     this.formulas.set('pump-power', {
       id: 'pump-power',
-      name: 'Pump Power Requirement',
+      nameKey: 'calc.formula.pumpPower',
       category: 'pump',
       equation: 'P = (ρ * g * Q * H) / (η * 1000)',
       parameters: [
         {
           symbol: 'ρ',
-          name: 'Water density',
-          description: 'Density of water',
+          nameKey: 'calc.param.waterDensity',
+          descriptionKey: 'calc.paramDesc.waterDensity',
           units: ['kg/m³'],
           defaultValue: 1000,
           range: { min: 990, max: 1010 }
         },
         {
           symbol: 'g',
-          name: 'Gravity',
-          description: 'Gravitational acceleration',
+          nameKey: 'calc.param.gravity',
+          descriptionKey: 'calc.paramDesc.gravity',
           units: ['m/s²'],
           defaultValue: 9.81,
           range: { min: 9.78, max: 9.82 }
         },
         {
           symbol: 'Q',
-          name: 'Flow rate',
-          description: 'Pump flow rate',
+          nameKey: 'calc.param.flowRate',
+          descriptionKey: 'calc.paramDesc.flowRate',
           units: ['l/s', 'm³/s'],
           range: { min: 0, max: 10 }
         },
         {
           symbol: 'H',
-          name: 'Total head',
-          description: 'Total dynamic head',
+          nameKey: 'calc.param.totalHead',
+          descriptionKey: 'calc.paramDesc.totalHead',
           units: ['m', 'ft'],
           range: { min: 0, max: 1000 }
         },
         {
           symbol: 'η',
-          name: 'Efficiency',
-          description: 'Pump efficiency',
+          nameKey: 'calc.param.efficiency',
+          descriptionKey: 'calc.paramDesc.efficiency',
           units: ['decimal'],
           defaultValue: 0.75,
           range: { min: 0.4, max: 0.9 }
@@ -327,7 +335,7 @@ export class HydraulicCalculationEngine {
     // Check required parameters
     for (const param of formula.parameters) {
       if (!param.defaultValue && !inputs[param.symbol]) {
-        errors.push(`Missing required parameter: ${param.name} (${param.symbol})`)
+        errors.push(`Missing required parameter: ${param.symbol}`)
       }
     }
     
@@ -337,7 +345,7 @@ export class HydraulicCalculationEngine {
       if (param && param.range) {
         if (input.value < param.range.min || input.value > param.range.max) {
           errors.push(
-            `${param.name} (${symbol}) value ${input.value} is outside valid range [${param.range.min}, ${param.range.max}]`
+            `${symbol} = ${input.value} is outside the valid range [${param.range.min}, ${param.range.max}]`
           )
         }
       }
@@ -422,13 +430,13 @@ export class HydraulicCalculationEngine {
     
     const steps = [
       {
-        description: 'Calculate velocity head',
+        descriptionKey: 'calc.step.velocityHead',
         formula: 'V²/(2g)',
         result: (V * V) / (2 * g),
         unit: 'm'
       },
       {
-        description: 'Calculate L/D ratio',
+        descriptionKey: 'calc.step.ldRatio',
         formula: 'L/D',
         result: L / D,
         // Una relación entre dos longitudes no tiene unidad, y decir que la
@@ -436,7 +444,7 @@ export class HydraulicCalculationEngine {
         unit: ''
       },
       {
-        description: 'Calculate head loss',
+        descriptionKey: 'calc.step.headLoss',
         formula: 'hf = f × (L/D) × (V²/2g)',
         result: f * (L / D) * (V * V) / (2 * g),
         unit: 'm'
@@ -458,7 +466,7 @@ export class HydraulicCalculationEngine {
     // Convert to consistent units (SI)
     const steps = [
       {
-        description: 'Apply Hazen-Williams formula',
+        descriptionKey: 'calc.step.hazenWilliams',
         formula: 'hf = 10.67 × (Q/C)^1.852 × L / D^4.8704',
         result: 10.67 * Math.pow(Q / C, 1.852) * L / Math.pow(D, 4.8704),
         unit: 'm'
@@ -517,13 +525,13 @@ export class HydraulicCalculationEngine {
     
     const steps = [
       {
-        description: 'Apply Joukowsky equation',
+        descriptionKey: 'calc.step.joukowsky',
         formula: 'ΔP = ρ × c × ΔV',
         result: ρ * c * ΔV,
         unit: 'Pa'
       },
       {
-        description: 'Convert to kPa',
+        descriptionKey: 'calc.step.toKpa',
         formula: 'ΔP / 1000',
         result: (ρ * c * ΔV) / 1000,
         unit: 'kPa'
@@ -544,19 +552,19 @@ export class HydraulicCalculationEngine {
     
     const steps = [
       {
-        description: 'Calculate regulation volume',
+        descriptionKey: 'calc.step.regulationVolume',
         formula: 'Vreg = Qmax × t',
         result: Qmax * t,
         unit: 'm³'
       },
       {
-        description: 'Add fire reserve',
+        descriptionKey: 'calc.step.addFire',
         formula: 'Vreg + Vfire',
         result: Qmax * t + Vfire,
         unit: 'm³'
       },
       {
-        description: 'Add emergency reserve',
+        descriptionKey: 'calc.step.addEmergency',
         formula: 'Vreg + Vfire + Vemergency',
         result: Qmax * t + Vfire + Vemergency,
         unit: 'm³'
@@ -577,19 +585,19 @@ export class HydraulicCalculationEngine {
     
     const steps = [
       {
-        description: 'Calculate hydraulic power',
+        descriptionKey: 'calc.step.hydraulicPower',
         formula: 'Phyd = ρ × g × Q × H',
         result: ρ * g * Q * H,
         unit: 'W'
       },
       {
-        description: 'Apply efficiency',
+        descriptionKey: 'calc.step.applyEfficiency',
         formula: 'P = Phyd / η',
         result: (ρ * g * Q * H) / η,
         unit: 'W'
       },
       {
-        description: 'Convert to kW',
+        descriptionKey: 'calc.step.toKw',
         formula: 'P / 1000',
         result: (ρ * g * Q * H) / (η * 1000),
         unit: 'kW'
@@ -609,8 +617,8 @@ export class HydraulicCalculationEngine {
     formula: HydraulicFormula,
     inputs: Record<string, number>,
     result: { value: number; unit: string }
-  ): string[] {
-    const warnings: string[] = []
+  ): AvisoDelMotor[] {
+    const warnings: AvisoDelMotor[] = []
     
     // Formula-specific warnings
     switch (formula.id) {
@@ -618,23 +626,23 @@ export class HydraulicCalculationEngine {
       case 'hazen-williams': {
         const velocity = inputs.V || (inputs.Q ? (inputs.Q * 4) / (Math.PI * inputs.D * inputs.D) : 0)
         if (velocity > 3) {
-          warnings.push(`High velocity (${velocity.toFixed(2)} m/s). Consider increasing pipe diameter to reduce head loss and prevent erosion.`)
+          warnings.push(aviso('highVelocityDiameter', { velocidad: velocity.toFixed(2) }))
         }
         if (velocity < 0.6) {
-          warnings.push(`Low velocity (${velocity.toFixed(2)} m/s). Risk of sedimentation.`)
+          warnings.push(aviso('lowVelocityValue', { velocidad: velocity.toFixed(2) }))
         }
         break
       }
       
       case 'water-hammer':
         if (result.value > 1000) {
-          warnings.push(`Extreme pressure surge (${result.value.toFixed(0)} kPa). Install surge protection devices.`)
+          warnings.push(aviso('extremeSurge', { kpa: result.value.toFixed(0) }))
         }
         break
       
       case 'pump-power':
         if (inputs.η < 0.6) {
-          warnings.push(`Low pump efficiency (${(inputs.η * 100).toFixed(0)}%). Consider pump replacement or maintenance.`)
+          warnings.push(aviso('lowEfficiencyValue', { pct: (inputs.η * 100).toFixed(0) }))
         }
         break
     }
@@ -646,26 +654,26 @@ export class HydraulicCalculationEngine {
     formula: HydraulicFormula,
     inputs: Record<string, number>,
     result: { value: number; unit: string }
-  ): string[] {
-    const recommendations: string[] = []
+  ): AvisoDelMotor[] {
+    const recommendations: AvisoDelMotor[] = []
     
     switch (formula.id) {
       case 'darcy-weisbach':
       case 'hazen-williams':
         if (result.value > 10) {
-          recommendations.push('Consider using a larger diameter pipe to reduce head loss')
-          recommendations.push('Evaluate the possibility of adding booster pumps')
+          recommendations.push(aviso('largerDiameter'))
+          recommendations.push(aviso('boosterPumps'))
         }
         break
       
       case 'water-hammer':
-        recommendations.push('Install air chambers or surge tanks near critical points')
-        recommendations.push('Use slow-closing valves to reduce velocity changes')
+        recommendations.push(aviso('airChambers'))
+        recommendations.push(aviso('slowValves'))
         break
       
       case 'tank-volume':
-        recommendations.push('Verify local regulations for minimum storage requirements')
-        recommendations.push('Consider future demand growth in sizing')
+        recommendations.push(aviso('localRegulations'))
+        recommendations.push(aviso('futureDemand'))
         break
     }
     

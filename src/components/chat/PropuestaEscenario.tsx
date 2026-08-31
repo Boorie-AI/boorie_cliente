@@ -61,7 +61,7 @@ export function PropuestaEscenario({ propuesta, networkId, onNarracion }: Props)
       })
 
       if (!r?.success) {
-        setError(r?.error || 'El escenario no se pudo simular')
+        setError(r?.error || t('messages.scenarioFailed'))
         setEstado('pendiente')
         return
       }
@@ -87,7 +87,7 @@ export function PropuestaEscenario({ propuesta, networkId, onNarracion }: Props)
       onNarracion(narrarEscenario(r.data as ResultadoEscenario, runId), runId)
       setEstado('hecho')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'El escenario no se pudo simular')
+      setError(e instanceof Error ? e.message : t('messages.scenarioFailed'))
       setEstado('pendiente')
     }
   }

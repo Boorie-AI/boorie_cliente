@@ -26,9 +26,14 @@ export interface Constraint {
   units: string
 }
 
+/**
+ * Lo que devuelve el motor de cálculo. Los nombres son **claves** del
+ * diccionario, no frases: el motor no sabe en qué idioma se va a leer, y quien
+ * lo enseña es quien traduce (#96).
+ */
 export interface HydraulicFormula {
   id: string
-  name: string
+  nameKey: string
   category: 'head_loss' | 'pump' | 'flow' | 'water_hammer' | 'tank_sizing'
   equation: string
   parameters: FormulaParameter[]
@@ -37,8 +42,8 @@ export interface HydraulicFormula {
 
 export interface FormulaParameter {
   symbol: string
-  name: string
-  description: string
+  nameKey: string
+  descriptionKey: string
   units: string[]
   defaultValue?: number
   range?: { min: number; max: number }
@@ -56,12 +61,18 @@ export interface CalculationResult {
   inputs: Record<string, { value: number; unit: string }>
   result: { value: number; unit: string }
   intermediateSteps?: Step[]
-  warnings?: string[]
-  recommendations?: string[]
+  warnings?: AvisoDelMotor[]
+  recommendations?: AvisoDelMotor[]
+}
+
+/** Un aviso del motor: su clave y, si la frase lleva cifras, sus datos. */
+export interface AvisoDelMotor {
+  clave: string
+  datos?: Record<string, string | number>
 }
 
 export interface Step {
-  description: string
+  descriptionKey: string
   formula: string
   result: number
   /**

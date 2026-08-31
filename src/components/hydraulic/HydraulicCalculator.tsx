@@ -79,7 +79,7 @@ export function HydraulicCalculator() {
     if (clarityReady) {
       trackEvent('hydraulic_calculation_started', {
         formula_id: selectedFormula.id,
-        formula_name: selectedFormula.name,
+        formula_name: selectedFormula.nameKey,
         category: selectedFormula.category,
         input_count: Object.keys(inputs).length
       });
@@ -88,7 +88,7 @@ export function HydraulicCalculator() {
     // Validate inputs
     const missingInputs = selectedFormula.parameters
       .filter(p => !p.defaultValue && !inputs[p.symbol]?.value)
-      .map(p => p.name)
+      .map(p => t(p.nameKey))
     
     if (missingInputs.length > 0) {
       setError(t('messages.missingInputs', { campos: missingInputs.join(', ') }))
@@ -128,7 +128,7 @@ export function HydraulicCalculator() {
       if (clarityReady) {
         trackEvent('hydraulic_calculation_completed', {
           formula_id: selectedFormula.id,
-          formula_name: selectedFormula.name,
+          formula_name: selectedFormula.nameKey,
           category: selectedFormula.category,
           result_value: calculationResult.result.value,
           result_unit: calculationResult.result.unit,
@@ -144,7 +144,7 @@ export function HydraulicCalculator() {
       if (clarityReady) {
         trackEvent('hydraulic_calculation_error', {
           formula_id: selectedFormula?.id,
-          formula_name: selectedFormula?.name,
+          formula_name: selectedFormula?.nameKey,
           category: selectedFormula?.category,
           error_message: errorMessage,
           success: false
@@ -170,7 +170,7 @@ export function HydraulicCalculator() {
   const copyResult = () => {
     if (!result) return
     
-    const text = `${selectedFormula?.name}\n` +
+    const text = `${selectedFormula ? t(selectedFormula.nameKey) : ''}\n` +
       `Result: ${result.result.value.toFixed(4)} ${result.result.unit}\n` +
       `Formula: ${selectedFormula?.equation}\n\n` +
       `Inputs:\n${Object.entries(result.inputs)
@@ -183,43 +183,43 @@ export function HydraulicCalculator() {
   const categories = [
     { 
       id: 'head_loss', 
-      name: 'Head Loss', 
+      clave: 'headLoss', 
       icon: Droplets,
       color: 'text-blue-600 dark:text-blue-400',
       bgColor: 'bg-blue-50 dark:bg-blue-950/30',
-      description: 'Darcy-Weisbach, Hazen-Williams, and minor losses'
+      descripcion: 'headLoss'
     },
     { 
       id: 'flow', 
-      name: 'Flow', 
+      clave: 'flow', 
       icon: Waves,
       color: 'text-cyan-600 dark:text-cyan-400',
       bgColor: 'bg-cyan-50 dark:bg-cyan-950/30',
-      description: 'Flow rate, velocity, and continuity calculations'
+      descripcion: 'flow'
     },
     { 
       id: 'pump', 
-      name: 'Pumps', 
+      clave: 'pump', 
       icon: Activity,
       color: 'text-purple-600 dark:text-purple-400',
       bgColor: 'bg-purple-50 dark:bg-purple-950/30',
-      description: 'Power, efficiency, and pump curves'
+      descripcion: 'pump'
     },
     { 
       id: 'tank_sizing', 
-      name: 'Tanks', 
+      clave: 'tank', 
       icon: Gauge,
       color: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-green-50 dark:bg-green-950/30',
-      description: 'Volume, dimensions, and retention time'
+      descripcion: 'tank'
     },
     { 
       id: 'water_hammer', 
-      name: 'Water Hammer', 
+      clave: 'waterHammer', 
       icon: Zap,
       color: 'text-red-600 dark:text-red-400',
       bgColor: 'bg-red-50 dark:bg-red-950/30',
-      description: 'Pressure surge and transient analysis'
+      descripcion: 'waterHammer'
     }
   ]
   
@@ -287,7 +287,7 @@ export function HydraulicCalculator() {
                 )}
               >
                 <Icon className={cn("w-5 h-5", isActive && category.color)} />
-                <span>{category.name}</span>
+                <span>{t(`calc.cat.${category.clave}`)}</span>
               </button>
             )
           })}
@@ -301,10 +301,10 @@ export function HydraulicCalculator() {
           <div className="p-4 border-b border-border flex-shrink-0">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <currentCategory.icon className={cn("w-5 h-5", currentCategory.color)} />
-              {currentCategory.name} Formulas
+              {t(`calc.cat.${currentCategory.clave}`)}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {currentCategory.description}
+              {t(`calc.catDesc.${currentCategory.descripcion}`)}
             </p>
           </div>
           
@@ -325,7 +325,7 @@ export function HydraulicCalculator() {
                       : "bg-background hover:bg-accent border-border hover:border-primary/50"
                   )}
                 >
-                  <div className="font-semibold mb-1">{formula.name}</div>
+                  <div className="font-semibold mb-1">{t(formula.nameKey)}</div>
                   <div className={cn(
                     "text-sm font-mono",
                     selectedFormulaIndex === index
@@ -350,7 +350,7 @@ export function HydraulicCalculator() {
                   <div className="max-w-2xl mx-auto">
                     <div className="mb-8">
                       <h2 className="text-2xl font-bold text-foreground mb-2">
-                        {selectedFormula.name}
+                        {t(selectedFormula.nameKey)}
                       </h2>
                       <div className="font-mono text-xl text-primary bg-primary/10 px-4 py-2 rounded-lg inline-block">
                         {selectedFormula.equation}
@@ -372,10 +372,10 @@ export function HydraulicCalculator() {
                                 <span className="text-primary font-mono text-lg bg-primary/10 px-2 py-1 rounded">
                                   {param.symbol}
                                 </span>
-                                {param.name}
+                                {t(param.nameKey)}
                               </label>
                               <p className="text-sm text-muted-foreground mt-1">
-                                {param.description}
+                                {t(param.descriptionKey)}
                               </p>
                               {param.range && (
                                 <p className="text-xs text-muted-foreground mt-1">
@@ -499,7 +499,7 @@ export function HydraulicCalculator() {
                         <div className="space-y-3">
                           {result.intermediateSteps.map((step, index) => (
                             <div key={index} className="text-sm">
-                              <div className="text-muted-foreground">{step.description}</div>
+                              <div className="text-muted-foreground">{t(step.descriptionKey)}</div>
                               {/* Cada paso con su unidad, que no siempre es la
                                   del resultado final: aquí es donde se comprueba
                                   el cálculo, y un número suelto no se comprueba. */}
@@ -522,7 +522,7 @@ export function HydraulicCalculator() {
                         <ul className="list-disc list-inside space-y-1 text-sm">
                           {result.warnings.map((warning, index) => (
                             <li key={index} className="text-yellow-700 dark:text-yellow-400">
-                              {warning}
+                              {t(warning.clave, warning.datos)}
                             </li>
                           ))}
                         </ul>
@@ -538,7 +538,7 @@ export function HydraulicCalculator() {
                         <ul className="list-disc list-inside space-y-1 text-sm">
                           {result.recommendations.map((rec, index) => (
                             <li key={index} className="text-green-700 dark:text-green-400">
-                              {rec}
+                              {t(rec.clave, rec.datos)}
                             </li>
                           ))}
                         </ul>
@@ -579,7 +579,7 @@ export function HydraulicCalculator() {
               <div className="text-center">
                 <currentCategory.icon className={cn("w-16 h-16 mx-auto mb-4", currentCategory.color)} />
                 <h3 className="text-xl font-semibold text-foreground mb-2">
-                  Select a {currentCategory.name} Formula
+                  {t('calculator.pickFormulaOf', { categoria: t(`calc.cat.${currentCategory.clave}`) })}
                 </h3>
                 <p className="text-muted-foreground">
                   {t('calculator.chooseFormula')}

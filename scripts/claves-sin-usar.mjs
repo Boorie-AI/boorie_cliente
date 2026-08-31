@@ -18,7 +18,8 @@ const andar = (d) => {
   for (const e of fs.readdirSync(d, { withFileTypes: true })) {
     const p = path.join(d, e.name)
     if (e.isDirectory()) andar(p)
-    else if (/\.(tsx?|mjs)$/.test(e.name) && !p.includes('locales')) ficheros.push(p)
+    // El motor de cálculo es Python y también nombra claves.
+    else if (/\.(tsx?|mjs|py)$/.test(e.name) && !p.includes('locales')) ficheros.push(p)
   }
 }
 andar('src')
@@ -27,7 +28,13 @@ const codigo = ficheros.map((f) => fs.readFileSync(f, 'utf8')).join('\n')
 
 // Una clave puede usarse entera —t('a.b')— o construida —t(`a.${x}`)—, así que
 // una raíz interpolada salva a todas sus hijas.
-const interpoladas = [...codigo.matchAll(/t\(`([\w.]+)\$\{/g)].map((m) => m[1]).filter(Boolean)
+// Una raíz interpolada salva a todas sus hijas: `t(\`a.b.${x}\`)`, y también
+// las que arma el motor —\`calc.msg.${clave}\` en TS, f'calc.msg.{clave}' en
+// Python—, que no pasan por `t` pero nombran igual.
+const interpoladas = [
+  ...[...codigo.matchAll(/`([\w.]+\.)\$\{/g)].map((m) => m[1]),
+  ...[...codigo.matchAll(/f'([\w.]+\.)\{/g)].map((m) => m[1]),
+].filter(Boolean)
 const sinUsar = rutas.filter((r) => {
   const base = r.replace(/_(one|other)$/, '')
   if (codigo.includes(`'${base}'`) || codigo.includes(`"${base}"`) || codigo.includes('`' + base + '`')) return false

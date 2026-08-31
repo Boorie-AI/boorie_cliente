@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { decirTexto } from '@/services/hydraulic/textoDelMotor'
 import { formatearMagnitud } from '@/services/network/unidades'
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -129,10 +130,10 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
         setAnalisis(r.data)
         setSolapados(r.avisos?.bloques_solapados ?? solapados)
       } else {
-        setError(r?.error || 'No se pudo analizar el consumo energético')
+        setError(r?.errorKey ? t(r.errorKey) : r?.error || t('messages.energyFailed'))
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo analizar el consumo energético')
+      setError(e instanceof Error ? e.message : t('messages.energyFailed'))
     } finally {
       setAnalizando(false)
     }
@@ -156,9 +157,9 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
         medidas: [{ tipo: 'pump_outage', elementos, desde_h: desdeH, hasta_h: hastaH }],
       })
       if (r?.success) setVerificacion(r.data)
-      else setError(r?.error || 'No se pudo verificar la medida')
+      else setError(r?.errorKey ? t(r.errorKey) : r?.error || t('messages.measureFailed'))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo verificar la medida')
+      setError(e instanceof Error ? e.message : t('messages.measureFailed'))
     } finally {
       setVerificando(false)
     }
@@ -240,7 +241,7 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
                 />
               </label>
               <label className="text-[10px] text-muted-foreground">
-                Precio base ({tarifa.moneda}/kWh)
+                {t('energy.basePrice', { moneda: tarifa.moneda })}
                 <input
                   type="number" step="0.01"
                   className="w-full bg-background border rounded px-2 py-1 font-mono text-sm"
@@ -358,7 +359,7 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
               </span>
             </div>
             <div className="text-[10px] text-muted-foreground">
-              {t('energy.traceability', { eficiencia: analisis.trazabilidad.eficiencia_global_pct, origen: analisis.trazabilidad.origen_eficiencia, intervalos: analisis.trazabilidad.intervalos, paso: analisis.trazabilidad.paso_s })}
+              {t('energy.traceability', { eficiencia: analisis.trazabilidad.eficiencia_global_pct, origen: decirTexto(t, analisis.trazabilidad.origen_eficiencia), intervalos: analisis.trazabilidad.intervalos, paso: analisis.trazabilidad.paso_s })}
             </div>
 
             <div className="space-y-1">
@@ -374,19 +375,23 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
               {analisis.bombas.map((b: any) => (
                 <div key={b.nombre} className="border rounded p-2 space-y-1">
                   <div className="flex justify-between text-xs font-semibold">
-                    <span>Bomba {b.nombre}</span>
+                    <span>{t('energy.pumpNamed', { nombre: b.nombre })}</span>
                     <span className="font-mono">{b.energia_kwh.toFixed(1)} kWh · {b.coste.toFixed(2)} {moneda}</span>
                   </div>
                   <div className="text-[10px] text-muted-foreground">
-                    {b.horas_en_marcha.toFixed(1)} h en marcha · {b.potencia_media_kw.toFixed(1)} kW medios ·
-                    {' '}pico {b.potencia_maxima_kw.toFixed(1)} kW · Q medio {formatearMagnitud(b.caudal_medio_m3s, 'caudal')}
+                    {t('energy.pumpLine', {
+                      horas: b.horas_en_marcha.toFixed(1),
+                      media: b.potencia_media_kw.toFixed(1),
+                      pico: b.potencia_maxima_kw.toFixed(1),
+                      caudal: formatearMagnitud(b.caudal_medio_m3s, 'caudal'),
+                    })}
                   </div>
                   {b.eficiencia && (
                     <div className="text-[10px] text-muted-foreground">
                       {t('energy.efficiencyOf', { media: b.eficiencia.media_pct.toFixed(1) })}
                       {b.eficiencia.maxima_pct > b.eficiencia.minima_pct &&
                         t('energy.efficiencyRange', { min: b.eficiencia.minima_pct.toFixed(1), max: b.eficiencia.maxima_pct.toFixed(1) })}
-                      {' — '}{b.eficiencia.origen}
+                      {' — '}{decirTexto(t, b.eficiencia.origen)}
                     </div>
                   )}
                   {b.punto_optimo && (
@@ -420,12 +425,12 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
         <Card key={i}>
           <CardContent className="p-3 space-y-2">
             <div className="flex items-start justify-between gap-2">
-              <div className="text-xs font-semibold">{r.candidata.titulo}</div>
+              <div className="text-xs font-semibold">{decirTexto(t, r.candidata.titulo)}</div>
               <Badge variant={r.candidata.naturaleza === 'operativa' ? 'secondary' : 'outline'} className="text-[9px] flex-shrink-0">
-                {r.candidata.naturaleza === 'operativa' ? 'operativa' : 'requiere equipo'}
+                {t(r.candidata.naturaleza === 'operativa' ? 'energy.operational' : 'energy.needsEquipment')}
               </Badge>
             </div>
-            <div className="text-[11px] text-muted-foreground">{r.candidata.motivo}</div>
+            <div className="text-[11px] text-muted-foreground">{decirTexto(t, r.candidata.motivo)}</div>
 
             {r.ahorro ? (
               <>
@@ -440,7 +445,7 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
                 <div className="text-[10px] text-muted-foreground">
                   {r.antes.energia_kwh.toFixed(1)} → {r.despues.energia_kwh.toFixed(1)} kWh ·
                   {' '}{t('energy.lessMore', { porcentaje: Math.abs(r.ahorro.porcentaje_energia).toFixed(1), sentido: r.ahorro.energia_kwh > 0 ? t('energy.less') : t('energy.more') })} ·
-                  {' '}<Badge variant="secondary" className="text-[9px]">{r.ahorro.origen}</Badge>
+                  {' '}<Badge variant="secondary" className="text-[9px]">{decirTexto(t, r.ahorro.origen)}</Badge>
                 </div>
                 {/* Cero no es «consume más»: es que la medida no cambia nada, y
                     decirlo mal esconde que quizá no llegó a aplicarse. */}
@@ -469,8 +474,8 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
                 {r.runId && (
                   <FeedbackRecomendacion
                     runId={r.runId}
-                    titulo={r.candidata.titulo}
-                    contexto={{ medida: r.candidata.medida, naturaleza: r.candidata.naturaleza, ahorro: r.ahorro, motivo: r.candidata.motivo }}
+                    titulo={decirTexto(t, r.candidata.titulo)}
+                    contexto={{ medida: r.candidata.medida, naturaleza: r.candidata.naturaleza, ahorro: r.ahorro, motivo: decirTexto(t, r.candidata.motivo) }}
                     valoracionInicial={valoraciones[r.runId] ?? null}
                   />
                 )}
@@ -535,7 +540,7 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
               <div className="text-[10px] text-muted-foreground">
                 {verificacion.antes.energia_total_kwh.toFixed(1)} → {verificacion.despues.energia_total_kwh.toFixed(1)} kWh
                 {' '}(un {Math.abs(verificacion.ahorro.porcentaje_energia).toFixed(1)}% {ahorra ? 'menos' : 'más'}) ·
-                {' '}<Badge variant="secondary" className="text-[9px]">{ahorra ? t('energy.saving') : t('energy.consumption')} {verificacion.ahorro.origen}</Badge>
+                {' '}<Badge variant="secondary" className="text-[9px]">{ahorra ? t('energy.saving') : t('energy.consumption')} {decirTexto(t, verificacion.ahorro.origen)}</Badge>
               </div>
               {!ahorra && (
                 <Alert className="text-[10px] py-1">

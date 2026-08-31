@@ -12,6 +12,9 @@
  * sale de una estimación.
  */
 
+import i18n from '@/i18n'
+import { decirTexto, type TextoDelMotor } from './textoDelMotor'
+
 interface NudoAfectado {
   id: string
   undelivered_m3: number
@@ -23,7 +26,7 @@ export interface ResultadoEscenario {
   scenario: {
     name: string
     duration_hours: number
-    events: Array<{ tipo: string; aplicado: boolean; elementos?: string[]; metodo?: string; omitidos: Array<{ id: string; motivo: string }> }>
+    events: Array<{ tipo: string; aplicado: boolean; elementos?: string[]; metodo?: string; omitidos: Array<{ id: string; motivo: TextoDelMotor }> }>
   }
   unmet_demand: {
     total_m3: number
@@ -85,7 +88,7 @@ export function narrarEscenario(r: ResultadoEscenario, runId?: string | null): s
   const p = r.population
   const u = r.unmet_demand
 
-  lineas.push(`**${r.scenario.name}** — simulado sobre ${r.scenario.duration_hours} h en modo PDA.`)
+  lineas.push(i18n.t('narracion.cabecera', { escenario: r.scenario.name, horas: r.scenario.duration_hours }))
   lineas.push('')
 
   // Lo primero, lo que el escenario causa; el total de la red va después, porque
@@ -93,49 +96,65 @@ export function narrarEscenario(r: ResultadoEscenario, runId?: string | null): s
   const habitantes = impacto(p.attributable_to_event.population_affected)
   if (habitantes > 0) {
     const clientes = p.connections
-      ? ` (unas ${entero(p.connections.affected_connections)} acometidas a ${numero(p.connections.persons_per_connection, 0)} habitantes por acometida)`
+      ? i18n.t('narracion.clientes', {
+          acometidas: entero(p.connections.affected_connections),
+          porAcometida: numero(p.connections.persons_per_connection, 0),
+        })
       : ''
-    lineas.push(`Deja sin servicio a **${entero(habitantes)} habitantes**${clientes}, en ${p.attributable_to_event.affected_node_count} nudos de ${r.total_junction_count}.`)
+    lineas.push(i18n.t('narracion.sinServicio', {
+      habitantes: entero(habitantes),
+      clientes,
+      nudos: p.attributable_to_event.affected_node_count,
+      total: r.total_junction_count,
+    }))
   } else {
-    lineas.push('**No deja a nadie sin servicio** que no lo estuviera ya antes del evento.')
+    lineas.push(i18n.t('narracion.sinAfectados'))
   }
 
-  lineas.push(`Demanda no satisfecha atribuible al escenario: **${numero(impacto(u.attributable_m3))} m³**.`)
+  lineas.push(i18n.t('narracion.demandaNoServida', { m3: numero(impacto(u.attributable_m3)) }))
 
   if (p.baseline.population_affected > 0) {
-    lineas.push(
-      `La red ya arrastraba un déficit propio de ${entero(impacto(p.baseline.population_affected))} habitantes ` +
-      `y ${numero(impacto(u.baseline_m3))} m³ sin el evento, y no se le atribuye al escenario.`
-    )
+    lineas.push(i18n.t('narracion.deficitPrevio', {
+      habitantes: entero(impacto(p.baseline.population_affected)),
+      m3: numero(impacto(u.baseline_m3)),
+    }))
   }
 
   if (u.max_deficit_hours > 0) {
-    lineas.push(`El nudo peor parado está sin servicio pleno ${numero(impacto(u.max_deficit_hours))} h.`)
+    lineas.push(i18n.t('narracion.peorNudo', { horas: numero(impacto(u.max_deficit_hours)) }))
   }
 
   const peores = u.by_node.slice(0, 5)
   if (peores.length > 0) {
     lineas.push('')
-    lineas.push('Nudos más afectados:')
+    lineas.push(i18n.t('narracion.nudosAfectados'))
     for (const n of peores) {
-      lineas.push(`- **${n.id}**: ${numero(impacto(n.undelivered_m3))} m³ sin servir, ${numero(impacto(n.outage_hours))} h de déficit, disponibilidad mínima ${numero(impacto(n.min_service_availability * 100), 0)}%.`)
+      lineas.push(i18n.t('narracion.detalleNudo', {
+        id: n.id,
+        m3: numero(impacto(n.undelivered_m3)),
+        horas: numero(impacto(n.outage_hours)),
+        disponibilidad: numero(impacto(n.min_service_availability * 100), 0),
+      }))
     }
   }
 
   if (r.nodes_below_minimum_pressure.length > 0) {
     lineas.push('')
-    lineas.push(`${r.nodes_below_minimum_pressure.length} nudos bajan de los ${numero(r.min_pressure_threshold, 0)} m de presión mínima.`)
+    lineas.push(i18n.t('narracion.bajoPresion', {
+      count: r.nodes_below_minimum_pressure.length,
+      presion: numero(r.min_pressure_threshold, 0),
+    }))
   }
 
   const omitidos = r.scenario.events.flatMap(e => e.omitidos ?? [])
   if (omitidos.length > 0) {
     lineas.push('')
-    lineas.push(`No se pudo aplicar: ${omitidos.map(o => `${o.id} (${o.motivo})`).join('; ')}.`)
+    lineas.push(i18n.t('narracion.noAplicado', { detalle: omitidos.map(o => `${o.id} (${decirTexto(i18n.t.bind(i18n), o.motivo)})`).join('; ') }))
   }
 
   if (!r.convergence_warnings.converged) {
     lineas.push('')
-    lineas.push('⚠️ Alguna simulación no convergió: las cifras de esos instantes no son fiables.')
+    lineas.push(i18n.t('narracion.noConvergio'))
   }
 
   // La cita de origen. Es un criterio de aceptación, no un adorno: sin ella
@@ -145,10 +164,10 @@ export function narrarEscenario(r: ResultadoEscenario, runId?: string | null): s
     .filter(e => e.aplicado && e.metodo)
     .map(e => `${e.tipo}: ${e.metodo}`)
     .join(' · ')
-  lineas.push(
-    `_Fuente: ${runId ? `simulación \`${runId}\`` : 'esta simulación (no se pudo registrar en el historial)'}` +
-    `, motor WNTR en modo PDA${metodo ? `. ${metodo}` : ''}._`
-  )
+  lineas.push(i18n.t('narracion.fuente', {
+    origen: runId ? i18n.t('narracion.fuenteRun', { runId }) : i18n.t('narracion.fuenteSinRun'),
+    metodo: metodo ? `. ${metodo}` : '',
+  }))
 
   return lineas.join('\n')
 }

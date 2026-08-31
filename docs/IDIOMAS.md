@@ -164,6 +164,7 @@ valga:
 | Fin de la fase 1 | **0** | 363 | 29 de 64 |
 | Fin de la fase 2 | 0 | **18** | 42 de 64 |
 | Fin de la fase 3 | 0 | 18 | 42 de 64 |
+| Tanda del motor | 0 | 18 | 42 de 64 |
 
 La fase 3 no mueve esas cifras: no saca texto del código, revisa el que ya está
 en el diccionario. Lo que sí cambió: **1.024 claves** en los tres idiomas, 32
@@ -286,8 +287,70 @@ inglés, incluidos los de borrar documentos y los de Ollama.
 Son tres barridos porque son tres sitios distintos donde se esconde el texto:
 entre etiquetas, pegado a una expresión, y dentro de una llamada.
 
+## La tanda del motor
+
+Lo que quedaba fuera de las tres fases: el texto que no escribe la interfaz sino
+**el motor** —la calculadora en Python, su respaldo en TypeScript, el
+recomendador de energía, el servicio energético y el de escenarios— y las dos
+narraciones que el chat escribe con esas piezas.
+
+### La decisión: el motor nombra, la interfaz dice
+
+Un motor que devuelve frases decide el idioma de quien lo llame, y aquí lo
+llaman tres idiomas. Así que ya no devuelve frases:
+
+```python
+warnings.append(aviso('lowVelocitySediment'))
+recommendations.append(aviso('motorSize', kw=f'{motor_size:.1f}'))
+```
+
+```json
+{ "nameKey": "calc.formula.darcyWeisbach",
+  "warnings": [{ "clave": "calc.msg.lowVelocitySediment" }] }
+```
+
+Quien lo enseña traduce. Para lo que enumera —una recomendación que habla de
+varias bombas— el texto lleva `listas`, trozos que también son claves;
+`src/services/hydraulic/textoDelMotor.ts` los resuelve y los pega, y lo usan
+igual el panel, la narración y las pruebas.
+
+**El compilador hace de guardia.** Los campos cambiaron de nombre —`name` a
+`nameKey`, `description` a `descriptionKey`— en vez de quedarse con el mismo
+nombre y otro contenido. TypeScript señaló los doce sitios que había que
+cambiar; con el nombre intacto habría habido que encontrarlos a mano.
+
+### Qué se movió
+
+| Dónde | Qué |
+|---|---|
+| `hydraulicCalculator.py` | 7 fórmulas, 17 parámetros, 19 pasos, 23 avisos |
+| `calculationEngine.ts` (respaldo) | 6 fórmulas, 21 parámetros, 12 pasos, 10 avisos |
+| `HydraulicCalculator.tsx` | las 5 categorías, que estaban en el componente |
+| `recomendacionesEnergia.ts` | título y motivo de las dos clases de medida |
+| `wntr_energy_service.py` | procedencia de la eficiencia, errores, omitidos |
+| `wntr_resilience_service.py` | los 7 motivos por los que se omite un elemento |
+| `narrarEnergia.ts`, `narrarEscenario.ts` | las dos narraciones del chat, enteras |
+
+En total, 125 claves nuevas del motor de cálculo y 45 de las narraciones.
+
+### Lo que se guarda sigue siendo texto
+
+La narración que el chat escribe es un mensaje: se guarda como texto, en el
+idioma del momento. Lo mismo el título de una medida cuando se valora, que va al
+dataset de feedback. Es la regla de la fase 2, y aquí no cambia: **lo que se
+guarda queda en el idioma en que se escribió**.
+
+Lo que sí mejora: un resultado de cálculo guardado lleva claves, así que se
+vuelve a leer en el idioma de quien lo abre.
+
+### Las pruebas comprueban la frase, no la clave
+
+`recomendacionesEnergia.test.ts` seguía esperando «18,3 kWh» dentro del motivo.
+Ahora resuelve la clave contra el diccionario de verdad y comprueba lo mismo: si
+la clave y el diccionario dejan de casar, la prueba lo dice.
+
 ### Lo que sigue fuera
 
-Lo mismo que en la fase 2: los nombres y descripciones de las fórmulas de la
-calculadora y las narraciones del chat, que van con el motor en su propia tanda.
-Se ven en la calculadora en catalán, en inglés, como es de esperar.
+Nada de la interfaz. Queda el inglés interno del motor que no ve nadie —los
+errores de validación, que ahora se identifican por el símbolo del parámetro
+(`Missing required parameter: V`) en vez de por un nombre traducible—.
