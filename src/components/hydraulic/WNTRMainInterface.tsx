@@ -2133,7 +2133,18 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                 responsive: true,
                                 maintainAspectRatio: false,
                                 animation: { duration: 0 },
-                                plugins: { legend: { display: false } },
+                                plugins: {
+                                  legend: { display: false },
+                                  tooltip: {
+                                    callbacks: {
+                                      // Las dos lecturas de una vez, que es lo que se
+                                      // quiere saber al mirar un punto de la curva (#94).
+                                      label: (ctx: { parsed: { y: number } }) =>
+                                        `${(ctx.parsed.y * 100).toFixed(1)} % · ` +
+                                        `${(ctx.parsed.y * fragilityResult.pipe_count).toFixed(1)} de ${fragilityResult.pipe_count} tuberías`,
+                                    },
+                                  },
+                                },
                                 scales: {
                                   x: { title: { display: true, text: 'PGV (cm/s)', font: { size: 9 } }, ticks: { maxTicksLimit: 6, font: { size: 9 } } },
                                   // El eje horizontal ya decía qué medía; el vertical iba de 0
@@ -2144,7 +2155,24 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                     max: 1,
                                     title: { display: true, text: 'Probabilidad de fallo (0–1)', font: { size: 9 } },
                                     ticks: { font: { size: 9 } },
-                                  }
+                                  },
+                                  /**
+                                   * Las tuberías afectadas, a la derecha (#94).
+                                   *
+                                   * No es una segunda línea, y a propósito: el número
+                                   * esperado es la probabilidad multiplicada por las
+                                   * tuberías de la red, así que la curva sería la misma
+                                   * y quedaría exactamente encima. Lo que hace falta no
+                                   * es otra serie, es la otra regla para leer ésta.
+                                   */
+                                  y1: {
+                                    position: 'right',
+                                    min: 0,
+                                    max: fragilityResult.pipe_count,
+                                    title: { display: true, text: `Tuberías afectadas (de ${fragilityResult.pipe_count})`, font: { size: 9 } },
+                                    ticks: { font: { size: 9 } },
+                                    grid: { drawOnChartArea: false },
+                                  },
                                 }
                               }}
                             />
