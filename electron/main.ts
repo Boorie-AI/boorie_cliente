@@ -453,6 +453,12 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     appLogger.info('Window ready to show')
+    // Siempre maximizada al abrir; el width/height de arriba queda como el
+    // tamaño al que vuelve el botón de restaurar. Hay que maximizar cuando
+    // el gestor de ventanas ya ha mapeado la ventana: hacerlo antes (o en
+    // el mismo tick del show) no le deja guardar el tamaño previo, y luego
+    // unmaximize() se ignora y isMaximized() se queda en true para siempre.
+    mainWindow.once('show', () => setTimeout(() => mainWindow.maximize(), 200))
     mainWindow.show()
 
     // FORCE ENABLE DEVTOOLS FOR DEBUGGING

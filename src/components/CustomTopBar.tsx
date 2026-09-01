@@ -22,16 +22,12 @@ export function CustomTopBar() {
     
     checkWindowState()
 
-    // Listen for window state changes
-    const handleWindowStateChange = (event: CustomEvent) => {
-      setIsMaximized(event.detail.isMaximized)
-    }
-
-    window.addEventListener('window-state-changed', handleWindowStateChange as EventListener)
-    
-    return () => {
-      window.removeEventListener('window-state-changed', handleWindowStateChange as EventListener)
-    }
+    // El main manda 'window-state-changed' por IPC, no como evento del DOM:
+    // con addEventListener el icono nunca se enteraba y se quedaba clavado
+    // en «maximizar» aunque la ventana ya estuviera maximizada.
+    return window.electronAPI?.onWindowStateChanged?.((state) => {
+      setIsMaximized(state.isMaximized)
+    })
   }, [])
 
   const handleMinimize = async () => {
@@ -143,7 +139,7 @@ export function CustomTopBar() {
               : 'hover:bg-gray-100 dark:hover:bg-gray-800'
             }
           `}
-          title={isMaximized ? "Restore" : "Maximize"}
+          title={isMaximized ? t('window.restore') : t('window.maximize')}
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           {isMaximized ? (
