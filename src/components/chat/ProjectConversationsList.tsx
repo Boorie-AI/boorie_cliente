@@ -86,7 +86,7 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
           <div className="flex items-center gap-2">
             <FolderPlus size={18} className="text-muted-foreground" />
             <h3 className="font-semibold text-foreground">
-              {selectedProject ? selectedProject.name : 'General Conversations'}
+              {selectedProject ? selectedProject.name : t('projectConversations.title')}
             </h3>
           </div>
           <span className="text-xs bg-muted px-2 py-1 rounded-full">
@@ -133,7 +133,7 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
                       <Calendar size={12} />
                       <span>{new Date(conversation.updatedAt).toLocaleDateString()}</span>
                       <span>•</span>
-                      <span>{conversation.messages.length} messages</span>
+                      <span>{t('projectConversations.nMessages', { count: conversation.messages.length })}</span>
                     </div>
                   </div>
                   
@@ -169,7 +169,7 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
                           )}
                         >
                           <Send size={14} />
-                          {projectId ? 'Move to Another Project' : 'Assign to Project'}
+                          {projectId ? t('projectConversations.move') : t('projectConversations.assign')}
                         </DropdownMenu.Item>
                       </DropdownMenu.Content>
                     </DropdownMenu.Portal>
@@ -204,7 +204,7 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
           )}>
             <div className="p-6">
               <Dialog.Title className="text-lg font-semibold mb-4">
-                {projectId ? 'Move to Another Project' : 'Assign to Project'}
+                {projectId ? t('projectConversations.move') : t('projectConversations.assign')}
               </Dialog.Title>
               
               <div className="space-y-2 max-h-[400px] overflow-y-auto">

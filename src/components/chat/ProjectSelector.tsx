@@ -63,7 +63,7 @@ export function ProjectSelector({ selectedProjectId, onProjectSelect, className 
           <div className="flex items-center gap-2">
             <FolderOpen size={14} className="text-muted-foreground" />
             <Select.Value>
-              {currentProject?.name || "No project selected"}
+              {currentProject?.name || t('chatInput.pickProject')}
             </Select.Value>
           </div>
           <ChevronDown size={14} className="text-muted-foreground" />

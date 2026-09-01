@@ -676,6 +676,31 @@
     "thisProject": "this project",
     "generalKnowledge": "General knowledge, shared by every project"
   },
+  "wisdomCatalog": {
+    "title": "Boorie Wisdom Catalog",
+    "count": "{{visibles}} of {{total}} documents",
+    "searchPlaceholder": "Search documents, topics, or descriptions…",
+    "allCategories": "All categories",
+    "loading": "Loading catalog…",
+    "nDocs": "{{count}} docs",
+    "nIndexed": "{{count}} indexed",
+    "indexed": "Indexed",
+    "notIndexed": "Not indexed",
+    "pages": "{{count}} pages",
+    "moreTopics": "+{{count}} more",
+    "lastIndexed": "Last indexed: {{fecha}}",
+    "index": "Index",
+    "reindex": "Re-index",
+    "emptyTitle": "No documents found",
+    "emptySearch": "Try adjusting your search terms",
+    "emptyCatalog": "The catalog appears to be empty",
+    "totalDocs": "{{count}} documents in total",
+    "pending": "{{count}} pending",
+    "source": "Knowledge source: {{ruta}}",
+    "indexOk": "Indexed: {{titulo}}",
+    "indexFailed": "Could not index: {{motivo}}",
+    "indexError": "Error while indexing the document"
+  },
   "vectorGraph": {
     "title": "Vector graph",
     "loading": "Loading vector graph data…",
@@ -732,7 +757,11 @@
     "keepGeneral": "Keep in General",
     "moveGeneral": "Move to general conversations",
     "remove": "Remove from project",
-    "empty": "Start a new chat to add it here"
+    "empty": "Start a new chat to add it here",
+    "title": "General Conversations",
+    "nMessages": "{{count}} messages",
+    "move": "Move to Another Project",
+    "assign": "Assign to Project"
   },
   "models": {
     "select": "Select model",
@@ -779,7 +808,14 @@
     "allCategories": "All categories",
     "nCategories": "{{count}} categories",
     "noWisdom": "No Wisdom",
-    "wisdomSummary": "{{categorias}} • agentic RAG"
+    "wisdomSummary": "{{categorias}} • agentic RAG",
+    "pickProject": "No project selected",
+    "toggleOn": "Enable",
+    "toggleOff": "Disable",
+    "wisdomEnabled": "Wisdom RAG is enabled",
+    "wisdomDisabled": "Click to enable Wisdom RAG",
+    "loadingSources": "Loading…",
+    "refreshSources": "Refresh"
   },
   "milvus": {
     "preview": "Data preview (max 50)",
@@ -798,7 +834,9 @@
   },
   "window": {
     "close": "Close",
-    "minimize": "Minimize"
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore"
   },
   "energy": {
     "noConverge": "Some of the simulations did not converge: the figures for those steps are not reliable.",

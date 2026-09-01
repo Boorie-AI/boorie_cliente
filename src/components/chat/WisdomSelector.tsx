@@ -123,7 +123,7 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
             : "border-border/50 bg-card/50 text-muted-foreground hover:bg-accent hover:text-accent-foreground",
           "hover:border-border min-w-0 flex-shrink-0"
         )}
-        title={selectedConfig?.enabled ? "Wisdom RAG is enabled" : "Click to enable Wisdom RAG"}
+        title={selectedConfig?.enabled ? t('chatInput.wisdomEnabled') : t('chatInput.wisdomDisabled')}
       >
         {selectedConfig?.enabled ? (
           <Lightbulb className="w-4 h-4" />
@@ -146,18 +146,18 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
         )}>
           {/* Header */}
           <div className="px-4 py-2 border-b border-border">
-            <div className="flex items-center justify-between">
+            <div className="flex items-end justify-between gap-3">
               <h3 className="font-medium text-foreground">💡 {t('chatInput.wisdomConfig')}</h3>
               <button
                 onClick={toggleWisdom}
                 className={cn(
-                  "px-3 py-1 rounded text-xs font-medium transition-colors",
+                  "px-3 py-1 rounded text-xs font-medium transition-colors shrink-0",
                   selectedConfig?.enabled
                     ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
                     : "bg-primary/10 text-primary hover:bg-primary/20"
                 )}
               >
-                {selectedConfig?.enabled ? 'Disable' : 'Enable'}
+                {selectedConfig?.enabled ? t('chatInput.toggleOff') : t('chatInput.toggleOn')}
               </button>
             </div>
           </div>
@@ -242,7 +242,7 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
                     className="text-xs text-muted-foreground hover:text-foreground"
                     disabled={loading}
                   >
-                    {loading ? 'Loading...' : 'Refresh'}
+                    {loading ? t('chatInput.loadingSources') : t('chatInput.refreshSources')}
                   </button>
                 </div>
                 

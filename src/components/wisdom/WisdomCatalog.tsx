@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 
@@ -25,7 +26,7 @@ interface WisdomCatalogProps {
 }
 
 export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
-  // const { t } = useTranslation()
+  const { t } = useTranslation()
   const [catalogEntries, setCatalogEntries] = useState<CatalogEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -105,13 +106,13 @@ export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
             ? { ...e, indexed: true, lastIndexed: new Date().toISOString() }
             : e
         ))
-        alert(`✅ Successfully indexed: ${entry.title}`)
+        alert(`✅ ${t('wisdomCatalog.indexOk', { titulo: entry.title })}`)
       } else {
-        alert(`❌ Failed to index: ${result.message}`)
+        alert(`❌ ${t('wisdomCatalog.indexFailed', { motivo: result.message })}`)
       }
     } catch (error) {
       logger.error('Error indexing document:', error)
-      alert('❌ Error indexing document')
+      alert(`❌ ${t('wisdomCatalog.indexError')}`)
     } finally {
       setLoading(false)
     }
@@ -136,9 +137,9 @@ export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
         <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="flex items-center gap-3">
             <BookOpen className="w-6 h-6 text-primary" />
-            <h2 className="text-xl font-bold text-foreground">📚 Boorie Wisdom Catalog</h2>
+            <h2 className="text-xl font-bold text-foreground">📚 {t('wisdomCatalog.title')}</h2>
             <span className="text-sm text-muted-foreground">
-              ({filteredEntries.length} of {catalogEntries.length} documents)
+              ({t('wisdomCatalog.count', { visibles: filteredEntries.length, total: catalogEntries.length })})
             </span>
           </div>
           <button
@@ -156,7 +157,7 @@ export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
               <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search documents, topics, or descriptions..."
+                placeholder={t('wisdomCatalog.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-foreground"
@@ -167,7 +168,7 @@ export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="px-4 py-2 bg-background border border-border rounded-lg text-foreground"
             >
-              <option value="all">All Categories</option>
+              <option value="all">{t('wisdomCatalog.allCategories')}</option>
               {categories.map(category => (
                 <option key={category} value={category}>{category}</option>
               ))}
@@ -181,7 +182,7 @@ export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Loading catalog...</p>
+                <p className="text-muted-foreground">{t('wisdomCatalog.loading')}</p>
               </div>
             </div>
           ) : Object.keys(groupedEntries).length > 0 ? (
@@ -200,10 +201,10 @@ export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
                         <ChevronRight className="w-4 h-4" />
                       )}
                       <h3 className="font-semibold text-foreground">{section}</h3>
-                      <span className="text-sm text-muted-foreground">({entries.length} docs)</span>
+                      <span className="text-sm text-muted-foreground">({t('wisdomCatalog.nDocs', { count: entries.length })})</span>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {entries.filter(e => e.indexed).length} indexed
+                      {t('wisdomCatalog.nIndexed', { count: entries.filter(e => e.indexed).length })}
                     </div>
                   </button>
 
@@ -220,11 +221,11 @@ export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
                                 <h4 className="font-medium text-foreground">{entry.title}</h4>
                                 {entry.indexed ? (
                                   <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                                    ✓ Indexed
+                                    ✓ {t('wisdomCatalog.indexed')}
                                   </span>
                                 ) : (
                                   <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                                    Not Indexed
+                                    {t('wisdomCatalog.notIndexed')}
                                   </span>
                                 )}
                               </div>
@@ -235,7 +236,7 @@ export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
                               {/* Metadata */}
                               <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                                 <span>📁 {entry.filename}</span>
-                                {entry.pages && <span>📄 {entry.pages} pages</span>}
+                                {entry.pages && <span>📄 {t('wisdomCatalog.pages', { count: entry.pages })}</span>}
                                 {entry.size && <span>💾 {entry.size}</span>}
                                 <span>🏷️ {entry.category}</span>
                               </div>
@@ -250,7 +251,7 @@ export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
                                   ))}
                                   {entry.topics.length > 5 && (
                                     <span className="px-2 py-1 bg-muted text-muted-foreground text-xs rounded">
-                                      +{entry.topics.length - 5} more
+                                      {t('wisdomCatalog.moreTopics', { count: entry.topics.length - 5 })}
                                     </span>
                                   )}
                                 </div>
@@ -259,7 +260,7 @@ export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
                               {/* Last Indexed */}
                               {entry.lastIndexed && (
                                 <div className="text-xs text-muted-foreground mt-2">
-                                  Last indexed: {new Date(entry.lastIndexed).toLocaleDateString()}
+                                  {t('wisdomCatalog.lastIndexed', { fecha: new Date(entry.lastIndexed).toLocaleDateString() })}
                                 </div>
                               )}
                             </div>
@@ -272,7 +273,7 @@ export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
                                   disabled={loading}
                                   className="px-3 py-1 bg-primary text-primary-foreground text-sm rounded hover:bg-primary/90 transition-colors disabled:opacity-50"
                                 >
-                                  Index
+                                  {t('wisdomCatalog.index')}
                                 </button>
                               )}
                               <button
@@ -280,7 +281,7 @@ export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
                                 disabled={loading}
                                 className="px-3 py-1 bg-secondary text-secondary-foreground text-sm rounded hover:bg-secondary/90 transition-colors disabled:opacity-50"
                               >
-                                Re-index
+                                {t('wisdomCatalog.reindex')}
                               </button>
                             </div>
                           </div>
@@ -294,9 +295,9 @@ export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
           ) : (
             <div className="text-center py-12">
               <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No Documents Found</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-2">{t('wisdomCatalog.emptyTitle')}</h3>
               <p className="text-muted-foreground">
-                {searchQuery ? 'Try adjusting your search terms' : 'The catalog appears to be empty'}
+                {searchQuery ? t('wisdomCatalog.emptySearch') : t('wisdomCatalog.emptyCatalog')}
               </p>
             </div>
           )}
@@ -306,12 +307,12 @@ export function WisdomCatalog({ isOpen, onClose }: WisdomCatalogProps) {
         <div className="p-4 border-t border-border bg-muted/20">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <div className="flex items-center gap-4">
-              <span>📚 {catalogEntries.length} total documents</span>
-              <span>✅ {catalogEntries.filter(e => e.indexed).length} indexed</span>
-              <span>⏳ {catalogEntries.filter(e => !e.indexed).length} pending</span>
+              <span>📚 {t('wisdomCatalog.totalDocs', { count: catalogEntries.length })}</span>
+              <span>✅ {t('wisdomCatalog.nIndexed', { count: catalogEntries.filter(e => e.indexed).length })}</span>
+              <span>⏳ {t('wisdomCatalog.pending', { count: catalogEntries.filter(e => !e.indexed).length })}</span>
             </div>
             <div>
-              <span>Knowledge source: rag-knowledge/000-libros-Boorie/</span>
+              <span>{t('wisdomCatalog.source', { ruta: 'rag-knowledge/000-libros-Boorie/' })}</span>
             </div>
           </div>
         </div>
