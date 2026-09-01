@@ -124,7 +124,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
               className="p-2 text-muted-foreground hover:text-foreground transition-colors"
               title={t('vectorGraph.refresh')}
             >
-              <RefreshCw className={`w - 4 h - 4 ${loading ? 'animate-spin' : ''} `} />
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''} `} />
             </button>
             <button
               onClick={onClose}
@@ -139,7 +139,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
         <div className="flex border-b border-border">
           <button
             onClick={() => setActiveTab('health')}
-            className={`px - 6 py - 3 font - medium transition - colors ${activeTab === 'health'
+            className={`px-6 py-3 font-medium transition-colors ${activeTab === 'health'
               ? 'text-primary border-b-2 border-primary bg-primary/5'
               : 'text-muted-foreground hover:text-foreground'
               } `}
@@ -151,7 +151,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
           </button>
           <button
             onClick={() => setActiveTab('graph')}
-            className={`px - 6 py - 3 font - medium transition - colors ${activeTab === 'graph'
+            className={`px-6 py-3 font-medium transition-colors ${activeTab === 'graph'
               ? 'text-primary border-b-2 border-primary bg-primary/5'
               : 'text-muted-foreground hover:text-foreground'
               } `}
@@ -163,7 +163,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
           </button>
           <button
             onClick={() => setActiveTab('clusters')}
-            className={`px - 6 py - 3 font - medium transition - colors ${activeTab === 'clusters'
+            className={`px-6 py-3 font-medium transition-colors ${activeTab === 'clusters'
               ? 'text-primary border-b-2 border-primary bg-primary/5'
               : 'text-muted-foreground hover:text-foreground'
               } `}
@@ -190,7 +190,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
               {activeTab === 'health' && healthData && (
                 <div className="space-y-6">
                   {/* Status Overview */}
-                  <div className={`flex items - center justify - between p - 4 rounded - lg border ${getStatusColor(healthData.status)} `}>
+                  <div className={`flex items-center justify-between p-4 rounded-lg border ${getStatusColor(healthData.status)} `}>
                     <div className="flex items-center gap-3">
                       {getStatusIcon(healthData.status)}
                       <div>
@@ -447,7 +447,7 @@ export function VectorGraphViewer({ isOpen, onClose }: VectorGraphViewerProps) {
                     {clustersData.clusters?.map((cluster: any, index: number) => (
                       <div key={cluster.id} className="bg-card border border-border rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
-                          <div className={`w - 3 h - 3 rounded - full bg - blue - ${(index % 5 + 1) * 100} `}></div>
+                          <div className={`w-3 h-3 rounded-full bg-blue-${(index % 5 + 1) * 100} `}></div>
                           <h3 className="font-medium text-foreground">{cluster.label}</h3>
                         </div>
 
