@@ -82,6 +82,39 @@ export interface GrafoRed {
   motivo: string
 }
 
+/**
+ * Tamanos de referencia del esquema (#97).
+ *
+ * Son los que el panel trae por defecto. El esquema dibuja cada tipo con su
+ * propio tamano —un deposito se ve mas grande que un nudo, y eso distingue de
+ * un vistazo lo que es cada cosa—, asi que el deslizador no fija el tamano:
+ * escala los de cada tipo respecto a estos. Con el valor por defecto la escala
+ * es 1 y no cambia nada, que es lo que hace comprobable que sea neutra.
+ *
+ * `ajustesVisor.ts` los usa como valor inicial, para que no puedan separarse.
+ */
+export const NUDO_BASE = 8
+export const TRAMO_BASE = 2
+
+/**
+ * Aplica la opacidad del panel a un color del esquema (#97).
+ *
+ * vis-network acepta `rgba(...)` como color, pero no tiene una propiedad de
+ * opacidad aparte como las capas del mapa, asi que hay que meterla en el
+ * color. Todos los colores del esquema son `#rrggbb` —las constantes por tipo,
+ * el color por presion y las rampas de simbologia—, pero `escala.color` esta
+ * tipada como cualquier cadena: lo que no se reconozca se devuelve intacto en
+ * lugar de romper el dibujo.
+ */
+export function conOpacidad(color: string, opacidad: number): string {
+  if (opacidad >= 1) return color
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim())
+  if (!m) return color
+  const h = m[1].length === 3 ? m[1].replace(/./g, c => c + c) : m[1]
+  const [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16))
+  return `rgba(${r}, ${g}, ${b}, ${Math.max(0, opacidad)})`
+}
+
 const COLOR_POR_TIPO: Record<string, { color: string; shape: string; size: number }> = {
   tank: { color: '#EF4444', shape: 'square', size: 14 },
   reservoir: { color: '#10B981', shape: 'triangle', size: 16 },
@@ -256,8 +289,19 @@ export function construirGrafo(
    * poder dibujarse. En el mapa no pasa, porque alli cada tramo tiene su propia
    * geometria.
    */
-  capas?: CapasVisibles | null
+  capas?: CapasVisibles | null,
+  /**
+   * Tamano de nudo y grosor de tramo del panel (#97). El Dr. Mora reporto que
+   * el deslizador no hacia nada en el esquema: los ajustes de dibujo llegaban
+   * al mapa pero no aqui, asi que el esquema pintaba siempre con los tamanos
+   * fijos de cada tipo.
+   */
+  dibujo?: { nodeSize?: number; linkWidth?: number; opacity?: number } | null
 ): GrafoRed {
+  const escalaNudo = (dibujo?.nodeSize ?? NUDO_BASE) / NUDO_BASE
+  const escalaTramo = (dibujo?.linkWidth ?? TRAMO_BASE) / TRAMO_BASE
+  const opacidad = dibujo?.opacity ?? 1
+
   if (!datos || datos.nodes.length === 0) {
     return { nodes: [], edges: [], usaFisica: false, motivo: 'La red no tiene nudos.' }
   }
@@ -305,9 +349,9 @@ export function construirGrafo(
       id: n.id,
       label: String(n.label ?? n.id),
       title: detalles.join('\n'),
-      color: porEscala ?? colorPorPresion(presion, estilo.color),
+      color: conOpacidad(porEscala ?? colorPorPresion(presion, estilo.color), opacidad),
       shape: estilo.shape,
-      size: estilo.size,
+      size: estilo.size * escalaNudo,
       ...(xy ? { x: xy[0], y: xy[1], fixed: true } : {}),
     }
   })
@@ -353,8 +397,8 @@ export function construirGrafo(
         from: invertido ? l.to : l.from,
         to: invertido ? l.from : l.to,
         title: detalles.join('\n'),
-        color: porEscalaTramo ?? estilo.color,
-        width: grosor,
+        color: conOpacidad(porEscalaTramo ?? estilo.color, opacidad),
+        width: grosor * escalaTramo,
         dashes: tipo === 'valve' && String(l.status ?? '').toUpperCase() === 'CLOSED',
         ...(typeof caudal === 'number' || tipo === 'pump' ? { arrows: 'to' } : {}),
       }
