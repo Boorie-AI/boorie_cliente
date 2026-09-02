@@ -76,13 +76,37 @@ La ruta que sirve para casi todo lo de WNTR:
 
 ```bash
 IO=/tmp/boorie-driver
-echo "waitfor button:has-text('.inp')" >> $IO/cmd.txt   # la restauración es asíncrona
-echo "clicktext villa_100_casas.inp"   >> $IO/cmd.txt   # carga la red guardada
-sleep 12
-echo "click [role=tab][title=Resilience]" >> $IO/cmd.txt
+echo "clicktext Red WNTR"               >> $IO/cmd.txt  # la app no siempre restaura aquí
+sleep 8
+echo "waitfor button:has-text('.inp')"   >> $IO/cmd.txt  # la restauración es asíncrona
+echo "clicktext villa_100_casas.inp"     >> $IO/cmd.txt  # carga la red guardada
+sleep 14
+echo 'click [role=tab][id$="-trigger-resilience"]' >> $IO/cmd.txt
 ```
 
-Pestañas disponibles por `title`: `Simulation`, `Analysis`, `Resilience`, `Layers`.
+**No selecciones las pestañas por `title`.** Ese atributo está traducido desde
+el #99, así que `[title=Resilience]` solo acierta con la aplicación en inglés y
+falla en silencio —con un timeout de 10 s— en castellano y en catalán. Radix
+construye el id como `<baseId>-trigger-<value>`, y el `value` no se traduce:
+`simulate`, `analyze`, `resilience`. De ahí el selector por `id$=`, que vale en
+los tres idiomas. Comprobado leyendo el DOM:
+
+```
+[{"id":"radix-:r47:-trigger-simulate","title":"Simulación"},
+ {"id":"radix-:r47:-trigger-analyze","title":"Análisis"},
+ {"id":"radix-:r47:-trigger-resilience","title":"Resiliencia"}]
+```
+
+Para confirmar que el clic entró, `data-state` de las tres pestañas pasa a
+`["inactive","inactive","active"]`.
+
+Lo mismo vale para la barra lateral: `Red WNTR` es `Xarxa WNTR` en catalán y
+`WNTR network` en inglés. Si vas a conducir en varios idiomas, pregunta antes
+en vez de adivinar:
+
+```bash
+echo "evaljs [...document.querySelectorAll('[role=tab]')].map(t=>({id:t.id,title:t.getAttribute('title')}))" >> $IO/cmd.txt
+```
 
 Las redes guardadas viven en la base SQLite, no en disco. Para sacar un `.inp`
 y contrastar por CLI lo que muestra la interfaz:
