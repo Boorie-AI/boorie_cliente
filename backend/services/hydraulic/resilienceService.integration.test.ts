@@ -204,3 +204,66 @@ describe.skipIf(!canRun)('curva de fragilidad: reparto por diámetro', () => {
     expect(Math.max(...largos)).toBeGreaterThan(Math.min(...largos) * 2)
   }, SIM_TIMEOUT)
 })
+
+/**
+ * Entrada en PGA (issue #94, anexo 1 del Dr. Mora).
+ *
+ * ALA está calibrada en PGV, así que la curva en PGA se obtiene llevando la
+ * mediana al espacio de PGA con Newmark & Hall (1982): PGV[cm/s] = α·PGA[g].
+ * Lo que estos tests protegen es que la mediana se mueva de verdad. Cambiar
+ * solo el rótulo del eje dejaría una curva de PGV llamada PGA, que es
+ * exactamente lo que se le dijo al Dr. Mora que no se haría.
+ */
+describe.skipIf(!canRun)('curva de fragilidad: entrada en PGA', () => {
+  /** Newmark & Hall (1982), cm/s por g. */
+  const ALFA = { rock: 66, stiff_soil: 97, soft_soil: 122 } as const
+
+  it('en PGV no hay conversión y la mediana sigue en cm/s', async () => {
+    const res = await service.generateFragilityCurve(NETWORK, { material: 'CI', steps: 4 })
+    const d = res.data!
+    expect(d.intensity_unit).toBe('cm/s')
+    expect(d.alpha_cm_s_per_g).toBeNull()
+    expect(d.soil_class).toBeNull()
+    expect(d.median).toBe(d.median_pgv)
+  }, SIM_TIMEOUT)
+
+  it('en PGA lleva la mediana a g dividiendo por el alfa del suelo', async () => {
+    for (const suelo of ['rock', 'stiff_soil', 'soft_soil'] as const) {
+      const res = await service.generateFragilityCurve(NETWORK, {
+        material: 'CI', hazard_type: 'seismic_pga', soil_class: suelo, steps: 4,
+      })
+      const d = res.data!
+      expect(d.intensity_unit).toBe('g')
+      expect(d.alpha_cm_s_per_g).toBe(ALFA[suelo])
+      expect(d.median).toBeCloseTo(d.median_pgv / ALFA[suelo], 9)
+      // El eje va en g: con el tope por defecto, hasta 1.
+      expect(Math.max(...d.intensities)).toBeCloseTo(1, 9)
+      // La dispersión no se toca: la incertidumbre de la conversión va
+      // declarada en la metodología, no metida a mano en beta.
+      expect(d.beta).toBe(0.5)
+      expect(d.methodology).toContain('Newmark & Hall')
+    }
+  }, SIM_TIMEOUT)
+
+  it('el suelo blando falla antes para la misma aceleración', async () => {
+    const pedir = (soil_class: 'rock' | 'soft_soil') => service.generateFragilityCurve(
+      NETWORK, { material: 'CI', hazard_type: 'seismic_pga', soil_class, steps: 11 })
+
+    const roca = (await pedir('rock')).data!
+    const blando = (await pedir('soft_soil')).data!
+    const i = 2  // 0,2 g, donde la curva todavía discrimina
+
+    // Para un mismo PGA, el suelo blando da más PGV, así que más daño.
+    expect(blando.pipe_failure_probability[i])
+      .toBeGreaterThan(roca.pipe_failure_probability[i])
+  }, SIM_TIMEOUT)
+
+  it('rechaza una clase de suelo que no existe en vez de asumir una', async () => {
+    const res = await service.generateFragilityCurve(NETWORK, {
+      hazard_type: 'seismic_pga',
+      soil_class: 'barro' as unknown as 'rock',
+    })
+    expect(res.success).toBe(false)
+    expect(res.error).toContain('soil_class')
+  }, SIM_TIMEOUT)
+})

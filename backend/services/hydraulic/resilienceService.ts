@@ -224,7 +224,15 @@ export interface FragilityCurveResult {
   data?: {
     hazard_type: string;
     material: string;
+    /** Mediana de ALA, siempre en cm/s: es donde esta calibrada. */
     median_pgv: number;
+    /** La mediana en las unidades del eje: cm/s en PGV, g en PGA. */
+    median: number;
+    intensity_unit: 'cm/s' | 'g';
+    /** Solo con entrada en PGA. */
+    soil_class: 'rock' | 'stiff_soil' | 'soft_soil' | null;
+    /** Newmark & Hall: PGV[cm/s] = alpha * PGA[g]. Null en PGV. */
+    alpha_cm_s_per_g: number | null;
     beta: number;
     intensities: number[];
     pipe_failure_probability: number[];
@@ -315,7 +323,8 @@ export class WNTRResilienceService {
   }
 
   async generateFragilityCurve(networkFile: string, options?: {
-    hazard_type?: string;
+    hazard_type?: 'seismic_pgv' | 'seismic_pga';
+    soil_class?: 'rock' | 'stiff_soil' | 'soft_soil';
     material?: 'CI' | 'AC' | 'STEEL' | 'DI' | 'PVC' | 'HDPE' | 'CONCRETE' | 'DEFAULT';
     max_intensity?: number;
     steps?: number;

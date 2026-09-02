@@ -1028,8 +1028,42 @@ class WNTRResilienceService:
                 'CI': 15.0, 'AC': 15.0, 'STEEL': 30.0, 'DI': 25.0,
                 'PVC': 28.0, 'HDPE': 35.0, 'CONCRETE': 20.0, 'DEFAULT': 20.0
             }
-            median = median_by_material.get(material, median_by_material['DEFAULT'])
+            median_pgv = median_by_material.get(material, median_by_material['DEFAULT'])
             beta = float(options.get('beta', 0.5))  # lognormal dispersion, ALA default ~0.5
+
+            # Entrada en PGA (issue #94, anexo 1 del Dr. Mora).
+            #
+            # ALA esta calibrada en PGV: la mediana va en cm/s. Para ofrecer la
+            # curva contra PGA se lleva la mediana al espacio de PGA con la
+            # relacion de Newmark & Hall (1982), PGV[cm/s] = alpha * PGA[g],
+            # con alpha segun la clase de suelo. Es lo que hace su anexo, y
+            # como el, beta se deja igual: la incertidumbre de la conversion
+            # (correlacion moderada, rho ~0,70-0,73 segun Bradley 2012) no
+            # esta propagada al parametro, va declarada en la metodologia.
+            #
+            # Lo que no se hace es cambiar solo el rotulo del eje: sin mover
+            # la mediana, la curva seguiria siendo de PGV con otro nombre.
+            ratios_newmark_hall = {'rock': 66.0, 'stiff_soil': 97.0, 'soft_soil': 122.0}
+            nombre_suelo = {'rock': 'roca', 'stiff_soil': 'firme', 'soft_soil': 'blando'}
+            soil_class = str(options.get('soil_class', 'stiff_soil'))
+            en_pga = hazard_type == 'seismic_pga'
+
+            if en_pga:
+                if soil_class not in ratios_newmark_hall:
+                    raise ValueError(
+                        'soil_class no valida: %s (opciones: %s)'
+                        % (soil_class, ', '.join(sorted(ratios_newmark_hall)))
+                    )
+                alpha = ratios_newmark_hall[soil_class]
+                median = median_pgv / alpha            # g
+                intensity_unit = 'g'
+                # 1 g de tope por defecto, que es el orden de las normativas.
+                max_intensity = float(options.get('max_intensity', 1.0))
+                intensities = list(np.linspace(0, max_intensity, steps))
+            else:
+                alpha = None
+                median = median_pgv
+                intensity_unit = 'cm/s'
 
             pipe_failure_probability = [float(p) for p in lognorm.cdf(intensities, s=beta, scale=median)]
             pipe_count = len(wn.pipe_name_list)
@@ -1066,7 +1100,11 @@ class WNTRResilienceService:
                 'data': {
                     'hazard_type': hazard_type,
                     'material': material,
-                    'median_pgv': median,
+                    'median_pgv': median_pgv,
+                    'median': median,
+                    'intensity_unit': intensity_unit,
+                    'soil_class': soil_class if en_pga else None,
+                    'alpha_cm_s_per_g': alpha,
                     'beta': beta,
                     'intensities': [float(i) for i in intensities],
                     'pipe_failure_probability': pipe_failure_probability,
@@ -1077,6 +1115,12 @@ class WNTRResilienceService:
                     'methodology': (
                         'ALA (2001) repair-rate lognormal fragility (parametros genericos por material) '
                         '- requiere validacion de un experto APyS antes de usarse en decisiones reales.'
+                        + ((
+                            ' Entrada en PGA: la mediana de %.1f cm/s se lleva a %.3f g con Newmark & Hall '
+                            '(1982), alpha = %.0f cm/s por g para suelo %s. La correlacion PGV-PGA es '
+                            'moderada (rho ~0,70-0,73, Bradley 2012), asi que la curva en PGA arrastra esa '
+                            'incertidumbre; con PGV medido, use PGV.'
+                        ) % (median_pgv, median, alpha, nombre_suelo[soil_class]) if en_pga else '')
                     )
                 }
             }

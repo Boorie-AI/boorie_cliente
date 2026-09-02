@@ -511,6 +511,10 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
   const [fragilityMaterial, setFragilityMaterial] = useState('PVC');
   const [fragilityMaxIntensity, setFragilityMaxIntensity] = useState<number>(100);
+  // Entrada en PGV o en PGA (#94). ALA está calibrada en PGV; PGA se ofrece
+  // porque es lo que dan las normativas de amenaza sísmica, en fracción de g.
+  const [fragilityHazard, setFragilityHazard] = useState<'seismic_pgv' | 'seismic_pga'>('seismic_pgv');
+  const [fragilitySoil, setFragilitySoil] = useState<'rock' | 'stiff_soil' | 'soft_soil'>('stiff_soil');
   const [isGeneratingFragility, setIsGeneratingFragility] = useState(false);
   const [fragilityResult, setFragilityResult] = useState<any>(null);
   // Índice de la intensidad a la que se lee la tabla por diámetros (#94).
@@ -980,9 +984,10 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     setFragilityError(null);
     try {
       const res = await window.electronAPI.wntr.generateFragilityCurve({
-        hazard_type: 'seismic_pgv',
         material: fragilityMaterial,
-        max_intensity: fragilityMaxIntensity
+        max_intensity: fragilityMaxIntensity,
+        hazard_type: fragilityHazard,
+        soil_class: fragilitySoil
       });
       if (res.success) {
         setFragilityResult(res.data);
@@ -995,12 +1000,13 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     } finally {
       setIsGeneratingFragility(false);
     }
-  }, [networkData, fragilityMaterial, fragilityMaxIntensity]);
+  }, [networkData, fragilityMaterial, fragilityMaxIntensity, fragilityHazard, fragilitySoil]);
 
   const handleExportFragilityCSV = useCallback(() => {
     if (!fragilityResult) return;
     const rows = [
-      ['PGV (cm/s)', 'Prob. falla de tubería', 'Tuberías afectadas esperadas'],
+      [`${fragilityResult.intensity_unit === 'g' ? 'PGA (g)' : 'PGV (cm/s)'}`,
+       'Prob. falla de tubería', 'Tuberías afectadas esperadas'],
       ...fragilityResult.intensities.map((pgv: number, i: number) => [
         pgv.toFixed(2),
         fragilityResult.pipe_failure_probability[i]?.toFixed(6) ?? '',
@@ -1012,7 +1018,8 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     // intensidad; costear el daño de varios escenarios pide todas (#94).
     if (fragilityResult.by_diameter?.length) {
       rows.push([]);
-      rows.push(['PGV (cm/s)', 'Diámetro (mm)', 'Tuberías del grupo', 'Longitud del grupo (km)',
+      rows.push([fragilityResult.intensity_unit === 'g' ? 'PGA (g)' : 'PGV (cm/s)',
+                 'Diámetro (mm)', 'Tuberías del grupo', 'Longitud del grupo (km)',
                  'Tuberías afectadas', 'Longitud afectada (km)']);
       fragilityResult.intensities.forEach((pgv: number, i: number) => {
         fragilityResult.by_diameter.forEach((g: any) => {
@@ -2093,6 +2100,31 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     <AvisoDuracion>
                       Evalúa la curva sobre todas las tuberías: en redes grandes puede tardar cerca de un minuto.
                     </AvisoDuracion>
+                    {/**
+                      * De dónde sacar la intensidad (#94, punto 3 del Dr. Mora).
+                      *
+                      * Las normativas de amenaza sísmica de América Latina y el Caribe
+                      * no son explícitas en PGV, que es donde está calibrada ALA. Sin
+                      * una referencia a mano, el ingeniero acaba poniendo un número
+                      * inventado en la casilla, y la curva hereda ese número.
+                      */}
+                    <p className="text-[10px] text-muted-foreground">
+                      ¿De dónde sale la intensidad? Las normativas de América Latina y el Caribe no
+                      suelen dar PGV. Puede tomarla de los modelos globales del{' '}
+                      <a
+                        href="https://hazard.openquake.org/gem/models/"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline hover:text-foreground"
+                      >GEM</a>{' '}o de su{' '}
+                      <a
+                        href="https://hazard.openquake.org/gem/images/home/gem_global_seismic_hazard_map_v2018.1.pdf"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline hover:text-foreground"
+                      >mapa global de amenaza sísmica</a>, y si solo tiene PGA, use la entrada
+                      en PGA con la clase de suelo del emplazamiento.
+                    </p>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-background p-2 rounded border">
                         <div className="text-[10px] text-muted-foreground mb-1">Material predominante</div>
@@ -2112,7 +2144,39 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         </select>
                       </div>
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">PGV máximo (cm/s)</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">Intensidad de entrada</div>
+                        <select
+                          value={fragilityHazard}
+                          onChange={(e) => {
+                            const h = e.target.value as 'seismic_pgv' | 'seismic_pga';
+                            setFragilityHazard(h);
+                            // El tope va en las unidades del eje: 100 cm/s o 1 g.
+                            setFragilityMaxIntensity(h === 'seismic_pga' ? 1 : 100);
+                          }}
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        >
+                          <option value="seismic_pgv">PGV (cm/s)</option>
+                          <option value="seismic_pga">PGA (g)</option>
+                        </select>
+                      </div>
+                      {fragilityHazard === 'seismic_pga' && (
+                        <div className="bg-background p-2 rounded border">
+                          <div className="text-[10px] text-muted-foreground mb-1">Clase de suelo</div>
+                          <select
+                            value={fragilitySoil}
+                            onChange={(e) => setFragilitySoil(e.target.value as typeof fragilitySoil)}
+                            className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                          >
+                            <option value="rock">Roca (Vs30 &gt; 760 m/s)</option>
+                            <option value="stiff_soil">Firme (360–760 m/s)</option>
+                            <option value="soft_soil">Blando (&lt; 360 m/s)</option>
+                          </select>
+                        </div>
+                      )}
+                      <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">
+                          {fragilityHazard === 'seismic_pga' ? 'PGA máximo (g)' : 'PGV máximo (cm/s)'}
+                        </div>
                         <input
                           type="number"
                           min={0}
@@ -2142,7 +2206,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           <div className="h-40">
                             <Line
                               data={{
-                                labels: fragilityResult.intensities.map((v: number) => v.toFixed(0)),
+                                labels: fragilityResult.intensities.map(
+                                  (v: number) => v.toFixed(fragilityResult.intensity_unit === 'g' ? 2 : 0)
+                                ),
                                 datasets: [{
                                   label: 'Prob. falla de tubería',
                                   data: fragilityResult.pipe_failure_probability,
@@ -2170,7 +2236,14 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                   },
                                 },
                                 scales: {
-                                  x: { title: { display: true, text: 'PGV (cm/s)', font: { size: 9 } }, ticks: { maxTicksLimit: 6, font: { size: 9 } } },
+                                  x: {
+                                    title: {
+                                      display: true,
+                                      text: fragilityResult.intensity_unit === 'g' ? 'PGA (g)' : 'PGV (cm/s)',
+                                      font: { size: 9 },
+                                    },
+                                    ticks: { maxTicksLimit: 6, font: { size: 9 } },
+                                  },
                                   // El eje horizontal ya decía qué medía; el vertical iba de 0
                                   // a 1 sin decirlo, y el nombre de la serie no se ve porque
                                   // esta gráfica tiene la leyenda apagada (#89).
@@ -2210,7 +2283,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             />
                           </div>
                           <div className="flex justify-between">
-                            <span>Tuberías afectadas esperadas (PGV máx.):</span>
+                            <span>
+                              Tuberías afectadas esperadas ({fragilityResult.intensity_unit === 'g' ? 'PGA' : 'PGV'} máx.):
+                            </span>
                             <span className="font-mono">
                               {fragilityResult.expected_failed_pipes[fragilityResult.expected_failed_pipes.length - 1]?.toFixed(1)} / {fragilityResult.pipe_count}
                             </span>
@@ -2233,14 +2308,18 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           {fragilityResult.by_diameter?.length > 0 && (
                             <div className="space-y-1 pt-1 border-t">
                               <div className="flex items-center gap-2">
-                                <span className="text-[11px] font-medium">Reparto por diámetro a PGV</span>
+                                <span className="text-[11px] font-medium">
+                                  Reparto por diámetro a {fragilityResult.intensity_unit === 'g' ? 'PGA' : 'PGV'}
+                                </span>
                                 <select
                                   className="text-[11px] border rounded px-1 py-0.5 bg-background"
                                   value={fragilityIdx}
                                   onChange={(e) => setFragilityIdx(Number(e.target.value))}
                                 >
                                   {fragilityResult.intensities.map((v: number, i: number) => (
-                                    <option key={i} value={i}>{v.toFixed(0)} cm/s</option>
+                                    <option key={i} value={i}>
+                                      {v.toFixed(fragilityResult.intensity_unit === 'g' ? 2 : 0)} {fragilityResult.intensity_unit}
+                                    </option>
                                   ))}
                                 </select>
                                 <span className="text-[11px] text-muted-foreground">
