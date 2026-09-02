@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { construirGrafo, lecturaNudo, lecturaTramo, tieneCoordenadasUtiles, valorEnPaso } from './topologia'
+import { conOpacidad, construirGrafo, lecturaNudo, lecturaTramo, NUDO_BASE, tieneCoordenadasUtiles, TRAMO_BASE, valorEnPaso } from './topologia'
 
 const RED = {
   nodes: [
@@ -241,5 +241,89 @@ describe('la lectura del elemento elegido sigue al paso de la simulación (#74)'
     expect(lecturaNudo(RED, RESULTADOS, 'FANTASMA')).toBeNull()
     expect(lecturaTramo(RED, RESULTADOS, 'FANTASMA')).toBeNull()
     expect(lecturaNudo(null, RESULTADOS, 'J1')).toBeNull()
+  })
+})
+
+/**
+ * El deslizador de tamaño llega al esquema (issue #97).
+ *
+ * Lo reportó el Dr. Mora: mover «Tamaño de nudo» de 2 a 20 dibujaba siempre lo
+ * mismo. Los ajustes de dibujo llegaban al mapa —que aplica `nodeSize` como
+ * radio del círculo— pero no al esquema, que pintaba con los tamaños fijos de
+ * cada tipo. Coincidía además que el valor por defecto del panel, 8, es el
+ * mismo que el tamaño del nudo de consumo, así que ni siquiera al arrancar se
+ * notaba que el número no se usaba.
+ */
+describe('los ajustes de dibujo llegan al esquema', () => {
+  const nudo = (g: ReturnType<typeof construirGrafo>, id: string) =>
+    g.nodes.find(n => n.id === id)!
+  const tramo = (g: ReturnType<typeof construirGrafo>, id: string) =>
+    g.edges.find(e => e.id === id)!
+
+  it('con el valor por defecto no cambia nada, así que la escala es neutra', () => {
+    const base = construirGrafo(RED)
+    const conDefecto = construirGrafo(RED, null, 0, null, null, {
+      nodeSize: NUDO_BASE, linkWidth: TRAMO_BASE,
+    })
+    expect(conDefecto.nodes.map(n => n.size)).toEqual(base.nodes.map(n => n.size))
+    expect(conDefecto.edges.map(e => e.width)).toEqual(base.edges.map(e => e.width))
+  })
+
+  it('el tamaño de nudo escala, y mantiene la diferencia entre tipos', () => {
+    const g = construirGrafo(RED, null, 0, null, null, { nodeSize: NUDO_BASE * 2 })
+    const base = construirGrafo(RED)
+
+    expect(nudo(g, 'J1').size).toBe(nudo(base, 'J1').size * 2)
+    expect(nudo(g, 'T1').size).toBe(nudo(base, 'T1').size * 2)
+    // Un depósito se sigue viendo más grande que un nudo de consumo: el
+    // deslizador escala los tamaños de cada tipo, no los iguala.
+    expect(nudo(g, 'T1').size).toBeGreaterThan(nudo(g, 'J1').size)
+  })
+
+  it('los dos extremos del deslizador dan tamaños bien distintos', () => {
+    const minimo = construirGrafo(RED, null, 0, null, null, { nodeSize: 2 })
+    const maximo = construirGrafo(RED, null, 0, null, null, { nodeSize: 20 })
+    // El caso del informe: de 2 a 20 salía lo mismo.
+    expect(nudo(maximo, 'J1').size).toBeGreaterThan(nudo(minimo, 'J1').size * 5)
+  })
+
+  it('el grosor de tramo escala igual', () => {
+    const base = construirGrafo(RED)
+    const g = construirGrafo(RED, null, 0, null, null, { linkWidth: TRAMO_BASE * 3 })
+    expect(tramo(g, 'P1').width).toBe(tramo(base, 'P1').width * 3)
+    // La bomba se dibuja más gruesa que la tubería, y lo sigue siendo.
+    expect(tramo(g, 'B1').width).toBeGreaterThan(tramo(g, 'P1').width)
+  })
+
+  it('sin ajustes se comporta como antes del arreglo', () => {
+    const g = construirGrafo(RED, null, 0, null, null, null)
+    expect(g.nodes.map(n => n.size)).toEqual(construirGrafo(RED).nodes.map(n => n.size))
+  })
+})
+
+describe('la opacidad del panel llega al esquema', () => {
+  it('opacidad 1 deja el color tal cual', () => {
+    expect(conOpacidad('#3B82F6', 1)).toBe('#3B82F6')
+    const g = construirGrafo(RED, null, 0, null, null, { opacity: 1 })
+    expect(g.nodes[0].color).toBe(construirGrafo(RED).nodes[0].color)
+  })
+
+  it('por debajo de 1 pasa el color a rgba', () => {
+    expect(conOpacidad('#3B82F6', 0.5)).toBe('rgba(59, 130, 246, 0.5)')
+    // Forma corta, que también aparece en CSS.
+    expect(conOpacidad('#fff', 0.25)).toBe('rgba(255, 255, 255, 0.25)')
+  })
+
+  it('lo que no sea hex se devuelve intacto en vez de romper el dibujo', () => {
+    // `escala.color` está tipada como cualquier cadena: si alguna rampa
+    // devolviera un nombre o un rgb(), no debe salir un color inválido.
+    expect(conOpacidad('red', 0.5)).toBe('red')
+    expect(conOpacidad('rgb(1, 2, 3)', 0.5)).toBe('rgb(1, 2, 3)')
+  })
+
+  it('nudos y tramos se atenúan los dos', () => {
+    const g = construirGrafo(RED, null, 0, null, null, { opacity: 0.4 })
+    expect(g.nodes.every(n => n.color.startsWith('rgba('))).toBe(true)
+    expect(g.edges.every(e => e.color.startsWith('rgba('))).toBe(true)
   })
 })

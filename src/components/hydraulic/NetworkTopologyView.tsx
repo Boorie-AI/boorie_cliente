@@ -23,6 +23,8 @@ interface NetworkTopologyViewProps {
   /** Escala de color vigente, para pintar la misma magnitud que el mapa. */
   escala?: Parameters<typeof construirGrafo>[3]
   capas?: Parameters<typeof construirGrafo>[4]
+  /** Ajustes de dibujo del panel: hasta el #97 no llegaban hasta aquí. */
+  dibujo?: Parameters<typeof construirGrafo>[5]
 }
 
 export function NetworkTopologyView({
@@ -33,6 +35,7 @@ export function NetworkTopologyView({
   showLabels = false,
   escala,
   capas,
+  dibujo,
 }: NetworkTopologyViewProps) {
   const { t } = useTranslation()
   const visRef = useRef<{ fit: () => void } | null>(null)
@@ -41,8 +44,8 @@ export function NetworkTopologyView({
   const [seleccion, setSeleccion] = useState<{ tipo: 'nudo' | 'tramo'; id: string } | null>(null)
 
   const grafo = useMemo(
-    () => construirGrafo(networkData, simulationResults, activeTimeStep, escala, capas),
-    [networkData, simulationResults, activeTimeStep, escala, capas]
+    () => construirGrafo(networkData, simulationResults, activeTimeStep, escala, capas, dibujo),
+    [networkData, simulationResults, activeTimeStep, escala, capas, dibujo]
   )
 
   const textoSeleccion = useMemo(() => {

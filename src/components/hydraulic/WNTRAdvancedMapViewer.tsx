@@ -247,6 +247,11 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
               showLabels={visualizationSettings.showLabels}
               escala={escala}
               capas={visualizationSettings.capas}
+              dibujo={{
+                nodeSize: visualizationSettings.nodeSize,
+                linkWidth: visualizationSettings.linkWidth,
+                opacity: visualizationSettings.opacity,
+              }}
             />
           )}
 

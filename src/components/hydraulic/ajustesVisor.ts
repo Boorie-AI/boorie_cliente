@@ -8,6 +8,7 @@
  */
 
 import { CAPAS_TODAS } from '@/services/network/capas'
+import { NUDO_BASE, TRAMO_BASE } from '@/services/network/topologia'
 import type { MapSettings } from './WNTRMapViewer'
 
 export type VistaVisor = 'mapa' | 'topologia'
@@ -43,8 +44,9 @@ export const AJUSTES_INICIALES: AjustesVisor = {
   baseMap: 'streets',
   showLabels: false,
   opacity: 0.9,
-  nodeSize: 8,
-  linkWidth: 2,
+  // Del esquema, para que el deslizador escale desde el mismo sitio (#97).
+  nodeSize: NUDO_BASE,
+  linkWidth: TRAMO_BASE,
   simbologia: 'presion',
   capas: CAPAS_TODAS,
   timeStep: 0,
