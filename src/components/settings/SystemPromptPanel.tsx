@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 
@@ -6,7 +7,7 @@ import { cn } from '@/utils/cn'
 import { databaseService } from '@/services/database'
 
 export function SystemPromptPanel() {
-  // const { t } = useTranslation()
+  const { t } = useTranslation()
   const [systemPrompt, setSystemPrompt] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -62,14 +63,14 @@ INSTRUCCIONES:
       if (success) {
         setLastSaved(new Date())
         logger.debug('✅ System prompt saved successfully')
-        alert('Prompt del sistema guardado correctamente')
+        alert(t('messages.promptSaved'))
       } else {
         logger.error('❌ Failed to save system prompt')
-        alert('Error al guardar el prompt del sistema')
+        alert(t('messages.promptNotSaved'))
       }
     } catch (error) {
       logger.error('Error saving system prompt:', error)
-      alert('Error al guardar el prompt del sistema')
+      alert(t('messages.promptNotSaved'))
     } finally {
       setIsSaving(false)
     }
@@ -86,13 +87,13 @@ INSTRUCCIONES:
       })
 
       if (retrieved === systemPrompt) {
-        alert('✅ System prompt está guardado correctamente en la base de datos')
+        alert(t('messages.promptSavedOk'))
       } else {
-        alert('❌ El prompt en la base de datos no coincide con el mostrado')
+        alert(t('messages.promptMismatch'))
       }
     } catch (error) {
       logger.error('Error testing system prompt:', error)
-      alert('Error al probar el prompt del sistema')
+      alert(t('messages.promptTestError'))
     }
   }
 
@@ -105,7 +106,7 @@ INSTRUCCIONES:
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Cargando configuración...</p>
+          <p className="text-muted-foreground">{t('prompt.loading')}</p>
         </div>
       </div>
     )
@@ -121,9 +122,9 @@ INSTRUCCIONES:
               <FileText className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-card-foreground">System Prompt</h2>
+              <h2 className="text-xl font-semibold text-card-foreground">{t('settings.systemPrompt')}</h2>
               <p className="text-sm text-muted-foreground">
-                Configura el prompt del sistema que se usará en todas las conversaciones
+                {t('prompt.subtitle')}
               </p>
             </div>
           </div>
@@ -134,12 +135,10 @@ INSTRUCCIONES:
           {/* Description */}
           <div className="space-y-2">
             <h3 className="font-medium text-card-foreground">
-              Configuración del Prompt Global
+              {t('prompt.globalTitle')}
             </h3>
             <p className="text-sm text-muted-foreground">
-              Este prompt se aplicará automáticamente al inicio de todas las conversaciones de chat,
-              independientemente del proveedor de AI que uses (OpenAI, Anthropic, etc.).
-              Define aquí la personalidad y especialización de tu asistente.
+              {t('prompt.intro')}
             </p>
           </div>
 
@@ -147,7 +146,7 @@ INSTRUCCIONES:
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-card-foreground">
-                Prompt del Sistema
+                {t('prompt.promptLabel')}
               </label>
               <div className="flex items-center space-x-2">
                 {lastSaved && (
@@ -160,7 +159,7 @@ INSTRUCCIONES:
                   className="flex items-center space-x-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <RotateCcw className="w-3 h-3" />
-                  <span>Restaurar</span>
+                  <span>{t('prompt.restore')}</span>
                 </button>
               </div>
             </div>
@@ -175,8 +174,8 @@ INSTRUCCIONES:
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                <span>Caracteres: {systemPrompt.length}</span>
-                <span>Líneas: {systemPrompt.split('\n').length}</span>
+                <span>{t('prompt.characters', { count: systemPrompt.length })}</span>
+                <span>{t('prompt.lines', { count: systemPrompt.split('\n').length })}</span>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -184,7 +183,7 @@ INSTRUCCIONES:
                   onClick={testSystemPrompt}
                   className="px-3 py-2 text-sm border border-border rounded-lg text-foreground hover:bg-accent transition-colors"
                 >
-                  Test DB
+                  {t('settings.testDb')}
                 </button>
                 <button
                   onClick={saveSystemPrompt}
@@ -198,12 +197,12 @@ INSTRUCCIONES:
                   {isSaving ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                      <span>Guardando...</span>
+                      <span>{t('prompt.saving')}</span>
                     </>
                   ) : (
                     <>
                       <Save className="w-4 h-4" />
-                      <span>Guardar Prompt</span>
+                      <span>{t('prompt.savePrompt')}</span>
                     </>
                   )}
                 </button>
@@ -214,35 +213,35 @@ INSTRUCCIONES:
 
         {/* Usage Information */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-medium text-blue-900 mb-2">💡 Cómo funciona</h4>
+          <h4 className="font-medium text-blue-900 mb-2">💡 {t('prompt.howItWorks')}</h4>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>• El prompt se aplicará automáticamente al inicio de cada conversación</li>
-            <li>• Funciona con todos los proveedores de AI configurados</li>
-            <li>• Se combina con el sistema RAG si tienes documentos indexados</li>
-            <li>• Puedes modificarlo en cualquier momento</li>
+            <li>• {t('prompt.appliedStart')}</li>
+            <li>• {t('prompt.allProviders')}</li>
+            <li>• {t('prompt.withRag')}</li>
+            <li>• {t('prompt.changeAnytime')}</li>
           </ul>
         </div>
 
         {/* Examples */}
         <div className="bg-accent/30 border border-border rounded-lg p-4">
-          <h4 className="font-medium text-card-foreground mb-3">🎯 Ejemplos de uso</h4>
+          <h4 className="font-medium text-card-foreground mb-3">🎯 {t('prompt.examples')}</h4>
           <div className="grid gap-4">
             <div>
-              <h5 className="font-medium text-sm text-card-foreground mb-1">Para Ingeniería Hidráulica:</h5>
+              <h5 className="font-medium text-sm text-card-foreground mb-1">{t('prompt.forHydraulic')}</h5>
               <p className="text-xs text-muted-foreground">
-                "Eres un ingeniero hidráulico especializado en redes de distribución..."
+                {t('prompt.exHydraulic')}
               </p>
             </div>
             <div>
-              <h5 className="font-medium text-sm text-card-foreground mb-1">Para Consultoría Técnica:</h5>
+              <h5 className="font-medium text-sm text-card-foreground mb-1">{t('prompt.forConsulting')}</h5>
               <p className="text-xs text-muted-foreground">
-                "Actúas como consultor técnico senior, siempre cita normativas y estándares..."
+                {t('prompt.exConsulting')}
               </p>
             </div>
             <div>
-              <h5 className="font-medium text-sm text-card-foreground mb-1">Para Educación:</h5>
+              <h5 className="font-medium text-sm text-card-foreground mb-1">{t('prompt.forTeaching')}</h5>
               <p className="text-xs text-muted-foreground">
-                "Eres un profesor de ingeniería, explica conceptos paso a paso..."
+                {t('prompt.exTeaching')}
               </p>
             </div>
           </div>

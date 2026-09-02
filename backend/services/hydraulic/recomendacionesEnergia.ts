@@ -13,6 +13,8 @@
  * este issue existe para que las cifras estén respaldadas.
  */
 
+import { TextoDelMotor } from '../../../src/services/hydraulic/textoDelMotor'
+
 export interface BloqueDeBomba {
   kwh: number
   coste: number
@@ -50,9 +52,9 @@ export interface Candidata {
   /** Identificador estable, para poder atar el resultado verificado a su candidata. */
   id: string
   clase: 'traslado_horario' | 'punto_optimo'
-  titulo: string
+  titulo: TextoDelMotor
   /** Por qué se propone, con las cifras del análisis (no del ahorro, que aún no existe). */
-  motivo: string
+  motivo: TextoDelMotor
   /** Qué se le va a pedir al motor. Es el vocabulario de eventos del #43, más `pump_bep`. */
   medida: { tipo: string; elementos: string[]; desde_h?: number; hasta_h?: number }
   /**
@@ -95,11 +97,21 @@ export function generarCandidatas(analisis: AnalisisParaRecomendar, maximo = 3):
       candidatas.push({
         id: `traslado:${bomba.nombre}:${nombre}`,
         clase: 'traslado_horario',
-        titulo: `Sacar la bomba ${bomba.nombre} del bloque «${nombre}»`,
-        motivo:
-          `Hoy consume ${numero(bloque.kwh)} kWh en ese bloque, a ${numero(bloque.precio_kwh, 3)} ${moneda}/kWh ` +
-          `frente a los ${numero(precioBase, 3)} del precio base: ${numero(bloque.coste, 2)} ${moneda} de las ` +
-          `${numero(bomba.coste, 2)} que cuesta al día.`,
+        titulo: {
+          clave: 'recomendacion.trasladoTitulo',
+          datos: { bomba: bomba.nombre, bloque: nombre },
+        },
+        motivo: {
+          clave: 'recomendacion.trasladoMotivo',
+          datos: {
+            kwh: numero(bloque.kwh),
+            precio: numero(bloque.precio_kwh, 3),
+            moneda,
+            base: numero(precioBase, 3),
+            coste: numero(bloque.coste, 2),
+            total: numero(bomba.coste, 2),
+          },
+        },
         medida: {
           tipo: 'pump_outage',
           elementos: [bomba.nombre],
@@ -124,24 +136,42 @@ export function generarCandidatas(analisis: AnalisisParaRecomendar, maximo = 3):
   })
 
   if (lejos.length > 0) {
-    const detalle = lejos
-      .map(b => {
-        const po = b.punto_optimo!
-        const desviacion = po.desviacion_caudal_pct
-        return `${b.nombre} al ${numero(po.eficiencia_en_operacion_pct)}% frente al ${numero(po.punto_optimo.eficiencia_pct)}% de su curva` +
-          (desviacion !== null && Math.abs(desviacion) >= DESVIACION_MINIMA_PCT
-            ? ` (caudal ${numero(Math.abs(desviacion), 0)}% ${desviacion < 0 ? 'por debajo' : 'por encima'} del óptimo)`
-            : '')
-      })
-      .join('; ')
+    // El detalle es una bomba por trozo: cada uno es un texto del motor, y
+    // quien lo enseña los traduce y los pega.
+    const detalle: TextoDelMotor[] = lejos.map(b => {
+      const po = b.punto_optimo!
+      const desviacion = po.desviacion_caudal_pct
+      return {
+        clave: 'recomendacion.optimoDetalle',
+        datos: {
+          bomba: b.nombre,
+          actual: numero(po.eficiencia_en_operacion_pct),
+          optimo: numero(po.punto_optimo.eficiencia_pct),
+          caudal: '',
+        },
+        listas: desviacion !== null && Math.abs(desviacion) >= DESVIACION_MINIMA_PCT
+          ? {
+              caudal: [{
+                clave: 'recomendacion.optimoCaudal',
+                datos: {
+                  desviacion: numero(Math.abs(desviacion), 0),
+                },
+                listas: {
+                  sentido: [{ clave: desviacion < 0 ? 'recomendacion.porDebajo' : 'recomendacion.porEncima' }],
+                },
+              }],
+            }
+          : undefined,
+      }
+    })
 
     candidatas.push({
       id: `optimo:${lejos.map(b => b.nombre).join('+')}`,
       clase: 'punto_optimo',
       titulo: lejos.length === 1
-        ? `Redimensionar o sustituir la bomba ${lejos[0].nombre}`
-        : `Redimensionar o sustituir ${lejos.length} bombas fuera de su punto óptimo`,
-      motivo: `${detalle}. La cifra que se verifica es la brecha: lo que costaría el mismo servicio con esas bombas en el mejor punto de su curva.`,
+        ? { clave: 'recomendacion.optimoTituloUna', datos: { bomba: lejos[0].nombre } }
+        : { clave: 'recomendacion.optimoTituloVarias', datos: { count: lejos.length } },
+      motivo: { clave: 'recomendacion.optimoMotivo', listas: { detalle } },
       medida: { tipo: 'pump_bep', elementos: lejos.map(b => b.nombre) },
       naturaleza: 'equipo',
       costeEnJuego: lejos.reduce((suma, b) => suma + b.coste, 0),

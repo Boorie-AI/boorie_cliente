@@ -7,6 +7,7 @@
  * porque la lista nunca va a estar completa.
  */
 
+import { useTranslation } from 'react-i18next'
 import { useMemo, useState } from 'react'
 import { AlertTriangle, Check, Globe2, Search } from 'lucide-react'
 import { logger } from '@/utils/logger'
@@ -55,6 +56,7 @@ export function CRSSelector({
   networkId,
   onDeclarado,
 }: CRSSelectorProps) {
+  const { t } = useTranslation()
   const [busqueda, setBusqueda] = useState('')
   const [seleccion, setSeleccion] = useState<string | null>(epsgActual)
   const [guardando, setGuardando] = useState(false)
@@ -130,7 +132,7 @@ export function CRSSelector({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Globe2 className="h-4 w-4" />
-            Sistema de coordenadas de la red
+            {t('crs.title')}
           </DialogTitle>
           <DialogDescription>
             Declara el EPSG en el que están las coordenadas del .inp. Boorie reproyecta a WGS84
@@ -143,8 +145,7 @@ export function CRSSelector({
             <div className="flex items-start gap-2 rounded-md border border-yellow-500/50 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-400">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <span>
-                {motivoEsquematico(limites!)} Elijas el que elijas, la red acabará en un punto
-                arbitrario del planeta. Para verla, usa la vista de esquema.
+                {motivoEsquematico(limites!)} {t('crs.schematicHint')}
               </span>
             </div>
           )}
@@ -155,7 +156,7 @@ export function CRSSelector({
               autoFocus
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
-              placeholder="Busca por código o nombre: 32618, UTM 18N, MAGNA…"
+              placeholder={t('crs.searchHint')}
               className="pl-8"
             />
           </div>
@@ -207,7 +208,7 @@ export function CRSSelector({
             >
               {vistaPrevia.centroide && (
                 <p>
-                  Con {seleccion} el centro de la red cae en{' '}
+                  {t('crs.centreFallsAt', { epsg: seleccion })}{' '}
                   <span className="font-mono">
                     {vistaPrevia.centroide[1].toFixed(5)}, {vistaPrevia.centroide[0].toFixed(5)}
                   </span>
@@ -225,8 +226,7 @@ export function CRSSelector({
 
           {!networkId && (
             <p className="text-xs text-muted-foreground">
-              Esta red todavía no está guardada en el proyecto: el sistema se aplica ahora, pero
-              habrá que volver a declararlo si cierras sin guardarla.
+              {t('crs.unsavedHint')}
             </p>
           )}
 
@@ -244,11 +244,11 @@ export function CRSSelector({
             disabled={guardando}
             onClick={() => declarar(null)}
           >
-            No está georreferenciada
+            {t('crs.notGeo')}
           </Button>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={onCerrar} disabled={guardando}>
-              Cancelar
+              {t('crs.cancel')}
             </Button>
             <Button size="sm" disabled={!seleccion || guardando} onClick={() => declarar(seleccion)}>
               {guardando ? 'Guardando…' : 'Aplicar'}

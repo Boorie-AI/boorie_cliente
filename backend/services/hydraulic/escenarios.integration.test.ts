@@ -181,7 +181,7 @@ describe.skipIf(!canRun)('motor de escenarios con WNTR real', () => {
     })
 
     expect(r.success).toBe(false)
-    expect(r.eventos?.[0].omitidos[0]).toMatchObject({ id: 'bomba-que-no-existe', motivo: 'no existe en la red' })
+    expect(r.eventos?.[0].omitidos[0]).toMatchObject({ id: 'bomba-que-no-existe', motivo: { clave: 'omitido.noExiste' } })
   }, SIM_TIMEOUT)
 
   it('rechaza un tipo de evento desconocido enumerando los admitidos', async () => {
@@ -190,7 +190,8 @@ describe.skipIf(!canRun)('motor de escenarios con WNTR real', () => {
     })
 
     expect(r.success).toBe(false)
-    expect(r.eventos?.[0].omitidos[0].motivo).toContain('pipe_break')
+    expect(r.eventos?.[0].omitidos[0].motivo).toMatchObject({ clave: 'omitido.tipoDesconocido' })
+    expect((r.eventos?.[0].omitidos[0].motivo as { datos: { admitidos: string } }).datos.admitidos).toContain('pipe_break')
   }, SIM_TIMEOUT)
 
   it('ningún indicador de impacto sale en negativo (#77)', async () => {

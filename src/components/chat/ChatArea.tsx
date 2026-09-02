@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useRef, useEffect } from 'react'
 import { useChatStore } from '@/stores/chatStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -11,6 +12,7 @@ import { cn } from '@/utils/cn'
 import boorieIconLight from '@/assets/boorie_icon_light.png'
 
 export function ChatArea() {
+  const { t } = useTranslation()
   const { activeConversationId, conversations, isLoading, streamingMessage } = useChatStore()
   // El proyecto del chat es el proyecto activo global (issue #31): antes el chat
   // llevaba su propia selección, así que podía estar en un proyecto distinto del
@@ -54,9 +56,9 @@ export function ChatArea() {
             </div>
 
             <div className="space-y-3">
-              <h2 className="text-2xl font-bold text-foreground">Welcome to Boorie</h2>
+              <h2 className="text-2xl font-bold text-foreground">{t('chatInput.welcome')}</h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Your intelligent AI assistant is ready to help. Start a conversation to begin exploring the possibilities.
+                {t('chatInput.welcomeHint')}
               </p>
             </div>
 
@@ -77,14 +79,14 @@ export function ChatArea() {
                   "transform hover:scale-105"
                 )}
               >
-                Start New Chat
+                {t('chatInput.newChat')}
               </button>
             </div>
 
             <div className="text-sm text-muted-foreground/70">
               {proyectoDeLaNueva ?
-                "This conversation will be linked to the selected project" :
-                "General chat: this conversation is not linked to any project"
+                t('chatInput.linkedToProject') :
+                t('chatInput.generalChat')
               }
             </div>
           </div>

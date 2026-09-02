@@ -316,7 +316,7 @@ export function AIConfigurationPanel() {
     } catch (error) {
       logger.error('Failed to remove model:', error)
       // Show error to user
-      window.alert(`Failed to remove model ${modelToDelete}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      window.alert(t('messages.removeModelFailed', { modelo: modelToDelete, motivo: error instanceof Error ? error.message : t('messages.unknownError') }))
     }
   }
 
@@ -582,7 +582,7 @@ export function AIConfigurationPanel() {
                                     type="text"
                                     value={newModelName}
                                     onChange={(e) => setNewModelName(e.target.value)}
-                                    placeholder="e.g., llama3.2:latest"
+                                    placeholder={t('models.egOllama')}
                                     className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none"
                                   />
                                 </div>
@@ -996,7 +996,7 @@ export function AIConfigurationPanel() {
                         type="text"
                         value={customModel.modelId}
                         onChange={(e) => setCustomModel(prev => ({ ...prev, modelId: e.target.value }))}
-                        placeholder="e.g., anthropic/claude-3-haiku"
+                        placeholder={t('models.egModelId')}
                         className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none"
                       />
                     </div>
@@ -1009,7 +1009,7 @@ export function AIConfigurationPanel() {
                         type="text"
                         value={customModel.modelName}
                         onChange={(e) => setCustomModel(prev => ({ ...prev, modelName: e.target.value }))}
-                        placeholder="e.g., Claude 3 Haiku"
+                        placeholder={t('models.egModelName')}
                         className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none"
                       />
                     </div>

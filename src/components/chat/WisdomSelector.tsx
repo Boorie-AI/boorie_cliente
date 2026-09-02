@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useEffect, useRef } from 'react'
 import { Brain, ChevronDown, Search, Lightbulb, Check } from 'lucide-react'
@@ -19,6 +20,7 @@ interface WisdomSelectorProps {
 }
 
 export function WisdomSelector({ selectedConfig, onConfigChange, className }: WisdomSelectorProps) {
+  const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const [wisdomSources, setWisdomSources] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -89,17 +91,17 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
 
   const getDisplayText = () => {
     if (!selectedConfig?.enabled) {
-      return 'No Wisdom'
+      return t('chatInput.noWisdom')
     }
     
     const { categories } = selectedConfig
     const categoryText = categories.length === 0 
-      ? 'All Categories'
+      ? t('chatInput.allCategories')
       : categories.length === 1
         ? categories[0]
-        : `${categories.length} Categories`
-    
-    return `${categoryText} • RAG Agéntico`
+        : t('chatInput.nCategories', { count: categories.length })
+
+    return t('chatInput.wisdomSummary', { categorias: categoryText })
   }
 
   // Solo usamos RAG Agéntico ahora
@@ -121,7 +123,7 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
             : "border-border/50 bg-card/50 text-muted-foreground hover:bg-accent hover:text-accent-foreground",
           "hover:border-border min-w-0 flex-shrink-0"
         )}
-        title={selectedConfig?.enabled ? "Wisdom RAG is enabled" : "Click to enable Wisdom RAG"}
+        title={selectedConfig?.enabled ? t('chatInput.wisdomEnabled') : t('chatInput.wisdomDisabled')}
       >
         {selectedConfig?.enabled ? (
           <Lightbulb className="w-4 h-4" />
@@ -144,18 +146,18 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
         )}>
           {/* Header */}
           <div className="px-4 py-2 border-b border-border">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium text-foreground">💡 Wisdom Configuration</h3>
+            <div className="flex items-end justify-between gap-3">
+              <h3 className="font-medium text-foreground">💡 {t('chatInput.wisdomConfig')}</h3>
               <button
                 onClick={toggleWisdom}
                 className={cn(
-                  "px-3 py-1 rounded text-xs font-medium transition-colors",
+                  "px-3 py-1 rounded text-xs font-medium transition-colors shrink-0",
                   selectedConfig?.enabled
                     ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
                     : "bg-primary/10 text-primary hover:bg-primary/20"
                 )}
               >
-                {selectedConfig?.enabled ? 'Disable' : 'Enable'}
+                {selectedConfig?.enabled ? t('chatInput.toggleOff') : t('chatInput.toggleOn')}
               </button>
             </div>
           </div>
@@ -166,14 +168,14 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
               <div className="px-4 py-3 border-b border-border">
                 <div className="flex items-center justify-between">
                   <label className="block text-sm font-medium text-foreground">
-                    Search Method
+                    {t('chatInput.searchMethod')}
                   </label>
                   <span className="text-sm text-primary font-medium">
-                    RAG Agéntico ✨
+                    {t('chatInput.agenticRag')}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Sistema inteligente con re-ranking y búsqueda web
+                  {t('chatInput.agenticHint')}
                 </p>
               </div>
 
@@ -224,7 +226,7 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
                 </div>
                 {selectedConfig.categories.length === 0 && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    No categories selected - will search all available wisdom
+                    {t('chatInput.allWisdom')}
                   </p>
                 )}
               </div>
@@ -240,7 +242,7 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
                     className="text-xs text-muted-foreground hover:text-foreground"
                     disabled={loading}
                   >
-                    {loading ? 'Loading...' : 'Refresh'}
+                    {loading ? t('chatInput.loadingSources') : t('chatInput.refreshSources')}
                   </button>
                 </div>
                 
@@ -248,7 +250,7 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
                   <Search className="w-3 h-3 absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Search sources..."
+                    placeholder={t('chatInput.searchSources')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-7 pr-2 py-1 text-xs bg-background border border-border rounded"
@@ -284,13 +286,13 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
             <div className="px-4 py-6 text-center">
               <Brain className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
               <p className="text-sm text-muted-foreground mb-3">
-                Enable Wisdom RAG to enhance your conversations with hydraulic engineering knowledge
+                {t('chatInput.wisdomHint')}
               </p>
               <button
                 onClick={toggleWisdom}
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
               >
-                Enable Wisdom
+                {t('chatInput.enableWisdom')}
               </button>
             </div>
           )}

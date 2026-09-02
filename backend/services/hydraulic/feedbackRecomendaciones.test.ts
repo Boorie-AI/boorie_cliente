@@ -46,7 +46,7 @@ function prismaFalso(filas: any[] = []) {
 
 const contexto = {
   medida: { tipo: 'pump_outage', elementos: ['335'], desde_h: 18, hasta_h: 22 },
-  ahorro: { energia_kwh: 77.4, coste: 19.49, moneda: 'USD', origen: 'simulado' },
+  ahorro: { energia_kwh: 77.4, coste: 19.49, moneda: 'USD', origen: { clave: 'energy.originSimulated' } },
 }
 
 describe('feedback de recomendaciones energéticas', () => {
@@ -66,7 +66,7 @@ describe('feedback de recomendaciones energéticas', () => {
     expect(fila.rating).toBe(1)
     expect(JSON.parse(fila.context).runId).toBe('run1')
     // La cifra valorada se guarda: sin ella, un −1 no dice qué estaba mal.
-    expect(JSON.parse(fila.response)).toMatchObject({ energia_kwh: 77.4, origen: 'simulado' })
+    expect(JSON.parse(fila.response)).toMatchObject({ energia_kwh: 77.4, origen: { clave: 'energy.originSimulated' } })
   })
 
   it('no atribuye las cifras a ningún modelo de lenguaje', async () => {

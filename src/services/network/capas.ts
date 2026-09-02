@@ -27,13 +27,13 @@ export const CAPAS_TODAS: CapasVisibles = {
   valve: true,
 }
 
-export const CAPAS: Array<{ tipo: TipoElemento; etiqueta: string; de: 'nudos' | 'tramos' }> = [
-  { tipo: 'junction', etiqueta: 'Nudos de consumo', de: 'nudos' },
-  { tipo: 'tank', etiqueta: 'Depósitos', de: 'nudos' },
-  { tipo: 'reservoir', etiqueta: 'Embalses', de: 'nudos' },
-  { tipo: 'pipe', etiqueta: 'Tuberías', de: 'tramos' },
-  { tipo: 'pump', etiqueta: 'Bombas', de: 'tramos' },
-  { tipo: 'valve', etiqueta: 'Válvulas', de: 'tramos' },
+export const CAPAS: Array<{ tipo: TipoElemento; de: 'nudos' | 'tramos' }> = [
+  { tipo: 'junction', de: 'nudos' },
+  { tipo: 'tank', de: 'nudos' },
+  { tipo: 'reservoir', de: 'nudos' },
+  { tipo: 'pipe', de: 'tramos' },
+  { tipo: 'pump', de: 'tramos' },
+  { tipo: 'valve', de: 'tramos' },
 ]
 
 /**

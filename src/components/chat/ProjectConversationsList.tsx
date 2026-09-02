@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import { useChatStore } from '@/stores/chatStore'
@@ -21,6 +22,7 @@ interface ProjectConversationsListProps {
 }
 
 export function ProjectConversationsList({ projectId, currentConversationId }: ProjectConversationsListProps) {
+  const { t } = useTranslation()
   const { conversations, setActiveConversation, updateConversation } = useChatStore()
   const [projects, setProjects] = useState<HydraulicProject[]>([])
   const [selectedProject, setSelectedProject] = useState<HydraulicProject | null>(null)
@@ -84,7 +86,7 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
           <div className="flex items-center gap-2">
             <FolderPlus size={18} className="text-muted-foreground" />
             <h3 className="font-semibold text-foreground">
-              {selectedProject ? selectedProject.name : 'General Conversations'}
+              {selectedProject ? selectedProject.name : t('projectConversations.title')}
             </h3>
           </div>
           <span className="text-xs bg-muted px-2 py-1 rounded-full">
@@ -131,7 +133,7 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
                       <Calendar size={12} />
                       <span>{new Date(conversation.updatedAt).toLocaleDateString()}</span>
                       <span>•</span>
-                      <span>{conversation.messages.length} messages</span>
+                      <span>{t('projectConversations.nMessages', { count: conversation.messages.length })}</span>
                     </div>
                   </div>
                   
@@ -167,7 +169,7 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
                           )}
                         >
                           <Send size={14} />
-                          {projectId ? 'Move to Another Project' : 'Assign to Project'}
+                          {projectId ? t('projectConversations.move') : t('projectConversations.assign')}
                         </DropdownMenu.Item>
                       </DropdownMenu.Content>
                     </DropdownMenu.Portal>
@@ -182,10 +184,10 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
           <div className="text-center py-8">
             <MessageSquare size={32} className="mx-auto text-muted-foreground/30 mb-3" />
             <p className="text-sm text-muted-foreground">
-              No conversations in this project
+              {t('chatInput.noConversations')}
             </p>
             <p className="text-xs text-muted-foreground/70 mt-1">
-              Start a new chat to add it here
+              {t('projectConversations.empty')}
             </p>
           </div>
         )}
@@ -202,7 +204,7 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
           )}>
             <div className="p-6">
               <Dialog.Title className="text-lg font-semibold mb-4">
-                {projectId ? 'Move to Another Project' : 'Assign to Project'}
+                {projectId ? t('projectConversations.move') : t('projectConversations.assign')}
               </Dialog.Title>
               
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
@@ -215,9 +217,9 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
                       "border border-border"
                     )}
                   >
-                    <div className="font-medium">Keep in General</div>
+                    <div className="font-medium">{t('projectConversations.keepGeneral')}</div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      Don't assign to any project
+                      {t('projectConversations.noProject')}
                     </div>
                   </button>
                 )}
@@ -259,9 +261,9 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="font-medium">Remove from Project</div>
+                        <div className="font-medium">{t('projectConversations.remove')}</div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          Move to general conversations
+                          {t('projectConversations.moveGeneral')}
                         </div>
                       </div>
                       <X size={16} className="text-muted-foreground" />
@@ -277,7 +279,7 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
                     "bg-secondary text-secondary-foreground",
                     "hover:bg-secondary/80 transition-colors"
                   )}>
-                    Cancel
+                    {t('projectConversations.cancel')}
                   </button>
                 </Dialog.Close>
               </div>

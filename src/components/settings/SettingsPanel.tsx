@@ -68,7 +68,7 @@ export function SettingsPanel() {
                   "data-[state=inactive]:text-muted-foreground hover:text-foreground"
                 )}
               >
-                System Prompt
+                {t('settings.systemPrompt')}
               </Tabs.Trigger>
               <Tabs.Trigger
                 value="milvus"

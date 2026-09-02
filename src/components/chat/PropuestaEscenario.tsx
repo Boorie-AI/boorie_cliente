@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { AlertTriangle, Play, X } from 'lucide-react'
@@ -33,16 +34,17 @@ interface Props {
 }
 
 export function PropuestaEscenario({ propuesta, networkId, onNarracion }: Props) {
+  const { t } = useTranslation()
   const [estado, setEstado] = useState<'pendiente' | 'ejecutando' | 'hecho' | 'descartado'>('pendiente')
   const [error, setError] = useState<string | null>(null)
 
   if (!propuesta?.definicion?.eventos?.length) return null
 
   if (estado === 'descartado') {
-    return <div className="mt-2 text-[11px] text-muted-foreground">Escenario descartado. No se ha simulado nada.</div>
+    return <div className="mt-2 text-[11px] text-muted-foreground">{t('proposal.scenarioDropped')}</div>
   }
   if (estado === 'hecho') {
-    return <div className="mt-2 text-[11px] text-muted-foreground">Escenario ejecutado.</div>
+    return <div className="mt-2 text-[11px] text-muted-foreground">{t('proposal.scenarioDone')}</div>
   }
 
   const ejecutar = async () => {
@@ -59,7 +61,7 @@ export function PropuestaEscenario({ propuesta, networkId, onNarracion }: Props)
       })
 
       if (!r?.success) {
-        setError(r?.error || 'El escenario no se pudo simular')
+        setError(r?.error || t('messages.scenarioFailed'))
         setEstado('pendiente')
         return
       }
@@ -85,7 +87,7 @@ export function PropuestaEscenario({ propuesta, networkId, onNarracion }: Props)
       onNarracion(narrarEscenario(r.data as ResultadoEscenario, runId), runId)
       setEstado('hecho')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'El escenario no se pudo simular')
+      setError(e instanceof Error ? e.message : t('messages.scenarioFailed'))
       setEstado('pendiente')
     }
   }
@@ -94,7 +96,7 @@ export function PropuestaEscenario({ propuesta, networkId, onNarracion }: Props)
     <div className="mt-3 border border-amber-500/40 bg-amber-500/5 rounded-lg p-3 space-y-2">
       <div className="flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400">
         <AlertTriangle className="h-3.5 w-3.5" />
-        Escenario propuesto — requiere tu confirmación
+        {t('proposal.scenarioTitle')}
       </div>
 
       {propuesta.resumen && <div className="text-xs">{propuesta.resumen}</div>}
@@ -118,13 +120,12 @@ export function PropuestaEscenario({ propuesta, networkId, onNarracion }: Props)
           {estado === 'ejecutando' ? 'Simulando…' : 'Ejecutar escenario'}
         </Button>
         <Button size="sm" variant="ghost" className="text-xs" onClick={() => setEstado('descartado')} disabled={estado === 'ejecutando'}>
-          <X className="h-3 w-3 mr-1" /> Descartar
+          <X className="h-3 w-3 mr-1" /> {t('proposal.drop')}
         </Button>
       </div>
 
       <div className="text-[10px] text-muted-foreground">
-        Son dos simulaciones de periodo extendido —una de referencia y otra con el evento— y en un equipo sin
-        tarjeta gráfica dedicada pueden tardar un par de minutos.
+        {t('proposal.scenarioTime')}
       </div>
     </div>
   )

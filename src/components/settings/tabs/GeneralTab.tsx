@@ -68,8 +68,8 @@ export function GeneralTab() {
       setPythonOk(false)
       setPythonMessage(
         info.effective.usable
-          ? `El intérprete en uso no tiene: ${info.effective.missingModules.join(', ')}.`
-          : 'No hay un intérprete de Python utilizable.'
+          ? t('messages.pythonMissing', { modulos: info.effective.missingModules.join(', ') })
+          : t('messages.pythonUnusable')
       )
     } else {
       setPythonOk(true)
@@ -361,10 +361,9 @@ export function GeneralTab() {
           </div>
           <div className="space-y-3">
             <div>
-              <label className="text-sm font-medium text-card-foreground">Mapbox Access Token</label>
+              <label className="text-sm font-medium text-card-foreground">{t('mapViewer.mapboxToken')}</label>
               <p className="text-sm text-muted-foreground">
-                Necesario para visualizar redes hidráulicas sobre el mapa (WNTR Network Visualization).
-                Consigue un token gratuito en{' '}
+                {t('mapViewer.mapboxTokenHint')}{' '}
                 <a
                   href="https://account.mapbox.com/"
                   target="_blank"
@@ -403,7 +402,7 @@ export function GeneralTab() {
                 )}
               >
                 {mapboxSaved ? <Check size={16} /> : null}
-                {mapboxSaved ? 'Guardado' : 'Guardar'}
+                {mapboxSaved ? t('common.saved') : t('common.save')}
               </button>
             </div>
           </div>

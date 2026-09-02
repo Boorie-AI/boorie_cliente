@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { Message } from '@/stores/chatStore'
 import { Copy, User, Bot } from 'lucide-react'
@@ -14,6 +15,7 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble({ message, isStreaming = false }: MessageBubbleProps) {
+  const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
   const propuesta = message.metadata?.propuesta_escenario
@@ -127,7 +129,7 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
                     <>
                       <span>•</span>
                       <span className="text-yellow-600 dark:text-yellow-500">
-                        Respuesta del modelo auxiliar
+                        {t('chatInput.helperAnswer')}
                       </span>
                     </>
                   )}
@@ -135,7 +137,7 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
                 {message.metadata.sources && message.metadata.sources.length > 0 && (
                   <div className="mt-2">
                     <div className="flex items-center space-x-1 mb-1">
-                      <span className="font-semibold text-blue-600">📚 Fuentes RAG:</span>
+                      <span className="font-semibold text-blue-600">📚 {t('chatInput.ragSources')}</span>
                     </div>
                     <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md p-2 space-y-1">
                       {message.metadata.sources.map((source: any, index: number) => (
@@ -166,16 +168,16 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
                 )}
                 {message.metadata.ragEnabled && (
                   <div className="mt-1 flex items-center space-x-1">
-                    <span className="text-xs text-green-600 dark:text-green-400">🧠 RAG Habilitado</span>
+                    <span className="text-xs text-green-600 dark:text-green-400">🧠 {t('chatInput.ragOn')}</span>
                     {message.metadata.originalQuery && message.metadata.originalQuery !== message.content && (
-                      <span className="text-xs text-amber-600 dark:text-amber-400">✨ Consulta mejorada</span>
+                      <span className="text-xs text-amber-600 dark:text-amber-400">✨ {t('chatInput.improvedQuery')}</span>
                     )}
                   </div>
                 )}
 
                 {message.metadata.ragAttempted && (!message.metadata.sources || message.metadata.sources.length === 0) && (
                   <div className="mt-1 flex items-center space-x-1">
-                    <span className="text-xs text-muted-foreground">🧠 RAG: Sin información relevante encontrada</span>
+                    <span className="text-xs text-muted-foreground">🧠 {t('chatInput.ragNothing')}</span>
                   </div>
                 )}
               </div>
@@ -193,13 +195,13 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
           <button
             onClick={handleCopy}
             className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-            title="Copy message"
+            title={t('chatInput.copy')}
           >
             <Copy size={12} />
           </button>
 
           {copied && (
-            <span className="text-xs text-green-600">Copied!</span>
+            <span className="text-xs text-green-600">{t('chatInput.copied')}</span>
           )}
         </div>
       </div>

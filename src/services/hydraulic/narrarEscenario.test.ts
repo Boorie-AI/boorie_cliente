@@ -125,11 +125,12 @@ describe('narración de un escenario simulado', () => {
       ...base,
       scenario: {
         ...base.scenario,
-        events: [{ tipo: 'pump_outage', aplicado: true, elementos: ['6012'], metodo: 'x', omitidos: [{ id: 'B9', motivo: 'no existe en la red' }] }],
+        events: [{ tipo: 'pump_outage', aplicado: true, elementos: ['6012'], metodo: 'x', omitidos: [{ id: 'B9', motivo: { clave: 'omitido.noExiste' } }] }],
       },
     }, 'run1')
 
     expect(texto).toContain('B9')
+    // La narración resuelve la clave contra el diccionario de verdad (#96).
     expect(texto).toContain('no existe en la red')
   })
 

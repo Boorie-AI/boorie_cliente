@@ -97,10 +97,10 @@ class WNTREnergyService:
         """La eficiencia global que se va a usar, y de dónde sale."""
         declarada = wn.options.energy.global_efficiency
         if declarada:
-            return float(declarada), 'declarada en el .inp'
+            return float(declarada), {'clave': 'energy.originDeclared'}
         valor = float(opts.get('eficiencia_global', DEFAULT_EFICIENCIA))
         wn.options.energy.global_efficiency = valor
-        return valor, 'por defecto de Boorie (el .inp no la declara)'
+        return valor, {'clave': 'energy.originDefault'}
 
     def _eficiencia_de_bomba(self, wn, nombre, caudales, global_pct):
         """
@@ -123,7 +123,9 @@ class WNTREnergyService:
                 fraccion = np.interp(np.abs(caudales), qs, es) / 100.0
                 fraccion = np.clip(fraccion, 0.05, 1.0)
                 return fraccion, {
-                    'origen': f'curva de eficiencia "{nombre_curva}" del .inp, interpolada al caudal',
+                    # La procedencia se nombra con su clave: quien la enseña
+                    # decide el idioma (#96).
+                    'origen': {'clave': 'energy.originCurve', 'datos': {'curva': nombre_curva}},
                     'media_pct': float(fraccion.mean() * 100.0),
                     'minima_pct': float(fraccion.min() * 100.0),
                     'maxima_pct': float(fraccion.max() * 100.0),
@@ -131,7 +133,7 @@ class WNTREnergyService:
 
         fraccion = np.full(len(caudales), global_pct / 100.0)
         return fraccion, {
-            'origen': 'eficiencia global (la bomba no declara curva)',
+            'origen': {'clave': 'energy.originGlobal'},
             'media_pct': float(global_pct),
             'minima_pct': float(global_pct),
             'maxima_pct': float(global_pct),
@@ -326,17 +328,17 @@ class WNTREnergyService:
             try:
                 bomba = wn.get_link(elemento)
             except KeyError:
-                omitidos.append({'id': str(elemento), 'motivo': 'no existe en la red'})
+                omitidos.append({'id': str(elemento), 'motivo': {'clave': 'energy.omittedMissing'}})
                 continue
 
             nombre_curva = getattr(bomba, 'efficiency_curve_name', None)
             if not nombre_curva or nombre_curva not in wn.curve_name_list:
-                omitidos.append({'id': str(elemento), 'motivo': 'no declara curva de eficiencia, así que no hay punto óptimo que alcanzar'})
+                omitidos.append({'id': str(elemento), 'motivo': {'clave': 'energy.omittedNoCurve'}})
                 continue
 
             puntos = [(float(q), float(e)) for q, e in wn.get_curve(nombre_curva).points]
             if not puntos:
-                omitidos.append({'id': str(elemento), 'motivo': 'su curva de eficiencia está vacía'})
+                omitidos.append({'id': str(elemento), 'motivo': {'clave': 'energy.omittedEmptyCurve'}})
                 continue
 
             mejor = max(puntos, key=lambda punto: punto[1])
@@ -361,7 +363,7 @@ class WNTREnergyService:
 
             wn = self.base.load_network(inp_file)
             if not wn.pump_name_list:
-                print(json.dumps({'success': False, 'error': 'La red no tiene bombas: no hay consumo energético que analizar'}))
+                print(json.dumps({'success': False, 'errorKey': 'energy.noPumps'}))
                 return
 
             eficiencia, origen = self._eficiencia(wn, opts)
@@ -389,14 +391,14 @@ class WNTREnergyService:
             opts = options or {}
             medidas = opts.get('medidas') or []
             if not medidas:
-                print(json.dumps({'success': False, 'error': 'No se declaró ninguna medida que verificar'}))
+                print(json.dumps({'success': False, 'errorKey': 'energy.noMeasure'}))
                 return
 
             duracion = float(opts.get('duration_hours', DEFAULT_DURACION_H))
 
             wn_base = self.base.load_network(inp_file)
             if not wn_base.pump_name_list:
-                print(json.dumps({'success': False, 'error': 'La red no tiene bombas: no hay consumo energético que verificar'}))
+                print(json.dumps({'success': False, 'errorKey': 'energy.noPumpsVerify'}))
                 return
             eficiencia, origen = self._eficiencia(wn_base, opts)
             res_base, avisos_base = self.base._run_extended_checked(wn_base, duracion)
@@ -424,7 +426,7 @@ class WNTREnergyService:
             if not any(m['aplicado'] for m in aplicadas):
                 print(json.dumps({
                     'success': False,
-                    'error': 'Ninguna medida pudo aplicarse sobre esta red',
+                    'errorKey': 'energy.noneApplied',
                     'medidas': aplicadas,
                 }))
                 return
@@ -447,7 +449,7 @@ class WNTREnergyService:
                     'coste': ahorro_coste,
                     'moneda': antes['moneda'],
                     'porcentaje_energia': (ahorro_kwh / antes['energia_total_kwh'] * 100.0) if antes['energia_total_kwh'] else 0.0,
-                    'origen': 'simulado',
+                    'origen': {'clave': 'energy.originSimulated'},
                 },
                 # Lo que la medida le cuesta al servicio, para que un ahorro no
                 # se pueda reportar sin su contrapartida.

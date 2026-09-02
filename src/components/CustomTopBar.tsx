@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import { Minus, X, Maximize2, Minimize2 } from 'lucide-react'
 import boorieIcon from '@/assets/boorie_icon_light.png'
 
 export function CustomTopBar() {
+  const { t } = useTranslation()
   const [isMaximized, setIsMaximized] = useState(false)
   const [isHovered, setIsHovered] = useState<string | null>(null)
 
@@ -20,16 +22,12 @@ export function CustomTopBar() {
     
     checkWindowState()
 
-    // Listen for window state changes
-    const handleWindowStateChange = (event: CustomEvent) => {
-      setIsMaximized(event.detail.isMaximized)
-    }
-
-    window.addEventListener('window-state-changed', handleWindowStateChange as EventListener)
-    
-    return () => {
-      window.removeEventListener('window-state-changed', handleWindowStateChange as EventListener)
-    }
+    // El main manda 'window-state-changed' por IPC, no como evento del DOM:
+    // con addEventListener el icono nunca se enteraba y se quedaba clavado
+    // en «maximizar» aunque la ventana ya estuviera maximizada.
+    return window.electronAPI?.onWindowStateChanged?.((state) => {
+      setIsMaximized(state.isMaximized)
+    })
   }, [])
 
   const handleMinimize = async () => {
@@ -118,7 +116,7 @@ export function CustomTopBar() {
               : 'hover:bg-gray-100 dark:hover:bg-gray-800'
             }
           `}
-          title="Minimize"
+          title={t('window.minimize')}
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <Minus className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -141,7 +139,7 @@ export function CustomTopBar() {
               : 'hover:bg-gray-100 dark:hover:bg-gray-800'
             }
           `}
-          title={isMaximized ? "Restore" : "Maximize"}
+          title={isMaximized ? t('window.restore') : t('window.maximize')}
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           {isMaximized ? (
@@ -168,7 +166,7 @@ export function CustomTopBar() {
               : 'hover:bg-red-500 hover:text-white'
             }
           `}
-          title="Close"
+          title={t('window.close')}
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <X className="w-4 h-4" />

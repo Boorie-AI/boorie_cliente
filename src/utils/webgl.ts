@@ -1,3 +1,4 @@
+import i18n from '@/i18n'
 /**
  * Si el equipo puede con las imágenes satelitales de Mapbox (#37).
  *
@@ -50,7 +51,7 @@ export function comprobarSoporteSatelite(): SoporteSatelite {
     if (RENDERIZADO_POR_SOFTWARE.some(patron => patron.test(renderizador))) {
       return {
         disponible: false,
-        motivo: `Este equipo dibuja por software (${renderizador}); las imágenes satelitales lo tumbarían.`,
+        motivo: i18n.t('messages.softwareRendering', { motor: renderizador }),
       }
     }
 

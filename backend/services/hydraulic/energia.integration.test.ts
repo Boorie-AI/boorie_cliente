@@ -76,7 +76,8 @@ describe.skipIf(!canRun)('análisis energético con WNTR real', () => {
     const r = await service.analizar(NET1, { duration_hours: 24, tarifa: TARIFA })
 
     const bomba = r.data!.bombas[0]
-    expect(bomba.eficiencia?.origen).toContain('global')
+    // La procedencia es una clave, no una frase (#96): el motor no escribe idioma.
+    expect(bomba.eficiencia?.origen.clave).toBe('energy.originGlobal')
     expect(r.data!.trazabilidad.origen_eficiencia).toBeTruthy()
     // Net1 no declara curva, así que no se inventa un punto óptimo.
     expect(bomba.punto_optimo).toBeNull()
@@ -87,7 +88,7 @@ describe.skipIf(!canRun)('análisis energético con WNTR real', () => {
 
     expect(r.success).toBe(true)
     const bomba = r.data!.bombas[0]
-    expect(bomba.eficiencia?.origen).toContain('curva de eficiencia')
+    expect(bomba.eficiencia?.origen.clave).toBe('energy.originCurve')
     // La eficiencia varía con el caudal: si saliera constante, se estaría usando
     // la global y la curva no se habría interpolado.
     expect(bomba.eficiencia!.maxima_pct).toBeGreaterThan(bomba.eficiencia!.minima_pct)
@@ -109,7 +110,8 @@ describe.skipIf(!canRun)('análisis energético con WNTR real', () => {
     const r = await service.analizar(SIN_BOMBAS, { duration_hours: 24, tarifa: TARIFA })
 
     expect(r.success).toBe(false)
-    expect(r.error).toContain('no tiene bombas')
+    // El motor nombra el fallo con su clave; la frase la pone la interfaz (#96).
+    expect(r.errorKey).toBe('energy.noPumps')
   }, SIM_TIMEOUT)
 })
 
@@ -124,7 +126,7 @@ describe.skipIf(!canRun)('verificación de ahorro por simulación', () => {
 
     expect(r.success).toBe(true)
     const d = r.data!
-    expect(d.ahorro.origen).toBe('simulado')
+    expect(d.ahorro.origen.clave).toBe('energy.originSimulated')
     expect(d.ahorro.energia_kwh).toBeGreaterThan(0)
     expect(d.ahorro.coste).toBeGreaterThan(0)
     expect(d.antes.energia_total_kwh - d.despues.energia_total_kwh).toBeCloseTo(d.ahorro.energia_kwh, 6)
@@ -188,6 +190,6 @@ describe.skipIf(!canRun)('verificación de ahorro por simulación', () => {
     const r = await service.verificarMedida(NET1, { duration_hours: 24, tarifa: TARIFA, medidas: [] })
 
     expect(r.success).toBe(false)
-    expect(r.error).toContain('ninguna medida')
+    expect(r.errorKey).toBe('energy.noMeasure')
   })
 })

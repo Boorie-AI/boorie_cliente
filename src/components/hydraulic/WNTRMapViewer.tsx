@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import mapboxgl from 'mapbox-gl'
@@ -165,6 +166,7 @@ export function WNTRMapViewer({
   onNetworkLoaded,
   onSimulationResults
 }: WNTRMapViewerProps) {
+  const { t } = useTranslation()
   // Priority: token pasted in Settings → General (persisted, works in the
   // packaged app) over the VITE_MAPBOX_ACCESS_TOKEN build-time env var.
   const { token: MAPBOX_ACCESS_TOKEN } = useMapboxToken()
@@ -237,7 +239,7 @@ export function WNTRMapViewer({
     const cleanup = window.electronAPI?.onDisableSatelliteMode?.((data: { reason: string; message: string }) => {
       logger.warn('Received satellite disable request:', data)
       setSatelliteDisabled(true)
-      setError(`${data.message} - Modo satélite ha sido deshabilitado permanentemente.`)
+      setError(t('messages.satelliteOff', { motivo: data.message }))
 
       // Persist the disable state
       localStorage.setItem('satelite-tumbo-la-app', 'true')
@@ -286,7 +288,7 @@ export function WNTRMapViewer({
 
     if (containerRect.width === 0 || containerRect.height === 0) {
       logger.error('Map container has zero dimensions:', containerRect)
-      setError('Map container has invalid dimensions. Please check the layout.')
+      setError(t('messages.mapBadSize'))
       return
     }
 
@@ -298,7 +300,7 @@ export function WNTRMapViewer({
 
     // Check if Mapbox token is available
     if (!MAPBOX_ACCESS_TOKEN) {
-      setError('Mapbox access token not configured. Add it in ⚙️ Settings → General.')
+      setError(t('mapViewer.mapboxMissing'))
       return
     }
 
@@ -363,7 +365,7 @@ export function WNTRMapViewer({
         })
 
         if (mapboxError && mapboxError.status === 401) {
-          setError('Token de acceso Mapbox inválido. Verifique su token en el archivo .env.')
+          setError(t('messages.mapboxBadToken'))
         } else if (mapSettings.baseMap === 'satellite' && e.error) {
           logger.warn('Satellite style failed, falling back to streets')
           try {
@@ -372,14 +374,14 @@ export function WNTRMapViewer({
               map.current.setStyle('mapbox://styles/mapbox/streets-v11')
               setSatelliteDisabled(true)
               setMapSettings(prev => ({ ...prev, baseMap: 'streets' }))
-              setError('Las imágenes satelitales fallaron. Se cambió a vista de calles automáticamente.')
+              setError(t('messages.satelliteFailed'))
             }
           } catch (fallbackError) {
             logger.error('Fallback error:', fallbackError)
-            setError(`Error del mapa: ${e.error?.message || 'Error desconocido'}. Intente recargar la página.`)
+            setError(t('messages.mapError', { motivo: e.error?.message || t('messages.unknownError') }))
           }
         } else {
-          setError(`Error del mapa: ${e.error?.message || 'Error desconocido'}`)
+          setError(t('messages.mapErrorShort', { motivo: e.error?.message || t('messages.unknownError') }))
         }
       })
 
@@ -429,14 +431,13 @@ export function WNTRMapViewer({
           // No `setWarning` exists in this component, so surface the hint via
           // the same error channel used elsewhere.
           setError(
-            'WebGL not available. The map requires hardware acceleration. You can still load networks and view them in the network viewer. ' +
-            'Try restarting the application or use the Network Graph view instead of Map view.'
+            t('mapViewer.webglMissing')
           )
         } else {
-          setError(`Failed to initialize map: ${err.message}`)
+          setError(t('messages.mapInitFailed', { motivo: err.message }))
         }
       } else {
-        setError('Failed to initialize map. Please check your Mapbox configuration.')
+        setError(t('messages.mapInitCheck'))
       }
     }
 
@@ -525,13 +526,13 @@ export function WNTRMapViewer({
               map.current?.setStyle('mapbox://styles/mapbox/streets-v11')
               setMapSettings(prev => ({ ...prev, baseMap: 'streets' }))
             }
-            setError('Error al cargar imágenes satelitales. Se cambió a vista de calles.')
+            setError(t('messages.satelliteError'))
           } catch (revertError) {
             logger.error('Failed to revert to streets style:', revertError)
-            setError('Error crítico al cambiar vista del mapa. Recargue la página.')
+            setError(t('messages.mapStyleFatal'))
           }
         } else {
-          setError(`Error al cambiar vista del mapa: ${e.error?.message || 'Error desconocido'}`)
+          setError(t('messages.mapViewError', { motivo: e.error?.message || t('messages.unknownError') }))
         }
         // Remove the error handler after use
         map.current?.off('error', handleStyleError)
@@ -547,7 +548,7 @@ export function WNTRMapViewer({
       const timeoutId = setTimeout(() => {
         logger.warn('Style change timeout, resetting state')
         setStyleChanging(false)
-        setError('Tiempo de espera agotado al cambiar estilo. Intente de nuevo.')
+        setError(t('messages.mapStyleTimeout'))
         map.current?.off('error', handleStyleError)
       }, 5000) // 5 second timeout
 
@@ -564,7 +565,7 @@ export function WNTRMapViewer({
     } catch (error) {
       logger.error('Critical error changing map style:', error)
       setStyleChanging(false)
-      setError(`Error crítico al cambiar estilo del mapa: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      setError(t('messages.mapStyleError', { motivo: error instanceof Error ? error.message : t('messages.unknownError') }))
 
       // Revert to safe default if satellite fails
       if (mapSettings.baseMap === 'satellite') {
@@ -1046,7 +1047,7 @@ export function WNTRMapViewer({
     // El GeoJSON es WGS84 por definicion, asi que exportar sin CRS declarado
     // produciria un fichero con coordenadas falsas.
     if (!conversion) {
-      setError('Declara el sistema de coordenadas de la red antes de exportar a GeoJSON.')
+      setError(t('messages.crsBeforeExport'))
       return
     }
     const geoConversion = conversion
@@ -1118,9 +1119,9 @@ export function WNTRMapViewer({
       <div className="border-b border-border p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">WNTR Network Visualization</h1>
+            <h1 className="text-2xl font-semibold text-foreground">{t('mapViewer.title')}</h1>
             <p className="text-muted-foreground mt-1">
-              Water distribution networks overlaid on OpenStreetMap
+              {t('mapViewer.subtitle')}
             </p>
           </div>
 
@@ -1159,7 +1160,7 @@ export function WNTRMapViewer({
                     "transition-colors"
                   )}
                 >
-                  Center on Network
+                  {t('mapViewer.center')}
                 </button>
 
                 <button
@@ -1172,7 +1173,7 @@ export function WNTRMapViewer({
                   )}
                 >
                   <Play className="w-4 h-4" />
-                  Simulate
+                  {t('mapViewer.simulate')}
                 </button>
 
                 <button
@@ -1183,7 +1184,7 @@ export function WNTRMapViewer({
                     "bg-secondary text-secondary-foreground hover:bg-secondary/80",
                     "transition-colors disabled:opacity-50"
                   )}
-                  title="Export as GeoJSON"
+                  title={t('mapViewer.exportGeoJson')}
                 >
                   <Download className="w-4 h-4" />
                 </button>
@@ -1196,7 +1197,7 @@ export function WNTRMapViewer({
                       ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                       : "bg-yellow-500 text-white hover:bg-yellow-600"
                   )}
-                  title="Sistema de coordenadas de la red"
+                  title={t('mapViewer.crsTitle')}
                 >
                   <Globe2 className="w-4 h-4" />
                   {crs.epsg ?? 'Declarar EPSG'}
@@ -1211,22 +1212,22 @@ export function WNTRMapViewer({
           <div className="mt-4 space-y-2">
             <div className="flex gap-4 text-sm">
               <span className="text-muted-foreground">
-                <strong className="text-foreground">{networkData.summary.junctions}</strong> Junctions
+                <strong className="text-foreground">{networkData.summary.junctions}</strong> {t('mapViewer.junctions')}
               </span>
               <span className="text-muted-foreground">
-                <strong className="text-foreground">{networkData.summary.tanks}</strong> Tanks
+                <strong className="text-foreground">{networkData.summary.tanks}</strong> {t('mapViewer.tanks')}
               </span>
               <span className="text-muted-foreground">
-                <strong className="text-foreground">{networkData.summary.reservoirs}</strong> Reservoirs
+                <strong className="text-foreground">{networkData.summary.reservoirs}</strong> {t('mapViewer.reservoirs')}
               </span>
               <span className="text-muted-foreground">
-                <strong className="text-foreground">{networkData.summary.pipes}</strong> Pipes
+                <strong className="text-foreground">{networkData.summary.pipes}</strong> {t('mapViewer.pipes')}
               </span>
               <span className="text-muted-foreground">
-                <strong className="text-foreground">{networkData.summary.pumps}</strong> Pumps
+                <strong className="text-foreground">{networkData.summary.pumps}</strong> {t('mapViewer.pumps')}
               </span>
               <span className="text-muted-foreground">
-                <strong className="text-foreground">{networkData.summary.valves}</strong> Valves
+                <strong className="text-foreground">{networkData.summary.valves}</strong> {t('mapViewer.valves')}
               </span>
             </div>
 
@@ -1235,13 +1236,13 @@ export function WNTRMapViewer({
               <div className="flex items-center gap-2 text-muted-foreground">
                 <MapPin className="w-3 h-3" />
                 <span>
-                  Coordenadas del fichero:{' '}
+                  {t('crs.fileCoords')}{' '}
                   {networkData.coordinate_system?.type === 'geographic'
-                    ? 'geográficas (lon/lat)'
+                    ? t('crs.geographic')
                     : networkData.coordinate_system?.type === 'projected'
-                      ? 'proyectadas'
-                      : 'sin determinar'}
-                  {networkData.coordinate_system?.units && ` • unidades: ${networkData.coordinate_system.units}`}
+                      ? t('crs.projected')
+                      : t('crs.undetermined')}
+                  {networkData.coordinate_system?.units && t('crs.units', { unidades: networkData.coordinate_system.units })}
                 </span>
               </div>
 
@@ -1249,35 +1250,35 @@ export function WNTRMapViewer({
                 <div className="flex items-center gap-2 ml-5 text-muted-foreground">
                   <Globe2 className="w-3 h-3" />
                   <span>
-                    {crs.origen === 'declarado' ? 'Declarado' : 'Sugerido'}: {crs.epsg} —{' '}
+                    {crs.origen === 'declarado' ? t('crs.declared') : t('crs.suggested')}: {crs.epsg} —{' '}
                     {nombreCRS(crs.epsg)}
-                    {crs.origen === 'sugerido' && ' (sin confirmar)'}
+                    {crs.origen === 'sugerido' && t('crs.unconfirmed')}
                   </span>
                   <button
                     onClick={() => setMostrarSelectorCRS(true)}
                     className="underline hover:text-foreground"
                   >
-                    cambiar
+                    {t('mapViewer.change')}
                   </button>
                 </div>
               ) : (
                 <div className="ml-5 flex items-start gap-2 rounded-md border border-yellow-500/50 bg-yellow-500/10 px-3 py-2 text-yellow-700 dark:text-yellow-400">
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>
-                    Esta red no se puede situar en el mapa: {crs.motivo}{' '}
+                    {t('crs.cannotPlace', { motivo: crs.motivo })}{' '}
                     {/* Con coordenadas de esquema la salida buena es el esquema, no
                         declarar un EPSG: se ofrece primero. */}
                     {crs.esquematico && onVerTopologia ? (
                       <>
                         <button onClick={onVerTopologia} className="font-medium underline">
-                          Ver el esquema de la red
+                          {t('mapViewer.seeNetSchema')}
                         </button>
                         {' · '}
                         <button
                           onClick={() => setMostrarSelectorCRS(true)}
                           className="underline"
                         >
-                          declarar un EPSG de todos modos
+                          {t('mapViewer.declareAnyway')}
                         </button>
                       </>
                     ) : (
@@ -1286,13 +1287,13 @@ export function WNTRMapViewer({
                           onClick={() => setMostrarSelectorCRS(true)}
                           className="font-medium underline"
                         >
-                          Declarar sistema de coordenadas
+                          {t('mapViewer.declareCrs')}
                         </button>
                         {onVerTopologia && (
                           <>
                             {' · '}
                             <button onClick={onVerTopologia} className="font-medium underline">
-                              Ver el esquema de la red
+                              {t('mapViewer.seeNetSchema')}
                             </button>
                           </>
                         )}
@@ -1306,11 +1307,11 @@ export function WNTRMapViewer({
                 <div className="ml-5 flex items-start gap-2 rounded-md border border-yellow-500/50 bg-yellow-500/10 px-3 py-2 text-yellow-700 dark:text-yellow-400">
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>
-                    Ojo: {limitesRed && motivoEsquematico(limitesRed)} Se está dibujando donde{' '}
-                    {crs.epsg} manda para esos números, que no tiene por qué ser dónde está.{' '}
+                    {t('mapViewer.careful')} {limitesRed && motivoEsquematico(limitesRed)}{' '}
+                    {t('mapViewer.drawnWhere', { epsg: crs.epsg })}{' '}
                     {onVerTopologia && (
                       <button onClick={onVerTopologia} className="font-medium underline">
-                        Ver el esquema
+                        {t('mapViewer.seeSchema')}
                       </button>
                     )}
                   </span>
@@ -1340,21 +1341,21 @@ export function WNTRMapViewer({
           <div className="w-full h-full flex items-center justify-center bg-muted/20">
             <div className="text-center max-w-md p-8">
               <Map className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-foreground mb-2">Mapbox Configuration Required</h3>
+              <h3 className="text-xl font-semibold text-foreground mb-2">{t('mapViewer.mapboxRequired')}</h3>
               <p className="text-muted-foreground mb-4">
-                To visualize EPANET networks on the map, you need to configure a Mapbox access token.
+                {t('mapViewer.mapboxNeeded')}
               </p>
               <div className="bg-card rounded-lg p-4 text-left border border-border">
-                <p className="text-sm font-medium mb-2">Setup Instructions:</p>
+                <p className="text-sm font-medium mb-2">{t('mapViewer.mapboxSteps')}</p>
                 <ol className="text-sm text-muted-foreground space-y-2">
-                  <li>1. Create a free account at <a href="https://account.mapbox.com/auth/signup/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">mapbox.com</a></li>
-                  <li>2. Copy your access token from the dashboard</li>
-                  <li>3. Open <strong>⚙️ Settings → General</strong> in Boorie</li>
-                  <li>4. Paste it into the <strong>Mapbox Access Token</strong> field and click Save</li>
+                  <li>1. {t('mapViewer.mapboxStep1')} <a href="https://account.mapbox.com/auth/signup/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">mapbox.com</a></li>
+                  <li>2. {t('mapViewer.mapboxStep2')}</li>
+                  <li>3. {t('mapViewer.mapboxStep3')} <strong>⚙️ {t('mapViewer.settingsPath')}</strong> {t('mapViewer.mapboxInBoorie')}</li>
+                  <li>4. {t('mapViewer.mapboxStep4')} <strong>{t('mapViewer.mapboxToken')}</strong> {t('mapViewer.mapboxFieldHint')}</li>
                 </ol>
               </div>
               <p className="text-xs text-muted-foreground mt-4">
-                The map view integrates WNTR networks with OpenStreetMap data for geographic visualization.
+                {t('mapViewer.mapboxNote')}
               </p>
             </div>
           </div>
@@ -1371,12 +1372,12 @@ export function WNTRMapViewer({
                   onClick={() => {
                     logger.debug('User cancelled style change')
                     setStyleChanging(false)
-                    setError('Cambio de estilo cancelado por el usuario.')
+                    setError(t('messages.styleCancelled'))
                   }}>
                   <div className="text-center">
                     <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                    <p className="text-sm font-medium">Cambiando estilo del mapa...</p>
-                    <p className="text-xs text-muted-foreground mt-1">Haz clic para cancelar</p>
+                    <p className="text-sm font-medium">{t('mapViewer.changingStyle')}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t('mapViewer.clickCancel')}</p>
                   </div>
                 </div>
               </div>
@@ -1388,9 +1389,9 @@ export function WNTRMapViewer({
                 <div className="bg-background/90 backdrop-blur-sm rounded-lg p-6 border border-border pointer-events-auto">
                   <div className="text-center">
                     <Map className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-lg font-medium mb-2">No Network Loaded</p>
+                    <p className="text-lg font-medium mb-2">{t('mapViewer.noNetwork')}</p>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Load an EPANET .inp file to visualize the network on the map
+                      {t('mapViewer.loadHint')}
                     </p>
                     <button
                       onClick={handleFileUpload}
@@ -1401,7 +1402,7 @@ export function WNTRMapViewer({
                       )}
                     >
                       <FileUp className="w-4 h-4" />
-                      Load INP File
+                      {t('mapViewer.loadInp')}
                     </button>
                   </div>
                 </div>
@@ -1430,7 +1431,7 @@ export function WNTRMapViewer({
                   Nudo: {lecturaNudoElegido.label}
                 </h3>
                 <div className="text-sm space-y-1">
-                  <div>Tipo: <span className="font-medium capitalize">{lecturaNudoElegido.tipo}</span></div>
+                  <div>{t('mapViewer.type')} <span className="font-medium capitalize">{lecturaNudoElegido.tipo}</span></div>
                   <FichaMagnitud rotulo="Cota" valor={lecturaNudoElegido.cota} magnitud="cota" />
                   <FichaMagnitud
                     rotulo={lecturaNudoElegido.demandaSimulada ? 'Demanda' : 'Demanda base'}
@@ -1446,7 +1447,7 @@ export function WNTRMapViewer({
               <div className="space-y-2">
                 <h3 className="font-semibold">Tramo: {lecturaTramoElegido.label}</h3>
                 <div className="text-sm space-y-1">
-                  <div>Tipo: <span className="font-medium capitalize">{lecturaTramoElegido.tipo}</span></div>
+                  <div>{t('mapViewer.type')} <span className="font-medium capitalize">{lecturaTramoElegido.tipo}</span></div>
                   <FichaMagnitud rotulo="Longitud" valor={lecturaTramoElegido.longitud} magnitud="longitud" />
                   <FichaMagnitud rotulo="Diámetro" valor={lecturaTramoElegido.diametro} magnitud="diametro" />
                   <FichaMagnitud rotulo="Caudal" valor={lecturaTramoElegido.caudal} magnitud="caudal" />
@@ -1462,7 +1463,7 @@ export function WNTRMapViewer({
               }}
               className="mt-2 text-xs text-muted-foreground hover:text-foreground"
             >
-              Cerrar
+              {t('mapViewer.close')}
             </button>
           </div>
         )}
@@ -1488,7 +1489,7 @@ export function WNTRMapViewer({
                 onClick={() => setError(null)}
                 className="text-xs text-destructive/80 hover:text-destructive mt-1"
               >
-                Dismiss
+                {t('mapViewer.dismiss')}
               </button>
             </div>
           </div>

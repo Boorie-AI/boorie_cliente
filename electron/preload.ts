@@ -26,6 +26,11 @@ const electronAPI = {
   maximizeWindow: () => ipcRenderer.invoke('maximize-window'),
   closeWindow: () => ipcRenderer.invoke('close-window'),
   isMaximized: () => ipcRenderer.invoke('is-maximized'),
+  onWindowStateChanged: (callback: (state: { isMaximized: boolean }) => void) => {
+    const wrappedCallback = (_event: any, state: { isMaximized: boolean }) => callback(state)
+    ipcRenderer.on('window-state-changed', wrappedCallback)
+    return () => ipcRenderer.removeListener('window-state-changed', wrappedCallback)
+  },
 
   // Database operations
   database: {
