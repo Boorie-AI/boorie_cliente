@@ -580,7 +580,12 @@
     "seriesTankDs2": "Tanque DS2",
     "seriesPump": "Bomba",
     "probExceed": "Prob. de exceder (0–1)",
-    "userCoefficients": "Coeficientes aportados por el usuario, no publicados por Boorie."
+    "userCoefficients": "Coeficientes aportados por el usuario, no publicados por Boorie.",
+    "methodBase": "Fragilidad lognormal por tasa de reparaciones de {{modelo}}, con parámetros genéricos por material — requiere validación de un experto APyS antes de usarse en decisiones reales.",
+    "methodPga": "Entrada en PGA: la mediana de {{medianaPgv}} cm/s se lleva a {{medianaPga}} g con Newmark & Hall (1982), α = {{alfa}} cm/s por g para suelo {{suelo}}. La correlación PGV–PGA es moderada (ρ≈0,70–0,73, Bradley 2012), así que la curva en PGA arrastra esa incertidumbre; con PGV medido, use PGV.",
+    "soilRockShort": "roca",
+    "soilStiffShort": "firme",
+    "soilSoftShort": "blando"
   },
   "mapViewer": {
     "title": "Visor de red",

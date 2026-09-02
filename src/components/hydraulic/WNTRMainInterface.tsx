@@ -2532,7 +2532,26 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               </div>
                             </div>
                           )}
-                          <div className="text-[10px] text-muted-foreground italic">{fragilityResult.methodology}</div>
+                          <div className="text-[10px] text-muted-foreground italic space-y-1">
+                            {fragilityResult.methodology_keys?.map((clave: string) => (
+                              <p key={clave}>
+                                {t(`networkView.${clave}`, {
+                                  // Nombres de norma: no se traducen, se eligen.
+                                  modelo: fragilityResult.damage_model === 'ALA_2001'
+                                    ? 'ALA (2001)'
+                                    : 'FEMA/HAZUS-MH (2003)',
+                                  medianaPgv: fragilityResult.median_pgv?.toFixed(1),
+                                  medianaPga: fragilityResult.median?.toFixed(3),
+                                  alfa: fragilityResult.alpha_cm_s_per_g?.toFixed(0),
+                                  suelo: fragilityResult.soil_class === 'rock'
+                                    ? t('networkView.soilRockShort')
+                                    : fragilityResult.soil_class === 'soft_soil'
+                                      ? t('networkView.soilSoftShort')
+                                      : t('networkView.soilStiffShort'),
+                                })}
+                              </p>
+                            ))}
+                          </div>
                           <Button size="sm" className="w-full mt-2" onClick={handleExportFragilityCSV}>
                             <Download className="h-3 w-3 mr-2" /> {t('networkView.exportCsv')}
                           </Button>

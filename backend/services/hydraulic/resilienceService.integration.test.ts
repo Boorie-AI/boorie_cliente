@@ -246,7 +246,9 @@ describe.skipIf(!canRun)('curva de fragilidad: entrada en PGA', () => {
       // La dispersión no se toca: la incertidumbre de la conversión va
       // declarada en la metodología, no metida a mano en beta.
       expect(d.beta).toBe(enPgv.beta)
-      expect(d.methodology).toContain('Newmark & Hall')
+      // El motor ya no escribe la frase: dice qué párrafos tocan (fase 4 del
+      // #96). Que la conversión se declara al usuario es lo que se comprueba.
+      expect(d.methodology_keys).toContain('methodPga')
     }
   }, SIM_TIMEOUT)
 
@@ -361,5 +363,39 @@ describe.skipIf(!canRun)('curva de fragilidad: modelo de daño y componentes', (
     })
     expect(negativa.success).toBe(false)
     expect(negativa.error).toContain('positivos')
+  }, SIM_TIMEOUT)
+})
+
+/**
+ * La metodología dejó de ser prosa del motor (fase 4 del #96).
+ *
+ * Antes el servicio montaba la frase en castellano y salía igual en los tres
+ * idiomas. Ahora devuelve qué párrafos tocan; los números ya viajan en el
+ * resto de `data` y el nombre del modelo sale de `damage_model`, así que la
+ * interfaz puede decirla en el idioma de quien mira.
+ */
+describe.skipIf(!canRun)('curva de fragilidad: metodología por claves', () => {
+  it('en PGV solo el párrafo base; en PGA también el de la conversión', async () => {
+    const pgv = (await service.generateFragilityCurve(NETWORK, { steps: 3 })).data!
+    expect(pgv.methodology_keys).toEqual(['methodBase'])
+
+    const pga = (await service.generateFragilityCurve(NETWORK, {
+      hazard_type: 'seismic_pga', steps: 3,
+    })).data!
+    expect(pga.methodology_keys).toEqual(['methodBase', 'methodPga'])
+  }, SIM_TIMEOUT)
+
+  it('no devuelve prosa: todo lo que necesita el texto va como dato', async () => {
+    const d = (await service.generateFragilityCurve(NETWORK, {
+      hazard_type: 'seismic_pga', soil_class: 'soft_soil', steps: 3,
+    })).data!
+
+    expect((d as unknown as { methodology?: string }).methodology).toBeUndefined()
+    // Los tres huecos del párrafo de PGA, y el modelo del párrafo base.
+    expect(d.median_pgv).toBeGreaterThan(0)
+    expect(d.median).toBeGreaterThan(0)
+    expect(d.alpha_cm_s_per_g).toBe(122)
+    expect(d.soil_class).toBe('soft_soil')
+    expect(d.damage_model).toBe('HAZUS_MH')
   }, SIM_TIMEOUT)
 })

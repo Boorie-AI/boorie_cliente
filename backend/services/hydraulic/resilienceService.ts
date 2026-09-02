@@ -274,7 +274,13 @@ export interface FragilityCurveResult {
     pipe_count: number;
     total_length_km: number;
     by_diameter: FragilityDiameterGroup[];
-    methodology: string;
+    /**
+     * Qué párrafos de metodología toca enseñar, y en qué orden. El motor no
+     * escribe la frase: los números ya van en el resto de `data` y el nombre
+     * del modelo sale de `damage_model`, así que la dice la interfaz en el
+     * idioma de quien mira (fase 4 del #96).
+     */
+    methodology_keys: ('methodBase' | 'methodPga')[];
   };
   error?: string;
 }
