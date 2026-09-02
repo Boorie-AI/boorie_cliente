@@ -1036,6 +1036,31 @@ class WNTRResilienceService:
             expected_failed_pipes = [p * pipe_count for p in pipe_failure_probability]
             total_length_km = sum(wn.get_link(p).length for p in wn.pipe_name_list) / 1000.0
 
+            # Reparto por diametro (issue #94, criterio del Dr. Mora): el .inp
+            # declara el diametro de cada tuberia en [PIPES], asi que el grupo
+            # se forma sin tener que inferir el material de la rugosidad. Las
+            # dos columnas -tuberias y longitud- son lo que permite costear el
+            # dano: no cuesta lo mismo reparar 20 tuberias de 50 m que de 500.
+            grupos = {}
+            for nombre in wn.pipe_name_list:
+                tuberia = wn.get_link(nombre)
+                clave = round(float(tuberia.diameter) * 1000.0, 1)  # wntr guarda en m
+                g = grupos.setdefault(clave, {'pipe_count': 0, 'length_m': 0.0})
+                g['pipe_count'] += 1
+                g['length_m'] += float(tuberia.length)
+
+            by_diameter = []
+            for mm in sorted(grupos):
+                g = grupos[mm]
+                by_diameter.append({
+                    'diameter_mm': mm,
+                    'pipe_count': g['pipe_count'],
+                    'length_km': g['length_m'] / 1000.0,
+                    'affected_pipes': [p * g['pipe_count'] for p in pipe_failure_probability],
+                    'affected_length_km': [p * g['length_m'] / 1000.0
+                                           for p in pipe_failure_probability],
+                })
+
             result = {
                 'success': True,
                 'data': {
@@ -1048,6 +1073,7 @@ class WNTRResilienceService:
                     'expected_failed_pipes': expected_failed_pipes,
                     'pipe_count': pipe_count,
                     'total_length_km': total_length_km,
+                    'by_diameter': by_diameter,
                     'methodology': (
                         'ALA (2001) repair-rate lognormal fragility (parametros genericos por material) '
                         '- requiere validacion de un experto APyS antes de usarse en decisiones reales.'

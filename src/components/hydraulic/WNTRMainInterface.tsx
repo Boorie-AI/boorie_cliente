@@ -513,6 +513,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   const [fragilityMaxIntensity, setFragilityMaxIntensity] = useState<number>(100);
   const [isGeneratingFragility, setIsGeneratingFragility] = useState(false);
   const [fragilityResult, setFragilityResult] = useState<any>(null);
+  // Índice de la intensidad a la que se lee la tabla por diámetros (#94).
+  // Arranca en la máxima, que es la lectura que ya daba el resumen de abajo.
+  const [fragilityIdx, setFragilityIdx] = useState<number>(0);
   const [fragilityError, setFragilityError] = useState<string | null>(null);
 
   // Load network file
@@ -983,6 +986,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       });
       if (res.success) {
         setFragilityResult(res.data);
+        setFragilityIdx(Math.max(0, (res.data.intensities?.length ?? 1) - 1));
       } else {
         setFragilityError(res.error || 'No se pudo generar la curva de fragilidad');
       }
@@ -1003,6 +1007,26 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
         fragilityResult.expected_failed_pipes[i]?.toFixed(2) ?? ''
       ])
     ];
+    // El reparto por diámetro va en el mismo fichero, y en formato largo: una
+    // fila por diámetro y por intensidad. La tabla de pantalla se lee a una
+    // intensidad; costear el daño de varios escenarios pide todas (#94).
+    if (fragilityResult.by_diameter?.length) {
+      rows.push([]);
+      rows.push(['PGV (cm/s)', 'Diámetro (mm)', 'Tuberías del grupo', 'Longitud del grupo (km)',
+                 'Tuberías afectadas', 'Longitud afectada (km)']);
+      fragilityResult.intensities.forEach((pgv: number, i: number) => {
+        fragilityResult.by_diameter.forEach((g: any) => {
+          rows.push([
+            pgv.toFixed(2),
+            g.diameter_mm.toFixed(1),
+            String(g.pipe_count),
+            g.length_km.toFixed(4),
+            g.affected_pipes[i]?.toFixed(2) ?? '',
+            g.affected_length_km[i]?.toFixed(4) ?? ''
+          ]);
+        });
+      });
+    }
     const csv = rows.map(r => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -2191,6 +2215,75 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               {fragilityResult.expected_failed_pipes[fragilityResult.expected_failed_pipes.length - 1]?.toFixed(1)} / {fragilityResult.pipe_count}
                             </span>
                           </div>
+                          {/**
+                            * Tabla por diámetros (#94, exigencia de alta prioridad).
+                            *
+                            * El Dr. Mora pidió que el daño se pueda costear, y para eso
+                            * no basta el total: hace falta saber cuántas tuberías y
+                            * cuántos kilómetros caen en cada diámetro, porque el precio
+                            * de reparación va por diámetro. Se agrupa por el diámetro
+                            * que el .inp declara en [PIPES], así que no hay que inferir
+                            * el material.
+                            *
+                            * Las dos columnas no son redundantes: en Net3 hay dos
+                            * diámetros con una sola tubería cada uno, de 4,33 km y de
+                            * 0,24 km. Por recuento pesan igual; por longitud, 18 veces
+                            * distinto.
+                            */}
+                          {fragilityResult.by_diameter?.length > 0 && (
+                            <div className="space-y-1 pt-1 border-t">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] font-medium">Reparto por diámetro a PGV</span>
+                                <select
+                                  className="text-[11px] border rounded px-1 py-0.5 bg-background"
+                                  value={fragilityIdx}
+                                  onChange={(e) => setFragilityIdx(Number(e.target.value))}
+                                >
+                                  {fragilityResult.intensities.map((v: number, i: number) => (
+                                    <option key={i} value={i}>{v.toFixed(0)} cm/s</option>
+                                  ))}
+                                </select>
+                                <span className="text-[11px] text-muted-foreground">
+                                  ({(fragilityResult.pipe_failure_probability[fragilityIdx] * 100).toFixed(1)} %)
+                                </span>
+                              </div>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-[10px] tabular-nums">
+                                  <thead className="text-muted-foreground">
+                                    <tr>
+                                      <th className="text-left font-medium py-0.5">Diám. (mm)</th>
+                                      <th className="text-right font-medium py-0.5">Tuberías</th>
+                                      <th className="text-right font-medium py-0.5">Long. (km)</th>
+                                      <th className="text-right font-medium py-0.5">Afectadas</th>
+                                      <th className="text-right font-medium py-0.5">km afect.</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {fragilityResult.by_diameter.map((g: any) => (
+                                      <tr key={g.diameter_mm} className="border-t border-border/40">
+                                        <td className="py-0.5">{g.diameter_mm.toFixed(1)}</td>
+                                        <td className="text-right py-0.5">{g.pipe_count}</td>
+                                        <td className="text-right py-0.5">{g.length_km.toFixed(2)}</td>
+                                        <td className="text-right py-0.5">{g.affected_pipes[fragilityIdx]?.toFixed(1)}</td>
+                                        <td className="text-right py-0.5">{g.affected_length_km[fragilityIdx]?.toFixed(2)}</td>
+                                      </tr>
+                                    ))}
+                                    <tr className="border-t font-medium">
+                                      <td className="py-0.5">Total</td>
+                                      <td className="text-right py-0.5">{fragilityResult.pipe_count}</td>
+                                      <td className="text-right py-0.5">{fragilityResult.total_length_km.toFixed(2)}</td>
+                                      <td className="text-right py-0.5">
+                                        {fragilityResult.expected_failed_pipes[fragilityIdx]?.toFixed(1)}
+                                      </td>
+                                      <td className="text-right py-0.5">
+                                        {(fragilityResult.pipe_failure_probability[fragilityIdx] * fragilityResult.total_length_km).toFixed(2)}
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
                           <div className="text-[10px] text-muted-foreground italic">{fragilityResult.methodology}</div>
                           <Button size="sm" className="w-full mt-2" onClick={handleExportFragilityCSV}>
                             <Download className="h-3 w-3 mr-2" /> Exportar CSV

@@ -209,6 +209,16 @@ export interface ResilienceIndicatorsResult {
   error?: string;
 }
 
+/** Un diametro presente en la red, con lo que le toca a cada intensidad. */
+export interface FragilityDiameterGroup {
+  diameter_mm: number;
+  pipe_count: number;
+  length_km: number;
+  /** Alineados con `intensities`. */
+  affected_pipes: number[];
+  affected_length_km: number[];
+}
+
 export interface FragilityCurveResult {
   success: boolean;
   data?: {
@@ -221,6 +231,7 @@ export interface FragilityCurveResult {
     expected_failed_pipes: number[];
     pipe_count: number;
     total_length_km: number;
+    by_diameter: FragilityDiameterGroup[];
     methodology: string;
   };
   error?: string;
