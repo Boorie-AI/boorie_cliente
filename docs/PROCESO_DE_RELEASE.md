@@ -180,8 +180,13 @@ tail -f ~/.config/boorie/logs/main.log
 ```
 
 En el registro tienen que aparecer `Found version X.Y.Z`, la descarga —que será
-**diferencial**, del orden del 1 % de los bytes, si el blockmap está bien— y el fichero
-resultante con el **tamaño y el `sha512` exactos** de `latest-linux.yml`. Que el sha cuadre es
+**diferencial** si el blockmap está bien— y el fichero resultante con el **tamaño y el
+`sha512` exactos** de `latest-linux.yml`.
+
+Lo que confirma que el blockmap sirve es que la descarga **no sea completa**, no que baje de
+un porcentaje concreto: el log lo dice en claro, `Full: … To download: … (N %)`. En la v1.28.0
+fue el **22 %**, porque esa versión movía dependencias y con ellas medio `node_modules`; en una
+que sólo toque código del renderer baja al orden del 1 %. Un 22 % no es un blockmap roto. Que el sha cuadre es
 lo que demuestra que el ensamblado por bloques produce el mismo binario que una descarga
 completa.
 
@@ -190,6 +195,28 @@ completa.
 > lo explique: parece que la actualización no se aplica. Hay que **cerrar la ventana**
 > (`window-all-closed` → `app.quit()`, `electron/main.ts`). Entonces sí aparece
 > `Auto install update on quit` y el AppImage queda sustituido por el de la versión nueva.
+
+**Cómo cerrar esa ventana sin manos.** Boorie no tiene marco: el botón de cerrar lo dibuja el
+renderer, así que no hay ventana nativa que un `wmctrl` pueda cerrar, y bajo Wayland tampoco se
+puede leer el estado de las ventanas desde fuera. Se lanza el paquete con puerto de depuración
+y se le clica su propio botón por CDP, que es lo que dispara `app.quit()` de verdad:
+
+```bash
+./Boorie-<anterior>.AppImage --no-sandbox --remote-debugging-port=9222
+```
+
+```js
+// desde un directorio que tenga playwright-core instalado: NODE_PATH no vale para ESM
+import { chromium } from 'playwright-core';
+const b = await chromium.connectOverCDP('http://127.0.0.1:9222');
+const page = b.contexts()[0].pages().find(p => !p.url().startsWith('devtools://'));
+await page.click('button[title="Close"]');   // el título va en el idioma de la aplicación
+```
+
+**El AppImage se renombra, no se sobrescribe.** Tras instalar, el fichero de la versión
+anterior **desaparece** y en su sitio queda `Boorie-<nueva>.AppImage`. Conviene saberlo por dos
+razones: buscar el fichero por su nombre viejo hace pensar que la instalación borró la
+aplicación, y un lanzador del escritorio que apunte a la ruta anterior deja de funcionar.
 
 Al arrancar la versión ya actualizada, el actualizador debe responder
 `Update for version X.Y.Z is not available`: ésa es la confirmación de que la aplicación que
