@@ -165,6 +165,7 @@ valga:
 | Fin de la fase 2 | 0 | **18** | 42 de 64 |
 | Fin de la fase 3 | 0 | 18 | 42 de 64 |
 | Tanda del motor | 0 | 18 | 42 de 64 |
+| Al cerrar el #96 | **0** | 21 | 42 de 64 |
 
 La fase 3 no mueve esas cifras: no saca texto del código, revisa el que ya está
 en el diccionario. Lo que sí cambió: **1.024 claves** en los tres idiomas, 32
@@ -173,8 +174,39 @@ avisos que no veía ningún script y una regla de estilo por idioma.
 Las tres cifras se miden con el script de hoy, que ve más que el del principio
 —por eso el «total» sube y baja: no es que aparezca texto, es que se mira mejor—.
 
+El total sube de 18 a 21 en la última fila y **no es una regresión**: son tres
+nombres que entraron con la curva de fragilidad y que no deben traducirse, ver
+más abajo.
+
+### Por qué se cierra con 21 y no con 0
+
+Las 21 que quedan se repasaron una por una, y ninguna es una cadena que deba
+pasar por el diccionario:
+
+| Dónde | Cuántas | Qué son |
+|---|---:|---|
+| `settings/AIConfigurationPanel.tsx` | 6 | Nombres de modelos de Ollama: `llama3.1:8b`, `mistral:latest`… |
+| `settings/GuardrailsPanel.tsx` | 6 | `NVIDIA NeMo Guardrails`, `NVIDIA API Catalog`, `Ollama (local)`, `Rails`… |
+| `hydraulic/WNTRMainInterface.tsx` | 3 | `ALA (2001)`, `FEMA/HAZUS-MH (2003)`, `PGA (g)`: nombres de norma y siglas de magnitud |
+| `settings/SettingsPanel.tsx` | 2 | `Guardrails` y `Milvus Inspector`, nombres de producto |
+| `setup/SetupWizard.tsx` | 2 | `Add python.exe to PATH`, que es la casilla literal del instalador de Windows, y un enlace |
+| `chat/Sidebar.tsx` | 1 | `Boorie` |
+| `project/ProjectMismatchDialog.tsx` | 1 | Un falso positivo del medidor: un fragmento de código |
+
+Traducir un nombre propio lo rompe: quien busca `llama3.1:8b` en su Ollama no
+encuentra «llama 3.1 de 8 mil millones», y una norma citada con otro nombre deja
+de ser rastreable. Así que **el número al que hay que llegar no es cero**, y el
+medidor no lo puede saber por sí solo: hace falta leer la lista.
+
+Lo que sí queda fuera de la interfaz, y es un problema distinto con decisión
+propia, son las descripciones que **se guardan en la base de datos** —«Red
+hidráulica importada desde …», «Escenario derivado de …»—. Se escriben en el
+idioma del momento y ahí se quedan, como cualquier dato que escribe quien usa
+Boorie; cambiar de idioma no reescribe lo ya guardado. La sección «Un caso que
+no es de componentes» explica el criterio.
+
 Pantallas convertidas: crear proyecto, cabecera del chat y calculadora (primera
-tanda); visor de red y mapa (segunda); Wisdom Center, grafo de vectores, chat
+tanda); visor de red y mapa (segunda); Base de Conocimiento (entonces «Wisdom Center»), grafo de vectores, chat
 completo —modelos, adjuntos, proyectos, Wisdom—, barra de ventana, diálogos y
 las tres pestañas de ajustes que quedaban (tercera).
 
