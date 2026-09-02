@@ -1,3 +1,5 @@
+import i18n from '@/i18n'
+import { decirTexto, type TextoDelMotor } from './textoDelMotor'
 /**
  * El texto con el que el chat cuenta las medidas de eficiencia energética ya
  * verificadas (#42, segunda entrega).
@@ -17,13 +19,13 @@ interface Ahorro {
   coste: number
   moneda: string
   porcentaje_energia: number
-  origen: string
+  origen: TextoDelMotor
 }
 
 export interface RecomendacionVerificada {
   candidata: {
-    titulo: string
-    motivo: string
+    titulo: TextoDelMotor
+    motivo: TextoDelMotor
     naturaleza: 'operativa' | 'equipo'
     medida: { tipo: string; elementos: string[]; desde_h?: number; hasta_h?: number }
   }
@@ -63,15 +65,24 @@ export function narrarEnergia(
   const l: string[] = []
   const m = analisis.moneda
 
-  l.push(`**Consumo de bombeo**: ${numero(analisis.energia_total_kwh)} kWh y ${numero(analisis.coste_total, 2)} ${m} en 24 h.`)
+  l.push(i18n.t('narracion.consumoBombeo', {
+    kwh: numero(analisis.energia_total_kwh),
+    coste: numero(analisis.coste_total, 2),
+    moneda: m,
+  }))
   if (analisis.bombas.length > 1) {
     const peor = [...analisis.bombas].sort((a, b) => b.energia_kwh - a.energia_kwh)[0]
-    l.push(`La que más gasta es la bomba ${peor.nombre}: ${numero(peor.energia_kwh)} kWh y ${numero(peor.coste, 2)} ${m}.`)
+    l.push(i18n.t('narracion.laQueMasGasta', {
+      bomba: peor.nombre,
+      kwh: numero(peor.energia_kwh),
+      coste: numero(peor.coste, 2),
+      moneda: m,
+    }))
   }
 
   if (recomendaciones.length === 0) {
     l.push('')
-    l.push(motivoSinRecomendaciones ?? 'No he encontrado medidas que merezca la pena verificar.')
+    l.push(motivoSinRecomendaciones ?? i18n.t('narracion.sinMedidas'))
     return l.join('\n')
   }
 
@@ -82,46 +93,57 @@ export function narrarEnergia(
   // La concordancia se resuelve aquí y no en la plantilla: «1 medida
   // simulándolas» se leyó así en la aplicación y canta.
   const cuantas = recomendaciones.length === 1
-    ? 'He probado una medida, simulándola sobre tu red'
-    : `He probado ${recomendaciones.length} medidas, simulándolas sobre tu red`
-  l.push(ahorran.length > 0
-    ? `${cuantas}. ${ahorran.length === 1 ? 'Una ahorra' : `${ahorran.length} ahorran`}:`
-    : `${cuantas}, y ninguna ahorra:`)
+    ? i18n.t('narracion.probadaUna')
+    : i18n.t('narracion.probadasVarias', { count: recomendaciones.length })
+  l.push(ahorran.length === 0
+    ? i18n.t('narracion.ningunaAhorra', { cuantas })
+    : ahorran.length === 1
+      ? i18n.t('narracion.unaAhorra', { cuantas })
+      : i18n.t('narracion.variasAhorran', { cuantas, count: ahorran.length }))
 
   for (const r of [...ahorran, ...resto]) {
     l.push('')
-    l.push(`**${r.candidata.titulo}**${r.candidata.naturaleza === 'equipo' ? ' _(requiere cambiar equipo)_' : ''}`)
+    l.push(`**${decirTexto(i18n.t.bind(i18n), r.candidata.titulo)}**` +
+      (r.candidata.naturaleza === 'equipo' ? i18n.t('narracion.requiereEquipo') : ''))
 
     if (!r.ahorro) {
-      l.push(`No se pudo verificar: ${r.error ?? 'la simulación falló'}.`)
+      l.push(i18n.t('narracion.noVerificada', { motivo: r.error ?? i18n.t('narracion.simulacionFallo') }))
       continue
     }
 
     const kwh = r.ahorro.energia_kwh
     if (Math.abs(kwh) < 0.05) {
-      l.push('Simulada, **no cambia el consumo**: la red la absorbe.')
+      l.push(i18n.t('narracion.noCambia'))
     } else if (kwh < 0) {
-      l.push(`Simulada, **consume ${numero(-kwh)} kWh más** (${numero(-r.ahorro.coste, 2)} ${m}): no la recomiendo.`)
+      l.push(i18n.t('narracion.consumeMas', { kwh: numero(-kwh), coste: numero(-r.ahorro.coste, 2), moneda: m }))
     } else {
-      l.push(`Ahorra **${numero(kwh)} kWh** y **${numero(r.ahorro.coste, 2)} ${m}** al día, un ${numero(Math.abs(r.ahorro.porcentaje_energia))}% del consumo.`)
+      l.push(i18n.t('narracion.ahorra', {
+        kwh: numero(kwh),
+        coste: numero(r.ahorro.coste, 2),
+        moneda: m,
+        porcentaje: numero(Math.abs(r.ahorro.porcentaje_energia)),
+      }))
     }
 
-    l.push(r.candidata.motivo)
+    l.push(decirTexto(i18n.t.bind(i18n), r.candidata.motivo))
 
     if (r.impacto_en_servicio) {
       const hab = r.impacto_en_servicio.habitantes_afectados_atribuibles
       l.push(hab > 0
-        ? `Coste en servicio: deja sin agua a ${numero(hab, 0)} habitantes y ${numero(r.impacto_en_servicio.demanda_no_satisfecha_atribuible_m3)} m³ sin servir.`
-        : 'No deja a nadie sin agua.')
+        ? i18n.t('narracion.costeServicio', {
+            habitantes: numero(hab, 0),
+            m3: numero(r.impacto_en_servicio.demanda_no_satisfecha_atribuible_m3),
+          })
+        : i18n.t('narracion.nadieSinAgua'))
     }
 
     // La cita de origen, que es criterio de aceptación del issue.
     l.push(r.runId
-      ? `_Verificado en la simulación \`${r.runId}\`, en el historial del proyecto._`
-      : '_Verificado por simulación, pero no se pudo registrar en el historial._')
+      ? i18n.t('narracion.verificadaEn', { runId: r.runId })
+      : i18n.t('narracion.verificadaSinRun'))
 
     if (r.convergio === false) {
-      l.push('⚠️ Alguna simulación no convergió: esa cifra no es fiable.')
+      l.push(i18n.t('narracion.noConvergioUna'))
     }
   }
 

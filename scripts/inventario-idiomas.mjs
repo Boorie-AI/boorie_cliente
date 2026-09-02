@@ -1,0 +1,146 @@
+#!/usr/bin/env node
+/**
+ * Cuenta los textos de interfaz que están escritos a mano en el código, fuera
+ * del sistema de traducción, y en qué idioma están (#96).
+ *
+ * Existe para poder repetir la medida: la corrección va por tandas, y sin una
+ * cifra que baje no hay forma de saber si una tanda ha avanzado o sólo ha
+ * movido código. `node scripts/inventario-idiomas.mjs` imprime el total y el
+ * reparto por componente; con `--lista <fichero>` saca las cadenas de uno.
+ *
+ * No pretende ser exacto: es una regla, no un microscopio. Cuenta de más en
+ * cadenas cortas que son iguales en los dos idiomas («Total», «Boorie») y de
+ * menos en texto construido por trozos. Sirve para comparar una medida con la
+ * siguiente, que es para lo que se usa.
+ */
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { join } from 'node:path'
+
+const RAIZ = 'src'
+
+const ficheros = (dir) =>
+  readdirSync(dir).flatMap((n) => {
+    const p = join(dir, n)
+    return statSync(p).isDirectory() ? ficheros(p) : p.endsWith('.tsx') && !p.includes('.test.') ? [p] : []
+  })
+
+const todos = ficheros(RAIZ)
+const fuente = new Map(todos.map((p) => [p, readFileSync(p, 'utf8')]))
+const todoElCodigo = [...fuente.values()].join('\n')
+
+/** Un componente que nadie importa no se le enseña a nadie: no cuenta. */
+const vivo = (p) => {
+  const n = p.split('/').pop().replace('.tsx', '')
+  if (n === 'App' || n === 'main') return true
+  return new RegExp(`from '[^']*/${n}'|from '\\./${n}'`).test(todoElCodigo)
+}
+
+/**
+ * Exigir que el texto empiece por letra dejaba fuera lo que lleva delante un
+ * emoji o un paréntesis —«✅ Indexed», «(1 chunks)»—, que se ve igual de mal.
+ */
+const ENTRE = />\s*([^<>{}]{3,300}?)\s*</g
+const ATRIBUTO = /(?:placeholder|title|aria-label|label)="([^"{}\n]{3,200})"/g
+/**
+ * Un texto metido en una expresión —las dos ramas de un ternario, sobre todo—
+ * no está entre `>` y `<` y se colaba entero: así apareció en pantalla «General
+ * chat: this conversation is not linked to any project».
+ */
+const LITERAL = /^\s*["']([^"'`\n]{6,200})["']\s*[,:)]?\s*$/gm
+/** Siglas, cifras, unidades y URLs no son texto que traducir. */
+const RUIDO = /^(?:[A-Z0-9_\-.]{1,12}|nvapi.*|[\d\s.,%/·—-]+|m³.*|l\/s|kWh|PGV.*|EPSG.*|[\w.-]+\.(?:sh|js|ts|tsx|py|json|inp|md|ai)|[a-z]+(?:_[a-z]+)+)$|^https?:\/\//
+/**
+ * El barrido entre `>` y `<` a veces pilla el final de una expresión JSX
+ * —`m.type === 'local') && (`—, que es código, no texto.
+ */
+const CODIGO = /===|=>|&&|\?\.|React\.|^[a-z_$][\w$]*(\.[\w$]+)+$|^ollama pull |^case |: return|\?\s*\($|;|\buseState\b|\buseRef\b|\bconst \[|^\( |\/\*|^return \(|Parameters/
+/** Las clases de Tailwind son texto, pero no de los que lee nadie. */
+const CLASES = /(^|\s)(flex|grid|block|inline|absolute|relative|fixed|sticky|truncate|overflow-|w-|h-|p[xytblr]?-|m[xytblr]?-|bg-|text-|border|rounded|hover:|focus:|group-|data-\[|transition|duration-|gap-|space-|min-|max-|shadow|z-\d|items-|justify-|font-|leading-|opacity-|animate-|cursor-|select-none|outline-none|disabled:|dark:|placeholder:|resize-)/
+const MARCA_ES = /[áéíóúñ¿¡Á-Ú]/
+const FUNCIONALES_ES = new Set(
+  'de la el los las un una para con sin por al del y o que se su sus no hay más como este esta cada'.split(' ')
+)
+/**
+ * Palabras que sólo aparecen en inglés. Sirven para separar los dos problemas,
+ * que no son el mismo ni tienen la misma urgencia: un texto en inglés se ve mal
+ * ahora mismo en una aplicación que se usa en español; uno en castellano escrito
+ * a mano se ve bien hoy y sólo rompe al cambiar de idioma.
+ */
+const PALABRAS_EN = new Set(
+  ('the and of with for from your this that new create delete edit save load export import search settings ' +
+   'results calculation network flow head loss pumps tanks water quality analysis simulation parameters input ' +
+   'output enter click node link pipe velocity pressure duration status completed error warning steps ' +
+   'reference options history previous appear here powered engine scientific professional hydraulic project ' +
+   'name type location details additional notes budget manager country city region select cancel close open ' +
+   'add remove show hide view chart graph data preview health clusters providers available token url test ' +
+   'move keep general conversation conversations chat message messages ' +
+   // Añadidas al abrir el Wisdom Center: el recuento daba cero y la pantalla
+   // seguía teniendo inglés a la vista.
+   'all my categories category folder refresh documents document knowledge indexed chunks ' +
+   'unified center wisdom upload processing failed pending ready model models provider embedding ' +
+   'total items file files size date time value welcome ready assistant').split(' ')
+)
+
+const esEspanol = (c) =>
+  MARCA_ES.test(c) || c.toLowerCase().match(/[a-záéíóúñ]+/g)?.some((p) => FUNCIONALES_ES.has(p))
+
+/**
+ * Texto que cita la interfaz de otro programa y por eso no se traduce: quien
+ * lee el aviso tiene delante el instalador de Python en inglés.
+ */
+const CITAS = new Set(['Add python.exe to PATH', 'ollama pull all-minilm'])
+
+const pareceIngles = (c) =>
+  !CITAS.has(c) &&
+  !esEspanol(c) && (c.toLowerCase().match(/[a-z]+/g) ?? []).some((p) => PALABRAS_EN.has(p))
+
+const porFichero = new Map()
+let espanol = 0, otro = 0, ingles = 0
+
+for (const p of todos.filter(vivo)) {
+  const src = fuente.get(p)
+  const cadenas = new Set()
+  // Un párrafo repartido en varias líneas es un texto, no varios: se junta.
+  for (const m of src.matchAll(ENTRE)) if (!m[1].startsWith('{')) cadenas.add(m[1].replace(/\s+/g, ' ').trim())
+  for (const m of src.matchAll(ATRIBUTO)) cadenas.add(m[1].trim())
+  for (const m of src.matchAll(LITERAL)) cadenas.add(m[1].trim())
+
+  const fuera = [...cadenas]
+    .map((c) => c.replace(/^[^\p{L}(]+/u, '').trim())   // el emoji de delante no es texto
+    .filter((c) => c && /\p{L}{3}/u.test(c) && !RUIDO.test(c) && !CODIGO.test(c) && !CLASES.test(c))
+  const noEspanol = fuera.filter((c) => !esEspanol(c))
+  const enIngles = fuera.filter(pareceIngles)
+  espanol += fuera.length - noEspanol.length
+  otro += noEspanol.length
+  ingles += enIngles.length
+  if (fuera.length) porFichero.set(p, { fuera, enIngles })
+}
+
+const argLista = process.argv.indexOf('--lista')
+if (argLista !== -1) {
+  const objetivo = process.argv[argLista + 1]
+  for (const [p, { fuera, enIngles }] of porFichero) {
+    if (!p.includes(objetivo)) continue
+    console.log(`\n${p} — ${fuera.length} textos fuera del diccionario (${enIngles.length} en inglés):`)
+    for (const c of fuera.sort()) console.log(`  ${enIngles.includes(c) ? 'EN' : '  '}  ${c}`)
+  }
+  process.exit(0)
+}
+
+// La llamada, no la palabra: en un componente el hook estaba comentado y aun así
+// contaba como traducido.
+const conI18n = todos.filter(vivo).filter((p) => /(?<!\/\/\s*)const \{ t \} = useTranslation\(/.test(fuente.get(p))).length
+console.log(`textos escritos a mano, fuera del diccionario: ${espanol + otro}`)
+console.log(`  de ellos, en inglés: ${ingles}   <- se ven mal hoy, en una aplicación que se usa en español`)
+console.log(`  el resto está en castellano: ${espanol + otro - ingles}   <- se ve bien hoy y rompe al cambiar de idioma`)
+console.log(`componentes vivos: ${todos.filter(vivo).length}  ·  con i18n: ${conI18n}`)
+console.log('\nreparto (total fuera del diccionario / de ellos en inglés):')
+// Con `--todos`, el reparto entero: en la fase 2 el orden que importa ya no es
+// cuánto inglés queda sino cuánto texto sigue fuera del diccionario.
+const cuantos = process.argv.includes('--todos') ? porFichero.size : 15
+const orden = [...porFichero].sort(
+  (a, b) => b[1].enIngles.length - a[1].enIngles.length || b[1].fuera.length - a[1].fuera.length
+)
+for (const [p, v] of orden.slice(0, cuantos)) {
+  console.log(`  ${String(v.fuera.length).padStart(3)} / ${String(v.enIngles.length).padStart(3)} en inglés   ${p.replace('src/components/', '')}`)
+}

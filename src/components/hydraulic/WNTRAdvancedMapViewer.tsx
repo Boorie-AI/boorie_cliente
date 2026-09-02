@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { WNTRMapViewer } from './WNTRMapViewer';
 import { NetworkTopologyView } from './NetworkTopologyView';
@@ -82,6 +83,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
   networkId,
   networkFilePath
 }) => {
+  const { t } = useTranslation()
   const [networkData, setNetworkData] = useState<NetworkData | null>(externalNetworkData || null);
   const [simulationResults, setSimulationResults] = useState<SimulationResults | null>(externalSimulationResults || null);
   // Dueño único de los ajustes del visor: el mapa, el esquema y el panel leen de
@@ -264,11 +266,11 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                 <Clock className="h-4 w-4" />
                 <span className="text-sm font-medium tabular-nums">{timeline.etiqueta}</span>
                 <span className="text-xs text-gray-400">
-                  paso {visualizationSettings.timeStep + 1} de {timeline.linea.pasos}
+                  {t('viewer.stepOf', { paso: visualizationSettings.timeStep + 1, total: timeline.linea.pasos })}
                   {' · '}
-                  {timeline.linea.intervalo > 0 && `cada ${Math.round(timeline.linea.intervalo / 60)} min · `}
-                  duración {timeline.duracion}
-                  {!timeline.linea.conReloj && ' · tiempo transcurrido'}
+                  {timeline.linea.intervalo > 0 && t('viewer.everyMin', { minutos: Math.round(timeline.linea.intervalo / 60) })}
+                  {t('viewer.duration', { duracion: timeline.duracion })}
+                  {!timeline.linea.conReloj && t('viewer.elapsed')}
                 </span>
               </div>
 
@@ -347,7 +349,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                     setVisualizationSettings(prev => ({ ...prev, playbackSpeed: Number(e.target.value) }))
                   }
                   className="rounded-md border border-slate-600 bg-slate-700 px-2 py-1 text-xs text-white"
-                  title="Velocidad de reproducción"
+                  title={t('viewer.playbackSpeed')}
                 >
                   {[0.5, 1, 2, 4].map(v => (
                     <option key={v} value={v}>{v}x</option>

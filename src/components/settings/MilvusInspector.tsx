@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import { cn } from '@/utils/cn'
@@ -25,6 +26,7 @@ interface CollectionDescription {
 }
 
 export function MilvusInspector() {
+  const { t } = useTranslation()
     const [collections, setCollections] = useState<string[]>([])
     const [selectedCollection, setSelectedCollection] = useState<string | null>(null)
     const [stats, setStats] = useState<CollectionStats | null>(null)
@@ -83,7 +85,7 @@ export function MilvusInspector() {
 
         } catch (err: any) {
             logger.error(err)
-            setError(`Error fetching details: ${err.message}`)
+            setError(t('messages.detailsFailed', { motivo: err.message }))
         } finally {
             setInspectLoading(false)
         }
@@ -118,7 +120,7 @@ export function MilvusInspector() {
                 setError(result.error || 'Unknown error')
             }
         } catch (err: any) {
-            setError(`RAG Query failed: ${err.message}`)
+            setError(t('messages.ragQueryFailed', { motivo: err.message }))
         } finally {
             setRagLoading(false)
         }
@@ -133,7 +135,7 @@ export function MilvusInspector() {
                     size="sm"
                 >
                     <Database className="w-4 h-4 mr-2" />
-                    Inspector
+                    {t('milvus.inspector')}
                 </Button>
                 <Button
                     variant={activeTab === 'rag' ? "default" : "ghost"}
@@ -141,7 +143,7 @@ export function MilvusInspector() {
                     size="sm"
                 >
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    RAG Validation
+                    {t('milvus.validation')}
                 </Button>
             </div>
 
@@ -152,7 +154,7 @@ export function MilvusInspector() {
                         <div className="p-4 border-b flex justify-between items-center bg-muted/30">
                             <h2 className="font-semibold flex items-center gap-2">
                                 <Database className="h-4 w-4" />
-                                Collections
+                                {t('milvus.collections')}
                             </h2>
                             <Button variant="ghost" size="icon" onClick={fetchCollections} disabled={loading}>
                                 <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
@@ -161,7 +163,7 @@ export function MilvusInspector() {
                         <ScrollArea className="flex-1">
                             <div className="p-2 space-y-1">
                                 {collections.length === 0 && !loading && (
-                                    <p className="text-sm text-muted-foreground p-2">No collections found.</p>
+                                    <p className="text-sm text-muted-foreground p-2">{t('milvus.noCollections')}</p>
                                 )}
                                 {collections.map(name => (
                                     <Button
@@ -187,21 +189,21 @@ export function MilvusInspector() {
                                     <Card>
                                         <CardHeader className="py-3">
                                             <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                                <Activity className="h-4 w-4" /> Statistics
+                                                <Activity className="h-4 w-4" /> {t('milvus.statistics')}
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent className="py-3">
                                             <div className="text-2xl font-bold">
                                                 {stats?.row_count !== undefined ? stats.row_count.toLocaleString() : '-'}
                                             </div>
-                                            <p className="text-xs text-muted-foreground">Total Rows</p>
+                                            <p className="text-xs text-muted-foreground">{t('milvus.totalRows')}</p>
                                         </CardContent>
                                     </Card>
 
                                     <Card>
                                         <CardHeader className="py-3">
                                             <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                                <Eye className="h-4 w-4" /> Schema
+                                                <Eye className="h-4 w-4" /> {t('milvus.schema')}
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent className="py-3 h-24 overflow-y-auto">
@@ -220,7 +222,7 @@ export function MilvusInspector() {
                                 <Card className="flex-1 flex flex-col min-h-0">
                                     <CardHeader className="py-3 border-b bg-muted/30">
                                         <div className="flex justify-between items-center">
-                                            <CardTitle className="text-sm font-medium">Data Preview (Max 50)</CardTitle>
+                                            <CardTitle className="text-sm font-medium">{t('milvus.preview')}</CardTitle>
                                             <Badge>{data.length} records</Badge>
                                         </div>
                                     </CardHeader>
@@ -254,7 +256,7 @@ export function MilvusInspector() {
                                             </table>
                                         ) : (
                                             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                                                <p>No data found or empty collection</p>
+                                                <p>{t('milvus.noData')}</p>
                                             </div>
                                         )}
                                     </div>
@@ -263,7 +265,7 @@ export function MilvusInspector() {
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-lg">
                                 <Database className="h-12 w-12 mb-4 opacity-20" />
-                                <p>Select a collection to inspect</p>
+                                <p>{t('milvus.pickCollection')}</p>
                             </div>
                         )}
                     </div>
@@ -272,13 +274,13 @@ export function MilvusInspector() {
                 <div className="flex flex-col h-full gap-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>RAG Query Validator</CardTitle>
+                            <CardTitle>{t('milvus.validator')}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex gap-2">
                                 <input
                                     className="flex-1 px-3 py-2 border rounded-md bg-transparent"
-                                    placeholder="Enter your query related to stored documents..."
+                                    placeholder={t('milvus.queryHint')}
                                     value={ragQuery}
                                     onChange={(e) => setRagQuery(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleRagQuery()}
@@ -295,7 +297,7 @@ export function MilvusInspector() {
                             {/* Answer Section */}
                             <Card className="flex flex-col overflow-hidden">
                                 <CardHeader className="bg-muted/30 py-3">
-                                    <CardTitle className="text-sm font-medium">Generated Answer</CardTitle>
+                                    <CardTitle className="text-sm font-medium">{t('milvus.answer')}</CardTitle>
                                 </CardHeader>
                                 <CardContent className="flex-1 overflow-auto p-4 text-sm leading-relaxed">
                                     <div className="whitespace-pre-wrap">{ragResult.answer}</div>

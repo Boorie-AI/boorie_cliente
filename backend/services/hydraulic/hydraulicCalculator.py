@@ -11,6 +11,17 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 
 
+def aviso(clave: str, **datos) -> Dict[str, Any]:
+    """
+    Un aviso no es una frase, es una clave y sus datos: el motor no sabe en qué
+    idioma se va a leer. Quien lo enseña lo traduce (#96).
+    """
+    salida: Dict[str, Any] = {'clave': f'calc.msg.{clave}'}
+    if datos:
+        salida['datos'] = datos
+    return salida
+
+
 class FormulaCategory(Enum):
     HEAD_LOSS = "head_loss"
     FLOW = "flow"
@@ -36,10 +47,15 @@ class IntermediateStep:
     comprueba. Vacía cuando la magnitud es adimensional, que es más honesto que
     inventarle una.
     """
-    description: str
+    description_key: str
     formula: str
     result: float
     unit: str = ''
+
+    def to_dict(self):
+        # El nombre que espera la interfaz, en camelCase como el resto del JSON.
+        return {'descriptionKey': self.description_key, 'formula': self.formula,
+                'result': self.result, 'unit': self.unit}
 
 
 @dataclass
@@ -74,35 +90,35 @@ class HydraulicCalculator:
             # Head Loss Formulas
             {
                 'id': 'darcy_weisbach',
-                'name': 'Darcy-Weisbach Head Loss',
+                'nameKey': 'calc.formula.darcyWeisbach',
                 'category': FormulaCategory.HEAD_LOSS.value,
                 'equation': 'hf = f × (L/D) × (V²/2g)',
                 'parameters': [
                     {
                         'symbol': 'f',
-                        'name': 'Friction Factor',
-                        'description': 'Darcy friction factor (dimensionless)',
+                        'nameKey': 'calc.param.frictionFactor',
+                        'descriptionKey': 'calc.paramDesc.frictionFactor',
                         'units': ['-'],
                         'range': {'min': 0.008, 'max': 0.1}
                     },
                     {
                         'symbol': 'L',
-                        'name': 'Pipe Length',
-                        'description': 'Length of the pipe',
+                        'nameKey': 'calc.param.pipeLength',
+                        'descriptionKey': 'calc.paramDesc.pipeLength',
                         'units': ['m', 'ft', 'km'],
                         'defaultValue': 100
                     },
                     {
                         'symbol': 'D',
-                        'name': 'Pipe Diameter',
-                        'description': 'Internal diameter of the pipe',
+                        'nameKey': 'calc.param.pipeDiameter',
+                        'descriptionKey': 'calc.paramDesc.pipeDiameter',
                         'units': ['m', 'mm', 'in', 'ft'],
                         'defaultValue': 0.15
                     },
                     {
                         'symbol': 'V',
-                        'name': 'Velocity',
-                        'description': 'Flow velocity in the pipe',
+                        'nameKey': 'calc.param.velocity',
+                        'descriptionKey': 'calc.paramDesc.velocityPipe',
                         'units': ['m/s', 'ft/s'],
                         'range': {'min': 0.1, 'max': 5}
                     }
@@ -110,36 +126,36 @@ class HydraulicCalculator:
             },
             {
                 'id': 'hazen_williams',
-                'name': 'Hazen-Williams Head Loss',
+                'nameKey': 'calc.formula.hazenWilliams',
                 'category': FormulaCategory.HEAD_LOSS.value,
                 'equation': 'hf = 10.67 × L × Q^1.852 / (C^1.852 × D^4.871)',
                 'parameters': [
                     {
                         'symbol': 'L',
-                        'name': 'Pipe Length',
-                        'description': 'Length of the pipe',
+                        'nameKey': 'calc.param.pipeLength',
+                        'descriptionKey': 'calc.paramDesc.pipeLength',
                         'units': ['m', 'ft', 'km'],
                         'defaultValue': 100
                     },
                     {
                         'symbol': 'Q',
-                        'name': 'Flow Rate',
-                        'description': 'Volumetric flow rate',
+                        'nameKey': 'calc.param.flowRate',
+                        'descriptionKey': 'calc.paramDesc.flowRate',
                         'units': ['l/s', 'm³/s', 'gpm'],
                         'defaultValue': 0.05
                     },
                     {
                         'symbol': 'C',
-                        'name': 'C Coefficient',
-                        'description': 'Hazen-Williams roughness coefficient',
+                        'nameKey': 'calc.param.hazenC',
+                        'descriptionKey': 'calc.paramDesc.hazenC',
                         'units': ['-'],
                         'defaultValue': 130,
                         'range': {'min': 80, 'max': 150}
                     },
                     {
                         'symbol': 'D',
-                        'name': 'Pipe Diameter',
-                        'description': 'Internal diameter of the pipe',
+                        'nameKey': 'calc.param.pipeDiameter',
+                        'descriptionKey': 'calc.paramDesc.pipeDiameter',
                         'units': ['m', 'mm', 'in'],
                         'defaultValue': 0.15
                     }
@@ -148,21 +164,21 @@ class HydraulicCalculator:
             # Flow Formulas
             {
                 'id': 'continuity_equation',
-                'name': 'Continuity Equation',
+                'nameKey': 'calc.formula.continuity',
                 'category': FormulaCategory.FLOW.value,
                 'equation': 'Q = A × V',
                 'parameters': [
                     {
                         'symbol': 'A',
-                        'name': 'Cross-sectional Area',
-                        'description': 'Flow cross-sectional area',
+                        'nameKey': 'calc.param.area',
+                        'descriptionKey': 'calc.paramDesc.area',
                         'units': ['m²', 'cm²', 'ft²'],
                         'defaultValue': 0.0177
                     },
                     {
                         'symbol': 'V',
-                        'name': 'Velocity',
-                        'description': 'Flow velocity',
+                        'nameKey': 'calc.param.velocity',
+                        'descriptionKey': 'calc.paramDesc.velocity',
                         'units': ['m/s', 'ft/s'],
                         'defaultValue': 2
                     }
@@ -170,29 +186,29 @@ class HydraulicCalculator:
             },
             {
                 'id': 'orifice_flow',
-                'name': 'Orifice Flow',
+                'nameKey': 'calc.formula.orifice',
                 'category': FormulaCategory.FLOW.value,
                 'equation': 'Q = Cd × A × √(2gh)',
                 'parameters': [
                     {
                         'symbol': 'Cd',
-                        'name': 'Discharge Coefficient',
-                        'description': 'Orifice discharge coefficient',
+                        'nameKey': 'calc.param.dischargeCoef',
+                        'descriptionKey': 'calc.paramDesc.dischargeCoef',
                         'units': ['-'],
                         'defaultValue': 0.62,
                         'range': {'min': 0.5, 'max': 0.8}
                     },
                     {
                         'symbol': 'A',
-                        'name': 'Orifice Area',
-                        'description': 'Area of the orifice',
+                        'nameKey': 'calc.param.orificeArea',
+                        'descriptionKey': 'calc.paramDesc.orificeArea',
                         'units': ['m²', 'cm²', 'in²'],
                         'defaultValue': 0.005
                     },
                     {
                         'symbol': 'h',
-                        'name': 'Head',
-                        'description': 'Head above orifice centerline',
+                        'nameKey': 'calc.param.head',
+                        'descriptionKey': 'calc.paramDesc.head',
                         'units': ['m', 'ft'],
                         'defaultValue': 2
                     }
@@ -201,28 +217,28 @@ class HydraulicCalculator:
             # Pump Formulas
             {
                 'id': 'pump_power',
-                'name': 'Pump Power',
+                'nameKey': 'calc.formula.pumpPower',
                 'category': FormulaCategory.PUMP.value,
                 'equation': 'P = ρgQH / η',
                 'parameters': [
                     {
                         'symbol': 'Q',
-                        'name': 'Flow Rate',
-                        'description': 'Volumetric flow rate',
+                        'nameKey': 'calc.param.flowRate',
+                        'descriptionKey': 'calc.paramDesc.flowRate',
                         'units': ['l/s', 'm³/s', 'gpm'],
                         'defaultValue': 0.05
                     },
                     {
                         'symbol': 'H',
-                        'name': 'Total Head',
-                        'description': 'Total dynamic head',
+                        'nameKey': 'calc.param.totalHead',
+                        'descriptionKey': 'calc.paramDesc.totalHead',
                         'units': ['m', 'ft'],
                         'defaultValue': 30
                     },
                     {
                         'symbol': 'η',
-                        'name': 'Efficiency',
-                        'description': 'Overall pump efficiency (0-1)',
+                        'nameKey': 'calc.param.efficiency',
+                        'descriptionKey': 'calc.paramDesc.efficiency',
                         'units': ['-'],
                         'defaultValue': 0.75,
                         'range': {'min': 0.4, 'max': 0.9}
@@ -232,21 +248,21 @@ class HydraulicCalculator:
             # Tank Sizing
             {
                 'id': 'tank_volume',
-                'name': 'Cylindrical Tank Volume',
+                'nameKey': 'calc.formula.tankVolume',
                 'category': FormulaCategory.TANK_SIZING.value,
                 'equation': 'V = π × D²/4 × H',
                 'parameters': [
                     {
                         'symbol': 'D',
-                        'name': 'Tank Diameter',
-                        'description': 'Internal diameter of the tank',
+                        'nameKey': 'calc.param.tankDiameter',
+                        'descriptionKey': 'calc.paramDesc.tankDiameter',
                         'units': ['m', 'ft'],
                         'defaultValue': 3
                     },
                     {
                         'symbol': 'H',
-                        'name': 'Tank Height',
-                        'description': 'Height of water in tank',
+                        'nameKey': 'calc.param.tankHeight',
+                        'descriptionKey': 'calc.paramDesc.tankHeight',
                         'units': ['m', 'ft'],
                         'defaultValue': 4
                     }
@@ -255,22 +271,22 @@ class HydraulicCalculator:
             # Water Hammer
             {
                 'id': 'water_hammer_pressure',
-                'name': 'Water Hammer Pressure',
+                'nameKey': 'calc.formula.waterHammer',
                 'category': FormulaCategory.WATER_HAMMER.value,
                 'equation': 'ΔP = ρ × c × ΔV',
                 'parameters': [
                     {
                         'symbol': 'c',
-                        'name': 'Wave Speed',
-                        'description': 'Pressure wave speed in pipe',
+                        'nameKey': 'calc.param.waveSpeed',
+                        'descriptionKey': 'calc.paramDesc.waveSpeed',
                         'units': ['m/s', 'ft/s'],
                         'defaultValue': 1200,
                         'range': {'min': 900, 'max': 1400}
                     },
                     {
                         'symbol': 'ΔV',
-                        'name': 'Velocity Change',
-                        'description': 'Change in flow velocity',
+                        'nameKey': 'calc.param.velocityChange',
+                        'descriptionKey': 'calc.paramDesc.velocityChange',
                         'units': ['m/s', 'ft/s'],
                         'defaultValue': 2
                     }
@@ -360,19 +376,19 @@ class HydraulicCalculator:
         # Prepare response
         steps = [
             IntermediateStep(
-                description="Calculate velocity head",
+                description_key="calc.step.velocityHead",
                 formula=f"V²/(2g) = {V}²/(2×{self.gravity})",
                 result=V**2 / (2 * self.gravity),
                 unit="m"
             ),
             IntermediateStep(
-                description="Calculate L/D ratio",
+                description_key="calc.step.ldRatio",
                 formula=f"L/D = {L}/{D}",
                 result=L/D,
                 unit=""
             ),
             IntermediateStep(
-                description="Calculate Reynolds number",
+                description_key="calc.step.reynolds",
                 formula=f"Re = VD/ν = {V}×{D}/{self.kinematic_viscosity}",
                 result=Re,
                 unit=""
@@ -384,20 +400,20 @@ class HydraulicCalculator:
         
         # Check velocity
         if V < 0.6:
-            warnings.append("Velocity is low. Risk of sedimentation.")
+            warnings.append(aviso("lowVelocitySediment"))
         elif V > 3:
-            warnings.append("Velocity is high. Risk of erosion and noise.")
+            warnings.append(aviso("highVelocityErosion"))
             
         # Check Reynolds number
         if Re < 2000:
-            recommendations.append("Flow is laminar. Consider using f = 64/Re.")
+            recommendations.append(aviso("laminar"))
         elif Re > 4000:
-            recommendations.append("Flow is turbulent. Verify friction factor using Moody diagram or Colebrook equation.")
+            recommendations.append(aviso("turbulent"))
             
         return CalculationResponse(
             result={'value': hf, 'unit': 'm'},
             inputs=inputs,
-            intermediate_steps=[asdict(step) for step in steps],
+            intermediate_steps=[step.to_dict() for step in steps],
             warnings=warnings,
             recommendations=recommendations
         )
@@ -418,13 +434,13 @@ class HydraulicCalculator:
         
         steps = [
             IntermediateStep(
-                description="Calculate pipe area",
+                description_key="calc.step.pipeArea",
                 formula=f"A = π×D²/4 = π×{D}²/4",
                 result=A,
                 unit="m²"
             ),
             IntermediateStep(
-                description="Calculate velocity",
+                description_key="calc.step.velocity",
                 formula=f"V = Q/A = {Q}/{A}",
                 result=V,
                 unit="m/s"
@@ -436,20 +452,20 @@ class HydraulicCalculator:
         
         # Material-based C value checks
         if C < 100:
-            warnings.append("Low C value indicates old or rough pipes.")
+            warnings.append(aviso("lowC"))
         elif C > 140:
-            recommendations.append("High C value - ensure it matches pipe material.")
+            recommendations.append(aviso("highC"))
             
         # Velocity checks
         if V < 0.6:
-            warnings.append("Low velocity - risk of sedimentation.")
+            warnings.append(aviso("lowVelocitySediment"))
         elif V > 3:
-            warnings.append("High velocity - risk of erosion.")
+            warnings.append(aviso("highVelocityErosion"))
             
         return CalculationResponse(
             result={'value': hf, 'unit': 'm'},
             inputs=inputs,
-            intermediate_steps=[asdict(step) for step in steps],
+            intermediate_steps=[step.to_dict() for step in steps],
             warnings=warnings,
             recommendations=recommendations
         )
@@ -466,19 +482,19 @@ class HydraulicCalculator:
         
         steps = [
             IntermediateStep(
-                description="Calculate flow rate",
+                description_key="calc.step.flowRate",
                 formula=f"Q = A×V = {A}×{V}",
                 result=Q,
                 unit="m³/s"
             ),
             IntermediateStep(
-                description="Convert to l/s",
+                description_key="calc.step.toLps",
                 formula=f"Q × 1000 = {Q}×1000",
                 result=Q * 1000,
                 unit="l/s"
             ),
             IntermediateStep(
-                description="Calculate equivalent diameter",
+                description_key="calc.step.equivalentDiameter",
                 formula=f"D = √(4A/π) = √(4×{A}/π)",
                 result=D_equiv,
                 unit="m"
@@ -489,9 +505,9 @@ class HydraulicCalculator:
         recommendations = []
         
         if V < 0.3:
-            warnings.append("Very low velocity - check for stagnation.")
+            warnings.append(aviso("lowVelocityStagnation"))
         elif V > 5:
-            warnings.append("Very high velocity - check pipe rating.")
+            warnings.append(aviso("highVelocityRating"))
             
         return CalculationResponse(
             # En l/s, como el resto de la aplicación (#89 · H3). El paso anterior
@@ -499,7 +515,7 @@ class HydraulicCalculator:
             # comprobable.
             result={'value': Q * 1000, 'unit': 'l/s'},
             inputs=inputs,
-            intermediate_steps=[asdict(step) for step in steps],
+            intermediate_steps=[step.to_dict() for step in steps],
             warnings=warnings,
             recommendations=recommendations
         )
@@ -518,19 +534,19 @@ class HydraulicCalculator:
         
         steps = [
             IntermediateStep(
-                description="Calculate theoretical velocity",
+                description_key="calc.step.theoreticalVelocity",
                 formula=f"V = √(2gh) = √(2×{self.gravity}×{h})",
                 result=V,
                 unit="m/s"
             ),
             IntermediateStep(
-                description="Calculate theoretical flow",
+                description_key="calc.step.theoreticalFlow",
                 formula=f"Q_theo = A×V = {A}×{V}",
                 result=A * V,
                 unit="m³/s"
             ),
             IntermediateStep(
-                description="Apply discharge coefficient and convert to l/s",
+                description_key="calc.step.dischargeAndLps",
                 formula=f"Q = Cd×A×V×1000 = {Cd}×{A}×{V}×1000",
                 result=Q * 1000,
                 unit="l/s"
@@ -541,16 +557,16 @@ class HydraulicCalculator:
         recommendations = []
         
         if h < 0.1:
-            warnings.append("Very low head - results may be inaccurate.")
+            warnings.append(aviso("lowHead"))
         
         if Cd < 0.6:
-            recommendations.append("Low discharge coefficient - check for sharp edges.")
+            recommendations.append(aviso("lowDischargeCoef"))
         
         return CalculationResponse(
             # En l/s, como el resto de la aplicación (#89 · H3).
             result={'value': Q * 1000, 'unit': 'l/s'},
             inputs=inputs,
-            intermediate_steps=[asdict(step) for step in steps],
+            intermediate_steps=[step.to_dict() for step in steps],
             warnings=warnings,
             recommendations=recommendations
         )
@@ -572,13 +588,13 @@ class HydraulicCalculator:
         
         steps = [
             IntermediateStep(
-                description="Calculate hydraulic power",
+                description_key="calc.step.hydraulicPower",
                 formula=f"P_hyd = ρgQH = {self.water_density}×{self.gravity}×{Q}×{H}",
                 result=P_hydraulic,
                 unit="W"
             ),
             IntermediateStep(
-                description="Calculate shaft power",
+                description_key="calc.step.shaftPower",
                 formula=f"P_shaft = P_hyd/η = {P_hydraulic}/{η}",
                 result=P_shaft,
                 unit="W"
@@ -589,19 +605,19 @@ class HydraulicCalculator:
         recommendations = []
         
         if η < 0.5:
-            warnings.append("Low pump efficiency - consider pump replacement.")
+            warnings.append(aviso("lowPumpEfficiency"))
         
         if P_kW > 100:
-            recommendations.append("High power requirement - consider multiple pumps.")
+            recommendations.append(aviso("highPower"))
             
         # Motor size recommendation
         motor_size = P_kW * 1.15  # 15% safety factor
-        recommendations.append(f"Recommended motor size: {motor_size:.1f} kW")
+        recommendations.append(aviso('motorSize', kw=f'{motor_size:.1f}'))
         
         return CalculationResponse(
             result={'value': P_kW, 'unit': 'kW'},
             inputs=inputs,
-            intermediate_steps=[asdict(step) for step in steps],
+            intermediate_steps=[step.to_dict() for step in steps],
             warnings=warnings,
             recommendations=recommendations
         )
@@ -622,19 +638,19 @@ class HydraulicCalculator:
         
         steps = [
             IntermediateStep(
-                description="Calculate tank area",
+                description_key="calc.step.tankArea",
                 formula=f"A = π×D²/4 = π×{D}²/4",
                 result=A_surface,
                 unit="m²"
             ),
             IntermediateStep(
-                description="Calculate volume in m³",
+                description_key="calc.step.volumeM3",
                 formula=f"V = A×H = {A_surface}×{H}",
                 result=V,
                 unit="m³"
             ),
             IntermediateStep(
-                description="Convert to liters",
+                description_key="calc.step.toLiters",
                 formula=f"V = {V}×1000",
                 result=V_liters,
                 unit="L"
@@ -647,18 +663,18 @@ class HydraulicCalculator:
         # Aspect ratio check
         aspect_ratio = H / D
         if aspect_ratio < 0.5:
-            warnings.append("Tank is very wide - check structural design.")
+            warnings.append(aviso("tankWide"))
         elif aspect_ratio > 3:
-            warnings.append("Tank is very tall - check stability.")
+            warnings.append(aviso("tankTall"))
             
         # Practical recommendations
-        recommendations.append(f"Total capacity: {V_liters:.0f} liters")
-        recommendations.append(f"Effective volume (95%): {V_liters * 0.95:.0f} liters")
+        recommendations.append(aviso('totalCapacity', litros=f'{V_liters:.0f}'))
+        recommendations.append(aviso('effectiveVolume', litros=f'{V_liters * 0.95:.0f}'))
         
         return CalculationResponse(
             result={'value': V, 'unit': 'm³'},
             inputs=inputs,
-            intermediate_steps=[asdict(step) for step in steps],
+            intermediate_steps=[step.to_dict() for step in steps],
             warnings=warnings,
             recommendations=recommendations
         )
@@ -679,19 +695,19 @@ class HydraulicCalculator:
         
         steps = [
             IntermediateStep(
-                description="Calculate pressure rise in Pa",
+                description_key="calc.step.pressureRisePa",
                 formula=f"ΔP = ρ×c×ΔV = {self.water_density}×{c}×{ΔV}",
                 result=ΔP,
                 unit="Pa"
             ),
             IntermediateStep(
-                description="Convert to bar",
+                description_key="calc.step.toBar",
                 formula=f"ΔP = {ΔP}/100000",
                 result=ΔP_bar,
                 unit="bar"
             ),
             IntermediateStep(
-                description="Calculate head rise",
+                description_key="calc.step.headRise",
                 formula=f"ΔH = ΔP/(ρg) = {ΔP}/({self.water_density}×{self.gravity})",
                 result=ΔH,
                 unit="m"
@@ -702,20 +718,20 @@ class HydraulicCalculator:
         recommendations = []
         
         if ΔP_bar > 10:
-            warnings.append("High pressure surge - risk of pipe damage!")
-            recommendations.append("Consider installing surge protection devices.")
+            warnings.append(aviso("surgeDamage"))
+            recommendations.append(aviso("surgeProtection"))
             
         if ΔV > 1:
-            recommendations.append("Large velocity change - use slow-closing valves.")
+            recommendations.append(aviso("slowValves"))
             
         # Critical time calculation
         L_critical = c * 2  # Assuming 2 second valve closure
-        recommendations.append(f"Critical pipe length: {L_critical:.0f} m")
+        recommendations.append(aviso('criticalLength', metros=f'{L_critical:.0f}'))
         
         return CalculationResponse(
             result={'value': ΔP_bar, 'unit': 'bar'},
             inputs=inputs,
-            intermediate_steps=[asdict(step) for step in steps],
+            intermediate_steps=[step.to_dict() for step in steps],
             warnings=warnings,
             recommendations=recommendations
         )

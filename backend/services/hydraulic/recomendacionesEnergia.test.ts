@@ -10,6 +10,15 @@
 
 import { describe, it, expect } from 'vitest'
 import { generarCandidatas, type AnalisisParaRecomendar } from './recomendacionesEnergia'
+import { decirTexto } from '../../../src/services/hydraulic/textoDelMotor'
+import i18n from '../../../src/i18n'
+
+/**
+ * El recomendador devuelve claves, no frases (#96). Se comprueba lo que acaba
+ * leyendo el ingeniero: la clave resuelta contra el diccionario de verdad, que
+ * de paso vigila que las dos cosas sigan casando.
+ */
+const dicho = (texto: Parameters<typeof decirTexto>[1]) => decirTexto(i18n.t.bind(i18n), texto)
 
 const analisis = (parcial: Partial<AnalisisParaRecomendar> = {}): AnalisisParaRecomendar => ({
   energia_total_kwh: 336.9,
@@ -56,8 +65,8 @@ describe('candidatas de eficiencia energética', () => {
     expect(c.naturaleza).toBe('operativa')
     // El motivo trae las cifras del análisis, no un ahorro: todavía no se ha
     // simulado nada.
-    expect(c.motivo).toContain('18,3 kWh')
-    expect(c.motivo).toContain('0,250')
+    expect(dicho(c.motivo)).toContain('18,3 kWh')
+    expect(dicho(c.motivo)).toContain('0,250')
   })
 
   it('no propone tocar los bloques que no son más caros que el precio base', () => {
@@ -71,8 +80,8 @@ describe('candidatas de eficiencia energética', () => {
 
     expect(c.medida).toMatchObject({ tipo: 'pump_bep', elementos: ['6012'] })
     expect(c.naturaleza).toBe('equipo')
-    expect(c.motivo).toContain('70,0%')
-    expect(c.motivo).toContain('brecha')
+    expect(dicho(c.motivo)).toContain('70,0 %')
+    expect(dicho(c.motivo)).toContain('brecha')
   })
 
   it('no propone el punto óptimo si la bomba ya trabaja cerca de él', () => {
@@ -99,7 +108,7 @@ describe('candidatas de eficiencia energética', () => {
 
     expect(optimo).toHaveLength(1)
     expect(optimo[0].medida.elementos).toEqual(['6012', '6013'])
-    expect(optimo[0].titulo).toContain('2 bombas')
+    expect(dicho(optimo[0].titulo)).toContain('2 bombas')
   })
 
   it('ordena por el dinero en juego y respeta el tope', () => {

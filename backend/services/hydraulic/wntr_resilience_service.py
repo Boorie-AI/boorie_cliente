@@ -234,7 +234,7 @@ class WNTRResilienceService:
             try:
                 link = wn.get_link(elemento)
             except KeyError:
-                omitidos.append({'id': str(elemento), 'motivo': 'no existe en la red'})
+                omitidos.append({'id': str(elemento), 'motivo': {'clave': 'omitido.noExiste'}})
                 continue
 
             wn.add_control(
@@ -281,7 +281,7 @@ class WNTRResilienceService:
             try:
                 tuberia = wn.get_link(elemento)
             except KeyError:
-                omitidos.append({'id': str(elemento), 'motivo': 'no existe en la red'})
+                omitidos.append({'id': str(elemento), 'motivo': {'clave': 'omitido.noExiste'}})
                 continue
 
             nudo = None
@@ -290,7 +290,7 @@ class WNTRResilienceService:
                     nudo = extremo
                     break
             if nudo is None:
-                omitidos.append({'id': str(elemento), 'motivo': 'ningún extremo es un nudo de consumo donde poner la fuga'})
+                omitidos.append({'id': str(elemento), 'motivo': {'clave': 'omitido.sinExtremoNudo'}})
                 continue
 
             nudo.add_leak(wn, area=area, discharge_coeff=coef, start_time=desde_s, end_time=hasta_s)
@@ -323,7 +323,7 @@ class WNTRResilienceService:
             try:
                 enlace = wn.get_link(elemento)
             except KeyError:
-                omitidos.append({'id': str(elemento), 'motivo': 'no existe en la red'})
+                omitidos.append({'id': str(elemento), 'motivo': {'clave': 'omitido.noExiste'}})
                 continue
 
             if hasattr(enlace, 'add_outage'):
@@ -362,7 +362,7 @@ class WNTRResilienceService:
                 wn.remove_control(nombre)
                 retirados.append(nombre)
             except (KeyError, ValueError):
-                omitidos.append({'id': nombre, 'motivo': 'no es un control de la red'})
+                omitidos.append({'id': nombre, 'motivo': {'clave': 'omitido.noEsControl'}})
 
         desde_s, hasta_s = self._ventana_s(evento, duration_hours)
         congelados = []
@@ -370,7 +370,7 @@ class WNTRResilienceService:
             try:
                 link = wn.get_link(elemento)
             except KeyError:
-                omitidos.append({'id': str(elemento), 'motivo': 'no existe en la red'})
+                omitidos.append({'id': str(elemento), 'motivo': {'clave': 'omitido.noExiste'}})
                 continue
             estado = LinkStatus.Closed if str(evento.get('congelar_en', 'cerrado')).lower() == 'cerrado' else LinkStatus.Open
             wn.add_control(
@@ -398,7 +398,7 @@ class WNTRResilienceService:
         """
         multiplicador = float(evento.get('multiplicador', 2.0))
         if multiplicador <= 1.0:
-            return [], [{'id': 'multiplicador', 'motivo': 'debe ser mayor que 1'}], 'sin efecto'
+            return [], [{'id': 'multiplicador', 'motivo': {'clave': 'omitido.mayorQueUno'}}], 'sin efecto'
 
         desde_s, hasta_s = self._ventana_s(evento, duration_hours)
         fin_s = hasta_s if hasta_s is not None else float(duration_hours) * 3600.0
@@ -421,15 +421,15 @@ class WNTRResilienceService:
             try:
                 nudo = wn.get_node(elemento)
             except KeyError:
-                omitidos.append({'id': str(elemento), 'motivo': 'no existe en la red'})
+                omitidos.append({'id': str(elemento), 'motivo': {'clave': 'omitido.noExiste'}})
                 continue
             if nudo.node_type != 'Junction' or not nudo.demand_timeseries_list:
-                omitidos.append({'id': str(elemento), 'motivo': 'no es un nudo con demanda'})
+                omitidos.append({'id': str(elemento), 'motivo': {'clave': 'omitido.noEsNudoDemanda'}})
                 continue
 
             base = float(nudo.demand_timeseries_list[0].base_value)
             if base <= 0:
-                omitidos.append({'id': str(elemento), 'motivo': 'demanda base nula o negativa'})
+                omitidos.append({'id': str(elemento), 'motivo': {'clave': 'omitido.sinDemanda'}})
                 continue
             nudo.demand_timeseries_list.append(
                 (base * (multiplicador - 1.0), nombre_patron, 'boorie_sobredemanda'))
@@ -451,10 +451,10 @@ class WNTRResilienceService:
             try:
                 nodo = wn.get_node(elemento)
             except KeyError:
-                omitidos.append({'id': str(elemento), 'motivo': 'no existe en la red'})
+                omitidos.append({'id': str(elemento), 'motivo': {'clave': 'omitido.noExiste'}})
                 continue
             if nodo.node_type != 'Reservoir':
-                omitidos.append({'id': str(elemento), 'motivo': 'no es un embalse'})
+                omitidos.append({'id': str(elemento), 'motivo': {'clave': 'omitido.noEsEmbalse'}})
                 continue
             if 'nivel_m' in evento:
                 nodo.base_head = float(evento['nivel_m'])
@@ -480,7 +480,8 @@ class WNTRResilienceService:
             if metodo is None:
                 aplicados.append({
                     'indice': i, 'tipo': tipo, 'aplicado': False,
-                    'omitidos': [{'id': tipo, 'motivo': f'tipo de evento desconocido; admitidos: {", ".join(sorted(self.EVENTOS))}'}],
+                    'omitidos': [{'id': tipo, 'motivo': {'clave': 'omitido.tipoDesconocido',
+                                                          'datos': {'admitidos': ', '.join(sorted(self.EVENTOS))}}}],
                 })
                 continue
             hechos, omitidos, como = getattr(self, metodo)(wn, evento, duration_hours)

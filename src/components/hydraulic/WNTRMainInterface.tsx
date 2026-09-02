@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useClarity } from '@/components/ClarityProvider';
@@ -134,6 +135,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   onSimulationComplete,
   modo = 'red'
 }) => {
+  const { t } = useTranslation();
   // Clarity tracking
   const { trackEvent, isReady: clarityReady } = useClarity();
 
@@ -585,7 +587,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   // Run ALL analyses sequentially
   const handleRunAllAnalyses = useCallback(async () => {
     if (!networkData) {
-      setError('No network data loaded');
+      setError(t('messages.noNetworkLoaded'));
       return;
     }
 
@@ -957,7 +959,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
         if (currentProject) {
           const currentNetwork = currentProject.networks.find(n => n.name === networkData.name);
           const networkId = currentNetwork?.id || 'unknown';
-          handleSaveCalculationToProject('Indicadores de Resiliencia', networkId, res.data);
+          handleSaveCalculationToProject(t('networkView.resilienceInd'), networkId, res.data);
         }
       } else {
         setResilienceIndicatorsError(res.error || 'No se pudieron calcular los indicadores de resiliencia');
@@ -975,7 +977,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     const a = resilienceIndicatorsResult.after;
     const d = resilienceIndicatorsResult.delta;
     const rows = [
-      ['Métrica', 'Antes', 'Después', 'Delta'],
+      ['Métrica', t('networkView.before'), t('networkView.after'), 'Delta'],
       ['Índice de Todini', b.todini_index.toFixed(4), a ? a.todini_index.toFixed(4) : '', d ? d.todini_index.toFixed(4) : ''],
       ['Entropía de red', b.network_entropy.toFixed(4), a ? a.network_entropy.toFixed(4) : '', d ? d.network_entropy.toFixed(4) : ''],
       ['Redundancia hidráulica', b.hydraulic_redundancy.toFixed(4), a ? a.hydraulic_redundancy.toFixed(4) : '', d ? d.hydraulic_redundancy.toFixed(4) : ''],
@@ -1095,7 +1097,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                 className="text-slate-400 hover:text-white"
               >
                 <ChevronDown className="h-4 w-4 mr-2 rotate-90" />
-                Proyectos
+                {t('networkView.projects')}
               </Button>
               <div className="h-4 w-px bg-slate-700" />
               <div className="flex items-center gap-2">
@@ -1106,11 +1108,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
             <div className="flex items-center gap-4 text-xs text-slate-400">
               <div className="flex items-center gap-1">
                 <Database className="h-3 w-3" />
-                <span>{currentProject.networks.length} redes</span>
+                <span>{t('networkView.networksCount', { count: currentProject.networks.length })}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Activity className="h-3 w-3" />
-                <span>{currentProject.calculations.length} simulaciones</span>
+                <span>{t('networkView.simsCount', { count: currentProject.calculations.length })}</span>
               </div>
             </div>
           </div>
@@ -1122,7 +1124,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                 <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-4">
                   <Network className="h-10 w-10 text-primary" />
                 </div>
-                <CardTitle>Proyecto: {currentProject.name}</CardTitle>
+                <CardTitle>{t('networkView.projectName', { nombre: currentProject.name })}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {currentProject.description && (
@@ -1137,8 +1139,8 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                   onClick={!isLoading ? handleLoadNetwork : undefined}
                 >
                   <FileUp className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
-                  <h3 className="font-semibold mb-1">Cargar Red Hidráulica</h3>
-                  <p className="text-xs text-muted-foreground">Click para buscar archivos .inp</p>
+                  <h3 className="font-semibold mb-1">{t('networkView.loadNetwork')}</h3>
+                  <p className="text-xs text-muted-foreground">{t('networkView.browseInp')}</p>
                 </div>
 
                 {error && (
@@ -1151,7 +1153,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                 {currentProject.networks.length > 0 && (
                   <div className="pt-4 border-t">
                     <div className="mb-2 flex items-center justify-between">
-                      <h4 className="text-sm font-medium">Redes Guardadas</h4>
+                      <h4 className="text-sm font-medium">{t('networkView.savedNetworks')}</h4>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -1159,7 +1161,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         onClick={() => setVerInstantaneas(true)}
                       >
                         <Camera className="mr-1.5 h-3 w-3" />
-                        Instantáneas
+                        {t('networkView.snapshots')}
                       </Button>
                     </div>
                     <div className="space-y-2">
@@ -1189,11 +1191,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               try {
                                 const carga = await window.electronAPI.wntr.loadINPFromPath(res.filePath);
                                 if (!carga?.success) {
-                                  setError(carga?.error || 'La red se puede ver, pero no se pudo preparar para simular.');
+                                  setError(carga?.error || t('messages.viewNotSimulate'));
                                 }
                               } catch (err) {
                                 logger.warn('Could not reload INP file:', err);
-                                setError('La red se puede ver, pero no se pudo preparar para simular.');
+                                setError(t('messages.viewNotSimulate'));
                               }
                             }
                           }}
@@ -1208,13 +1210,13 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           {net.incomplete && (
                             <span
                               className="ml-2 rounded bg-yellow-500/15 px-1.5 py-0.5 text-[10px] font-medium text-yellow-600 dark:text-yellow-500"
-                              title="Falta el fichero .inp original: la red se puede ver, pero no simular. Vuelve a importarla para recuperarla."
+                              title={t('networkView.inpMissing')}
                             >
-                              sin .inp
+                              {t('networkView.noInp')}
                             </span>
                           )}
                           <span className="ml-auto text-muted-foreground">
-                            {net.nodeCount} nudos
+                            {t('networkView.nodesCount', { count: net.nodeCount })}
                           </span>
                           {/* Dentro del botón de abrir la red iría anidado, así
                               que el historial va como hermano: un botón dentro de
@@ -1225,7 +1227,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 shrink-0"
-                          title={`Historial de versiones de ${net.name}`}
+                          title={t('networkView.versionHistoryOf', { red: net.name })}
                           onClick={() => setHistorialDe({ id: net.id, nombre: net.name })}
                         >
                           <History className="h-3.5 w-3.5" />
@@ -1253,7 +1255,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
               <Database className="h-4 w-4 flex-shrink-0 text-primary" />
               <span className="font-semibold truncate" title={networkData.name}>{networkData.name}</span>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setNetworkData(null)} title="Close Network">
+            <Button variant="ghost" size="icon" onClick={() => setNetworkData(null)} title={t('networkView.closeNetwork')}>
               <FileUp className="h-4 w-4" />
             </Button>
           </div>
@@ -1261,13 +1263,13 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
           <Tabs value={pestana} onValueChange={setPestana} className="flex-1 flex flex-col min-h-0">
             <div className="px-4 pt-2 border-b bg-muted/10">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="simulate" title="Simulation">
+                <TabsTrigger value="simulate" title={t('networkView.tabs.simulate')}>
                   <Play className="h-4 w-4" />
                 </TabsTrigger>
-                <TabsTrigger value="analyze" title="Analysis">
+                <TabsTrigger value="analyze" title={t('networkView.tabs.analyze')}>
                   <Target className="h-4 w-4" />
                 </TabsTrigger>
-                <TabsTrigger value="resilience" title="Resilience">
+                <TabsTrigger value="resilience" title={t('networkView.tabs.resilience')}>
                   <ShieldAlert className="h-4 w-4" />
                 </TabsTrigger>
 
@@ -1280,17 +1282,17 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                 <div className="space-y-4">
                   <h3 className="font-semibold text-sm flex items-center gap-2">
                     <Activity className="h-4 w-4 text-blue-500" />
-                    Hydraulic Simulation
+                    {t('networkView.sim.title')}
                   </h3>
 
                   <div className="p-3 bg-muted/20 rounded-lg text-sm space-y-2">
                     <p className="text-xs text-muted-foreground">
-                      Run comprehensive analysis including Hydraulic, Water Quality, and Scenario simulations sequentially.
+                      {t('networkView.sim.description')}
                     </p>
 
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">Duration (hours)</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.sim.duration')}</div>
                         <input
                           type="number"
                           min={0}
@@ -1300,7 +1302,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         />
                       </div>
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">Timestep (mins)</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.sim.timestep')}</div>
                         <input
                           type="number"
                           min={0}
@@ -1316,22 +1318,22 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         sabía dar. */}
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">Calidad del agua</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.waterQuality')}</div>
                         <select
                           value={qualityParameter}
                           onChange={(e) => setQualityParameter(e.target.value as 'AGE' | 'TRACE' | 'CHEMICAL')}
                           className="w-full bg-transparent text-sm border-b border-border focus:outline-none focus:border-primary"
                         >
-                          <option value="AGE">Edad del agua</option>
+                          <option value="AGE">{t('networkView.waterAge')}</option>
                           <option value="TRACE" disabled={fuentesDeTrazado.length === 0}>
-                            Trazador desde una fuente
+                            {t('networkView.tracerSource')}
                           </option>
-                          <option value="CHEMICAL">Sustancia del fichero</option>
+                          <option value="CHEMICAL">{t('networkView.fileSubstance')}</option>
                         </select>
                       </div>
                       {qualityParameter === 'TRACE' && (
                         <div className="bg-background p-2 rounded border">
-                          <div className="text-[10px] text-muted-foreground mb-1">Fuente que se traza</div>
+                          <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.traceSource')}</div>
                           <select
                             value={fuenteElegida}
                             onChange={(e) => setTraceNode(e.target.value)}
@@ -1354,12 +1356,12 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {isSimulating ? (
                       <>
                         <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Running Simulations...
+                        {t('networkView.runningSims')}
                       </>
                     ) : (
                       <>
                         <Play className="h-4 w-4 mr-2" />
-                        Run All Simulations
+                        {t('networkView.sim.run')}
                       </>
                     )}
                   </Button>
@@ -1372,58 +1374,58 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {simulationResults?.hydraulic?.data ? (
                       <Card>
                         <CardHeader className="p-3 pb-0">
-                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Hydraulic</CardTitle>
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">{t('networkView.sim.hydraulic')}</CardTitle>
                         </CardHeader>
                         <CardContent className="p-3 text-sm space-y-2">
                           <div className="flex justify-between">
-                            <span>Status:</span>
-                            <span className="font-medium text-green-600">Completed</span>
+                            <span>{t('networkView.sim.status')}</span>
+                            <span className="font-medium text-green-600">{t('networkView.sim.completed')}</span>
                           </div>
                           {/* Simular desde el visor no mide el tiempo de ejecución,
                               y la fila se quedaba en un «s» suelto. */}
                           {simulationResults.hydraulic.data.execution_time !== undefined && (
                             <div className="flex justify-between">
-                              <span>Duration:</span>
+                              <span>{t('networkView.sim.duration_')}</span>
                               <span className="font-mono">{simulationResults.hydraulic.data.execution_time.toFixed(2)}s</span>
                             </div>
                           )}
                           <div className="flex justify-between">
-                            <span>Nodes/Links:</span>
+                            <span>{t('networkView.sim.nodesLinks')}</span>
                             <span className="font-mono">{Object.keys(simulationResults.hydraulic.data.node_results || {}).length}/{Object.keys(simulationResults.hydraulic.data.link_results || {}).length}</span>
                           </div>
                           {/* Detailed Stats */}
                           {simulationResults.hydraulic.data.stats && (
                             <div className="pt-2 border-t space-y-2">
-                              <div className="text-[10px] text-muted-foreground font-semibold">PRESSURE (m)</div>
+                              <div className="text-[10px] text-muted-foreground font-semibold">{t('networkView.sim.pressure')}</div>
                               <div className="grid grid-cols-3 gap-1 text-xs">
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Min</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.min')}</div>
                                   <div className="font-mono">{simulationResults.hydraulic.data.stats.pressure?.min?.toFixed(2)}</div>
                                 </div>
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Avg</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.avg')}</div>
                                   <div className="font-mono">{simulationResults.hydraulic.data.stats.pressure?.mean?.toFixed(2)}</div>
                                 </div>
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Max</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.max')}</div>
                                   <div className="font-mono">{simulationResults.hydraulic.data.stats.pressure?.max?.toFixed(2)}</div>
                                 </div>
                               </div>
                               {/* El caudal sale del motor en m³/s y la cabecera promete l/s: sin
                                   convertir, una punta de 830 l/s se leía «0.83 l/s» (#77). */}
-                              <div className="text-[10px] text-muted-foreground font-semibold mt-2">FLOW (l/s) / VEL (m/s)</div>
+                              <div className="text-[10px] text-muted-foreground font-semibold mt-2">{t('networkView.sim.flowVel')}</div>
                               <div className="grid grid-cols-2 gap-1 text-xs">
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Max Flow</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.maxFlow')}</div>
                                   <div className="font-mono">{enUnidadDePresentacion(simulationResults.hydraulic.data.stats.flow?.max ?? 0, 'caudal').toFixed(2)}</div>
                                 </div>
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Max Vel</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.maxVel')}</div>
                                   <div className="font-mono">{simulationResults.hydraulic.data.stats.velocity?.max?.toFixed(2)}</div>
                                 </div>
                               </div>
                               <div className="flex justify-between text-xs mt-1">
-                                <div className="text-[10px] text-muted-foreground">Total Length</div>
+                                <div className="text-[10px] text-muted-foreground">{t('networkView.sim.totalLength')}</div>
                                 <div className="font-mono">{simulationResults.hydraulic.data.stats.flow?.total_demand?.toFixed(2)} km</div>
                               </div>
                             </div>
@@ -1434,12 +1436,12 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                       simulationResults?.hydraulic?.success === false ? (
                         <Alert variant="destructive" className="mt-2 text-xs">
                           <AlertCircle className="h-3 w-3 inline mr-1" />
-                          <span className="font-semibold">Error:</span> {simulationResults.hydraulic.error || "Unknown error"}
+                          <span className="font-semibold">{t('networkView.sim.error')}</span> {simulationResults.hydraulic.error || t('networkView.sim.unknownError')}
                         </Alert>
                       ) : (
                         !isSimulating && (
                           <div className="text-xs text-muted-foreground text-center p-4 border border-dashed rounded bg-muted/20">
-                            Results will appear here.
+                            {t('networkView.sim.empty')}
                           </div>
                         )
                       )
@@ -1449,7 +1451,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {simulationResults?.quality && (
                       <Card>
                         <CardHeader className="p-3 pb-0">
-                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Water Quality</CardTitle>
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">{t('networkView.sim.waterQuality')}</CardTitle>
                         </CardHeader>
                         <CardContent className="p-3 text-sm space-y-2">
                           {/* Cuando no se puede simular se dice por qué, en vez de
@@ -1464,11 +1466,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           ) : (
                             <>
                               <div className="flex justify-between">
-                                <span>Status:</span>
-                                <span className="font-medium text-green-600">Completed</span>
+                                <span>{t('networkView.sim.status')}</span>
+                                <span className="font-medium text-green-600">{t('networkView.sim.completed')}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span>Duration:</span>
+                                <span>{t('networkView.sim.duration_')}</span>
                                 <span className="font-mono">{simulationResults.quality.data.execution_time?.toFixed(2)}s</span>
                               </div>
                               {/* WQ Stats */}
@@ -1480,15 +1482,15 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                   </div>
                                   <div className="grid grid-cols-3 gap-1 text-xs">
                                     <div>
-                                      <div className="text-[9px] text-muted-foreground">Min</div>
+                                      <div className="text-[9px] text-muted-foreground">{t('networkView.sim.min')}</div>
                                       <div className="font-mono">{simulationResults.quality.data.stats.quality.min?.toFixed(2)}</div>
                                     </div>
                                     <div>
-                                      <div className="text-[9px] text-muted-foreground">Avg</div>
+                                      <div className="text-[9px] text-muted-foreground">{t('networkView.sim.avg')}</div>
                                       <div className="font-mono">{simulationResults.quality.data.stats.quality.mean?.toFixed(2)}</div>
                                     </div>
                                     <div>
-                                      <div className="text-[9px] text-muted-foreground">Max</div>
+                                      <div className="text-[9px] text-muted-foreground">{t('networkView.sim.max')}</div>
                                       <div className="font-mono">{simulationResults.quality.data.stats.quality.max?.toFixed(2)}</div>
                                     </div>
                                   </div>
@@ -1504,43 +1506,43 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {simulationResults?.scenario?.data && (
                       <Card>
                         <CardHeader className="p-3 pb-0">
-                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Scenario</CardTitle>
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">{t('networkView.scenario')}</CardTitle>
                         </CardHeader>
                         <CardContent className="p-3 text-sm space-y-2">
                           <div className="flex justify-between">
-                            <span>Status:</span>
-                            <span className="font-medium text-green-600">Completed</span>
+                            <span>{t('networkView.sim.status')}</span>
+                            <span className="font-medium text-green-600">{t('networkView.sim.completed')}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Duration:</span>
+                            <span>{t('networkView.sim.duration_')}</span>
                             <span className="font-mono">{simulationResults.scenario.data.execution_time?.toFixed(2)}s</span>
                           </div>
                           {/* Scenario Stats */}
                           {simulationResults.scenario.data.stats && (
                             <div className="pt-2 border-t space-y-2">
-                              <div className="text-[10px] text-muted-foreground font-semibold">PRESSURE (m)</div>
+                              <div className="text-[10px] text-muted-foreground font-semibold">{t('networkView.sim.pressure')}</div>
                               <div className="grid grid-cols-3 gap-1 text-xs">
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Min</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.min')}</div>
                                   <div className="font-mono">{simulationResults.scenario.data.stats.pressure?.min?.toFixed(2)}</div>
                                 </div>
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Mean</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.mean')}</div>
                                   <div className="font-mono">{simulationResults.scenario.data.stats.pressure?.mean?.toFixed(2)}</div>
                                 </div>
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Max</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.max')}</div>
                                   <div className="font-mono">{simulationResults.scenario.data.stats.pressure?.max?.toFixed(2)}</div>
                                 </div>
                               </div>
-                              <div className="text-[10px] text-muted-foreground font-semibold mt-2">FLOW (l/s) / VEL (m/s)</div>
+                              <div className="text-[10px] text-muted-foreground font-semibold mt-2">{t('networkView.sim.flowVel')}</div>
                               <div className="grid grid-cols-2 gap-1 text-xs">
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Max Flow</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.maxFlow')}</div>
                                   <div className="font-mono">{enUnidadDePresentacion(simulationResults.scenario.data.stats.flow?.max ?? 0, 'caudal').toFixed(2)}</div>
                                 </div>
                                 <div>
-                                  <div className="text-[9px] text-muted-foreground">Max Vel</div>
+                                  <div className="text-[9px] text-muted-foreground">{t('networkView.sim.maxVel')}</div>
                                   <div className="font-mono">{simulationResults.scenario.data.stats.velocity?.max?.toFixed(2)}</div>
                                 </div>
                               </div>
@@ -1563,7 +1565,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                 <div className="space-y-4">
                   <h3 className="font-semibold text-sm flex items-center gap-2">
                     <Target className="h-4 w-4 text-purple-500" />
-                    Network Analysis
+                    {t('networkView.analysis.title')}
                   </h3>
 
                   {/* Eficiencia energética del bombeo (#42) */}
@@ -1579,12 +1581,12 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {isAnalyzing ? (
                       <>
                         <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Analyzing...
+                        {t('networkView.analyzing')}
                       </>
                     ) : (
                       <>
                         <Target className="h-4 w-4 mr-2" />
-                        Run All Analyses
+                        {t('networkView.analysis.run')}
                       </>
                     )}
                   </Button>
@@ -1595,11 +1597,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {analysisResults.topology?.data && (
                       <Card>
                         <CardHeader className="p-3 pb-0">
-                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Topology</CardTitle>
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">{t('networkView.analysis.topology')}</CardTitle>
                         </CardHeader>
                         <CardContent className="p-3 text-sm space-y-1">
-                          <div className="flex justify-between"><span>Density:</span> <span className="font-mono">{analysisResults.topology.data.topology_metrics.basic_metrics?.density?.toFixed(4)}</span></div>
-                          <div className="flex justify-between"><span>Avg Degree:</span> <span className="font-mono">{analysisResults.topology.data.topology_metrics.basic_metrics?.average_degree?.toFixed(2)}</span></div>
+                          <div className="flex justify-between"><span>{t('networkView.analysis.density')}:</span> <span className="font-mono">{analysisResults.topology.data.topology_metrics.basic_metrics?.density?.toFixed(4)}</span></div>
+                          <div className="flex justify-between"><span>{t('networkView.analysis.avgDegree')}:</span> <span className="font-mono">{analysisResults.topology.data.topology_metrics.basic_metrics?.average_degree?.toFixed(2)}</span></div>
                         </CardContent>
                       </Card>
                     )}
@@ -1607,10 +1609,10 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {analysisResults.criticality?.data && (
                       <Card>
                         <CardHeader className="p-3 pb-0">
-                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Criticality</CardTitle>
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">{t('networkView.analysis.criticality')}</CardTitle>
                         </CardHeader>
                         <CardContent className="p-3 text-sm space-y-1">
-                          <div className="text-xs text-muted-foreground mb-1">Top Critical Nodes:</div>
+                          <div className="text-xs text-muted-foreground mb-1">{t('networkView.topCritical')}</div>
                           <div className="flex flex-wrap gap-1">
                             {analysisResults.criticality.data.criticality_analysis?.top_critical_nodes?.slice(0, 3).map((n: any) => (
                               <Badge
@@ -1630,16 +1632,16 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {analysisResults.resilience?.data && (
                       <Card>
                         <CardHeader className="p-3 pb-0">
-                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">Resilience</CardTitle>
+                          <CardTitle className="text-xs font-bold uppercase text-muted-foreground">{t('networkView.analysis.resilience')}</CardTitle>
                         </CardHeader>
                         <CardContent className="p-3 text-sm space-y-1">
                           {/* Accessing proper nested data based on known structure */}
                           <div className="flex justify-between">
-                            <span>Hydraulic:</span>
+                            <span>{t('networkView.analysis.hydraulic')}:</span>
                             <span className="font-mono">{analysisResults.resilience.data.resilience_metrics?.hydraulic?.todini_index?.toFixed(4) || 'N/A'}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Service:</span>
+                            <span>{t('networkView.analysis.service')}:</span>
                             {/* En porcentaje, como en el panel de indicadores: es
                                 una fracción de nudos, y la misma cifra salía aquí
                                 como 0.9812 y allí como 98,1 % (#89 · H3). */}
@@ -1663,20 +1665,20 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                 <div className="space-y-6">
                   <h3 className="font-semibold text-sm flex items-center gap-2">
                     <ShieldAlert className="h-4 w-4 text-amber-500" />
-                    Rutinas de Resiliencia
+                    {t('networkView.resilienceRun')}
                   </h3>
 
                   {/* Skeletonization (#24) */}
                   <div className="space-y-2 p-3 bg-muted/20 rounded-lg">
                     <h4 className="text-xs font-semibold flex items-center gap-2 text-foreground">
-                      <Scissors className="h-3.5 w-3.5" /> Esqueletización de Red
+                      <Scissors className="h-3.5 w-3.5" /> {t('networkView.skeletonTitle')}
                     </h4>
                     <p className="text-[11px] text-muted-foreground">
-                      Simplifica la red fusionando/eliminando tuberías bajo un diámetro umbral. Se guarda como un proyecto nuevo, sin modificar el original.
+                      {t('networkView.skeletonHint')}
                     </p>
-                    <AvisoDuracion>En redes grandes el proceso puede tardar cerca de un minuto.</AvisoDuracion>
+                    <AvisoDuracion>{t('networkView.nearMinute')}</AvisoDuracion>
                     <div className="bg-background p-2 rounded border">
-                      <div className="text-[10px] text-muted-foreground mb-1">Umbral de diámetro (mm)</div>
+                      <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.diameterThr')}</div>
                       <input
                         type="number"
                         min={0}
@@ -1687,9 +1689,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     </div>
                     <Button size="sm" className="w-full" onClick={handlePreviewSkeletonize} disabled={isSkeletonizing}>
                       {isSkeletonizing ? (
-                        <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> Esqueletizando...</>
+                        <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> {t('networkView.skeletonizing')}</>
                       ) : (
-                        <><Scissors className="h-3.5 w-3.5 mr-2" /> Ejecutar Esqueletización / Vista Previa</>
+                        <><Scissors className="h-3.5 w-3.5 mr-2" /> {t('networkView.runSkeleton')}</>
                       )}
                     </Button>
 
@@ -1704,14 +1706,14 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         <CardContent className="p-3 text-xs space-y-2">
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <div className="text-[10px] text-muted-foreground">Tuberías</div>
+                              <div className="text-[10px] text-muted-foreground">{t('networkView.pipes')}</div>
                               <div className="font-mono">
                                 {skeletonizePreview.before.pipes} → {skeletonizePreview.after.pipes}{' '}
                                 <span className="text-green-600">(-{skeletonizePreview.reduction.pipes_pct}%)</span>
                               </div>
                             </div>
                             <div>
-                              <div className="text-[10px] text-muted-foreground">Nudos</div>
+                              <div className="text-[10px] text-muted-foreground">{t('networkView.junctions')}</div>
                               <div className="font-mono">
                                 {skeletonizePreview.before.junctions} → {skeletonizePreview.after.junctions}{' '}
                                 <span className="text-green-600">(-{skeletonizePreview.reduction.junctions_pct}%)</span>
@@ -1719,10 +1721,10 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             </div>
                           </div>
                           <Button size="sm" className="w-full" onClick={handleSaveSkeletonizedAsScenario}>
-                            Guardar como escenario de esta red
+                            {t('networkView.saveAsScenario')}
                           </Button>
                           <Button size="sm" variant="outline" className="w-full" onClick={handleSaveSkeletonizedNetwork}>
-                            Guardar como proyecto aparte
+                            {t('networkView.saveAsProject')}
                           </Button>
                         </CardContent>
                       </Card>
@@ -1732,29 +1734,27 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                   {/* Service interruption simulation (#22) */}
                   <div className="space-y-2 p-3 bg-muted/20 rounded-lg border-t pt-4">
                     <h4 className="text-xs font-semibold flex items-center gap-2 text-foreground">
-                      <Zap className="h-3.5 w-3.5" /> Simulación de Interrupción del Servicio
+                      <Zap className="h-3.5 w-3.5" /> {t('networkView.outageTitle')}
                     </h4>
                     <p className="text-[11px] text-muted-foreground">
-                      Simula la falla de uno o más componentes (tubería, bomba, válvula) y estima el impacto
-                      sobre el servicio, en presiones y en habitantes sin agua. Una sola ejecución en modo PDA
-                      (demanda dependiente de la presión) devuelve ambos resultados.
+                      {t('networkView.outageIntro')}
                     </p>
                     <AvisoDuracion>
-                      Ejecuta una simulación hidráulica completa: en redes grandes puede tardar un minuto o más.
+                      {t('networkView.fullSimHint')}
                     </AvisoDuracion>
                     <div className="bg-background p-2 rounded border">
-                      <div className="text-[10px] text-muted-foreground mb-1">IDs de componentes (separados por coma)</div>
+                      <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.componentIds')}</div>
                       <input
                         type="text"
                         value={failureComponentIds}
                         onChange={(e) => setFailureComponentIds(e.target.value)}
-                        placeholder="ej. P-12, PUMP-1"
+                        placeholder={t('networkView.idsExample')}
                         className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">Inicio falla (h)</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.failureStart')}</div>
                         <input
                           type="number"
                           min={0}
@@ -1764,18 +1764,18 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         />
                       </div>
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">Restaurar en (h, opcional)</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.restoreAt')}</div>
                         <input
                           type="number"
                           min={0}
                           value={failureRestoreHours}
                           onChange={(e) => setFailureRestoreHours(e.target.value === '' ? '' : String(sinNegativos(e.target.value)))}
-                          placeholder="permanente"
+                          placeholder={t('networkView.permanent')}
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         />
                       </div>
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">Duración simulación (h)</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.simDuration')}</div>
                         <input
                           type="number"
                           min={0}
@@ -1785,7 +1785,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         />
                       </div>
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">Presión mínima (m)</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.minPressure')}</div>
                         <input
                           type="number"
                           min={0}
@@ -1795,7 +1795,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         />
                       </div>
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">Módulo de demanda (l/hab/día)</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.demandModule')}</div>
                         <input
                           type="number"
                           min={0}
@@ -1805,7 +1805,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         />
                       </div>
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">Umbral de servicio (0-1)</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.serviceThr')}</div>
                         <input
                           type="number"
                           min={0}
@@ -1817,7 +1817,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         />
                       </div>
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">Presión de servicio pleno (m)</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.fullPressure')}</div>
                         <input
                           type="number"
                           min={0}
@@ -1827,22 +1827,22 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         />
                       </div>
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">Hab./acometida (opcional)</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.perConnection')}</div>
                         <input
                           type="number"
                           min={0}
                           value={personsPerConnection}
                           onChange={(e) => setPersonsPerConnection(e.target.value === '' ? '' : String(sinNegativos(e.target.value)))}
-                          placeholder="sin clientes"
+                          placeholder={t('networkView.noCustomers')}
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         />
                       </div>
                     </div>
                     <Button size="sm" className="w-full" onClick={handleSimulateFailure} disabled={isSimulatingFailure}>
                       {isSimulatingFailure ? (
-                        <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> Simulando...</>
+                        <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> {t('networkView.simulating')}</>
                       ) : (
-                        <><Zap className="h-3.5 w-3.5 mr-2" /> Simular Interrupción</>
+                        <><Zap className="h-3.5 w-3.5 mr-2" /> {t('networkView.simulateOutage')}</>
                       )}
                     </Button>
 
@@ -1858,17 +1858,16 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           {failureResult.convergence_warnings && !failureResult.convergence_warnings.converged && (
                             <Alert variant="destructive" className="text-[11px]">
                               <AlertTriangle className="h-3 w-3 inline mr-1" />
-                              La simulación no convergió en todos los pasos. Las cifras de esos instantes
-                              no son fiables.
+                              {t('networkView.notConverged')}
                             </Alert>
                           )}
                           <div className="flex justify-between">
-                            <span>Nudos afectados:</span>
+                            <span>{t('networkView.affectedNodes')}</span>
                             <span className="font-mono">{failureResult.affected_node_count} / {failureResult.total_junction_count}</span>
                           </div>
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-[10px] text-muted-foreground">
-                              Resaltados en el mapa. Click en un nudo para quitarlo o volver a ponerlo.
+                              {t('networkView.highlighted')}
                             </span>
                             <Button
                               size="sm"
@@ -1892,7 +1891,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                 variant={highlightedComponents.includes(n.id) ? "default" : "outline"}
                                 className="text-[10px] h-5 cursor-pointer hover:bg-primary/20"
                                 onClick={() => setHighlightedComponents(prev => prev.includes(n.id) ? prev.filter(x => x !== n.id) : [...prev, n.id])}
-                                title={`Presión residual: ${n.min_pressure.toFixed(2)} m · ${impacto(n.outage_hours).toFixed(1)} h fuera de servicio`}
+                                title={t('networkView.residualPressure', { presion: n.min_pressure.toFixed(2), horas: impacto(n.outage_hours).toFixed(1) })}
                               >
                                 {n.id}
                               </Badge>
@@ -1904,18 +1903,18 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               {/* Lo atribuible al evento es la cifra que responde a la pregunta;
                                   el total incluye el déficit que la red ya tenía sin la falla. */}
                               <div className="pt-2 border-t">
-                                <div className="text-[10px] text-muted-foreground font-semibold">ATRIBUIBLE A LA INTERRUPCIÓN</div>
+                                <div className="text-[10px] text-muted-foreground font-semibold">{t('networkView.outageAttributable')}</div>
                                 <div className="grid grid-cols-3 gap-2 mt-1">
                                   <div>
-                                    <div className="text-[9px] text-muted-foreground">Habitantes</div>
+                                    <div className="text-[9px] text-muted-foreground">{t('networkView.people')}</div>
                                     <div className="font-mono text-sm">{impacto(failureResult.population.attributable_to_event.population_affected).toLocaleString()}</div>
                                   </div>
                                   <div>
-                                    <div className="text-[9px] text-muted-foreground">Nudos</div>
+                                    <div className="text-[9px] text-muted-foreground">{t('networkView.junctions')}</div>
                                     <div className="font-mono text-sm">{impacto(failureResult.population.attributable_to_event.affected_node_count)}</div>
                                   </div>
                                   <div>
-                                    <div className="text-[9px] text-muted-foreground">No entregado (m³)</div>
+                                    <div className="text-[9px] text-muted-foreground">{t('networkView.undelivered')}</div>
                                     <div className="font-mono text-sm">{impacto(failureResult.population.attributable_to_event.undelivered_volume_m3).toFixed(1)}</div>
                                   </div>
                                 </div>
@@ -1932,31 +1931,29 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               </div>
 
                               <div className="pt-2 border-t">
-                                <div className="text-[10px] text-muted-foreground font-semibold">TOTAL CON EL EVENTO</div>
+                                <div className="text-[10px] text-muted-foreground font-semibold">{t('networkView.totalWithEvent')}</div>
                                 <div className="grid grid-cols-3 gap-2 mt-1">
                                   <div>
-                                    <div className="text-[9px] text-muted-foreground">Habitantes</div>
+                                    <div className="text-[9px] text-muted-foreground">{t('networkView.people')}</div>
                                     <div className="font-mono text-sm">{impacto(failureResult.population.event.population_affected).toLocaleString()}</div>
                                   </div>
                                   <div>
-                                    <div className="text-[9px] text-muted-foreground">Déficit máx. (h)</div>
+                                    <div className="text-[9px] text-muted-foreground">{t('networkView.maxDeficit')}</div>
                                     <div className="font-mono text-sm">{impacto(failureResult.population.event.max_outage_hours).toFixed(1)}</div>
                                   </div>
                                   <div>
-                                    <div className="text-[9px] text-muted-foreground">No entregado (m³)</div>
+                                    <div className="text-[9px] text-muted-foreground">{t('networkView.undelivered')}</div>
                                     <div className="font-mono text-sm">{impacto(failureResult.population.event.undelivered_volume_m3).toFixed(1)}</div>
                                   </div>
                                 </div>
                                 <div className="text-[10px] text-muted-foreground mt-1">
-                                  Sin el evento la red ya dejaba sin servicio a{' '}
-                                  {impacto(failureResult.population.baseline.population_affected).toLocaleString()} hab. de un total de{' '}
-                                  {impacto(failureResult.population.total_population).toLocaleString()}.
+                                  {t('networkView.baselineAffected', { afectados: impacto(failureResult.population.baseline.population_affected).toLocaleString(), total: impacto(failureResult.population.total_population).toLocaleString() })}
                                 </div>
                               </div>
 
                               {failureResult.population.connections && (
                                 <div className="pt-2 border-t">
-                                  <div className="text-[10px] text-muted-foreground font-semibold">CLIENTES (ACOMETIDAS)</div>
+                                  <div className="text-[10px] text-muted-foreground font-semibold">{t('networkView.customers')}</div>
                                   <div className="font-mono text-sm">
                                     {failureResult.population.connections.affected_connections.toLocaleString()} de{' '}
                                     {failureResult.population.connections.total_connections.toLocaleString()}
@@ -1969,15 +1966,14 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
                               {failureResult.population.excluded_negative_demand_nodes?.length > 0 && (
                                 <div className="pt-2 border-t text-[10px] text-muted-foreground">
-                                  Excluidos {failureResult.population.excluded_negative_demand_nodes.length} nudo(s) con demanda
-                                  base negativa (fuentes modeladas como nudo de consumo):{' '}
+                                  {t('networkView.excludedNodes', { count: failureResult.population.excluded_negative_demand_nodes.length })}{' '}
                                   {failureResult.population.excluded_negative_demand_nodes.map((n: any) => n.id).join(', ')}.
                                 </div>
                               )}
 
                               {failureResult.population.event.affected_nodes?.length > 0 && (
                                 <div className="pt-2 border-t">
-                                  <div className="text-[10px] text-muted-foreground font-semibold mb-1">HABITANTES POR NUDO</div>
+                                  <div className="text-[10px] text-muted-foreground font-semibold mb-1">{t('networkView.peoplePerNode')}</div>
                                   <div className="max-h-40 overflow-y-auto space-y-1">
                                     {failureResult.population.event.affected_nodes.map((n: any) => (
                                       <div key={n.id} className="flex justify-between font-mono text-[11px]">
@@ -1993,11 +1989,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               )}
 
                               <div className="pt-2 border-t text-[10px] text-muted-foreground">
-                                Trazabilidad: {failureResult.population.traceability.demand_model} ·{' '}
+                                {t('networkView.traceability')} {failureResult.population.traceability.demand_model} ·{' '}
                                 {failureResult.population.traceability.simulator} · WNTR{' '}
                                 {failureResult.population.traceability.wntr_version} ·{' '}
-                                {failureResult.population.traceability.demand_module_lphd} l/hab/día · umbral{' '}
-                                {failureResult.population.traceability.availability_threshold} · presión de servicio{' '}
+                                {failureResult.population.traceability.demand_module_lphd} {t('networkView.demandModuleUnit')}{' '}
+                                {failureResult.population.traceability.availability_threshold} {t('networkView.servicePressure')}{' '}
                                 {failureResult.population.traceability.required_pressure_m} m
                               </div>
                             </>
@@ -2010,13 +2006,13 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                   {/* Resilience indicators (#23) */}
                   <div className="space-y-2 p-3 bg-muted/20 rounded-lg border-t pt-4">
                     <h4 className="text-xs font-semibold flex items-center gap-2 text-foreground">
-                      <Target className="h-3.5 w-3.5" /> Indicadores de Resiliencia
+                      <Target className="h-3.5 w-3.5" /> {t('networkView.resilienceInd')}
                     </h4>
                     <p className="text-[11px] text-muted-foreground">
-                      Índice de Todini, entropía de red y redundancia hidráulica. Compara antes/después del escenario de interrupción simulado arriba.
+                      {t('networkView.todiniHint')}
                     </p>
                     <AvisoDuracion>
-                      Con la comparación activada se simula dos veces la red, así que tarda aproximadamente el doble.
+                      {t('networkView.compareTwice')}
                     </AvisoDuracion>
                     <label className="flex items-center gap-2 text-xs">
                       <input
@@ -2029,9 +2025,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     </label>
                     <Button size="sm" className="w-full" onClick={handleCalculateResilienceIndicators} disabled={isCalculatingIndicators}>
                       {isCalculatingIndicators ? (
-                        <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> Calculando...</>
+                        <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> {t('networkView.calculating')}</>
                       ) : (
-                        <><Target className="h-3.5 w-3.5 mr-2" /> Calcular Indicadores</>
+                        <><Target className="h-3.5 w-3.5 mr-2" /> {t('networkView.calcIndicators')}</>
                       )}
                     </Button>
 
@@ -2047,14 +2043,14 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           <table className="w-full">
                             <thead>
                               <tr className="text-[10px] uppercase tracking-wide text-muted-foreground border-b border-border">
-                                <th className="text-left font-medium pb-1">Indicador</th>
+                                <th className="text-left font-medium pb-1">{t('networkView.indicator')}</th>
                                 {resilienceIndicatorsResult.after ? (
                                   <>
-                                    <th className="text-right font-medium pb-1">Antes</th>
-                                    <th className="text-right font-medium pb-1">Después</th>
+                                    <th className="text-right font-medium pb-1">{t('networkView.before')}</th>
+                                    <th className="text-right font-medium pb-1">{t('networkView.after')}</th>
                                   </>
                                 ) : (
-                                  <th className="text-right font-medium pb-1">Valor Actual</th>
+                                  <th className="text-right font-medium pb-1">{t('networkView.currentValue')}</th>
                                 )}
                               </tr>
                             </thead>
@@ -2100,7 +2096,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             </tbody>
                           </table>
                           <Button size="sm" className="w-full mt-2" onClick={handleExportResilienceCSV}>
-                            <Download className="h-3 w-3 mr-2" /> Exportar CSV
+                            <Download className="h-3 w-3 mr-2" /> {t('networkView.exportCsv')}
                           </Button>
                         </CardContent>
                       </Card>
@@ -2110,14 +2106,14 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                   {/* Fragility curve (#25) */}
                   <div className="space-y-2 p-3 bg-muted/20 rounded-lg border-t pt-4">
                     <h4 className="text-xs font-semibold flex items-center gap-2 text-foreground">
-                      <AlertTriangle className="h-3.5 w-3.5" /> Curva de Fragilidad (Sismo)
+                      <AlertTriangle className="h-3.5 w-3.5" /> {t('networkView.fragilityCurve')}
                     </h4>
                     <p className="text-[11px] text-muted-foreground">
                       Probabilidad de falla de tubería vs. intensidad sísmica (PGV). Modelo genérico ALA (2001) por material —{' '}
-                      <strong>requiere validación de un experto APyS antes de usarse en decisiones reales.</strong>
+                      <strong>{t('networkView.expertReview')}</strong>
                     </p>
                     <AvisoDuracion>
-                      Evalúa la curva sobre todas las tuberías: en redes grandes puede tardar cerca de un minuto.
+                      {t('networkView.curveAllPipes')}
                     </AvisoDuracion>
                     {/**
                       * De dónde sacar la intensidad (#94, punto 3 del Dr. Mora).
@@ -2128,53 +2124,52 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                       * inventado en la casilla, y la curva hereda ese número.
                       */}
                     <p className="text-[10px] text-muted-foreground">
-                      ¿De dónde sale la intensidad? Las normativas de América Latina y el Caribe no
-                      suelen dar PGV. Puede tomarla de los modelos globales del{' '}
+                      {t('networkView.hazardSourceHelp')}{' '}
                       <a
                         href="https://hazard.openquake.org/gem/models/"
                         target="_blank"
                         rel="noreferrer"
                         className="underline hover:text-foreground"
-                      >GEM</a>{' '}o de su{' '}
+                      >{t('networkView.hazardSourceModels')}</a>{' · '}
                       <a
                         href="https://hazard.openquake.org/gem/images/home/gem_global_seismic_hazard_map_v2018.1.pdf"
                         target="_blank"
                         rel="noreferrer"
                         className="underline hover:text-foreground"
-                      >mapa global de amenaza sísmica</a>, y si solo tiene PGA, use la entrada
-                      en PGA con la clase de suelo del emplazamiento.
+                      >{t('networkView.hazardSourceMap')}</a>
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">Material predominante</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.mainMaterial')}</div>
                         <select
                           value={fragilityMaterial}
                           onChange={(e) => setFragilityMaterial(e.target.value)}
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         >
                           <option value="PVC">PVC</option>
-                          <option value="HDPE">PEAD/HDPE</option>
-                          <option value="DI">Hierro Dúctil</option>
-                          <option value="CI">Hierro Fundido</option>
-                          <option value="AC">Asbesto-Cemento</option>
-                          <option value="STEEL">Acero</option>
-                          <option value="CONCRETE">Concreto</option>
-                          <option value="DEFAULT">Genérico</option>
+                          <option value="HDPE">{t('networkView.matHdpe')}</option>
+                          <option value="DI">{t('networkView.matDuctile')}</option>
+                          <option value="CI">{t('networkView.matCast')}</option>
+                          <option value="AC">{t('networkView.matAsbestos')}</option>
+                          <option value="STEEL">{t('networkView.matSteel')}</option>
+                          <option value="CONCRETE">{t('networkView.matConcrete')}</option>
+                          <option value="DEFAULT">{t('networkView.matGeneric')}</option>
                         </select>
                       </div>
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">Modelo de daño</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.damageModel')}</div>
                         <select
                           value={fragilityModel}
                           onChange={(e) => setFragilityModel(e.target.value as typeof fragilityModel)}
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         >
+                          {/* Nombres de norma: no se traducen. */}
                           <option value="HAZUS_MH">FEMA/HAZUS-MH (2003)</option>
                           <option value="ALA_2001">ALA (2001)</option>
                         </select>
                       </div>
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">Intensidad de entrada</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.hazardInput')}</div>
                         <select
                           value={fragilityHazard}
                           onChange={(e) => {
@@ -2185,27 +2180,28 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           }}
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         >
+                          {/* Siglas de la magnitud, iguales en los tres idiomas. */}
                           <option value="seismic_pgv">PGV (cm/s)</option>
                           <option value="seismic_pga">PGA (g)</option>
                         </select>
                       </div>
                       {fragilityHazard === 'seismic_pga' && (
                         <div className="bg-background p-2 rounded border">
-                          <div className="text-[10px] text-muted-foreground mb-1">Clase de suelo</div>
+                          <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.soilClass')}</div>
                           <select
                             value={fragilitySoil}
                             onChange={(e) => setFragilitySoil(e.target.value as typeof fragilitySoil)}
                             className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                           >
-                            <option value="rock">Roca (Vs30 &gt; 760 m/s)</option>
-                            <option value="stiff_soil">Firme (360–760 m/s)</option>
-                            <option value="soft_soil">Blando (&lt; 360 m/s)</option>
+                            <option value="rock">{t('networkView.soilRock')}</option>
+                            <option value="stiff_soil">{t('networkView.soilStiff')}</option>
+                            <option value="soft_soil">{t('networkView.soilSoft')}</option>
                           </select>
                         </div>
                       )}
                       <div className="bg-background p-2 rounded border">
                         <div className="text-[10px] text-muted-foreground mb-1">
-                          {fragilityHazard === 'seismic_pga' ? 'PGA máximo (g)' : 'PGV máximo (cm/s)'}
+                          {fragilityHazard === 'seismic_pga' ? t('networkView.maxPga') : t('networkView.maxPgv')}
                         </div>
                         <input
                           type="number"
@@ -2229,17 +2225,14 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {fragilityHazard === 'seismic_pga' && (
                       <div className="space-y-1 p-2 rounded border bg-background/60">
                         <div className="text-[10px] font-medium">
-                          Tanques y bombas — coeficientes en PGA (opcional)
+                          {t('networkView.componentsTitle')}
                         </div>
                         <p className="text-[10px] text-muted-foreground">
-                          Mediana en g al 50 % de probabilidad. No traen valor por defecto: no
-                          hay una tabla publicada que podamos citar para estos componentes, así
-                          que se dejan a criterio de quien conozca su región. En blanco, no se
-                          dibuja la curva.
+                          {t('networkView.componentsHelp')}
                         </p>
                         <div className="grid grid-cols-2 gap-2 pt-1">
                           <label className="text-[10px] text-muted-foreground">
-                            Tanque DS1 — fuga menor
+                            {t('networkView.tankDs1')}
                             <input
                               type="number" step="0.01" min={0} placeholder="—"
                               value={coefTanqueDS1}
@@ -2248,7 +2241,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             />
                           </label>
                           <label className="text-[10px] text-muted-foreground">
-                            Tanque DS2 — fuga mayor
+                            {t('networkView.tankDs2')}
                             <input
                               type="number" step="0.01" min={0} placeholder="—"
                               value={coefTanqueDS2}
@@ -2257,7 +2250,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             />
                           </label>
                           <label className="text-[10px] text-muted-foreground">
-                            Bomba — fuera de servicio
+                            {t('networkView.pumpDs')}
                             <input
                               type="number" step="0.01" min={0} placeholder="—"
                               value={coefBomba}
@@ -2266,7 +2259,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             />
                           </label>
                           <label className="text-[10px] text-muted-foreground">
-                            Dispersión β (los tres)
+                            {t('networkView.dispersionBeta')}
                             <input
                               type="number" step="0.05" min={0}
                               value={coefBeta}
@@ -2276,20 +2269,20 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           </label>
                         </div>
                         <p className="text-[10px] text-muted-foreground pt-1">
-                          Para encontrar coeficientes de su región, vea los anexos 5A y 5B del{' '}
+                          {t('networkView.coefWhere')}{' '}
                           <a
                             href="https://github.com/Boorie-AI/boorie_cliente/issues/94"
                             target="_blank" rel="noreferrer"
                             className="underline hover:text-foreground"
-                          >issue #94</a>.
+                          >{t('networkView.coefWhereLink')}</a>.
                         </p>
                       </div>
                     )}
                     <Button size="sm" className="w-full" onClick={handleGenerateFragilityCurve} disabled={isGeneratingFragility}>
                       {isGeneratingFragility ? (
-                        <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> Generando...</>
+                        <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> {t('networkView.generating')}</>
                       ) : (
-                        <><AlertTriangle className="h-3.5 w-3.5 mr-2" /> Generar Curva</>
+                        <><AlertTriangle className="h-3.5 w-3.5 mr-2" /> {t('networkView.generateCurve')}</>
                       )}
                     </Button>
 
@@ -2383,7 +2376,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           </div>
                           <div className="flex justify-between">
                             <span>
-                              Tuberías afectadas esperadas ({fragilityResult.intensity_unit === 'g' ? 'PGA' : 'PGV'} máx.):
+                              {fragilityResult.intensity_unit === 'g'
+                                ? t('networkView.expectedPipesPga')
+                                : t('networkView.expectedPipes')}
                             </span>
                             <span className="font-mono">
                               {fragilityResult.expected_failed_pipes[fragilityResult.expected_failed_pipes.length - 1]?.toFixed(1)} / {fragilityResult.pipe_count}
@@ -2406,7 +2401,10 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           ) && (
                             <div className="pt-1 border-t space-y-1">
                               <div className="text-[11px] font-medium">
-                                Tanques ({fragilityResult.components.tank_count}) y bombas ({fragilityResult.components.pump_count})
+                                {t('networkView.componentsChart', {
+                                  tanques: fragilityResult.components.tank_count,
+                                  bombas: fragilityResult.components.pump_count,
+                                })}
                               </div>
                               <div className="h-36">
                                 <Line
@@ -2414,26 +2412,26 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                     labels: fragilityResult.intensities.map((v: number) => v.toFixed(2)),
                                     datasets: [
                                       {
-                                        label: 'Tubería',
+                                        label: t('networkView.seriesPipe'),
                                         data: fragilityResult.pipe_failure_probability,
                                         borderColor: 'rgb(234, 88, 12)',
                                         borderWidth: 2, pointRadius: 0, tension: 0.3,
                                       },
                                       ...(fragilityResult.components.tank_ds1 ? [{
-                                        label: 'Tanque DS1',
+                                        label: t('networkView.seriesTankDs1'),
                                         data: fragilityResult.components.tank_ds1.probability,
                                         borderColor: 'rgb(37, 99, 235)',
                                         borderWidth: 2, pointRadius: 0, tension: 0.3,
                                       }] : []),
                                       ...(fragilityResult.components.tank_ds2 ? [{
-                                        label: 'Tanque DS2',
+                                        label: t('networkView.seriesTankDs2'),
                                         data: fragilityResult.components.tank_ds2.probability,
                                         borderColor: 'rgb(37, 99, 235)',
                                         borderDash: [4, 3],
                                         borderWidth: 2, pointRadius: 0, tension: 0.3,
                                       }] : []),
                                       ...(fragilityResult.components.pump_ds ? [{
-                                        label: 'Bomba',
+                                        label: t('networkView.seriesPump'),
                                         data: fragilityResult.components.pump_ds.probability,
                                         borderColor: 'rgb(22, 163, 74)',
                                         borderWidth: 2, pointRadius: 0, tension: 0.3,
@@ -2449,13 +2447,13 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                     },
                                     scales: {
                                       x: { title: { display: true, text: 'PGA (g)', font: { size: 9 } }, ticks: { maxTicksLimit: 6, font: { size: 9 } } },
-                                      y: { min: 0, max: 1, title: { display: true, text: 'Prob. de exceder (0–1)', font: { size: 9 } }, ticks: { font: { size: 9 } } },
+                                      y: { min: 0, max: 1, title: { display: true, text: t('networkView.probExceed'), font: { size: 9 } }, ticks: { font: { size: 9 } } },
                                     },
                                   }}
                                 />
                               </div>
                               <div className="text-[10px] text-muted-foreground">
-                                Coeficientes aportados por el usuario, no publicados por Boorie.
+                                {t('networkView.userCoefficients')}
                               </div>
                             </div>
                           )}
@@ -2478,7 +2476,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             <div className="space-y-1 pt-1 border-t">
                               <div className="flex items-center gap-2">
                                 <span className="text-[11px] font-medium">
-                                  Reparto por diámetro a {fragilityResult.intensity_unit === 'g' ? 'PGA' : 'PGV'}
+                                  {fragilityResult.intensity_unit === 'g'
+                                    ? t('networkView.byDiameterPga')
+                                    : t('networkView.byDiameterPgv')}
                                 </span>
                                 <select
                                   className="text-[11px] border rounded px-1 py-0.5 bg-background"
@@ -2499,11 +2499,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                 <table className="w-full text-[10px] tabular-nums">
                                   <thead className="text-muted-foreground">
                                     <tr>
-                                      <th className="text-left font-medium py-0.5">Diám. (mm)</th>
-                                      <th className="text-right font-medium py-0.5">Tuberías</th>
-                                      <th className="text-right font-medium py-0.5">Long. (km)</th>
-                                      <th className="text-right font-medium py-0.5">Afectadas</th>
-                                      <th className="text-right font-medium py-0.5">km afect.</th>
+                                      <th className="text-left font-medium py-0.5">{t('networkView.colDiameter')}</th>
+                                      <th className="text-right font-medium py-0.5">{t('networkView.pipes')}</th>
+                                      <th className="text-right font-medium py-0.5">{t('networkView.colLength')}</th>
+                                      <th className="text-right font-medium py-0.5">{t('networkView.colAffected')}</th>
+                                      <th className="text-right font-medium py-0.5">{t('networkView.colAffectedKm')}</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -2517,7 +2517,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                       </tr>
                                     ))}
                                     <tr className="border-t font-medium">
-                                      <td className="py-0.5">Total</td>
+                                      <td className="py-0.5">{t('networkView.colTotal')}</td>
                                       <td className="text-right py-0.5">{fragilityResult.pipe_count}</td>
                                       <td className="text-right py-0.5">{fragilityResult.total_length_km.toFixed(2)}</td>
                                       <td className="text-right py-0.5">
@@ -2534,7 +2534,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           )}
                           <div className="text-[10px] text-muted-foreground italic">{fragilityResult.methodology}</div>
                           <Button size="sm" className="w-full mt-2" onClick={handleExportFragilityCSV}>
-                            <Download className="h-3 w-3 mr-2" /> Exportar CSV
+                            <Download className="h-3 w-3 mr-2" /> {t('networkView.exportCsv')}
                           </Button>
                         </CardContent>
                       </Card>
@@ -2610,11 +2610,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                 try {
                   const carga = await window.electronAPI.wntr.loadINPFromPath(res.filePath);
                   if (!carga?.success) {
-                    setError(carga?.error || 'La red restaurada se puede ver, pero no se pudo preparar para simular.');
+                    setError(carga?.error || t('messages.restoredNotSim'));
                   }
                 } catch (err) {
                   logger.warn('No se pudo recargar el .inp restaurado:', err);
-                  setError('La red restaurada se puede ver, pero no se pudo preparar para simular.');
+                  setError(t('messages.restoredNotSim'));
                 }
               }
             }

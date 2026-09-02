@@ -11,6 +11,7 @@
  * Aquí la escala sale de los datos del paso que se está mostrando.
  */
 
+import i18n from '@/i18n'
 import { valorEnPaso, type DatosRed, type ResultadosSimulacion } from './topologia'
 import { formatearMagnitud, unidadDe, type Magnitud } from './unidades'
 
@@ -138,9 +139,9 @@ export function construirEscala(
         return COLOR_PRESION.normal
       },
       leyenda: [
-        { color: COLOR_PRESION.baja, etiqueta: `Menos de ${PRESION_BAJA} m` },
-        { color: COLOR_PRESION.normal, etiqueta: `Entre ${PRESION_BAJA} y ${PRESION_ALTA} m` },
-        { color: COLOR_PRESION.alta, etiqueta: `Más de ${PRESION_ALTA} m` },
+        { color: COLOR_PRESION.baja, etiqueta: i18n.t('viewer.legendBelow', { valor: PRESION_BAJA }) },
+        { color: COLOR_PRESION.normal, etiqueta: i18n.t('viewer.legendBetween', { min: PRESION_BAJA, max: PRESION_ALTA }) },
+        { color: COLOR_PRESION.alta, etiqueta: i18n.t('viewer.legendAbove', { valor: PRESION_ALTA }) },
       ],
     }
   }

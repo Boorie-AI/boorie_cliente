@@ -8,6 +8,7 @@
  * no calcular.
  */
 
+import { TextoDelMotor } from '../../../src/services/hydraulic/textoDelMotor'
 import { spawn } from 'child_process'
 import { createLogger } from '../../utils/logger'
 import { findPythonPath } from './pythonDetector'
@@ -19,7 +20,7 @@ const logger = createLogger('WNTREnergyService')
 
 /** Lo que se sabe de la eficiencia con la que trabaja una bomba. */
 export interface EficienciaBomba {
-  origen: string
+  origen: TextoDelMotor
   media_pct: number
   minima_pct: number
   maxima_pct: number
@@ -55,7 +56,7 @@ export interface ResumenEnergetico {
   tarifa_aplicada: TarifaElectrica
   trazabilidad: {
     eficiencia_global_pct: number
-    origen_eficiencia: string
+    origen_eficiencia: TextoDelMotor
     curvas_de_eficiencia: string
     metrica: string
     simulador: string
@@ -73,12 +74,14 @@ export interface AnalisisEnergeticoResult {
     convergence_warnings: { event: string[]; converged: boolean }
   }
   error?: string
+  /** Cuando el fallo lo nombra el motor, viene su clave y no una frase (#96). */
+  errorKey?: string
 }
 
 export interface VerificacionAhorroResult {
   success: boolean
   data?: {
-    medidas: Array<{ indice: number; tipo: string; aplicado: boolean; elementos?: string[]; metodo?: string; omitidos: Array<{ id: string; motivo: string }> }>
+    medidas: Array<{ indice: number; tipo: string; aplicado: boolean; elementos?: string[]; metodo?: string; omitidos: Array<{ id: string; motivo: TextoDelMotor }> }>
     antes: ResumenEnergetico
     despues: ResumenEnergetico
     ahorro: {
@@ -87,7 +90,7 @@ export interface VerificacionAhorroResult {
       moneda: string
       porcentaje_energia: number
       /** Siempre 'simulado': es la marca de que la cifra viene de WNTR. */
-      origen: string
+      origen: TextoDelMotor
     }
     /** Lo que la medida le cuesta al servicio: un ahorro no se reporta sin su contrapartida. */
     impacto_en_servicio: {
@@ -101,7 +104,8 @@ export interface VerificacionAhorroResult {
     convergence_warnings: { baseline: string[]; event: string[]; converged: boolean }
   }
   error?: string
-  medidas?: Array<{ indice: number; tipo: string; aplicado: boolean; omitidos: Array<{ id: string; motivo: string }> }>
+  errorKey?: string
+  medidas?: Array<{ indice: number; tipo: string; aplicado: boolean; omitidos: Array<{ id: string; motivo: TextoDelMotor }> }>
 }
 
 interface OpcionesEnergia {

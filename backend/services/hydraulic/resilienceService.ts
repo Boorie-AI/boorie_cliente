@@ -4,6 +4,7 @@
  * and seismic fragility curves (epic #26: "Rutinas de resiliencia WNTR").
  */
 
+import { TextoDelMotor } from '../../../src/services/hydraulic/textoDelMotor'
 import { spawn } from 'child_process';
 import { createLogger } from '../../utils/logger';
 import { findPythonPath } from './pythonDetector';
@@ -145,7 +146,7 @@ export interface EventoAplicado {
   elementos?: string[]
   /** Cómo se modeló: varios eventos admiten más de una forma y la cifra depende de cuál. */
   metodo?: string
-  omitidos: Array<{ id: string; motivo: string }>
+  omitidos: Array<{ id: string; motivo: TextoDelMotor }>
   desde_h?: number
   hasta_h?: number | null
 }

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import { useChatStore } from '@/stores/chatStore'
@@ -15,6 +16,7 @@ interface ProjectSelectorProps {
 }
 
 export function ProjectSelector({ selectedProjectId, onProjectSelect, className }: ProjectSelectorProps) {
+  const { t } = useTranslation()
   const [projects, setProjects] = useState<HydraulicProject[]>([])
   const [loading, setLoading] = useState(true)
   const activeConversationId = useChatStore(state => state.activeConversationId)
@@ -61,7 +63,7 @@ export function ProjectSelector({ selectedProjectId, onProjectSelect, className 
           <div className="flex items-center gap-2">
             <FolderOpen size={14} className="text-muted-foreground" />
             <Select.Value>
-              {currentProject?.name || "No project selected"}
+              {currentProject?.name || t('chatInput.pickProject')}
             </Select.Value>
           </div>
           <ChevronDown size={14} className="text-muted-foreground" />
@@ -86,7 +88,7 @@ export function ProjectSelector({ selectedProjectId, onProjectSelect, className 
                   "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
                 )}
               >
-                <Select.ItemText>No project</Select.ItemText>
+                <Select.ItemText>{t('chatInput.noProject')}</Select.ItemText>
                 <Select.ItemIndicator className="ml-auto">
                   <Check size={14} />
                 </Select.ItemIndicator>
@@ -98,11 +100,11 @@ export function ProjectSelector({ selectedProjectId, onProjectSelect, className 
               
               {loading ? (
                 <div className="px-3 py-2 text-sm text-muted-foreground">
-                  Loading projects...
+                  {t('chatInput.loadingProjects')}
                 </div>
               ) : projects.length === 0 ? (
                 <div className="px-3 py-2 text-sm text-muted-foreground">
-                  No projects available
+                  {t('chatInput.noProjects')}
                 </div>
               ) : (
                 projects.map(project => (
@@ -147,7 +149,7 @@ export function ProjectSelector({ selectedProjectId, onProjectSelect, className 
             "hover:bg-accent/50 hover:text-foreground transition-colors",
             "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           )}
-          title="Clear project selection"
+          title={t('chatInput.clearProject')}
         >
           <X size={14} />
         </button>

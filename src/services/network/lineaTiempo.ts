@@ -1,3 +1,4 @@
+import i18n from '@/i18n'
 /**
  * Eje temporal de una simulación (#45).
  *
@@ -110,7 +111,7 @@ export function etiquetaPaso(
   const dia = Math.floor(absoluto / 86400)
   const hora = hhmmss(absoluto % 86400)
 
-  return dia > 0 ? `${hora} (día ${dia + 1})` : hora
+  return dia > 0 ? i18n.t('viewer.dayNumber', { hora, dia: dia + 1 }) : hora
 }
 
 /** Etiqueta corta para el eje: horas y minutos, sin segundos. */

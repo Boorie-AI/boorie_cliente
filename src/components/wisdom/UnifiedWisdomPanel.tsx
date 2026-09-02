@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import { useProjectStore } from '@/stores/projectStore'
@@ -71,7 +72,7 @@ interface EmbeddingProvider {
 type ViewMode = 'grid' | 'list'
 
 export function UnifiedWisdomPanel() {
-  // const { t } = useTranslation()
+  const { t } = useTranslation()
 
   // State for documents and catalog
   const [wisdomDocuments, setWisdomDocuments] = useState<WisdomDocument[]>([])
@@ -137,27 +138,27 @@ export function UnifiedWisdomPanel() {
   // Helper function to get indexing status component
   const getIndexingStatusComponent = (indexing?: IndexingStatus) => {
     if (!indexing) {
-      return <span className="text-xs text-muted-foreground">⚪ Status unknown</span>
+      return <span className="text-xs text-muted-foreground">⚪ {t('wisdom.statusUnknown')}</span>
     }
 
     switch (indexing.status) {
       case 'completed':
         return (
           <div className="flex items-center gap-1">
-            <span className="text-xs text-green-600 font-medium">✅ Indexed</span>
-            <span className="text-xs text-muted-foreground">({indexing.totalChunks} chunks)</span>
+            <span className="text-xs text-green-600 font-medium">✅ {t('wisdom.indexed')}</span>
+            <span className="text-xs text-muted-foreground">{t('wisdom.chunksCount', { count: indexing.totalChunks })}</span>
           </div>
         )
       case 'partial':
         return (
           <div className="flex items-center gap-1">
-            <span className="text-xs text-yellow-600 font-medium">🔄 Partial</span>
+            <span className="text-xs text-yellow-600 font-medium">🔄 {t('wisdom.partial')}</span>
             <span className="text-xs text-muted-foreground">({indexing.chunksWithEmbeddings}/{indexing.totalChunks})</span>
           </div>
         )
       case 'not_indexed':
       default:
-        return <span className="text-xs text-red-600 font-medium">❌ Not Indexed</span>
+        return <span className="text-xs text-red-600 font-medium">❌ {t('wisdom.notIndexed')}</span>
     }
   }
 
@@ -542,7 +543,7 @@ export function UnifiedWisdomPanel() {
       }
     } catch (error) {
       logger.error('Error changing embedding provider:', error)
-      showNotification('Error changing embedding provider', 'error')
+      showNotification(t('messages.providerChanged'), 'error')
     } finally {
       setProviderChangeLoading(false)
     }
@@ -552,7 +553,7 @@ export function UnifiedWisdomPanel() {
   const handleUpload = async () => {
     // Check if electronAPI is available
     if (!window.electronAPI || !window.electronAPI.wisdom) {
-      showNotification('Error: Electron API not available. Please restart the application.', 'error')
+      showNotification(t('messages.noApi'), 'error')
       return
     }
 
@@ -591,7 +592,7 @@ export function UnifiedWisdomPanel() {
       }
     } catch (error) {
       logger.error('Error uploading documents:', error)
-      showNotification('Error uploading documents. Please check the console for details.', 'error')
+      showNotification(t('messages.uploadFailed'), 'error')
     } finally {
       setLoading(false)
       setUploadProgress(null) // Reset on finish
@@ -603,7 +604,7 @@ export function UnifiedWisdomPanel() {
 
     // Check if electronAPI is available
     if (!window.electronAPI || !window.electronAPI.wisdom) {
-      showNotification('Error: Electron API not available. Please restart the application.', 'error')
+      showNotification(t('messages.noApi'), 'error')
       return
     }
 
@@ -621,18 +622,18 @@ export function UnifiedWisdomPanel() {
       if (result.success) {
         // setSearchResults(result.results || [])
         // Show search results in a modal or overlay instead of switching tabs
-        showNotification(`Found ${result.results?.length || 0} relevant documents using semantic search`, 'success')
+        showNotification(t('messages.searchFound', { count: result.results?.length || 0 }), 'success')
       }
     } catch (error) {
       logger.error('Error searching documents:', error)
-      showNotification('Error performing semantic search. Please try again.', 'error')
+      showNotification(t('messages.searchFailed'), 'error')
     } finally {
       setLoading(false)
     }
   }
 
   const handleDelete = async (documentId: string) => {
-    if (!confirm('Are you sure you want to delete this document?')) return
+    if (!confirm(t('messages.confirmDeleteDoc'))) return
 
     setLoading(true)
     try {
@@ -661,9 +662,9 @@ export function UnifiedWisdomPanel() {
         includeContent: false,
       })
       if (result.success) {
-        showNotification(`Exported ${result.exportedCount} documents successfully.`, 'success')
+        showNotification(t('messages.exportedOk', { count: result.exportedCount }), 'success')
       } else {
-        showNotification(`Export failed: ${result.message}`, 'error')
+        showNotification(t('messages.exportFailed', { motivo: result.message }), 'error')
       }
     } catch (error) {
       logger.error('Export error:', error)
@@ -722,7 +723,7 @@ export function UnifiedWisdomPanel() {
   }, [apiAvailable])
 
   const handleForceIndex = async (documentId: string) => {
-    if (!confirm('Force reindexing will delete existing chunks and recreate them. Continue?')) return
+    if (!confirm(t('messages.confirmReindex'))) return
 
     setLoading(true)
     try {
@@ -736,10 +737,10 @@ export function UnifiedWisdomPanel() {
           await loadWisdomDocuments() // Refresh the list
           // El mensaje trae el número de fragmentos indexados: sin ese dato, un
           // "reindexado con éxito" podía significar cero chunks creados.
-          showNotification(result.message || 'Document reindexed successfully!', 'success')
+          showNotification(result.message || t('messages.reindexedOk'), 'success')
         } else {
           logger.error('❌ Reindexing failed:', result.message)
-          showNotification(`Reindexing failed: ${result.message}`, 'error')
+          showNotification(t('messages.reindexFailed', { motivo: result.message }), 'error')
         }
       } else {
         // Fallback: use update to trigger reprocessing
@@ -747,15 +748,15 @@ export function UnifiedWisdomPanel() {
         if (result.success) {
           logger.debug('✅ Document updated/reindexed successfully')
           await loadWisdomDocuments()
-          showNotification('Document reindexed successfully!', 'success')
+          showNotification(t('messages.reindexedOk'), 'success')
         } else {
           logger.error('❌ Reindexing failed:', result.message)
-          showNotification(`Reindexing failed: ${result.message}`, 'error')
+          showNotification(t('messages.reindexFailed', { motivo: result.message }), 'error')
         }
       }
     } catch (error) {
       logger.error('Error reindexing document:', error)
-      showNotification('Error reindexing document. Check console for details.', 'error')
+      showNotification(t('messages.reindexError'), 'error')
     } finally {
       setLoading(false)
     }
@@ -764,11 +765,11 @@ export function UnifiedWisdomPanel() {
   const handleBulkDelete = async () => {
     const selectedCount = selectedDocuments.size
     if (selectedCount === 0) {
-      showNotification('No documents selected for deletion', 'error')
+      showNotification(t('messages.noneSelected'), 'error')
       return
     }
 
-    if (!confirm(`Are you sure you want to delete ${selectedCount} selected documents? This action cannot be undone.`)) {
+    if (!confirm(t('messages.confirmDeleteMany', { count: selectedCount }))) {
       return
     }
 
@@ -797,13 +798,13 @@ export function UnifiedWisdomPanel() {
       await loadWisdomDocuments()
 
       if (errors === 0) {
-        showNotification(`Successfully deleted ${deleted} documents`, 'success')
+        showNotification(t('messages.deletedOk', { count: deleted }), 'success')
       } else {
-        showNotification(`Deleted ${deleted} documents with ${errors} errors`, 'error')
+        showNotification(t('messages.deletedWithErrors', { count: deleted, errores: errors }), 'error')
       }
     } catch (error) {
       logger.error('Error in bulk delete:', error)
-      showNotification('Error during bulk delete operation', 'error')
+      showNotification(t('messages.deleteFailed'), 'error')
     } finally {
       setLoading(false)
     }
@@ -845,12 +846,12 @@ export function UnifiedWisdomPanel() {
           <div className="flex items-center justify-center h-96">
             <div className="text-center">
               <div className="w-16 h-16 border-4 border-destructive/30 border-t-destructive rounded-full animate-spin mx-auto mb-4"></div>
-              <h2 className="text-xl font-semibold text-foreground mb-2">Initializing Wisdom Center</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-2">{t('wisdom.initializing')}</h2>
               <p className="text-muted-foreground mb-4">
-                Connecting to Electron API... Please wait.
+                {t('wisdom.connecting')}
               </p>
               <p className="text-sm text-muted-foreground">
-                If this persists, try restarting the application.
+                {t('wisdom.retryHint')}
               </p>
             </div>
           </div>
@@ -875,7 +876,7 @@ export function UnifiedWisdomPanel() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-foreground">💡 Unified Wisdom Center</h1>
+          <h1 className="text-3xl font-bold text-foreground">💡 {t('wisdom.header')}</h1>
           <div className="flex items-center gap-2">
             {/* View Mode Toggle */}
             <div className="flex border border-border rounded-lg">
@@ -905,19 +906,19 @@ export function UnifiedWisdomPanel() {
                   decide en qué corpus se busca, no cómo se recorta. */}
               <div className="flex items-center gap-1 rounded-lg border border-border bg-background p-1">
                 {([
-                  { valor: 'general' as Ambito, texto: 'General' },
-                  { valor: 'proyecto' as Ambito, texto: 'Del proyecto' },
-                  { valor: 'ambos' as Ambito, texto: 'Ambos' },
+                  { valor: 'general' as Ambito, texto: t('wisdom.scopeGeneral') },
+                  { valor: 'proyecto' as Ambito, texto: t('wisdom.scopeProject') },
+                  { valor: 'ambos' as Ambito, texto: t('wisdom.scopeBoth') },
                 ]).map(op => (
                   <button
                     key={op.valor}
                     disabled={op.valor !== 'general' && !projectId}
                     title={
                       op.valor !== 'general' && !projectId
-                        ? 'Necesita un proyecto activo'
+                        ? t('wisdom.scopeNeedsProject')
                         : op.valor === 'general'
-                          ? 'Normativa y buenas prácticas, compartidas por todos los proyectos'
-                          : `Documentos internos de ${nombreProyecto ?? 'el proyecto'}`
+                          ? t('wisdom.scopeGeneralHint')
+                          : t('wisdom.scopeProjectHint', { proyecto: nombreProyecto ?? t('wisdom.theProject') })
                     }
                     onClick={() => setAmbito(op.valor)}
                     className={`rounded px-3 py-1.5 text-sm transition-colors ${
@@ -937,23 +938,23 @@ export function UnifiedWisdomPanel() {
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="px-4 py-2 bg-background border border-border rounded-lg text-foreground"
               >
-                <option value="all">All Categories</option>
-                <option value="fuentes-hidrologia">Fuentes e Hidrología</option>
-                <option value="obras-toma">Obras de Toma</option>
-                <option value="hidraulica-aducciones">Hidráulica y Aducciones</option>
-                <option value="potabilizacion">Sistemas de Potabilización</option>
-                <option value="almacenamiento">Estanques de Almacenamiento</option>
-                <option value="bombeo">Bombas y Estaciones de Bombeo</option>
-                <option value="redes-distribucion">Redes de Distribución</option>
-                <option value="aguas-servidas">Recolección de Aguas Servidas</option>
-                <option value="tratamiento">Sistemas de Tratamiento</option>
-                <option value="cadena-valor">Cadena de Valor APyS</option>
+                <option value="all">{t('wisdom.allCategories')}</option>
+                <option value="fuentes-hidrologia">{t('categories.fuentes-hidrologia')}</option>
+                <option value="obras-toma">{t('categories.obras-toma')}</option>
+                <option value="hidraulica-aducciones">{t('categories.hidraulica-aducciones')}</option>
+                <option value="potabilizacion">{t('categories.potabilizacion')}</option>
+                <option value="almacenamiento">{t('categories.almacenamiento')}</option>
+                <option value="bombeo">{t('categories.bombeo')}</option>
+                <option value="redes-distribucion">{t('categories.redes-distribucion')}</option>
+                <option value="aguas-servidas">{t('categories.aguas-servidas')}</option>
+                <option value="tratamiento">{t('categories.tratamiento')}</option>
+                <option value="cadena-valor">{t('categories.cadena-valor')}</option>
               </select>
 
               {/* Region Filter */}
               <input
                 type="text"
-                placeholder="Region (e.g., MX, CO, ES)"
+                placeholder={t('wisdom.region')}
                 value={selectedRegion}
                 onChange={(e) => setSelectedRegion(e.target.value)}
                 className="px-4 py-2 bg-background border border-border rounded-lg text-foreground min-w-[200px]"
@@ -964,7 +965,7 @@ export function UnifiedWisdomPanel() {
                 <div className="relative flex-1">
                   <input
                     type="text"
-                    placeholder="Search documents, topics, or descriptions..."
+                    placeholder={t('wisdom.search')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => searchHistory.length > 0 && setShowSearchHistory(true)}
@@ -987,7 +988,7 @@ export function UnifiedWisdomPanel() {
                     <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto">
                       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
                         <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                          <History className="w-3 h-3" /> Recent Searches
+                          <History className="w-3 h-3" /> {t('wisdom.recentSearches')}
                         </span>
                         <button
                           onClick={async () => {
@@ -998,7 +999,7 @@ export function UnifiedWisdomPanel() {
                           }}
                           className="text-xs text-muted-foreground hover:text-foreground"
                         >
-                          Clear
+                          {t('wisdom.clear')}
                         </button>
                       </div>
                       {searchHistory.map((entry, i) => (
@@ -1024,10 +1025,10 @@ export function UnifiedWisdomPanel() {
                   onClick={handleSemanticSearch}
                   disabled={loading || !searchQuery.trim()}
                   className="flex items-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 whitespace-nowrap"
-                  title="Semantic Search (Shift + Enter)"
+                  title={t('wisdom.semanticHint')}
                 >
                   <Search className="w-4 h-4" />
-                  RAG Search
+                  {t('wisdom.ragSearch')}
                 </button>
               </div>
             </div>
@@ -1043,7 +1044,7 @@ export function UnifiedWisdomPanel() {
                     className="flex items-center gap-2 px-3 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 text-sm"
                   >
                     <CheckSquare className="w-4 h-4" />
-                    Select All
+                    {t('wisdom.selectAll')}
                   </button>
                   <button
                     onClick={clearSelection}
@@ -1051,7 +1052,7 @@ export function UnifiedWisdomPanel() {
                     className="flex items-center gap-2 px-3 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors disabled:opacity-50 text-sm"
                   >
                     <Square className="w-4 h-4" />
-                    Clear
+                    {t('wisdom.clear')}
                   </button>
                   <button
                     onClick={handleBulkDelete}
@@ -1068,7 +1069,7 @@ export function UnifiedWisdomPanel() {
                     }}
                     className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    Cancel
+                    {t('wisdom.cancel')}
                   </button>
                 </>
               )}
@@ -1080,10 +1081,10 @@ export function UnifiedWisdomPanel() {
                     onClick={() => setIsSelectMode(true)}
                     disabled={loading || allDocuments.filter(doc => doc.type === 'uploaded').length === 0}
                     className="flex items-center gap-2 px-3 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors disabled:opacity-50 text-sm"
-                    title="Select multiple documents for deletion"
+                    title={t('wisdom.selectHint')}
                   >
                     <CheckSquare className="w-4 h-4" />
-                    Select
+                    {t('wisdom.select')}
                   </button>
                 </>
               )}
@@ -1091,10 +1092,10 @@ export function UnifiedWisdomPanel() {
                 onClick={() => setShowVectorGraph(true)}
                 disabled={loading}
                 className="flex items-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 whitespace-nowrap"
-                title="View Vector Graph & RAG Health"
+                title={t('wisdom.vectorGraphHint')}
               >
                 <Network className="w-4 h-4" />
-                Vector Graph
+                {t('wisdom.vectorGraph')}
               </button>
 
               <button
@@ -1104,17 +1105,17 @@ export function UnifiedWisdomPanel() {
                 title={isSelectMode && selectedDocuments.size > 0 ? `Export ${selectedDocuments.size} selected` : 'Export all documents'}
               >
                 <Download className="w-4 h-4" />
-                Export
+                {t('wisdom.export')}
               </button>
 
               <button
                 onClick={() => setShowBulkUpload(true)}
                 disabled={loading}
                 className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors disabled:opacity-50 whitespace-nowrap"
-                title="Upload documents from folders"
+                title={t('wisdom.upload')}
               >
                 <FolderOpen className="w-4 h-4" />
-                Upload Folder
+                {t('wisdom.uploadFolder')}
               </button>
 
               <button
@@ -1123,7 +1124,7 @@ export function UnifiedWisdomPanel() {
                 className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 whitespace-nowrap"
               >
                 <Plus className="w-4 h-4" />
-                Add Document
+                {t('wisdom.addDocument')}
               </button>
 
               <button
@@ -1138,10 +1139,10 @@ export function UnifiedWisdomPanel() {
                 }}
                 disabled={loading}
                 className="flex items-center gap-2 px-3 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors disabled:opacity-50"
-                title="Refresh All Data"
+                title="{t('wisdom.refreshAll')}"
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
+                {t('wisdom.refresh')}
               </button>
 
               {/* Settings Dropdown */}
@@ -1149,7 +1150,7 @@ export function UnifiedWisdomPanel() {
                 <button
                   onClick={() => setShowSettings(!showSettings)}
                   className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-                  title="Embedding Settings"
+                  title="{t('wisdom.embeddingSettings')}"
                 >
                   <Settings className="w-4 h-4" />
                 </button>
@@ -1157,7 +1158,7 @@ export function UnifiedWisdomPanel() {
                 {showSettings && (
                   <div className="absolute right-0 top-full mt-2 w-96 bg-card border border-border rounded-lg shadow-lg p-4 z-10">
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold text-foreground">Embedding Settings</h3>
+                      <h3 className="font-semibold text-foreground">{t('wisdom.embeddingSettings')}</h3>
                       <button
                         onClick={async () => {
                           logger.debug('🔄 Manual refresh of embedding providers triggered')
@@ -1173,14 +1174,14 @@ export function UnifiedWisdomPanel() {
                         }}
                         disabled={providerChangeLoading}
                         className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-                        title="Refresh Ollama models and providers"
+                        title={t('wisdom.refreshOllama')}
                       >
                         <RefreshCw className={`w-4 h-4 ${providerChangeLoading ? 'animate-spin' : ''}`} />
                       </button>
                     </div>
 
                     <label className="block text-sm text-muted-foreground mb-2">
-                      Embedding Provider:
+                      {t('wisdom.embeddingProvider')}
                     </label>
 
                     {/* Debug info */}
@@ -1201,7 +1202,7 @@ export function UnifiedWisdomPanel() {
                           </option>
                         ))
                       ) : (
-                        <option value="">No providers available</option>
+                        <option value="">{t('wisdom.noProviders')}</option>
                       )}
                     </select>
 
@@ -1209,7 +1210,7 @@ export function UnifiedWisdomPanel() {
                     {selectedProviderId && (
                       <div className="bg-muted/20 rounded-lg p-3 mb-3">
                         <div className="text-sm">
-                          <div className="font-medium text-foreground mb-1">Current Provider:</div>
+                          <div className="font-medium text-foreground mb-1">{t('wisdom.currentProvider')}</div>
                           {(() => {
                             const currentProvider = embeddingProviders.find(p => p.id === selectedProviderId)
                             if (!currentProvider) return null
@@ -1223,22 +1224,22 @@ export function UnifiedWisdomPanel() {
                               currentProvider.model.toLowerCase().includes('e5')
                             return (
                               <div className="text-muted-foreground space-y-1">
-                                <div>📊 Model: {currentProvider.model}</div>
-                                <div>📏 Dimensions: {currentProvider.dimension}</div>
-                                <div>🔗 Type: {isOllama ? 'Local (Ollama)' : 'API'}</div>
+                                <div>📊 {t('wisdom.modelLabel')} {currentProvider.model}</div>
+                                <div>📏 {t('wisdom.dimensionsLabel')} {currentProvider.dimension}</div>
+                                <div>🔗 {t('wisdom.typeLabel')} {isOllama ? 'Local (Ollama)' : 'API'}</div>
                                 {isOllama && !isEmbeddingModel && (
                                   <div className="text-xs text-yellow-600 mt-1">
-                                    ⚠️ This is a chat model being used for embeddings
+                                    ⚠️ {t('wisdom.chatModelWarn')}
                                   </div>
                                 )}
                                 {isOllama && isEmbeddingModel && (
                                   <div className="text-xs text-green-600 mt-1">
-                                    ✅ Dedicated embedding model
+                                    ✅ {t('wisdom.dedicatedModel')}
                                   </div>
                                 )}
                                 {isOllama && (
                                   <div className="text-xs text-green-600 mt-1">
-                                    🚀 Running locally via Ollama
+                                    🚀 {t('wisdom.viaOllama')}
                                   </div>
                                 )}
                               </div>
@@ -1252,9 +1253,9 @@ export function UnifiedWisdomPanel() {
                     <div className="border-t border-border pt-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-medium text-foreground">Ollama Models</h4>
+                          <h4 className="text-sm font-medium text-foreground">{t('wisdom.ollamaModels')}</h4>
                           <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
-                            Local
+                            {t('wisdom.local')}
                           </span>
                         </div>
 
@@ -1263,19 +1264,19 @@ export function UnifiedWisdomPanel() {
                           {ollamaStatus === 'checking' && (
                             <>
                               <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-                              <span className="text-xs text-yellow-600">Checking...</span>
+                              <span className="text-xs text-yellow-600">{t('wisdom.checking')}</span>
                             </>
                           )}
                           {ollamaStatus === 'available' && (
                             <>
                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                              <span className="text-xs text-green-600">Available</span>
+                              <span className="text-xs text-green-600">{t('wisdom.available')}</span>
                             </>
                           )}
                           {ollamaStatus === 'unavailable' && (
                             <>
                               <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                              <span className="text-xs text-red-600">Offline</span>
+                              <span className="text-xs text-red-600">{t('wisdom.offline')}</span>
                             </>
                           )}
                         </div>
@@ -1283,11 +1284,11 @@ export function UnifiedWisdomPanel() {
 
                       {ollamaStatus === 'available' ? (
                         <div className="text-xs text-muted-foreground space-y-1">
-                          <div>🔍 Embedding models auto-detected and available</div>
-                          <div>🚀 Models are running locally for privacy and speed</div>
+                          <div>🔍 {t('wisdom.autoDetected')}</div>
+                          <div>🚀 {t('wisdom.runningLocally')}</div>
 
                           <div className="mt-2 pt-2 border-t border-border">
-                            <div>💡 Recommended embedding models:</div>
+                            <div>💡 {t('wisdom.recommended')}</div>
                             <div className="space-y-1 mt-1">
                               <div className="bg-background px-2 py-1 rounded font-mono text-xs">
                                 ollama pull nomic-embed-text
@@ -1301,21 +1302,21 @@ export function UnifiedWisdomPanel() {
                             </div>
 
                             <div className="mt-2 text-muted-foreground/80">
-                              • nomic-embed-text (768d) - General purpose<br />
-                              • mxbai-embed-large (1024d) - High quality<br />
-                              • all-minilm (384d) - Fast & lightweight
+                              • {t('wisdom.modelNomic')}<br />
+                              • {t('wisdom.modelMxbai')}<br />
+                              • {t('wisdom.modelMinilm')}
                             </div>
 
                             <div className="mt-2 pt-2 border-t border-border text-xs text-yellow-600">
-                              ⚠️ Chat models (gemma, llama, mistral) can be used but are less efficient for embeddings
+                              ⚠️ {t('wisdom.chatModelsNote')}
                             </div>
                           </div>
                         </div>
                       ) : (
                         <div className="text-xs text-muted-foreground space-y-1">
-                          <div className="text-yellow-600">⚠️ Ollama is not running or not installed</div>
-                          <div>📥 Install Ollama from: <code className="bg-background px-1 rounded">ollama.ai</code></div>
-                          <div>🔄 Start Ollama service to enable local embedding models</div>
+                          <div className="text-yellow-600">⚠️ {t('wisdom.ollamaStopped')}</div>
+                          <div>📥 {t('wisdom.installOllama')} <code className="bg-background px-1 rounded">ollama.ai</code></div>
+                          <div>🔄 {t('wisdom.startOllama')}</div>
 
                           <div className="mt-2 pt-2 border-t border-border">
                             <button
@@ -1327,25 +1328,25 @@ export function UnifiedWisdomPanel() {
 
                                   if (result.success && result.available) {
                                     await loadEmbeddingProviders()
-                                    showNotification(`Ollama detected! Found ${result.models?.length || 0} embedding models out of ${result.totalModels || 0} total models.`, 'success')
+                                    showNotification(t('messages.ollamaFound', { count: result.models?.length || 0, total: result.totalModels || 0 }), 'success')
                                   } else {
-                                    showNotification(`Ollama connection failed: ${result.message || 'Unknown error'}`, 'error')
+                                    showNotification(t('messages.ollamaFailed', { motivo: result.message || t('messages.unknownError') }), 'error')
                                   }
                                 } catch (error: any) {
                                   logger.error('❌ Error checking connection:', error)
-                                  showNotification(`Connection check failed: ${error.message}`, 'error')
+                                  showNotification(t('messages.checkFailed', { motivo: error.message }), 'error')
                                 }
                               }}
                               className="text-xs px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary/20 transition-colors"
                             >
-                              🧪 Test Connection
+                              🧪 {t('wisdom.testConnection')}
                             </button>
 
                             <div className="text-muted-foreground/80 mt-2">
-                              Local models provide:<br />
-                              • Complete privacy (no data sent to cloud)<br />
-                              • Faster processing (no network latency)<br />
-                              • No usage limits or costs
+                              {t('wisdom.localModels')}<br />
+                              • {t('wisdom.localPrivacy')}<br />
+                              • {t('wisdom.localFaster')}<br />
+                              • {t('wisdom.localFree')}
                             </div>
                           </div>
                         </div>
@@ -1368,7 +1369,7 @@ export function UnifiedWisdomPanel() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
                 </span>
-                <h3 className="font-semibold text-foreground">Indexing Document...</h3>
+                <h3 className="font-semibold text-foreground">{t('wisdom.indexing')}</h3>
                 <span className="text-xs text-muted-foreground ml-auto">{uploadProgress.filename}</span>
               </div>
               <div className="w-full bg-secondary h-2.5 rounded-full mb-2">
@@ -1387,16 +1388,16 @@ export function UnifiedWisdomPanel() {
           {loading && !uploadProgress ? (
             <div className="text-center py-12">
               <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading documents...</p>
+              <p className="text-muted-foreground">{t('wisdom.loadingDocs')}</p>
             </div>
           ) : (
             /* Documents View (All) */
             <div>
               <h2 className="text-xl font-semibold text-foreground mb-4">
-                📚 My Documents ({allDocuments.length})
+                📚 {t('wisdom.myDocuments', { count: allDocuments.length })}
               </h2>
               <div className="text-sm text-muted-foreground mb-4">
-                {wisdomDocuments.length} documents in your knowledge base
+                {t('wisdom.inKnowledgeBase', { count: wisdomDocuments.length })}
               </div>
 
               {allDocuments.length > 0 ? (
@@ -1425,7 +1426,7 @@ export function UnifiedWisdomPanel() {
                             )}
                             <FileText className="w-4 h-4 text-primary" />
                             <span className="text-xs px-2 py-1 rounded-full font-medium bg-primary/10 text-primary">
-                              My Document
+                              {t('wisdom.myDocument')}
                             </span>
                             {/* De dónde viene, para que una cita de una norma no
                                 se confunda con un documento interno del cliente (#39). */}
@@ -1436,10 +1437,10 @@ export function UnifiedWisdomPanel() {
                                   : 'bg-muted text-muted-foreground'
                               }`}
                               title={doc.projectId
-                                ? `Documento interno de ${nombreProyecto ?? 'este proyecto'}`
-                                : 'Conocimiento general, compartido por todos los proyectos'}
+                                ? t('wisdom.internalOf', { proyecto: nombreProyecto ?? t('wisdom.thisProject') })
+                                : t('wisdom.generalKnowledge')}
                             >
-                              {doc.projectId ? 'Del proyecto' : 'General'}
+                              {doc.projectId ? t('wisdom.scopeProject') : t('wisdom.scopeGeneral')}
                             </span>
                           </div>
                           {doc.type === 'uploaded' && !isSelectMode && (
@@ -1449,7 +1450,7 @@ export function UnifiedWisdomPanel() {
                                 <button
                                   onClick={() => handleForceIndex(doc.id)}
                                   className="p-1 text-muted-foreground hover:text-yellow-600 transition-colors"
-                                  title="Force reindex this document"
+                                  title={t('wisdom.forceReindex')}
                                 >
                                   <RefreshCw className="w-3 h-3" />
                                 </button>
@@ -1526,7 +1527,7 @@ export function UnifiedWisdomPanel() {
                                 <FileText className="w-4 h-4 text-primary" />
                                 <h3 className="font-semibold text-foreground">{doc.title}</h3>
                                 <span className="text-xs px-2 py-1 rounded-full font-medium bg-primary/10 text-primary">
-                                  My Document
+                                  {t('wisdom.myDocument')}
                                 </span>
                                 {/* Indexing Status */}
                                 {getIndexingStatusComponent(doc.indexing)}
@@ -1552,7 +1553,7 @@ export function UnifiedWisdomPanel() {
                                   <button
                                     onClick={() => handleForceIndex(doc.id)}
                                     className="p-2 text-muted-foreground hover:text-yellow-600 transition-colors"
-                                    title="Force reindex this document"
+                                    title={t('wisdom.forceReindex')}
                                   >
                                     <RefreshCw className="w-4 h-4" />
                                   </button>
@@ -1574,16 +1575,16 @@ export function UnifiedWisdomPanel() {
               ) : (
                 <div className="bg-card rounded-lg p-8 text-center">
                   <Archive className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">No Documents Found</h3>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">{t('wisdom.noDocuments')}</h3>
                   <p className="text-muted-foreground mb-4">
-                    No documents match your current filters, or upload documents to build your knowledge base
+                    {t('wisdom.noDocumentsHint')}
                   </p>
                   <button
                     onClick={handleUpload}
                     className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors mx-auto"
                   >
                     <Upload className="w-4 h-4" />
-                    Add Document
+                    {t('wisdom.addDocument')}
                   </button>
                 </div>
               )}
@@ -1595,21 +1596,21 @@ export function UnifiedWisdomPanel() {
         <div className="mt-8 p-4 bg-muted/20 rounded-lg">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <div className="flex items-center gap-6">
-              <span>📚 {wisdomDocuments.length} documents in knowledge base</span>
-              <span>🔍 {selectedDocuments.size} selected</span>
+              <span>📚 {t('messages.docsInBase', { count: wisdomDocuments.length })}</span>
+              <span>🔍 {t('messages.selectedCount', { count: selectedDocuments.size })}</span>
               {ollamaStatus === 'available' && (
-                <span className="text-green-600">🚀 Ollama running locally</span>
+                <span className="text-green-600">🚀 {t('wisdom.ollamaLocal')}</span>
               )}
             </div>
             <div className="text-xs">
-              💡 Use Shift+Enter for semantic search • Upload your own documents • Toggle grid/list view
-              {ollamaStatus === 'available' && ' • Local embedding models available'}
+              💡 {t('messages.wisdomHints')}
+              {ollamaStatus === 'available' && t('messages.localEmbeddings')}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Vector Graph Viewer Modal */}
+      {/* {t('wisdom.vectorGraph')} Viewer Modal */}
       <VectorGraphViewer
         isOpen={showVectorGraph}
         onClose={() => setShowVectorGraph(false)}

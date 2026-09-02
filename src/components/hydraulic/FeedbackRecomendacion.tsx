@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ThumbsDown, ThumbsUp } from 'lucide-react'
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export function FeedbackRecomendacion({ runId, titulo, contexto, valoracionInicial, compacto }: Props) {
+  const { t } = useTranslation()
   const [rating, setRating] = useState<number | null>(valoracionInicial?.rating ?? null)
   const [correccion, setCorreccion] = useState(valoracionInicial?.correccion ?? '')
   const [pidiendoMotivo, setPidiendoMotivo] = useState(false)
@@ -50,11 +52,11 @@ export function FeedbackRecomendacion({ runId, titulo, contexto, valoracionInici
         if (valor === -1 && texto === undefined) setPidiendoMotivo(true)
         else setPidiendoMotivo(false)
       } else {
-        setError(r?.error || 'No se pudo guardar la valoración')
+        setError(r?.error || t('messages.feedbackNotSaved'))
       }
     } catch (e) {
       logger.warn('No se pudo guardar la valoración de la recomendación:', e)
-      setError('No se pudo guardar la valoración')
+      setError(t('messages.feedbackNotSaved'))
     } finally {
       setGuardando(false)
     }
@@ -63,12 +65,12 @@ export function FeedbackRecomendacion({ runId, titulo, contexto, valoracionInici
   return (
     <div className={compacto ? 'mt-1 space-y-1' : 'mt-2 space-y-1 border-t pt-2'}>
       <div className="flex items-center gap-2">
-        <span className="text-[10px] text-muted-foreground">¿Te sirve?</span>
+        <span className="text-[10px] text-muted-foreground">{t('feedback.isUseful')}</span>
         <Button
           size="sm" variant={rating === 1 ? 'secondary' : 'ghost'}
           className="h-6 px-2" disabled={guardando}
           onClick={() => guardar(1)}
-          title="Útil"
+          title={t('feedback.useful')}
         >
           <ThumbsUp className="h-3 w-3" />
         </Button>
@@ -76,7 +78,7 @@ export function FeedbackRecomendacion({ runId, titulo, contexto, valoracionInici
           size="sm" variant={rating === -1 ? 'secondary' : 'ghost'}
           className="h-6 px-2" disabled={guardando}
           onClick={() => guardar(-1)}
-          title="No me sirve"
+          title={t('feedback.notUseful')}
         >
           <ThumbsDown className="h-3 w-3" />
         </Button>
@@ -92,13 +94,13 @@ export function FeedbackRecomendacion({ runId, titulo, contexto, valoracionInici
           <textarea
             className="w-full bg-background border rounded px-2 py-1 text-[11px]"
             rows={2}
-            placeholder="¿Por qué no sirve en esta red? (opcional, pero es lo más útil que puedes dejar aquí)"
+            placeholder={t('feedback.whyNot')}
             value={correccion}
             onChange={e => setCorreccion(e.target.value)}
           />
           <Button size="sm" variant="outline" className="h-6 text-[10px]" disabled={guardando}
             onClick={() => guardar(-1, correccion)}>
-            Guardar el motivo
+            {t('feedback.saveReason')}
           </Button>
         </div>
       )}

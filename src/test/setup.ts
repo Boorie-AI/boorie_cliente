@@ -114,3 +114,12 @@ const mockElectronAPI = {
 globalThis.window.electronAPI = mockElectronAPI
 // @ts-expect-error - mock for testing
 globalThis.window.electron = true
+
+/**
+ * Las pruebas montan componentes que ya sacan su texto del diccionario. Sin
+ * inicializar i18next, `t('projects.myProjects')` devuelve la propia clave y la
+ * prueba busca un botón que no existe. Se carga el castellano, que es lo que
+ * ve quien usa la aplicación.
+ */
+import i18n from '@/i18n'
+if (i18n.language !== 'es') i18n.changeLanguage('es')

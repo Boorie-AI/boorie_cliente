@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -126,6 +127,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
   timeline,
   escala
 }) => {
+  const { t } = useTranslation()
   const settings = ajustes;
   const cuentas = React.useMemo(() => contarPorTipo(networkData), [networkData]);
 
@@ -147,14 +149,14 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
         <CardHeader className="pb-3">
           <CardTitle className="text-white text-base flex items-center gap-2">
             <Layers className="h-4 w-4" />
-            Vista
+            {t('viewer.view')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="grid grid-cols-2 gap-2">
             {([
-              { valor: 'mapa' as VistaVisor, etiqueta: 'Mapa', icono: <MapIcon className="h-3.5 w-3.5" /> },
-              { valor: 'topologia' as VistaVisor, etiqueta: 'Esquema', icono: <Share2 className="h-3.5 w-3.5" /> },
+              { valor: 'mapa' as VistaVisor, etiqueta: t('viewer.map'), icono: <MapIcon className="h-3.5 w-3.5" /> },
+              { valor: 'topologia' as VistaVisor, etiqueta: t('viewer.schematic'), icono: <Share2 className="h-3.5 w-3.5" /> },
             ]).map(op => (
               <Button
                 key={op.valor}
@@ -174,8 +176,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
           </div>
           {!mapaDisponible && (
             <p className="text-xs text-yellow-400">
-              Esta red no se puede situar en el mapa hasta que declares su sistema de coordenadas.
-              El esquema sí muestra su trazado.
+              {t('viewer.needsCrs')}
             </p>
           )}
         </CardContent>
@@ -187,13 +188,13 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
         <CardHeader className="pb-3">
           <CardTitle className="text-white text-base flex items-center gap-2">
             <Palette className="h-4 w-4" />
-            Dibujo
+            {t('viewer.drawing')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {settings.vista === 'mapa' && (
             <div className="space-y-2">
-              <div className="text-sm text-gray-400">Mapa base</div>
+              <div className="text-sm text-gray-400">{t('viewer.baseMap')}</div>
               <select
                 value={settings.baseMap}
                 onChange={e => handleSettingChange('baseMap', e.target.value as AjustesVisor['baseMap'])}
@@ -203,10 +204,10 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                 onWheel={e => e.currentTarget.blur()}
                 className="w-full rounded-md border border-slate-600 bg-slate-700 px-2 py-1.5 text-sm text-white"
               >
-                <option value="streets">Calles</option>
-                <option value="outdoors">Terreno</option>
-                <option value="light">Claro</option>
-                <option value="dark">Oscuro</option>
+                <option value="streets">{t('viewer.streets')}</option>
+                <option value="outdoors">{t('viewer.terrain')}</option>
+                <option value="light">{t('viewer.light')}</option>
+                <option value="dark">{t('viewer.dark')}</option>
                 {/* Deshabilitada, no escondida: si el equipo no puede con las
                     teselas satelitales, es mejor que se vea que existe y por qué
                     no está, que no ofrecerla y que parezca que Boorie no la tiene. */}
@@ -221,7 +222,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
           )}
 
           <div className="flex items-center justify-between">
-            <span className="text-sm">Etiquetas de los nudos</span>
+            <span className="text-sm">{t('viewer.nodeLabels')}</span>
             <Switch
               checked={settings.showLabels}
               onCheckedChange={checked => handleSettingChange('showLabels', checked)}
@@ -230,7 +231,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
 
           {settings.vista === 'mapa' && (
             <div className="space-y-2">
-              <div className="text-sm text-gray-400">Opacidad: {settings.opacity.toFixed(1)}</div>
+              <div className="text-sm text-gray-400">{t('viewer.opacity', { valor: settings.opacity.toFixed(1) })}</div>
               <Slider
                 value={[settings.opacity]}
                 onValueChange={([v]) => handleSettingChange('opacity', v)}
@@ -242,7 +243,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
           )}
 
           <div className="space-y-2">
-            <div className="text-sm text-gray-400">Tamaño de nudo: {settings.nodeSize}</div>
+            <div className="text-sm text-gray-400">{t('viewer.nodeSize', { valor: settings.nodeSize })}</div>
             <Slider
               value={[settings.nodeSize]}
               onValueChange={([v]) => handleSettingChange('nodeSize', v)}
@@ -254,7 +255,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
 
           {settings.vista === 'mapa' && (
             <div className="space-y-2">
-              <div className="text-sm text-gray-400">Grosor de tramo: {settings.linkWidth}</div>
+              <div className="text-sm text-gray-400">{t('viewer.linkWidth', { valor: settings.linkWidth })}</div>
               <Slider
                 value={[settings.linkWidth]}
                 onValueChange={([v]) => handleSettingChange('linkWidth', v)}
@@ -275,7 +276,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
           <CardTitle className="text-white text-base flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Layers className="h-4 w-4" />
-              Capas
+              {t('viewer.layers')}
             </div>
             {hayCapasOcultas(settings.capas) && (
               <Button
@@ -284,7 +285,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                 className="h-auto px-2 py-0.5 text-xs text-blue-400 hover:text-blue-300"
                 onClick={() => handleSettingChange('capas', CAPAS_TODAS)}
               >
-                Ver todo
+                {t('viewer.seeAll')}
               </Button>
             )}
           </CardTitle>
@@ -298,7 +299,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                   cuentas[capa.tipo] === 0 && 'text-gray-500'
                 )}
               >
-                {capa.etiqueta}
+                {t(`layers.${capa.tipo}`)}
                 <span className="ml-2 text-xs text-gray-500">{cuentas[capa.tipo]}</span>
               </span>
               <Switch
@@ -330,14 +331,13 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
         <CardHeader className="pb-3">
           <CardTitle className="text-white text-base flex items-center gap-2">
             <Gauge className="h-4 w-4" />
-            Simbología
+            {t('viewer.legend')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {!simulationResults ? (
             <p className="text-sm text-gray-400">
-              Sin resultados de simulación no hay nada que representar: la red se dibuja por tipo
-              de elemento.
+              {t('viewer.noResults')}
             </p>
           ) : (
             <>
@@ -375,15 +375,15 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                   ))}
                   <p className="pt-1 text-[11px] text-gray-500">
                     {escala.absoluta
-                      ? 'Cortes de servicio, iguales en cualquier red.'
-                      : `Escala de esta red en este paso: ${formatearMagnitud(escala.min, escala.magnitud, 3)} a ${formatearMagnitud(escala.max, escala.magnitud, 3)}.`}
+                      ? t('viewer.absoluteScale')
+                      : t('viewer.scaleOfStep', { min: formatearMagnitud(escala.min, escala.magnitud, 3), max: formatearMagnitud(escala.max, escala.magnitud, 3) })}
                   </p>
                 </div>
               )}
 
               {settings.simbologia !== 'ninguna' && !escala && (
                 <p className="text-xs text-gray-400">
-                  La simulación no trae esa magnitud, así que la red se dibuja por tipo de elemento.
+                  {t('viewer.noMagnitude')}
                 </p>
               )}
             </>
@@ -396,7 +396,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
         <CardContent className="pt-3">
           <div className="space-y-2 text-xs text-gray-400">
             <div className="flex justify-between">
-              <span>Nodos:</span>
+              <span>{t('viewer.nodesLabel')}</span>
               <span>{networkData?.nodes?.length || 0}</span>
             </div>
             {/* Tuberías, no «enlaces»: el rótulo es de teoría de grafos y quien
@@ -404,14 +404,14 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                 total de tramos incluía bombas y válvulas—; el desglose completo
                 está arriba, en las capas. */}
             <div className="flex justify-between">
-              <span>Tuberías:</span>
+              <span>{t('viewer.pipesLabel')}</span>
               <span>{cuentas.pipe}</span>
             </div>
             {simulationResults && (
               <div className="flex justify-between">
-                <span>Estado:</span>
+                <span>{t('viewer.state')}</span>
                 <Badge variant="outline" className="text-green-400 border-green-400">
-                  Simulado
+                  {t('viewer.simulated')}
                 </Badge>
               </div>
             )}
