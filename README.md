@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.27.0
+### 🚀 Latest Release - v1.28.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.27.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.27.0/Boorie-1.27.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.27.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.27.0/Boorie-Setup-1.27.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.27.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.27.0/Boorie-1.27.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.28.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.28.0/Boorie-1.28.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.28.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.28.0/Boorie-Setup-1.28.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.28.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.28.0/Boorie-1.28.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.28.0**: The interface mixed languages: hundreds of strings were hand-written in the code, outside the translation system, so the English application still showed Spanish sentences. All three languages are now complete across settings, projects, calculator, chat, network viewer and resilience — including what the calculation engine writes, which used to let whoever called it decide the language. The **Wisdom Center** is now the **Base de Conocimiento** in Spanish and Catalan; the English name is unchanged. The window opens maximized and the restore button works: it opened at 1200x800 on much larger screens, and restoring did nothing. Seismic damage is now broken down by pipe diameter, with the affected pipes and kilometres of each group, so a repair can be costed — two diameters can hold one pipe each and eighteen times the length, which is why both columns are needed. The fragility curve can be read against peak ground acceleration (PGA), which is what seismic hazard codes give, with the conversion and its margin stated on screen; tanks and pumps, governed by acceleration rather than velocity, get their own curve from the coefficients you supply. Per-material medians now come from the published FEMA/HAZUS-MH (2003) and ALA (2001) tables instead of unsourced generic values, which changes figures that were already shown. Node size did nothing in the schematic view — moving it from 2 to 20 drew the same thing — and link width and opacity were the same; the control scales each type's size rather than levelling them, so a tank still looks bigger than a junction. The vector graph tabs appeared stuck together. And four dependency vulnerabilities, two of them high severity, are fixed. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.28.0).
 - **v1.27.0**: Flow now reads in litres per second across the whole application. The energy panel gave flow in cubic metres per second while the viewer and the simulation comparison gave it in litres per second: an 824 l/s pump appeared as «0.8242 m³/s», and you had to count decimals to recognise it on the other screen. It now says «824,179 l/s». The calculator offers l/s by default in flow fields and returns the continuity equation and orifice flow results in l/s — no option is lost: cubic metres per second and gallons per minute are still in the dropdown, and the conversion appears as one more calculation step so it can be checked by hand. And pressure serviceability is shown as a percentage in both places it appears; it read «98.1 %» in the indicators panel and «0.9812» in the analysis one. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.27.0).
 - **v1.26.0**: Three figures that did not say what they were, on three different screens. The calculator's steps now state their unit: the final result always carried one, but the steps that justify it —where a calculation is actually checked— came out as bare numbers, and the unit is not the result's: in a water hammer, the first step is in pascals, the second in bars and the third in metres. Where the quantity has no unit, such as a ratio between two lengths, none is invented. The calculator's result is also shown with significant figures instead of four fixed decimals, which left a flow in cubic metres per second with two useful digits. The seismic fragility curve now says what its vertical axis measures —«Probabilidad de fallo (0–1)»—, where it ran from 0 to 1 without explaining of what. The calculator's «Calculate» button no longer floats over the fields either: it stuck to the bottom edge and covered the last parameter while it was being filled in, above all in formulas with several — head loss and pumping. And the «Diameter» row is removed from the topology panel: it always came out empty because it read a figure the analysis does not compute, and the name misled — on a water network it reads as pipe diameter when it referred to a graph measure. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.26.0).
 - **v1.25.0**: The figures in the simulation comparison were a thousand times below what they claimed. When comparing two simulations, flow and demand came out a thousand times smaller than their unit said: they were labelled in litres per second but the numbers were in cubic metres per second, so a difference of 50 l/s read «0.05 l/s». Comparing the example network's normal simulation against one with a pipe closed, flow appeared as 0.82 l/s when it was 824.87. It is the same fault fixed in the viewer in 1.22.0, which had survived here. It also affected what the chat knows about your simulations, because those figures are stored for it to consult, and the summary itself contradicted each other: one paragraph gave flow in cubic metres per second and another, on the same data, in litres per second. The whole summary now speaks in litres per second. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.25.0).
@@ -105,12 +106,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.27.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.27.0.AppImage`
-3. Run: `./Boorie-1.27.0.AppImage`
+1. Download `Boorie-1.28.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.28.0.AppImage`
+3. Run: `./Boorie-1.28.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.27.0.exe` from the link above
+1. Download `Boorie-Setup-1.28.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 

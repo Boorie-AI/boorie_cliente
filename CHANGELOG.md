@@ -9,6 +9,41 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.28.0] - 2026-09-02
+
+La aplicación habla un solo idioma en cada pantalla, y el daño de un sismo se puede costear.
+
+- **La interfaz mezclaba idiomas.** Cientos de textos estaban escritos a mano dentro del código,
+  fuera del sistema de traducción, así que con la aplicación en inglés seguían apareciendo frases
+  en castellano, y en catalán había erratas que sólo se ven leyendo. Ahora los tres idiomas están
+  completos en ajustes, proyectos, calculadora, chat, visor de red y resiliencia. También lo que
+  escribe el motor de cálculo: antes decidía el idioma quien lo llamaba, y ahora devuelve la clave
+  y traduce quien la enseña.
+- **El «Wisdom Center» se llama ahora «Base de Conocimiento»**, y «Base de Coneixement» en catalán.
+  El nombre se quedaba en inglés en medio de frases en castellano.
+- **La ventana abre maximizada**, y el botón de restaurar funciona. Abría a 1200x800 en pantallas
+  mucho mayores, y el botón de restaurar no hacía nada: el icono se quedaba clavado sin reflejar
+  el estado de la ventana.
+- **El daño de un sismo se reparte por diámetro.** La curva de fragilidad daba una sola cifra, que
+  servía para saber si la red es frágil pero no para presupuestar una reparación. Ahora hay una
+  tabla con las tuberías y los kilómetros afectados de cada diámetro de la red, a la intensidad que
+  se elija, y se exporta entera. No es la misma cifra a otra escala: dos diámetros pueden tener una
+  tubería cada uno y dieciocho veces distinta longitud.
+- **La curva se puede leer en aceleración del suelo (PGA)**, que es lo que dan las normativas de
+  amenaza sísmica, y no sólo en velocidad. Se declara en pantalla la conversión empleada y su
+  margen. Los depósitos y las bombas, que se rigen por aceleración y no por velocidad, tienen su
+  propia curva con los coeficientes que aporte quien conozca su región.
+- **Las medianas por material de la curva de fragilidad ya se pueden rastrear.** Eran valores
+  genéricos sin fuente; ahora son las tablas publicadas de FEMA/HAZUS-MH (2003) y ALA (2001), y se
+  elige cuál usar. Esto cambia cifras que ya se mostraban.
+- **El tamaño de nudo no hacía nada en la vista de esquema.** Moverlo de 2 a 20 dibujaba siempre lo
+  mismo; sólo funcionaba sobre el mapa. Van también el grosor de tramo y la opacidad, que estaban
+  igual. Un depósito se sigue viendo más grande que un nudo de consumo: el control escala los
+  tamaños, no los iguala.
+- **Las pestañas del grafo de vectores aparecían pegadas** unas a otras, con el icono de cada una
+  tocando el texto de la anterior.
+- **Cuatro vulnerabilidades de dependencias**, dos de severidad alta, quedan corregidas.
+
 ## [1.27.0] - 2026-08-27
 
 El caudal se lee en litros por segundo en toda la aplicación.

@@ -39,15 +39,27 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.27.0
+### 🚀 Última Versión - v1.28.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.27.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.27.0/Boorie-1.27.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.27.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.27.0/Boorie-Setup-1.27.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.27.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.27.0/Boorie-1.27.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.28.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.28.0/Boorie-1.28.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.28.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.28.0/Boorie-Setup-1.28.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.28.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.28.0/Boorie-1.28.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.28.0
+- La interfaz mezclaba idiomas: cientos de textos estaban escritos a mano dentro del código, fuera del sistema de traducción, así que la aplicación en inglés seguía enseñando frases en castellano. Los tres idiomas están ya completos en ajustes, proyectos, calculadora, chat, visor de red y resiliencia, y también en lo que escribe el motor de cálculo.
+- El **Wisdom Center** pasa a llamarse **Base de Conocimiento**, y «Base de Coneixement» en catalán.
+- La ventana abre maximizada y el botón de restaurar funciona. Abría a 1200x800 en pantallas mucho mayores, y restaurar no hacía nada.
+- El daño de un sismo se reparte por diámetro, con las tuberías y los kilómetros afectados de cada grupo, para poder presupuestar una reparación. Dos diámetros pueden tener una tubería cada uno y dieciocho veces distinta longitud, y por eso hacen falta las dos columnas.
+- La curva de fragilidad se puede leer en aceleración del suelo (PGA), que es lo que dan las normativas, con la conversión y su margen declarados en pantalla. Los depósitos y las bombas tienen su propia curva con los coeficientes que usted aporte.
+- Las medianas por material vienen ya de las tablas publicadas de FEMA/HAZUS-MH (2003) y ALA (2001), en vez de valores genéricos sin fuente. Esto cambia cifras que ya se mostraban.
+- El tamaño de nudo no hacía nada en la vista de esquema: moverlo de 2 a 20 dibujaba lo mismo. El grosor de tramo y la opacidad estaban igual. El control escala el tamaño de cada tipo, no los iguala.
+- Las pestañas del grafo de vectores aparecían pegadas unas a otras.
+- Cuatro vulnerabilidades de dependencias, dos de severidad alta, quedan corregidas.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.28.0).
 
 ### 📝 Novedades en v1.27.0
 - El panel de energía daba el caudal en metros cúbicos por segundo mientras el visor y la comparación de simulaciones lo daban en litros por segundo: una bomba de 824 l/s aparecía como «0.8242 m³/s». Ahora dice «824,179 l/s».
@@ -326,12 +338,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.27.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.27.0.AppImage`
-3. Ejecuta: `./Boorie-1.27.0.AppImage`
+1. Descarga `Boorie-1.28.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.28.0.AppImage`
+3. Ejecuta: `./Boorie-1.28.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.27.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.28.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 

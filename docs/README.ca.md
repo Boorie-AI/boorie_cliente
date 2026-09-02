@@ -39,15 +39,27 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.27.0
+### 🚀 Última Versió - v1.28.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.27.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.27.0/Boorie-1.27.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.27.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.27.0/Boorie-Setup-1.27.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.27.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.27.0/Boorie-1.27.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.28.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.28.0/Boorie-1.28.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.28.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.28.0/Boorie-Setup-1.28.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.28.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.28.0/Boorie-1.28.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.28.0
+- La interfície barrejava idiomes: centenars de textos estaven escrits a mà dins del codi, fora del sistema de traducció, així que l'aplicació en anglès continuava mostrant frases en castellà. Els tres idiomes ja són complets a configuració, projectes, calculadora, xat, visor de xarxa i resiliència, i també en el que escriu el motor de càlcul.
+- El **Wisdom Center** passa a dir-se **Base de Coneixement**.
+- La finestra obre maximitzada i el botó de restaurar funciona. Obria a 1200x800 en pantalles molt més grans, i restaurar no feia res.
+- El dany d'un sisme es reparteix per diàmetre, amb les canonades i els quilòmetres afectats de cada grup, per poder pressupostar una reparació.
+- La corba de fragilitat es pot llegir en acceleració del sòl (PGA), que és el que donen les normatives, amb la conversió i el seu marge declarats a la pantalla. Els dipòsits i les bombes tenen la seva pròpia corba amb els coeficients que aporteu.
+- Les medianes per material vénen ja de les taules publicades de FEMA/HAZUS-MH (2003) i ALA (2001), en lloc de valors genèrics sense font. Això canvia xifres que ja es mostraven.
+- La mida de nus no feia res a la vista d'esquema: moure-la de 2 a 20 dibuixava el mateix. El gruix de tram i l'opacitat estaven igual.
+- Les pestanyes del graf de vectors apareixien enganxades.
+- Quatre vulnerabilitats de dependències, dues de severitat alta, queden corregides.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.28.0).
 
 ### 📝 Novetats a v1.27.0
 - El plafó d'energia donava el cabal en metres cúbics per segon mentre el visor i la comparació de simulacions el donaven en litres per segon: una bomba de 824 l/s apareixia com a «0.8242 m³/s». Ara diu «824,179 l/s».
@@ -326,12 +338,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.27.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.27.0.AppImage`
-3. Executa: `./Boorie-1.27.0.AppImage`
+1. Descarrega `Boorie-1.28.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.28.0.AppImage`
+3. Executa: `./Boorie-1.28.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.27.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.28.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
