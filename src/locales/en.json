@@ -580,7 +580,12 @@
     "seriesTankDs2": "Tank DS2",
     "seriesPump": "Pump",
     "probExceed": "Prob. of exceeding (0–1)",
-    "userCoefficients": "Coefficients supplied by the user, not published by Boorie."
+    "userCoefficients": "Coefficients supplied by the user, not published by Boorie.",
+    "methodBase": "Lognormal repair-rate fragility from {{modelo}}, with generic per-material parameters — requires validation by a water-supply expert before being used for real decisions.",
+    "methodPga": "PGA input: the median of {{medianaPgv}} cm/s becomes {{medianaPga}} g via Newmark & Hall (1982), α = {{alfa}} cm/s per g for {{suelo}} soil. The PGV–PGA correlation is only moderate (ρ≈0.70–0.73, Bradley 2012), so the PGA curve carries that uncertainty; with measured PGV, use PGV.",
+    "soilRockShort": "rock",
+    "soilStiffShort": "stiff",
+    "soilSoftShort": "soft"
   },
   "mapViewer": {
     "title": "Network viewer",

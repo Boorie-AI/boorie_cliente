@@ -1067,7 +1067,6 @@ class WNTRResilienceService:
             # Lo que no se hace es cambiar solo el rotulo del eje: sin mover
             # la mediana, la curva seguiria siendo de PGV con otro nombre.
             ratios_newmark_hall = {'rock': 66.0, 'stiff_soil': 97.0, 'soft_soil': 122.0}
-            nombre_suelo = {'rock': 'roca', 'stiff_soil': 'firme', 'soft_soil': 'blando'}
             soil_class = str(options.get('soil_class', 'stiff_soil'))
             en_pga = hazard_type == 'seismic_pga'
 
@@ -1182,15 +1181,18 @@ class WNTRResilienceService:
                     'pipe_count': pipe_count,
                     'total_length_km': total_length_km,
                     'by_diameter': by_diameter,
-                    'methodology': (
-                        'ALA (2001) repair-rate lognormal fragility (parametros genericos por material) '
-                        '- requiere validacion de un experto APyS antes de usarse en decisiones reales.'
-                        + ((
-                            ' Entrada en PGA: la mediana de %.1f cm/s se lleva a %.3f g con Newmark & Hall '
-                            '(1982), alpha = %.0f cm/s por g para suelo %s. La correlacion PGV-PGA es '
-                            'moderada (rho ~0,70-0,73, Bradley 2012), asi que la curva en PGA arrastra esa '
-                            'incertidumbre; con PGV medido, use PGV.'
-                        ) % (median_pgv, median, alpha, nombre_suelo[soil_class]) if en_pga else '')
+                    # El motor nombra, la interfaz dice (fase 4 del issue #96).
+                    #
+                    # Antes esto era la frase montada aqui, en castellano, y salia
+                    # igual en los tres idiomas. Ahora son claves: los numeros ya
+                    # viajan en el resto de `data`, asi que basta con decir que
+                    # parrafos toca enseñar y en que orden.
+                    #
+                    # Y decia 'ALA (2001)' siempre, tambien con HAZUS elegido, que
+                    # es el modelo de partida desde el #94: el nombre lo pone ahora
+                    # la interfaz a partir de damage_model.
+                    'methodology_keys': (
+                        ['methodBase'] + (['methodPga'] if en_pga else [])
                     )
                 }
             }

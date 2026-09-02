@@ -580,7 +580,12 @@
     "seriesTankDs2": "Dipòsit DS2",
     "seriesPump": "Bomba",
     "probExceed": "Prob. de superar (0–1)",
-    "userCoefficients": "Coeficients aportats per l’usuari, no publicats per Boorie."
+    "userCoefficients": "Coeficients aportats per l’usuari, no publicats per Boorie.",
+    "methodBase": "Fragilitat lognormal per taxa de reparacions de {{modelo}}, amb paràmetres genèrics per material — requereix validació d’un expert APiS abans de fer-se servir en decisions reals.",
+    "methodPga": "Entrada en PGA: la mediana de {{medianaPgv}} cm/s es porta a {{medianaPga}} g amb Newmark & Hall (1982), α = {{alfa}} cm/s per g per a sòl {{suelo}}. La correlació PGV–PGA és moderada (ρ≈0,70–0,73, Bradley 2012), així que la corba en PGA arrossega aquesta incertesa; amb PGV mesurat, feu servir PGV.",
+    "soilRockShort": "roca",
+    "soilStiffShort": "ferm",
+    "soilSoftShort": "tou"
   },
   "mapViewer": {
     "title": "Visor de xarxa",
