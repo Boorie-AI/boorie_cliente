@@ -515,6 +515,20 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   // porque es lo que dan las normativas de amenaza sísmica, en fracción de g.
   const [fragilityHazard, setFragilityHazard] = useState<'seismic_pgv' | 'seismic_pga'>('seismic_pgv');
   const [fragilitySoil, setFragilitySoil] = useState<'rock' | 'stiff_soil' | 'soft_soil'>('stiff_soil');
+  // De dónde salen las medianas por material. El Dr. Mora indicó empezar por
+  // HAZUS-MH (#94); ambas tablas vienen citadas de su anexo 1.
+  const [fragilityModel, setFragilityModel] = useState<'HAZUS_MH' | 'ALA_2001'>('HAZUS_MH');
+  /**
+   * Coeficientes de tanque y bomba, en PGA (g).
+   *
+   * Vacíos a propósito y sin valor por defecto: no existe una tabla que
+   * podamos citar para estos componentes, y el Dr. Mora pidió justamente que
+   * los ponga el usuario avanzado. Cadena vacía = no hay curva.
+   */
+  const [coefTanqueDS1, setCoefTanqueDS1] = useState('');
+  const [coefTanqueDS2, setCoefTanqueDS2] = useState('');
+  const [coefBomba, setCoefBomba] = useState('');
+  const [coefBeta, setCoefBeta] = useState('0.6');
   const [isGeneratingFragility, setIsGeneratingFragility] = useState(false);
   const [fragilityResult, setFragilityResult] = useState<any>(null);
   // Índice de la intensidad a la que se lee la tabla por diámetros (#94).
@@ -987,7 +1001,11 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
         material: fragilityMaterial,
         max_intensity: fragilityMaxIntensity,
         hazard_type: fragilityHazard,
-        soil_class: fragilitySoil
+        soil_class: fragilitySoil,
+        damage_model: fragilityModel,
+        ...(coefTanqueDS1 ? { tank_ds1: { median: Number(coefTanqueDS1), beta: Number(coefBeta) } } : {}),
+        ...(coefTanqueDS2 ? { tank_ds2: { median: Number(coefTanqueDS2), beta: Number(coefBeta) } } : {}),
+        ...(coefBomba ? { pump_ds: { median: Number(coefBomba), beta: Number(coefBeta) } } : {})
       });
       if (res.success) {
         setFragilityResult(res.data);
@@ -1000,7 +1018,8 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     } finally {
       setIsGeneratingFragility(false);
     }
-  }, [networkData, fragilityMaterial, fragilityMaxIntensity, fragilityHazard, fragilitySoil]);
+  }, [networkData, fragilityMaterial, fragilityMaxIntensity, fragilityHazard, fragilitySoil,
+      fragilityModel, coefTanqueDS1, coefTanqueDS2, coefBomba, coefBeta]);
 
   const handleExportFragilityCSV = useCallback(() => {
     if (!fragilityResult) return;
@@ -2144,6 +2163,17 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         </select>
                       </div>
                       <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">Modelo de daño</div>
+                        <select
+                          value={fragilityModel}
+                          onChange={(e) => setFragilityModel(e.target.value as typeof fragilityModel)}
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        >
+                          <option value="HAZUS_MH">FEMA/HAZUS-MH (2003)</option>
+                          <option value="ALA_2001">ALA (2001)</option>
+                        </select>
+                      </div>
+                      <div className="bg-background p-2 rounded border">
                         <div className="text-[10px] text-muted-foreground mb-1">Intensidad de entrada</div>
                         <select
                           value={fragilityHazard}
@@ -2186,6 +2216,75 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         />
                       </div>
                     </div>
+                    {/**
+                      * Tanques y bombas (#94).
+                      *
+                      * Van por PGA, no por PGV. Los coeficientes los pone quien
+                      * los tenga: no hay tabla que podamos citar para estos
+                      * componentes, y el Dr. Mora pidió dejarlo abierto al
+                      * usuario avanzado en vez de fijar números nuestros. Vacío
+                      * significa «no dibujes esa curva», no «usa un valor por
+                      * defecto»: un defecto inventado se lee como un dato.
+                      */}
+                    {fragilityHazard === 'seismic_pga' && (
+                      <div className="space-y-1 p-2 rounded border bg-background/60">
+                        <div className="text-[10px] font-medium">
+                          Tanques y bombas — coeficientes en PGA (opcional)
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">
+                          Mediana en g al 50 % de probabilidad. No traen valor por defecto: no
+                          hay una tabla publicada que podamos citar para estos componentes, así
+                          que se dejan a criterio de quien conozca su región. En blanco, no se
+                          dibuja la curva.
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <label className="text-[10px] text-muted-foreground">
+                            Tanque DS1 — fuga menor
+                            <input
+                              type="number" step="0.01" min={0} placeholder="—"
+                              value={coefTanqueDS1}
+                              onChange={(e) => setCoefTanqueDS1(e.target.value)}
+                              className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                            />
+                          </label>
+                          <label className="text-[10px] text-muted-foreground">
+                            Tanque DS2 — fuga mayor
+                            <input
+                              type="number" step="0.01" min={0} placeholder="—"
+                              value={coefTanqueDS2}
+                              onChange={(e) => setCoefTanqueDS2(e.target.value)}
+                              className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                            />
+                          </label>
+                          <label className="text-[10px] text-muted-foreground">
+                            Bomba — fuera de servicio
+                            <input
+                              type="number" step="0.01" min={0} placeholder="—"
+                              value={coefBomba}
+                              onChange={(e) => setCoefBomba(e.target.value)}
+                              className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                            />
+                          </label>
+                          <label className="text-[10px] text-muted-foreground">
+                            Dispersión β (los tres)
+                            <input
+                              type="number" step="0.05" min={0}
+                              value={coefBeta}
+                              onChange={(e) => setCoefBeta(e.target.value)}
+                              className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                            />
+                          </label>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground pt-1">
+                          Para encontrar coeficientes de su región, vea los anexos 5A y 5B del{' '}
+                          <a
+                            href="https://github.com/Boorie-AI/boorie_cliente/issues/94"
+                            target="_blank" rel="noreferrer"
+                            className="underline hover:text-foreground"
+                          >issue #94</a>.
+                        </p>
+                      </div>
+                    )}
                     <Button size="sm" className="w-full" onClick={handleGenerateFragilityCurve} disabled={isGeneratingFragility}>
                       {isGeneratingFragility ? (
                         <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> Generando...</>
@@ -2290,6 +2389,76 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               {fragilityResult.expected_failed_pipes[fragilityResult.expected_failed_pipes.length - 1]?.toFixed(1)} / {fragilityResult.pipe_count}
                             </span>
                           </div>
+                          {/**
+                            * Las tres curvas juntas, como la Figura 4 del anexo 2
+                            * del Dr. Mora: tubería, tanque y bomba sobre el mismo
+                            * PGA. Solo aparece si el usuario dio coeficientes; si
+                            * no, no hay nada honesto que dibujar.
+                            *
+                            * Aquí sí son series distintas, al contrario que las
+                            * tuberías afectadas: cada componente tiene su propia
+                            * mediana, así que las curvas no se superponen.
+                            */}
+                          {fragilityResult.components && (
+                            fragilityResult.components.tank_ds1
+                            || fragilityResult.components.tank_ds2
+                            || fragilityResult.components.pump_ds
+                          ) && (
+                            <div className="pt-1 border-t space-y-1">
+                              <div className="text-[11px] font-medium">
+                                Tanques ({fragilityResult.components.tank_count}) y bombas ({fragilityResult.components.pump_count})
+                              </div>
+                              <div className="h-36">
+                                <Line
+                                  data={{
+                                    labels: fragilityResult.intensities.map((v: number) => v.toFixed(2)),
+                                    datasets: [
+                                      {
+                                        label: 'Tubería',
+                                        data: fragilityResult.pipe_failure_probability,
+                                        borderColor: 'rgb(234, 88, 12)',
+                                        borderWidth: 2, pointRadius: 0, tension: 0.3,
+                                      },
+                                      ...(fragilityResult.components.tank_ds1 ? [{
+                                        label: 'Tanque DS1',
+                                        data: fragilityResult.components.tank_ds1.probability,
+                                        borderColor: 'rgb(37, 99, 235)',
+                                        borderWidth: 2, pointRadius: 0, tension: 0.3,
+                                      }] : []),
+                                      ...(fragilityResult.components.tank_ds2 ? [{
+                                        label: 'Tanque DS2',
+                                        data: fragilityResult.components.tank_ds2.probability,
+                                        borderColor: 'rgb(37, 99, 235)',
+                                        borderDash: [4, 3],
+                                        borderWidth: 2, pointRadius: 0, tension: 0.3,
+                                      }] : []),
+                                      ...(fragilityResult.components.pump_ds ? [{
+                                        label: 'Bomba',
+                                        data: fragilityResult.components.pump_ds.probability,
+                                        borderColor: 'rgb(22, 163, 74)',
+                                        borderWidth: 2, pointRadius: 0, tension: 0.3,
+                                      }] : []),
+                                    ],
+                                  }}
+                                  options={{
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    animation: { duration: 0 },
+                                    plugins: {
+                                      legend: { display: true, position: 'bottom', labels: { boxWidth: 8, font: { size: 9 } } },
+                                    },
+                                    scales: {
+                                      x: { title: { display: true, text: 'PGA (g)', font: { size: 9 } }, ticks: { maxTicksLimit: 6, font: { size: 9 } } },
+                                      y: { min: 0, max: 1, title: { display: true, text: 'Prob. de exceder (0–1)', font: { size: 9 } }, ticks: { font: { size: 9 } } },
+                                    },
+                                  }}
+                                />
+                              </div>
+                              <div className="text-[10px] text-muted-foreground">
+                                Coeficientes aportados por el usuario, no publicados por Boorie.
+                              </div>
+                            </div>
+                          )}
                           {/**
                             * Tabla por diámetros (#94, exigencia de alta prioridad).
                             *

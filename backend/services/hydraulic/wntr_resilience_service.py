@@ -1023,13 +1023,35 @@ class WNTRResilienceService:
             steps = int(options.get('steps', 21))
             intensities = list(np.linspace(0, max_intensity, steps))
 
-            # ALA (2001)-style median PGV (cm/s) at 50% failure probability, by material.
-            median_by_material = {
-                'CI': 15.0, 'AC': 15.0, 'STEEL': 30.0, 'DI': 25.0,
-                'PVC': 28.0, 'HDPE': 35.0, 'CONCRETE': 20.0, 'DEFAULT': 20.0
+            # Medianas de PGV (cm/s) al 50 % de probabilidad, por material y por
+            # modelo de dano. Vienen del anexo 1 del Dr. Mora (issue #94), que
+            # las cita: ALA (2001) Tabla 4-1 y Eidinger (2001) para ALA_2001, y
+            # FEMA/HAZUS-MH (2003) para HAZUS_MH. Se toma el estado 'minor'
+            # (fuga), que es el analogo del unico estado que dibuja esta curva.
+            #
+            # Antes habia una sola tabla de valores genericos sin fuente. El
+            # Dr. Mora indico empezar por HAZUS-MH, asi que es el de partida.
+            medianas_por_modelo = {
+                'HAZUS_MH': {
+                    'CI': 15.0, 'AC': 15.0, 'STEEL': 70.0, 'DI': 35.0,
+                    'PVC': 35.0, 'HDPE': 35.0, 'CONCRETE': 15.0, 'DEFAULT': 15.0
+                },
+                'ALA_2001': {
+                    'CI': 20.0, 'AC': 20.0, 'STEEL': 80.0, 'DI': 40.0,
+                    'PVC': 40.0, 'HDPE': 40.0, 'CONCRETE': 20.0, 'DEFAULT': 20.0
+                },
             }
+            damage_model = str(options.get('damage_model', 'HAZUS_MH')).upper()
+            if damage_model not in medianas_por_modelo:
+                raise ValueError(
+                    'damage_model no valido: %s (opciones: %s)'
+                    % (damage_model, ', '.join(sorted(medianas_por_modelo)))
+                )
+            median_by_material = medianas_por_modelo[damage_model]
+            # HAZUS publica una dispersion mayor que ALA para el mismo material.
+            beta_por_modelo = {'HAZUS_MH': 0.6, 'ALA_2001': 0.5}
             median_pgv = median_by_material.get(material, median_by_material['DEFAULT'])
-            beta = float(options.get('beta', 0.5))  # lognormal dispersion, ALA default ~0.5
+            beta = float(options.get('beta', beta_por_modelo[damage_model]))
 
             # Entrada en PGA (issue #94, anexo 1 del Dr. Mora).
             #
@@ -1095,10 +1117,57 @@ class WNTRResilienceService:
                                            for p in pipe_failure_probability],
                 })
 
+            # Fragilidad de tanques y bombas (issue #94).
+            #
+            # Estos componentes se gobiernan por PGA, no por PGV (HAZUS-MH, y el
+            # anexo 2 del Dr. Mora lo confirma). Pero los coeficientes no estan
+            # en ninguno de sus anexos: el 5A dice que "deben calibrarse con
+            # datos empiricos o adoptarse de referencias". Asi que no se
+            # inventan: los aporta quien los tenga, y el anexo 5A/5B dice donde
+            # buscarlos para la region. Sin coeficientes, no hay curva.
+            #
+            # Estados segun el anexo 2: tanque DS1 fuga menor (<0,25 m) y DS2
+            # fuga mayor (0,25-1,0 m); bomba un solo estado, fuera de servicio.
+            def curva_componente(clave, cantidad):
+                spec = options.get(clave)
+                if not spec or cantidad == 0:
+                    return None
+                try:
+                    m = float(spec['median'])
+                    b = float(spec.get('beta', 0.6))
+                except (KeyError, TypeError, ValueError):
+                    raise ValueError(
+                        '%s necesita al menos {"median": <g>} y opcionalmente "beta"' % clave
+                    )
+                if m <= 0 or b <= 0:
+                    raise ValueError('%s: median y beta han de ser positivos' % clave)
+                prob = [float(p) for p in lognorm.cdf(intensities, s=b, scale=m)]
+                return {
+                    'median_pga': m,
+                    'beta': b,
+                    'count': cantidad,
+                    'probability': prob,
+                    'expected_affected': [p * cantidad for p in prob],
+                }
+
+            n_tanques = len(wn.tank_name_list)
+            n_bombas = len(wn.pump_name_list)
+            componentes = None
+            if en_pga:
+                componentes = {
+                    'tank_count': n_tanques,
+                    'pump_count': n_bombas,
+                    'tank_ds1': curva_componente('tank_ds1', n_tanques),
+                    'tank_ds2': curva_componente('tank_ds2', n_tanques),
+                    'pump_ds': curva_componente('pump_ds', n_bombas),
+                }
+
             result = {
                 'success': True,
                 'data': {
                     'hazard_type': hazard_type,
+                    'damage_model': damage_model,
+                    'components': componentes,
                     'material': material,
                     'median_pgv': median_pgv,
                     'median': median,

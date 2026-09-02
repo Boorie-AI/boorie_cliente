@@ -219,10 +219,43 @@ export interface FragilityDiameterGroup {
   affected_length_km: number[];
 }
 
+/**
+ * Fragilidad de un componente puntual frente a PGA, con los coeficientes que
+ * aporta el usuario. No hay tabla por defecto a propósito: los coeficientes de
+ * tanque y bomba no están en ninguna referencia que tengamos (issue #94), y el
+ * anexo 5A del Dr. Mora dice que «deben calibrarse con datos empíricos o
+ * adoptarse de referencias». Sin coeficientes, no hay curva.
+ */
+export interface FragilityComponentCurve {
+  /** Mediana en g, la que puso el usuario. */
+  median_pga: number;
+  beta: number;
+  /** Cuántos hay en la red. */
+  count: number;
+  /** Alineados con `intensities`. */
+  probability: number[];
+  expected_affected: number[];
+}
+
+export interface FragilityComponents {
+  tank_count: number;
+  pump_count: number;
+  /** Fuga menor, < 0,25 m (anexo 2). Null si no se dieron coeficientes. */
+  tank_ds1: FragilityComponentCurve | null;
+  /** Fuga mayor, 0,25–1,0 m (anexo 2). */
+  tank_ds2: FragilityComponentCurve | null;
+  /** Bomba fuera de servicio: un solo estado. */
+  pump_ds: FragilityComponentCurve | null;
+}
+
 export interface FragilityCurveResult {
   success: boolean;
   data?: {
     hazard_type: string;
+    /** De dónde salen las medianas por material, con fuente. */
+    damage_model: 'HAZUS_MH' | 'ALA_2001';
+    /** Solo con entrada en PGA: tanques y bombas van por PGA, no por PGV. */
+    components: FragilityComponents | null;
     material: string;
     /** Mediana de ALA, siempre en cm/s: es donde esta calibrada. */
     median_pgv: number;
@@ -325,6 +358,11 @@ export class WNTRResilienceService {
   async generateFragilityCurve(networkFile: string, options?: {
     hazard_type?: 'seismic_pgv' | 'seismic_pga';
     soil_class?: 'rock' | 'stiff_soil' | 'soft_soil';
+    damage_model?: 'HAZUS_MH' | 'ALA_2001';
+    /** Coeficientes en PGA (g) que aporta el usuario; sin ellos no hay curva. */
+    tank_ds1?: { median: number; beta?: number };
+    tank_ds2?: { median: number; beta?: number };
+    pump_ds?: { median: number; beta?: number };
     material?: 'CI' | 'AC' | 'STEEL' | 'DI' | 'PVC' | 'HDPE' | 'CONCRETE' | 'DEFAULT';
     max_intensity?: number;
     steps?: number;
