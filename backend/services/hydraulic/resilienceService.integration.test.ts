@@ -136,3 +136,230 @@ describe.skipIf(!canRun)('interrupción del servicio con WNTR real', () => {
     expect(res.success).toBe(false)
   }, SIM_TIMEOUT)
 })
+
+/**
+ * Reparto por diámetro de la curva de fragilidad (issue #94).
+ *
+ * El Dr. Mora corrigió la exigencia: en vez de una curva de longitud aparte
+ * —que con un material único sería la misma curva a otra escala—, una tabla
+ * con las tuberías y los kilómetros afectados de cada diámetro presente en la
+ * red, para poder costear el daño. Agrupar por diámetro se puede porque el
+ * `.inp` lo declara en `[PIPES]`; el material no viene y hay que preguntarlo.
+ *
+ * Lo que estos tests protegen es la consistencia: si el reparto por grupos
+ * dejara de sumar el agregado, la tabla mentiría sin que nada más se rompiera.
+ */
+describe.skipIf(!canRun)('curva de fragilidad: reparto por diámetro', () => {
+  const fragility = () => service.generateFragilityCurve(NETWORK, {
+    material: 'CI',
+    max_intensity: 100,
+    steps: 11,
+  })
+
+  it('agrupa por los diámetros que existen en la red y no pierde ninguna tubería', async () => {
+    const res = await fragility()
+    expect(res.success).toBe(true)
+    const d = res.data!
+
+    expect(d.by_diameter.length).toBeGreaterThan(0)
+    expect(d.by_diameter.reduce((s, g) => s + g.pipe_count, 0)).toBe(d.pipe_count)
+    expect(d.by_diameter.reduce((s, g) => s + g.length_km, 0)).toBeCloseTo(d.total_length_km, 6)
+
+    // Ordenados de menor a mayor: la tabla se lee por diámetro creciente.
+    const mm = d.by_diameter.map(g => g.diameter_mm)
+    expect([...mm].sort((a, b) => a - b)).toEqual(mm)
+  }, SIM_TIMEOUT)
+
+  it('el reparto suma exactamente el agregado en cada intensidad', async () => {
+    const res = await fragility()
+    const d = res.data!
+
+    d.intensities.forEach((_, i) => {
+      const tuberias = d.by_diameter.reduce((s, g) => s + g.affected_pipes[i], 0)
+      const km = d.by_diameter.reduce((s, g) => s + g.affected_length_km[i], 0)
+      expect(tuberias).toBeCloseTo(d.expected_failed_pipes[i], 6)
+      expect(km).toBeCloseTo(d.pipe_failure_probability[i] * d.total_length_km, 6)
+    })
+  }, SIM_TIMEOUT)
+
+  it('distingue dos grupos con el mismo recuento y longitudes distintas', async () => {
+    const res = await fragility()
+    const d = res.data!
+    const i = d.intensities.length - 1
+
+    // El caso que motiva la columna de longitud: mismo número de tuberías,
+    // kilómetros muy distintos. Si no hay dos grupos así en esta red, el test
+    // no tiene nada que comprobar y lo dice en vez de pasar en falso.
+    const porRecuento = new Map<number, typeof d.by_diameter>()
+    for (const g of d.by_diameter) {
+      porRecuento.set(g.pipe_count, [...(porRecuento.get(g.pipe_count) ?? []), g])
+    }
+    const pareja = [...porRecuento.values()].find(gs => gs.length >= 2
+      && Math.max(...gs.map(g => g.length_km)) > Math.min(...gs.map(g => g.length_km)) * 2)
+    expect(pareja, 'la red no tiene dos diámetros con igual recuento y longitud dispar').toBeDefined()
+
+    const cortos = pareja!.map(g => g.affected_pipes[i])
+    expect(Math.max(...cortos)).toBeCloseTo(Math.min(...cortos), 6)
+    const largos = pareja!.map(g => g.affected_length_km[i])
+    expect(Math.max(...largos)).toBeGreaterThan(Math.min(...largos) * 2)
+  }, SIM_TIMEOUT)
+})
+
+/**
+ * Entrada en PGA (issue #94, anexo 1 del Dr. Mora).
+ *
+ * ALA está calibrada en PGV, así que la curva en PGA se obtiene llevando la
+ * mediana al espacio de PGA con Newmark & Hall (1982): PGV[cm/s] = α·PGA[g].
+ * Lo que estos tests protegen es que la mediana se mueva de verdad. Cambiar
+ * solo el rótulo del eje dejaría una curva de PGV llamada PGA, que es
+ * exactamente lo que se le dijo al Dr. Mora que no se haría.
+ */
+describe.skipIf(!canRun)('curva de fragilidad: entrada en PGA', () => {
+  /** Newmark & Hall (1982), cm/s por g. */
+  const ALFA = { rock: 66, stiff_soil: 97, soft_soil: 122 } as const
+
+  it('en PGV no hay conversión y la mediana sigue en cm/s', async () => {
+    const res = await service.generateFragilityCurve(NETWORK, { material: 'CI', steps: 4 })
+    const d = res.data!
+    expect(d.intensity_unit).toBe('cm/s')
+    expect(d.alpha_cm_s_per_g).toBeNull()
+    expect(d.soil_class).toBeNull()
+    expect(d.median).toBe(d.median_pgv)
+  }, SIM_TIMEOUT)
+
+  it('en PGA lleva la mediana a g dividiendo por el alfa del suelo', async () => {
+    // La referencia de beta es la corrida en PGV del mismo modelo de daño, no
+    // un literal: cada modelo publica su propia dispersión y cambiar el modelo
+    // por defecto no debe romper este test, que va de la conversión.
+    const enPgv = (await service.generateFragilityCurve(NETWORK, { material: 'CI', steps: 4 })).data!
+
+    for (const suelo of ['rock', 'stiff_soil', 'soft_soil'] as const) {
+      const res = await service.generateFragilityCurve(NETWORK, {
+        material: 'CI', hazard_type: 'seismic_pga', soil_class: suelo, steps: 4,
+      })
+      const d = res.data!
+      expect(d.intensity_unit).toBe('g')
+      expect(d.alpha_cm_s_per_g).toBe(ALFA[suelo])
+      expect(d.median).toBeCloseTo(d.median_pgv / ALFA[suelo], 9)
+      // El eje va en g: con el tope por defecto, hasta 1.
+      expect(Math.max(...d.intensities)).toBeCloseTo(1, 9)
+      // La dispersión no se toca: la incertidumbre de la conversión va
+      // declarada en la metodología, no metida a mano en beta.
+      expect(d.beta).toBe(enPgv.beta)
+      expect(d.methodology).toContain('Newmark & Hall')
+    }
+  }, SIM_TIMEOUT)
+
+  it('el suelo blando falla antes para la misma aceleración', async () => {
+    const pedir = (soil_class: 'rock' | 'soft_soil') => service.generateFragilityCurve(
+      NETWORK, { material: 'CI', hazard_type: 'seismic_pga', soil_class, steps: 11 })
+
+    const roca = (await pedir('rock')).data!
+    const blando = (await pedir('soft_soil')).data!
+    const i = 2  // 0,2 g, donde la curva todavía discrimina
+
+    // Para un mismo PGA, el suelo blando da más PGV, así que más daño.
+    expect(blando.pipe_failure_probability[i])
+      .toBeGreaterThan(roca.pipe_failure_probability[i])
+  }, SIM_TIMEOUT)
+
+  it('rechaza una clase de suelo que no existe en vez de asumir una', async () => {
+    const res = await service.generateFragilityCurve(NETWORK, {
+      hazard_type: 'seismic_pga',
+      soil_class: 'barro' as unknown as 'rock',
+    })
+    expect(res.success).toBe(false)
+    expect(res.error).toContain('soil_class')
+  }, SIM_TIMEOUT)
+})
+
+/**
+ * Modelo de daño y componentes puntuales (issue #94, segunda respuesta del
+ * Dr. Mora).
+ *
+ * Dos decisiones suyas que estos tests fijan:
+ *
+ *  - Empezar por HAZUS-MH. Las medianas dejan de ser valores genéricos sin
+ *    fuente y pasan a ser las dos tablas citadas de su anexo 1.
+ *  - Tanques y bombas van por PGA, y sus coeficientes los pone el usuario
+ *    avanzado. No hay tabla por defecto y no debe haberla: un valor inventado
+ *    se lee en pantalla igual que un dato medido.
+ */
+describe.skipIf(!canRun)('curva de fragilidad: modelo de daño y componentes', () => {
+  it('HAZUS es el de partida y da otra mediana y otra dispersión que ALA', async () => {
+    const hazus = (await service.generateFragilityCurve(NETWORK, { material: 'PVC', steps: 4 })).data!
+    expect(hazus.damage_model).toBe('HAZUS_MH')
+    expect(hazus.median_pgv).toBe(35)
+    expect(hazus.beta).toBe(0.6)
+
+    const ala = (await service.generateFragilityCurve(NETWORK, {
+      material: 'PVC', damage_model: 'ALA_2001', steps: 4,
+    })).data!
+    expect(ala.median_pgv).toBe(40)
+    expect(ala.beta).toBe(0.5)
+  }, SIM_TIMEOUT)
+
+  it('rechaza un modelo de daño que no existe', async () => {
+    const res = await service.generateFragilityCurve(NETWORK, {
+      damage_model: 'INVENTADO' as unknown as 'HAZUS_MH',
+    })
+    expect(res.success).toBe(false)
+    expect(res.error).toContain('damage_model')
+  }, SIM_TIMEOUT)
+
+  it('sin coeficientes no inventa curva de tanque ni de bomba', async () => {
+    const res = await service.generateFragilityCurve(NETWORK, {
+      hazard_type: 'seismic_pga', steps: 4,
+    })
+    const c = res.data!.components!
+    expect(c.tank_ds1).toBeNull()
+    expect(c.tank_ds2).toBeNull()
+    expect(c.pump_ds).toBeNull()
+    // El recuento sí se informa: es lo que dice si merece la pena pedirlos.
+    expect(c.tank_count).toBeGreaterThan(0)
+  }, SIM_TIMEOUT)
+
+  it('en PGV no hay componentes, porque no se gobiernan por PGV', async () => {
+    const res = await service.generateFragilityCurve(NETWORK, {
+      hazard_type: 'seismic_pgv',
+      tank_ds1: { median: 0.3 },
+      steps: 4,
+    })
+    expect(res.data!.components).toBeNull()
+  }, SIM_TIMEOUT)
+
+  it('con coeficientes dibuja cada componente con su mediana', async () => {
+    const res = await service.generateFragilityCurve(NETWORK, {
+      hazard_type: 'seismic_pga',
+      steps: 11,
+      tank_ds1: { median: 0.3, beta: 0.6 },
+      tank_ds2: { median: 0.7, beta: 0.6 },
+      pump_ds: { median: 0.5, beta: 0.6 },
+    })
+    const c = res.data!.components!
+    expect(c.tank_ds1!.median_pga).toBe(0.3)
+    expect(c.tank_ds1!.expected_affected[10]).toBeCloseTo(c.tank_ds1!.probability[10] * c.tank_count, 9)
+
+    // La fuga mayor siempre por debajo de la menor: si se cruzaran, los
+    // estados de daño estarían invertidos y la lectura sería al revés.
+    c.tank_ds1!.probability.forEach((p, i) => {
+      expect(p).toBeGreaterThanOrEqual(c.tank_ds2!.probability[i])
+    })
+  }, SIM_TIMEOUT)
+
+  it('falla explícitamente si el coeficiente no trae mediana o no es positiva', async () => {
+    const sinMediana = await service.generateFragilityCurve(NETWORK, {
+      hazard_type: 'seismic_pga',
+      tank_ds1: { beta: 0.6 } as unknown as { median: number },
+    })
+    expect(sinMediana.success).toBe(false)
+    expect(sinMediana.error).toContain('tank_ds1')
+
+    const negativa = await service.generateFragilityCurve(NETWORK, {
+      hazard_type: 'seismic_pga',
+      pump_ds: { median: -1 },
+    })
+    expect(negativa.success).toBe(false)
+    expect(negativa.error).toContain('positivos')
+  }, SIM_TIMEOUT)
+})

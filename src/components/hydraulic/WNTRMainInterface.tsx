@@ -513,8 +513,29 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
   const [fragilityMaterial, setFragilityMaterial] = useState('PVC');
   const [fragilityMaxIntensity, setFragilityMaxIntensity] = useState<number>(100);
+  // Entrada en PGV o en PGA (#94). ALA está calibrada en PGV; PGA se ofrece
+  // porque es lo que dan las normativas de amenaza sísmica, en fracción de g.
+  const [fragilityHazard, setFragilityHazard] = useState<'seismic_pgv' | 'seismic_pga'>('seismic_pgv');
+  const [fragilitySoil, setFragilitySoil] = useState<'rock' | 'stiff_soil' | 'soft_soil'>('stiff_soil');
+  // De dónde salen las medianas por material. El Dr. Mora indicó empezar por
+  // HAZUS-MH (#94); ambas tablas vienen citadas de su anexo 1.
+  const [fragilityModel, setFragilityModel] = useState<'HAZUS_MH' | 'ALA_2001'>('HAZUS_MH');
+  /**
+   * Coeficientes de tanque y bomba, en PGA (g).
+   *
+   * Vacíos a propósito y sin valor por defecto: no existe una tabla que
+   * podamos citar para estos componentes, y el Dr. Mora pidió justamente que
+   * los ponga el usuario avanzado. Cadena vacía = no hay curva.
+   */
+  const [coefTanqueDS1, setCoefTanqueDS1] = useState('');
+  const [coefTanqueDS2, setCoefTanqueDS2] = useState('');
+  const [coefBomba, setCoefBomba] = useState('');
+  const [coefBeta, setCoefBeta] = useState('0.6');
   const [isGeneratingFragility, setIsGeneratingFragility] = useState(false);
   const [fragilityResult, setFragilityResult] = useState<any>(null);
+  // Índice de la intensidad a la que se lee la tabla por diámetros (#94).
+  // Arranca en la máxima, que es la lectura que ya daba el resumen de abajo.
+  const [fragilityIdx, setFragilityIdx] = useState<number>(0);
   const [fragilityError, setFragilityError] = useState<string | null>(null);
 
   // Load network file
@@ -979,12 +1000,18 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     setFragilityError(null);
     try {
       const res = await window.electronAPI.wntr.generateFragilityCurve({
-        hazard_type: 'seismic_pgv',
         material: fragilityMaterial,
-        max_intensity: fragilityMaxIntensity
+        max_intensity: fragilityMaxIntensity,
+        hazard_type: fragilityHazard,
+        soil_class: fragilitySoil,
+        damage_model: fragilityModel,
+        ...(coefTanqueDS1 ? { tank_ds1: { median: Number(coefTanqueDS1), beta: Number(coefBeta) } } : {}),
+        ...(coefTanqueDS2 ? { tank_ds2: { median: Number(coefTanqueDS2), beta: Number(coefBeta) } } : {}),
+        ...(coefBomba ? { pump_ds: { median: Number(coefBomba), beta: Number(coefBeta) } } : {})
       });
       if (res.success) {
         setFragilityResult(res.data);
+        setFragilityIdx(Math.max(0, (res.data.intensities?.length ?? 1) - 1));
       } else {
         setFragilityError(res.error || 'No se pudo generar la curva de fragilidad');
       }
@@ -993,18 +1020,41 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     } finally {
       setIsGeneratingFragility(false);
     }
-  }, [networkData, fragilityMaterial, fragilityMaxIntensity]);
+  }, [networkData, fragilityMaterial, fragilityMaxIntensity, fragilityHazard, fragilitySoil,
+      fragilityModel, coefTanqueDS1, coefTanqueDS2, coefBomba, coefBeta]);
 
   const handleExportFragilityCSV = useCallback(() => {
     if (!fragilityResult) return;
     const rows = [
-      ['PGV (cm/s)', 'Prob. falla de tubería', 'Tuberías afectadas esperadas'],
+      [`${fragilityResult.intensity_unit === 'g' ? 'PGA (g)' : 'PGV (cm/s)'}`,
+       'Prob. falla de tubería', 'Tuberías afectadas esperadas'],
       ...fragilityResult.intensities.map((pgv: number, i: number) => [
         pgv.toFixed(2),
         fragilityResult.pipe_failure_probability[i]?.toFixed(6) ?? '',
         fragilityResult.expected_failed_pipes[i]?.toFixed(2) ?? ''
       ])
     ];
+    // El reparto por diámetro va en el mismo fichero, y en formato largo: una
+    // fila por diámetro y por intensidad. La tabla de pantalla se lee a una
+    // intensidad; costear el daño de varios escenarios pide todas (#94).
+    if (fragilityResult.by_diameter?.length) {
+      rows.push([]);
+      rows.push([fragilityResult.intensity_unit === 'g' ? 'PGA (g)' : 'PGV (cm/s)',
+                 'Diámetro (mm)', 'Tuberías del grupo', 'Longitud del grupo (km)',
+                 'Tuberías afectadas', 'Longitud afectada (km)']);
+      fragilityResult.intensities.forEach((pgv: number, i: number) => {
+        fragilityResult.by_diameter.forEach((g: any) => {
+          rows.push([
+            pgv.toFixed(2),
+            g.diameter_mm.toFixed(1),
+            String(g.pipe_count),
+            g.length_km.toFixed(4),
+            g.affected_pipes[i]?.toFixed(2) ?? '',
+            g.affected_length_km[i]?.toFixed(4) ?? ''
+          ]);
+        });
+      });
+    }
     const csv = rows.map(r => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -2065,6 +2115,29 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     <AvisoDuracion>
                       {t('networkView.curveAllPipes')}
                     </AvisoDuracion>
+                    {/**
+                      * De dónde sacar la intensidad (#94, punto 3 del Dr. Mora).
+                      *
+                      * Las normativas de amenaza sísmica de América Latina y el Caribe
+                      * no son explícitas en PGV, que es donde está calibrada ALA. Sin
+                      * una referencia a mano, el ingeniero acaba poniendo un número
+                      * inventado en la casilla, y la curva hereda ese número.
+                      */}
+                    <p className="text-[10px] text-muted-foreground">
+                      {t('networkView.hazardSourceHelp')}{' '}
+                      <a
+                        href="https://hazard.openquake.org/gem/models/"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline hover:text-foreground"
+                      >{t('networkView.hazardSourceModels')}</a>{' · '}
+                      <a
+                        href="https://hazard.openquake.org/gem/images/home/gem_global_seismic_hazard_map_v2018.1.pdf"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline hover:text-foreground"
+                      >{t('networkView.hazardSourceMap')}</a>
+                    </p>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-background p-2 rounded border">
                         <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.mainMaterial')}</div>
@@ -2084,7 +2157,52 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         </select>
                       </div>
                       <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.maxPgv')}</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.damageModel')}</div>
+                        <select
+                          value={fragilityModel}
+                          onChange={(e) => setFragilityModel(e.target.value as typeof fragilityModel)}
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        >
+                          {/* Nombres de norma: no se traducen. */}
+                          <option value="HAZUS_MH">FEMA/HAZUS-MH (2003)</option>
+                          <option value="ALA_2001">ALA (2001)</option>
+                        </select>
+                      </div>
+                      <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.hazardInput')}</div>
+                        <select
+                          value={fragilityHazard}
+                          onChange={(e) => {
+                            const h = e.target.value as 'seismic_pgv' | 'seismic_pga';
+                            setFragilityHazard(h);
+                            // El tope va en las unidades del eje: 100 cm/s o 1 g.
+                            setFragilityMaxIntensity(h === 'seismic_pga' ? 1 : 100);
+                          }}
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        >
+                          {/* Siglas de la magnitud, iguales en los tres idiomas. */}
+                          <option value="seismic_pgv">PGV (cm/s)</option>
+                          <option value="seismic_pga">PGA (g)</option>
+                        </select>
+                      </div>
+                      {fragilityHazard === 'seismic_pga' && (
+                        <div className="bg-background p-2 rounded border">
+                          <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.soilClass')}</div>
+                          <select
+                            value={fragilitySoil}
+                            onChange={(e) => setFragilitySoil(e.target.value as typeof fragilitySoil)}
+                            className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                          >
+                            <option value="rock">{t('networkView.soilRock')}</option>
+                            <option value="stiff_soil">{t('networkView.soilStiff')}</option>
+                            <option value="soft_soil">{t('networkView.soilSoft')}</option>
+                          </select>
+                        </div>
+                      )}
+                      <div className="bg-background p-2 rounded border">
+                        <div className="text-[10px] text-muted-foreground mb-1">
+                          {fragilityHazard === 'seismic_pga' ? t('networkView.maxPga') : t('networkView.maxPgv')}
+                        </div>
                         <input
                           type="number"
                           min={0}
@@ -2094,6 +2212,72 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         />
                       </div>
                     </div>
+                    {/**
+                      * Tanques y bombas (#94).
+                      *
+                      * Van por PGA, no por PGV. Los coeficientes los pone quien
+                      * los tenga: no hay tabla que podamos citar para estos
+                      * componentes, y el Dr. Mora pidió dejarlo abierto al
+                      * usuario avanzado en vez de fijar números nuestros. Vacío
+                      * significa «no dibujes esa curva», no «usa un valor por
+                      * defecto»: un defecto inventado se lee como un dato.
+                      */}
+                    {fragilityHazard === 'seismic_pga' && (
+                      <div className="space-y-1 p-2 rounded border bg-background/60">
+                        <div className="text-[10px] font-medium">
+                          {t('networkView.componentsTitle')}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">
+                          {t('networkView.componentsHelp')}
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <label className="text-[10px] text-muted-foreground">
+                            {t('networkView.tankDs1')}
+                            <input
+                              type="number" step="0.01" min={0} placeholder="—"
+                              value={coefTanqueDS1}
+                              onChange={(e) => setCoefTanqueDS1(e.target.value)}
+                              className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                            />
+                          </label>
+                          <label className="text-[10px] text-muted-foreground">
+                            {t('networkView.tankDs2')}
+                            <input
+                              type="number" step="0.01" min={0} placeholder="—"
+                              value={coefTanqueDS2}
+                              onChange={(e) => setCoefTanqueDS2(e.target.value)}
+                              className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                            />
+                          </label>
+                          <label className="text-[10px] text-muted-foreground">
+                            {t('networkView.pumpDs')}
+                            <input
+                              type="number" step="0.01" min={0} placeholder="—"
+                              value={coefBomba}
+                              onChange={(e) => setCoefBomba(e.target.value)}
+                              className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                            />
+                          </label>
+                          <label className="text-[10px] text-muted-foreground">
+                            {t('networkView.dispersionBeta')}
+                            <input
+                              type="number" step="0.05" min={0}
+                              value={coefBeta}
+                              onChange={(e) => setCoefBeta(e.target.value)}
+                              className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                            />
+                          </label>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground pt-1">
+                          {t('networkView.coefWhere')}{' '}
+                          <a
+                            href="https://github.com/Boorie-AI/boorie_cliente/issues/94"
+                            target="_blank" rel="noreferrer"
+                            className="underline hover:text-foreground"
+                          >{t('networkView.coefWhereLink')}</a>.
+                        </p>
+                      </div>
+                    )}
                     <Button size="sm" className="w-full" onClick={handleGenerateFragilityCurve} disabled={isGeneratingFragility}>
                       {isGeneratingFragility ? (
                         <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> {t('networkView.generating')}</>
@@ -2114,7 +2298,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           <div className="h-40">
                             <Line
                               data={{
-                                labels: fragilityResult.intensities.map((v: number) => v.toFixed(0)),
+                                labels: fragilityResult.intensities.map(
+                                  (v: number) => v.toFixed(fragilityResult.intensity_unit === 'g' ? 2 : 0)
+                                ),
                                 datasets: [{
                                   label: 'Prob. falla de tubería',
                                   data: fragilityResult.pipe_failure_probability,
@@ -2129,9 +2315,27 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                 responsive: true,
                                 maintainAspectRatio: false,
                                 animation: { duration: 0 },
-                                plugins: { legend: { display: false } },
+                                plugins: {
+                                  legend: { display: false },
+                                  tooltip: {
+                                    callbacks: {
+                                      // Las dos lecturas de una vez, que es lo que se
+                                      // quiere saber al mirar un punto de la curva (#94).
+                                      label: (ctx: { parsed: { y: number } }) =>
+                                        `${(ctx.parsed.y * 100).toFixed(1)} % · ` +
+                                        `${(ctx.parsed.y * fragilityResult.pipe_count).toFixed(1)} de ${fragilityResult.pipe_count} tuberías`,
+                                    },
+                                  },
+                                },
                                 scales: {
-                                  x: { title: { display: true, text: 'PGV (cm/s)', font: { size: 9 } }, ticks: { maxTicksLimit: 6, font: { size: 9 } } },
+                                  x: {
+                                    title: {
+                                      display: true,
+                                      text: fragilityResult.intensity_unit === 'g' ? 'PGA (g)' : 'PGV (cm/s)',
+                                      font: { size: 9 },
+                                    },
+                                    ticks: { maxTicksLimit: 6, font: { size: 9 } },
+                                  },
                                   // El eje horizontal ya decía qué medía; el vertical iba de 0
                                   // a 1 sin decirlo, y el nombre de la serie no se ve porque
                                   // esta gráfica tiene la leyenda apagada (#89).
@@ -2140,17 +2344,194 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                                     max: 1,
                                     title: { display: true, text: 'Probabilidad de fallo (0–1)', font: { size: 9 } },
                                     ticks: { font: { size: 9 } },
-                                  }
+                                  },
+                                  /**
+                                   * Las tuberías afectadas, a la derecha (#94).
+                                   *
+                                   * No es una segunda línea, y a propósito: el número
+                                   * esperado es la probabilidad multiplicada por las
+                                   * tuberías de la red, así que la curva sería la misma
+                                   * y quedaría exactamente encima. Lo que hace falta no
+                                   * es otra serie, es la otra regla para leer ésta.
+                                   */
+                                  y1: {
+                                    position: 'right',
+                                    min: 0,
+                                    max: fragilityResult.pipe_count,
+                                    title: { display: true, text: `Tuberías afectadas (de ${fragilityResult.pipe_count})`, font: { size: 9 } },
+                                    // El tope de la escala es el número de tuberías, que
+                                    // rara vez es redondo: con los cortes automáticos, el
+                                    // «117» de Net3 quedaba pegado al «100». Menos marcas y
+                                    // enteras.
+                                    ticks: {
+                                      font: { size: 9 },
+                                      maxTicksLimit: 5,
+                                      callback: (v: string | number) => Math.round(Number(v)),
+                                    },
+                                    grid: { drawOnChartArea: false },
+                                  },
                                 }
                               }}
                             />
                           </div>
                           <div className="flex justify-between">
-                            <span>{t('networkView.expectedPipes')}</span>
+                            <span>
+                              {fragilityResult.intensity_unit === 'g'
+                                ? t('networkView.expectedPipesPga')
+                                : t('networkView.expectedPipes')}
+                            </span>
                             <span className="font-mono">
                               {fragilityResult.expected_failed_pipes[fragilityResult.expected_failed_pipes.length - 1]?.toFixed(1)} / {fragilityResult.pipe_count}
                             </span>
                           </div>
+                          {/**
+                            * Las tres curvas juntas, como la Figura 4 del anexo 2
+                            * del Dr. Mora: tubería, tanque y bomba sobre el mismo
+                            * PGA. Solo aparece si el usuario dio coeficientes; si
+                            * no, no hay nada honesto que dibujar.
+                            *
+                            * Aquí sí son series distintas, al contrario que las
+                            * tuberías afectadas: cada componente tiene su propia
+                            * mediana, así que las curvas no se superponen.
+                            */}
+                          {fragilityResult.components && (
+                            fragilityResult.components.tank_ds1
+                            || fragilityResult.components.tank_ds2
+                            || fragilityResult.components.pump_ds
+                          ) && (
+                            <div className="pt-1 border-t space-y-1">
+                              <div className="text-[11px] font-medium">
+                                {t('networkView.componentsChart', {
+                                  tanques: fragilityResult.components.tank_count,
+                                  bombas: fragilityResult.components.pump_count,
+                                })}
+                              </div>
+                              <div className="h-36">
+                                <Line
+                                  data={{
+                                    labels: fragilityResult.intensities.map((v: number) => v.toFixed(2)),
+                                    datasets: [
+                                      {
+                                        label: t('networkView.seriesPipe'),
+                                        data: fragilityResult.pipe_failure_probability,
+                                        borderColor: 'rgb(234, 88, 12)',
+                                        borderWidth: 2, pointRadius: 0, tension: 0.3,
+                                      },
+                                      ...(fragilityResult.components.tank_ds1 ? [{
+                                        label: t('networkView.seriesTankDs1'),
+                                        data: fragilityResult.components.tank_ds1.probability,
+                                        borderColor: 'rgb(37, 99, 235)',
+                                        borderWidth: 2, pointRadius: 0, tension: 0.3,
+                                      }] : []),
+                                      ...(fragilityResult.components.tank_ds2 ? [{
+                                        label: t('networkView.seriesTankDs2'),
+                                        data: fragilityResult.components.tank_ds2.probability,
+                                        borderColor: 'rgb(37, 99, 235)',
+                                        borderDash: [4, 3],
+                                        borderWidth: 2, pointRadius: 0, tension: 0.3,
+                                      }] : []),
+                                      ...(fragilityResult.components.pump_ds ? [{
+                                        label: t('networkView.seriesPump'),
+                                        data: fragilityResult.components.pump_ds.probability,
+                                        borderColor: 'rgb(22, 163, 74)',
+                                        borderWidth: 2, pointRadius: 0, tension: 0.3,
+                                      }] : []),
+                                    ],
+                                  }}
+                                  options={{
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    animation: { duration: 0 },
+                                    plugins: {
+                                      legend: { display: true, position: 'bottom', labels: { boxWidth: 8, font: { size: 9 } } },
+                                    },
+                                    scales: {
+                                      x: { title: { display: true, text: 'PGA (g)', font: { size: 9 } }, ticks: { maxTicksLimit: 6, font: { size: 9 } } },
+                                      y: { min: 0, max: 1, title: { display: true, text: t('networkView.probExceed'), font: { size: 9 } }, ticks: { font: { size: 9 } } },
+                                    },
+                                  }}
+                                />
+                              </div>
+                              <div className="text-[10px] text-muted-foreground">
+                                {t('networkView.userCoefficients')}
+                              </div>
+                            </div>
+                          )}
+                          {/**
+                            * Tabla por diámetros (#94, exigencia de alta prioridad).
+                            *
+                            * El Dr. Mora pidió que el daño se pueda costear, y para eso
+                            * no basta el total: hace falta saber cuántas tuberías y
+                            * cuántos kilómetros caen en cada diámetro, porque el precio
+                            * de reparación va por diámetro. Se agrupa por el diámetro
+                            * que el .inp declara en [PIPES], así que no hay que inferir
+                            * el material.
+                            *
+                            * Las dos columnas no son redundantes: en Net3 hay dos
+                            * diámetros con una sola tubería cada uno, de 4,33 km y de
+                            * 0,24 km. Por recuento pesan igual; por longitud, 18 veces
+                            * distinto.
+                            */}
+                          {fragilityResult.by_diameter?.length > 0 && (
+                            <div className="space-y-1 pt-1 border-t">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] font-medium">
+                                  {fragilityResult.intensity_unit === 'g'
+                                    ? t('networkView.byDiameterPga')
+                                    : t('networkView.byDiameterPgv')}
+                                </span>
+                                <select
+                                  className="text-[11px] border rounded px-1 py-0.5 bg-background"
+                                  value={fragilityIdx}
+                                  onChange={(e) => setFragilityIdx(Number(e.target.value))}
+                                >
+                                  {fragilityResult.intensities.map((v: number, i: number) => (
+                                    <option key={i} value={i}>
+                                      {v.toFixed(fragilityResult.intensity_unit === 'g' ? 2 : 0)} {fragilityResult.intensity_unit}
+                                    </option>
+                                  ))}
+                                </select>
+                                <span className="text-[11px] text-muted-foreground">
+                                  ({(fragilityResult.pipe_failure_probability[fragilityIdx] * 100).toFixed(1)} %)
+                                </span>
+                              </div>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-[10px] tabular-nums">
+                                  <thead className="text-muted-foreground">
+                                    <tr>
+                                      <th className="text-left font-medium py-0.5">{t('networkView.colDiameter')}</th>
+                                      <th className="text-right font-medium py-0.5">{t('networkView.pipes')}</th>
+                                      <th className="text-right font-medium py-0.5">{t('networkView.colLength')}</th>
+                                      <th className="text-right font-medium py-0.5">{t('networkView.colAffected')}</th>
+                                      <th className="text-right font-medium py-0.5">{t('networkView.colAffectedKm')}</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {fragilityResult.by_diameter.map((g: any) => (
+                                      <tr key={g.diameter_mm} className="border-t border-border/40">
+                                        <td className="py-0.5">{g.diameter_mm.toFixed(1)}</td>
+                                        <td className="text-right py-0.5">{g.pipe_count}</td>
+                                        <td className="text-right py-0.5">{g.length_km.toFixed(2)}</td>
+                                        <td className="text-right py-0.5">{g.affected_pipes[fragilityIdx]?.toFixed(1)}</td>
+                                        <td className="text-right py-0.5">{g.affected_length_km[fragilityIdx]?.toFixed(2)}</td>
+                                      </tr>
+                                    ))}
+                                    <tr className="border-t font-medium">
+                                      <td className="py-0.5">{t('networkView.colTotal')}</td>
+                                      <td className="text-right py-0.5">{fragilityResult.pipe_count}</td>
+                                      <td className="text-right py-0.5">{fragilityResult.total_length_km.toFixed(2)}</td>
+                                      <td className="text-right py-0.5">
+                                        {fragilityResult.expected_failed_pipes[fragilityIdx]?.toFixed(1)}
+                                      </td>
+                                      <td className="text-right py-0.5">
+                                        {(fragilityResult.pipe_failure_probability[fragilityIdx] * fragilityResult.total_length_km).toFixed(2)}
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
                           <div className="text-[10px] text-muted-foreground italic">{fragilityResult.methodology}</div>
                           <Button size="sm" className="w-full mt-2" onClick={handleExportFragilityCSV}>
                             <Download className="h-3 w-3 mr-2" /> {t('networkView.exportCsv')}
