@@ -9,6 +9,27 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.29.0] - 2026-09-03
+
+Boorie dice dónde acaba lo que sabe.
+
+- **La aplicación avisaba de sus límites sólo en algunas pantallas.** La curva de fragilidad
+  decía que necesita la validación de un experto, y el chat, la calculadora y las simulaciones no
+  decían nada, aunque son las que pueden llevar a decidir dónde reforzar una red o cuánto
+  presupuestar una reparación. Ahora hay un descargo de responsabilidad que se acepta una vez al
+  empezar, y un aviso al pie de cada cifra: bajo cada respuesta de la inteligencia artificial
+  —que puede equivocarse aunque parezca segura—, en los resultados de simulación, de calidad del
+  agua y de escenario, y en la calculadora. El texto está revisado por el Dr. Luis E. Mora M. y
+  puede consultarse entero en «Acerca de».
+- **El aviso viaja dentro de lo que se exporta.** Un CSV, un informe o una conversación se
+  reenvían por correo sin la aplicación alrededor, y nadie vuelve a la pantalla original a leer
+  la advertencia.
+- **Los ficheros exportados se llamaban como si fueran otra cosa.** El de la curva de fragilidad
+  salía como `curva_fragilidad_PVC_Net3 2.inp.csv`, y en Windows —que oculta las extensiones
+  conocidas— se leía `curva_fragilidad_PVC_Net3 2.inp`: un archivo que decía ser una red cuando
+  era una tabla. Pasaba también con los indicadores de resiliencia y con el GeoJSON del visor.
+  Ahora el nombre no arrastra la extensión de la red.
+
 ## [1.28.0] - 2026-09-02
 
 La aplicación habla un solo idioma en cada pantalla, y el daño de un sismo se puede costear.

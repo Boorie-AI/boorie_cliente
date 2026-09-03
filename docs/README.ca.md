@@ -39,15 +39,21 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.28.0
+### 🚀 Última Versió - v1.29.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.28.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.28.0/Boorie-1.28.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.28.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.28.0/Boorie-Setup-1.28.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.28.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.28.0/Boorie-1.28.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.29.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.29.0/Boorie-1.29.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.29.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.29.0/Boorie-Setup-1.29.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.29.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.29.0/Boorie-1.29.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.29.0
+- L'aplicació avisava dels seus límits només en algunes pantalles: la corba de fragilitat deia que necessita la validació d'un expert, i el xat, la calculadora i les simulacions no deien res, tot i que són les que poden portar a decidir on reforçar una xarxa o quant pressupostar una reparació. Ara hi ha un descàrrec de responsabilitat que s'accepta un cop en començar, i un avís al peu de cada xifra. El text està revisat pel Dr. Luis E. Mora M. i es pot consultar sencer a «Quant a».
+- L'avís viatja dins del que s'exporta: un CSV, un informe o una conversa es reenvien per correu sense l'aplicació al voltant, i ningú no torna a la pantalla original a llegir l'advertiment.
+- Els fitxers exportats es deien com si fossin una altra cosa. El de la corba de fragilitat sortia com «curva_fragilidad_PVC_Net3 2.inp.csv», i a Windows —que amaga les extensions conegudes— es llegia «…Net3 2.inp». Ara el nom no arrossega l'extensió de la xarxa.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.29.0).
 
 ### 📝 Novetats a v1.28.0
 - La interfície barrejava idiomes: centenars de textos estaven escrits a mà dins del codi, fora del sistema de traducció, així que l'aplicació en anglès continuava mostrant frases en castellà. Els tres idiomes ja són complets a configuració, projectes, calculadora, xat, visor de xarxa i resiliència, i també en el que escriu el motor de càlcul.
@@ -338,12 +344,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.28.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.28.0.AppImage`
-3. Executa: `./Boorie-1.28.0.AppImage`
+1. Descarrega `Boorie-1.29.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.29.0.AppImage`
+3. Executa: `./Boorie-1.29.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.28.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.29.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
