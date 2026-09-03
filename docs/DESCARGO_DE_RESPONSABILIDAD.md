@@ -91,16 +91,35 @@ mal redactado es peor que ninguno: da una sensación de cobertura que no existe.
 Va en los tres idiomas, y la traducción de un texto legal **no es un ejercicio de idioma**:
 conviene que la revise alguien de cada jurisdicción, o declarar cuál es la versión que prevalece.
 
-## Decisiones que hay que tomar antes de escribir código
+## Decisiones
 
-| | Opciones | Recomendación |
+Cinco de las seis las cerró Cristina Cruz en el
+[#108](https://github.com/Boorie-AI/boorie_cliente/issues/108), y coinciden con lo que se
+recomendaba. Queda una abierta.
+
+| | Decisión | Por qué |
 |---|---|---|
-| ¿Bloquea el primer arranque? | Diálogo obligatorio · aviso no bloqueante | **Bloqueante.** Sin aceptación registrada no hay constancia, y la constancia es medio motivo de esto |
-| ¿Dónde se guarda la aceptación? | `preferencesStore` (localStorage) · base de datos | **Base de datos.** localStorage se borra al limpiar datos del usuario y la aceptación volvería a pedirse; además la base ya viaja con el perfil |
-| ¿Reaparece al cambiar el texto? | Siempre · sólo en cambios sustanciales | **Sólo sustanciales**, con un número de versión del texto que se sube a mano |
-| ¿Alcance de los avisos permanentes? | Sólo IA · IA y simulación · todo resultado | **IA y simulación** en la primera tanda; la calculadora después |
-| ¿En los ficheros exportados? | Sí · no | **Sí.** Un CSV se reenvía por correo sin la aplicación alrededor |
-| ¿Prevalece un idioma? | Sí · los tres por igual | Hay que decidirlo **con quien revise el texto**, no aquí |
+| ¿Bloquea el primer arranque? | **Sí, bloqueante** ✅ | Sin aceptación registrada no hay constancia. Una fricción de una sola vez es aceptable; descubrir en una auditoría que no hay registro, no |
+| ¿Dónde se guarda la aceptación? | **Base de datos** ✅ | `localStorage` se borra y habría que volver a pedirla, y se perdería la fecha real de la primera aceptación |
+| ¿Reaparece al cambiar el texto? | **Sólo en cambios sustanciales** ✅ | Con la versión subida a mano, no automática: si cada corrección de una coma reabre el diálogo, la gente deja de leerlo |
+| ¿Alcance de los avisos permanentes? | **IA y simulación primero** ✅ | Es donde está el riesgo hoy: el chat puede inventarse una cifra entera y la simulación produce números sobre los que alguien presupuesta |
+| ¿En los ficheros exportados? | **Sí** ✅ | Un CSV que viaja por correo es el caso en que más falta hace, porque nadie vuelve a la pantalla original a leerlo |
+| ¿Prevalece un idioma? | **Abierta** ⏳ | La sugerencia es el castellano, pero no se cierra sin quien revise el texto: si hay implicación de firma profesional, la versión de referencia puede tener que ser otra según la jurisdicción |
+
+> **«Primero» no es «sólo».** La calculadora entra en una segunda tanda, no se queda fuera. Se
+> deja escrito a petición expresa de Cristina Cruz, para que no se quede ahí por inercia una vez
+> pase la urgencia de la primera.
+
+### Lo que bloquea empezar
+
+Sólo dos cosas, y las dos son del **texto**, no de la estructura:
+
+1. **La redacción y el alcance profesional**, que corresponde al Dr. Mora o a quien él delegue.
+2. **Qué idioma prevalece**, que depende de lo anterior.
+
+Todo lo demás —el modelo en la base, el handler, la versión del texto, el diálogo, el aviso
+reutilizable, los exportados, «Acerca de» y las comprobaciones— está decidido y se puede
+construir sin esperar, porque el texto son los **valores** de unas claves, no su estructura.
 
 ## Cómo se añade a la aplicación
 
@@ -187,3 +206,7 @@ Un descargo no arregla una cifra mala. Los avisos de la curva de fragilidad exis
 **esas cifras necesitan validación**, y seguirán necesitándola con o sin diálogo al arrancar. La
 capa 2 es la que de verdad protege a quien usa Boorie; la capa 1 protege sobre todo a quien lo
 publica. Conviene no confundirlas al decidir el alcance.
+
+Queda dicho aquí, y no sólo en el hilo del issue, porque es lo que se pierde primero cuando pasa
+el tiempo: **aprobar esto no resuelve lo de las cifras**. El trabajo de fondo en precisión sigue
+haciendo falta igual, y este documento no lo sustituye.
