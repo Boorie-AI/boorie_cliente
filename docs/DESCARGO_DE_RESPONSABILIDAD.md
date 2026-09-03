@@ -65,12 +65,13 @@ Alcance propuesto, por orden de urgencia:
 La pestaña ya existe y ya lee el `CHANGELOG.md`. Se le añade una sección con el texto íntegro,
 para poder consultarlo sin depender de haberlo leído el primer día.
 
-## Un borrador del texto, que hay que revisar
+## El texto
 
-**Esto es un borrador de ingeniería, no un texto legal revisado.** Lo redacto para que se pueda
-discutir sobre algo concreto, pero antes de publicarlo tiene que pasar por quien asuma la
-responsabilidad del producto. Boorie se usa sobre infraestructura de agua potable, y un descargo
-mal redactado es peor que ninguno: da una sensación de cobertura que no existe.
+**Revisado y aprobado por el Dr. Luis E. Mora M.** el 3 de septiembre de 2026, con un cambio:
+donde decía «profesional cualificado» dice «profesional **calificado**», que es el término del
+sector en América Latina y el Caribe, que es donde se usa Boorie. Es un detalle pequeño y dice
+mucho: el texto lo lee alguien que va a firmar un proyecto, y una palabra que suena de otro sitio
+resta autoridad justo donde hace falta tenerla.
 
 > **Boorie es una herramienta de apoyo a la decisión, no un sustituto del criterio profesional.**
 >
@@ -82,14 +83,15 @@ mal redactado es peor que ninguno: da una sensación de cobertura que no existe.
 > incluso cuando parecen seguras. Contrástelas antes de actuar sobre ellas.
 >
 > **Ninguna decisión sobre infraestructura real debería tomarse a partir de una cifra de Boorie
-> sin la validación de un profesional cualificado**, y cuando la normativa lo exija, de un
+> sin la validación de un profesional calificado**, y cuando la normativa lo exija, de un
 > profesional habilitado para firmar el proyecto.
 >
 > Usted es responsable del uso que haga de los resultados y del cumplimiento de la normativa que
 > le aplique.
 
-Va en los tres idiomas, y la traducción de un texto legal **no es un ejercicio de idioma**:
-conviene que la revise alguien de cada jurisdicción, o declarar cuál es la versión que prevalece.
+Va en los tres idiomas. La traducción de un texto legal **no es un ejercicio de idioma**, así
+que la versión de referencia es la castellana —ver la tabla de decisiones—, y el inglés y el
+catalán se ofrecen como traducción de cortesía.
 
 ## Decisiones
 
@@ -104,22 +106,16 @@ recomendaba. Queda una abierta.
 | ¿Reaparece al cambiar el texto? | **Sólo en cambios sustanciales** ✅ | Con la versión subida a mano, no automática: si cada corrección de una coma reabre el diálogo, la gente deja de leerlo |
 | ¿Alcance de los avisos permanentes? | **IA y simulación primero** ✅ | Es donde está el riesgo hoy: el chat puede inventarse una cifra entera y la simulación produce números sobre los que alguien presupuesta |
 | ¿En los ficheros exportados? | **Sí** ✅ | Un CSV que viaja por correo es el caso en que más falta hace, porque nadie vuelve a la pantalla original a leerlo |
-| ¿Prevalece un idioma? | **Abierta** ⏳ | La sugerencia es el castellano, pero no se cierra sin quien revise el texto: si hay implicación de firma profesional, la versión de referencia puede tener que ser otra según la jurisdicción |
+| ¿Prevalece un idioma? | **Castellano** ✅ | Sugerido por Cristina Cruz y confirmado por el Dr. Mora al aprobar el texto corrigiendo un término al uso de América Latina: la versión que se lee es la castellana. El inglés y el catalán quedan como traducción de cortesía |
 
 > **«Primero» no es «sólo».** La calculadora entra en una segunda tanda, no se queda fuera. Se
 > deja escrito a petición expresa de Cristina Cruz, para que no se quede ahí por inercia una vez
 > pase la urgencia de la primera.
 
-### Lo que bloquea empezar
+### Nada bloquea empezar
 
-Sólo dos cosas, y las dos son del **texto**, no de la estructura:
-
-1. **La redacción y el alcance profesional**, que corresponde al Dr. Mora o a quien él delegue.
-2. **Qué idioma prevalece**, que depende de lo anterior.
-
-Todo lo demás —el modelo en la base, el handler, la versión del texto, el diálogo, el aviso
-reutilizable, los exportados, «Acerca de» y las comprobaciones— está decidido y se puede
-construir sin esperar, porque el texto son los **valores** de unas claves, no su estructura.
+Las seis decisiones están cerradas y el texto está aprobado, así que los ocho pasos se pueden
+construir enteros.
 
 ## Cómo se añade a la aplicación
 
