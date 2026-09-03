@@ -65,6 +65,20 @@ export function AboutTab() {
         </div>
       </div>
 
+      {/* El texto íntegro, para poder consultarlo sin depender de haberlo leído
+          el primer día (#108). Va antes del historial: es lo que se busca
+          cuando se entra aquí a mirarlo. */}
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h3 className="text-base font-semibold text-foreground">{t('descargo.enAcercaDe')}</h3>
+        <div className="mt-3 space-y-2 text-xs text-muted-foreground">
+          <p>{t('descargo.parrafoModelos')}</p>
+          <p>{t('descargo.parrafoIA')}</p>
+          <p className="text-foreground font-medium">{t('descargo.parrafoDecision')}</p>
+          <p>{t('descargo.parrafoResponsabilidad')}</p>
+          <p className="italic pt-1">{t('descargo.prevalece')}</p>
+        </div>
+      </div>
+
       <div className="rounded-xl border border-border bg-card p-6">
         <h3 className="text-base font-semibold text-foreground">{t('settings.about.historyTitle')}</h3>
         <p className="mt-1 text-xs text-muted-foreground">{t('settings.about.historyDesc')}</p>

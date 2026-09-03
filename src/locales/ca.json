@@ -876,6 +876,19 @@
     "maximize": "Maximitza",
     "restore": "Restaura"
   },
+  "descargo": {
+    "titulo": "Abans de començar",
+    "parrafoModelos": "Boorie és una eina de suport a la decisió, no un substitut del criteri professional. Els resultats de càlcul, simulació i anàlisi surten de models amb supòsits i de les dades que vostè aporta. La seva validesa depèn que la xarxa estigui ben descrita i que el model sigui aplicable al cas; Boorie no pot comprovar cap de les dues coses.",
+    "parrafoIA": "Les respostes generades per intel·ligència artificial poden ser inexactes o incompletes, fins i tot quan semblen segures. Contrasteu-les abans d’actuar-hi.",
+    "parrafoDecision": "Cap decisió sobre infraestructura real s’hauria de prendre a partir d’una xifra de Boorie sense la validació d’un professional qualificat i, quan la normativa ho exigeixi, d’un professional habilitat per signar el projecte.",
+    "parrafoResponsabilidad": "Vostè és responsable de l’ús que faci dels resultats i del compliment de la normativa que li apliqui.",
+    "aceptar": "Entesos",
+    "avisoCorto": "Resultat d’un model: requereix validació professional abans de fer-se servir en decisions reals.",
+    "avisoIA": "Resposta generada per IA: pot ser inexacta. Contrasteu-la abans d’actuar-hi.",
+    "avisoExportado": "Generat per Boorie. Eina de suport a la decisio: requereix validacio d'un professional qualificat abans de fer-se servir en decisions reals.",
+    "enAcercaDe": "Descàrrec de responsabilitat",
+    "prevalece": "La versió castellana és la que preval; l’anglès i el català són traducció de cortesia."
+  },
   "energy": {
     "noConverge": "Alguna simulació no va convergir: les xifres d’aquells instants no són fiables.",
     "analyzing": "S’està analitzant el consum…",

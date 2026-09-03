@@ -8,6 +8,7 @@ import { PropuestaEscenario } from './PropuestaEscenario'
 import { PropuestaEnergia } from './PropuestaEnergia'
 import { FeedbackRecomendacion } from '@/components/hydraulic/FeedbackRecomendacion'
 import { useChatStore } from '@/stores/chatStore'
+import { AvisoDescargo } from '@/components/descargo/AvisoDescargo'
 
 interface MessageBubbleProps {
   message: Message
@@ -183,6 +184,11 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
               </div>
             )}
           </div>
+          {/* El aviso va pegado a la respuesta, no en un rincón de la pantalla
+              (#108): es lo único de Boorie que puede inventarse una cifra
+              entera, y quien la lee la lee aquí. Sólo en las de la IA: en lo
+              que ha escrito la persona no hay nada de lo que avisar. */}
+          {!isUser && <AvisoDescargo variante="ia" />}
         </div>
 
         {/* Timestamp and actions */}
