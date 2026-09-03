@@ -12,6 +12,7 @@ import { ProjectSelector } from './ProjectSelector'
 import { RedEnContexto } from './RedEnContexto'
 import { NewProjectDialog } from '@/components/hydraulic/NewProjectDialog'
 import * as Dialog from '@radix-ui/react-dialog'
+import { nombreDescarga } from '@/utils/nombreArchivo'
 
 interface ChatHeaderProps {
   conversation: Conversation
@@ -118,7 +119,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
     const url = URL.createObjectURL(dataBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `conversation-${conversation.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`
+    link.download = nombreDescarga(['conversation', conversation.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()], 'json')
     link.click()
     URL.revokeObjectURL(url)
     setShowMenu(false)

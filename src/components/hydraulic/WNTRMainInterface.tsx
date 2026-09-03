@@ -38,6 +38,7 @@ import {
   Legend,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import { nombreDescarga } from '@/utils/nombreArchivo'
 import { AvisoDescargo } from '@/components/descargo/AvisoDescargo'
 
 ChartJS.register(
@@ -991,7 +992,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `indicadores_resiliencia_${networkData?.name || 'red'}.csv`;
+    link.download = nombreDescarga(['indicadores_resiliencia', networkData?.name || 'red'], 'csv');
     link.click();
     URL.revokeObjectURL(url);
   }, [resilienceIndicatorsResult, networkData]);
@@ -1065,7 +1066,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `curva_fragilidad_${fragilityMaterial}_${networkData?.name || 'red'}.csv`;
+    link.download = nombreDescarga(['curva_fragilidad', fragilityMaterial, networkData?.name || 'red'], 'csv');
     link.click();
     URL.revokeObjectURL(url);
   }, [fragilityResult, fragilityMaterial, networkData]);

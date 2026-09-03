@@ -33,6 +33,7 @@ import {
   resolverCRS,
   validarCordura,
 } from '@/services/geo/crs'
+import { nombreDescarga } from '@/utils/nombreArchivo'
 
 interface NetworkData {
   name: string
@@ -1107,7 +1108,7 @@ export function WNTRMapViewer({
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${networkData.name || 'network'}_geo.json`
+    a.download = nombreDescarga([networkData.name || 'network', 'geo'], 'json')
     a.click()
     URL.revokeObjectURL(url)
   }
