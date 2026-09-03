@@ -241,8 +241,10 @@ describe.skipIf(!canRun)('curva de fragilidad: entrada en PGA', () => {
       expect(d.intensity_unit).toBe('g')
       expect(d.alpha_cm_s_per_g).toBe(ALFA[suelo])
       expect(d.median).toBeCloseTo(d.median_pgv / ALFA[suelo], 9)
-      // El eje va en g: con el tope por defecto, hasta 1.
-      expect(Math.max(...d.intensities)).toBeCloseTo(1, 9)
+      // El eje va en g: con el tope por defecto, hasta 1,2. No es 1 redondo a
+      // proposito: 100 cm/s entre 1 g es casi el alfa de suelo firme (97), y la
+      // curva en PGA salia calcada a la de PGV punto por punto.
+      expect(Math.max(...d.intensities)).toBeCloseTo(1.2, 9)
       // La dispersión no se toca: la incertidumbre de la conversión va
       // declarada en la metodología, no metida a mano en beta.
       expect(d.beta).toBe(enPgv.beta)
@@ -263,6 +265,31 @@ describe.skipIf(!canRun)('curva de fragilidad: entrada en PGA', () => {
     // Para un mismo PGA, el suelo blando da más PGV, así que más daño.
     expect(blando.pipe_failure_probability[i])
       .toBeGreaterThan(roca.pipe_failure_probability[i])
+  }, SIM_TIMEOUT)
+
+  it('trae las tres clases de suelo sobre el mismo eje de PGA', async () => {
+    const res = await service.generateFragilityCurve(NETWORK, {
+      material: 'CI', hazard_type: 'seismic_pga', soil_class: 'stiff_soil', steps: 11,
+    })
+    const d = res.data!
+    // Orden fijo, de más firme a más blando: es lo que ancla el color de cada
+    // clase en la gráfica, así que cambiarlo repinta las curvas.
+    expect(d.by_soil_class?.map(s => s.soil_class)).toEqual(['rock', 'stiff_soil', 'soft_soil'])
+    expect(d.by_soil_class?.map(s => s.alpha_cm_s_per_g)).toEqual([66, 97, 122])
+
+    const [roca, firme, blando] = d.by_soil_class!
+    const i = 2  // 0,24 g, donde las tres todavía discriminan
+    expect(blando.probability[i]).toBeGreaterThan(firme.probability[i])
+    expect(firme.probability[i]).toBeGreaterThan(roca.probability[i])
+
+    // La clase elegida es la que va en la tabla y en el CSV: la curva gruesa de
+    // la gráfica y la columna de tuberías afectadas han de ser la misma.
+    expect(firme.probability).toEqual(d.pipe_failure_probability)
+  }, SIM_TIMEOUT)
+
+  it('en PGV no superpone suelos: sin alfa que aplicar la curva es una', async () => {
+    const res = await service.generateFragilityCurve(NETWORK, { material: 'CI', steps: 4 })
+    expect(res.data!.by_soil_class).toBeNull()
   }, SIM_TIMEOUT)
 
   it('rechaza una clase de suelo que no existe en vez de asumir una', async () => {

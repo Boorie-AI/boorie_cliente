@@ -585,7 +585,8 @@
     "methodPga": "Entrada en PGA: la mediana de {{medianaPgv}} cm/s se lleva a {{medianaPga}} g con Newmark & Hall (1982), α = {{alfa}} cm/s por g para suelo {{suelo}}. La correlación PGV–PGA es moderada (ρ≈0,70–0,73, Bradley 2012), así que la curva en PGA arrastra esa incertidumbre; con PGV medido, use PGV.",
     "soilRockShort": "roca",
     "soilStiffShort": "firme",
-    "soilSoftShort": "blando"
+    "soilSoftShort": "blando",
+    "seriesSoil": "suelo {{suelo}} (α = {{alfa}})"
   },
   "mapViewer": {
     "title": "Visor de red",

@@ -267,6 +267,17 @@ export interface FragilityCurveResult {
     soil_class: 'rock' | 'stiff_soil' | 'soft_soil' | null;
     /** Newmark & Hall: PGV[cm/s] = alpha * PGA[g]. Null en PGV. */
     alpha_cm_s_per_g: number | null;
+    /**
+     * Las tres clases de suelo sobre el mismo eje. Solo con entrada en PGA:
+     * en PGV no hay alfa que aplicar, la curva es una. Orden fijo, de mas
+     * firme a mas blando.
+     */
+    by_soil_class: Array<{
+      soil_class: 'rock' | 'stiff_soil' | 'soft_soil';
+      alpha_cm_s_per_g: number;
+      median: number;
+      probability: number[];
+    }> | null;
     beta: number;
     intensities: number[];
     pipe_failure_probability: number[];

@@ -132,14 +132,16 @@ Se dejan escritas porque son el tipo de cosa que en una segunda lectura parece u
 Los tests corren contra el servicio Python real y una red real, y se saltan solos donde no haya un Python con WNTR (`describe.skipIf`). Cubren, en tres bloques:
 
 - **Reparto por diámetro:** que agrupe por los diámetros que existen, que no pierda ninguna tubería, que los grupos sumen el agregado en cada intensidad, y que distinga dos grupos con igual recuento y longitud dispar.
-- **Entrada en PGA:** que en PGV no haya conversión, que en PGA la mediana se divida por el α del suelo, que β no se toque, y que el suelo blando falle antes para la misma aceleración.
+- **Entrada en PGA:** que en PGV no haya conversión, que en PGA la mediana se divida por el α del suelo, que β no se toque, que el suelo blando falle antes para la misma aceleración, y que las tres clases lleguen en orden fijo con la elegida coincidiendo con la curva agregada.
 - **Modelo de daño y componentes:** que HAZUS sea el de partida y difiera de ALA, que sin coeficientes no se invente curva, que en PGV no haya componentes, y que DS2 quede siempre por debajo de DS1.
 
 ## Trampas
 
 - **El servicio Python que ejecuta la aplicación sale de `dist/`**, no de `backend/`. Tras tocar `wntr_resilience_service.py` hay que correr `npm run build:electron-ts`, que lo copia. Sin eso la aplicación ejecuta la versión anterior en silencio: la curva en PGA salió plana a cero, con el eje rotulado en PGV sobre valores de 0 a 1, porque el servicio viejo ignoraba `hazard_type` e interpretó el tope de 1 g como 1 cm/s.
 - **`Net3` trae tres tuberías con diámetro 99** (2514,6 mm), que parece un valor centinela y no un diámetro real. Salen como grupo propio en la tabla. Está avisado en el issue por si conviene filtrarlas.
-- **Las intensidades cambian de unidad con la entrada.** En PGV el tope por defecto son 100 cm/s y las marcas van sin decimales; en PGA son 1 g y hacen falta dos. Los rótulos, el CSV y el selector de la tabla se leen de `intensity_unit`, no de una constante.
+- **PGV y PGA son la misma curva, no dos.** La lognormal solo mira `intensidad / mediana`, y Newmark & Hall es un factor: cambiar de entrada reescala el eje y nada más. Con el tope de 1 g que había antes frente a los 100 cm/s de PGV, y α = 97 para suelo firme, las dos curvas salían idénticas a dos puntos porcentuales y se leía como un fallo. Por eso el tope en PGA es 1,2 g y por eso la pantalla superpone las tres clases de suelo: **el suelo sí desplaza la curva** —a 0,30 g, 68 % en roca frente a 93 % en blando— y es la única diferencia de esta pantalla que cambia una decisión.
+- **El color de cada clase de suelo es fijo** (`COLOR_SUELO` en `WNTRMainInterface.tsx`) y el orden que manda el servicio también, de más firme a más blando. Cambiar el selector mueve qué curva va en grueso —la que alimentan la tabla y el CSV—, no de qué color es ninguna.
+- **Las intensidades cambian de unidad con la entrada.** En PGV el tope por defecto son 100 cm/s y las marcas van sin decimales; en PGA son 1,2 g y hacen falta dos. Los rótulos, el CSV y el selector de la tabla se leen de `intensity_unit`, no de una constante.
 
 ## Lo que queda pendiente
 

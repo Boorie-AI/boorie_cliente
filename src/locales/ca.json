@@ -585,7 +585,8 @@
     "methodPga": "Entrada en PGA: la mediana de {{medianaPgv}} cm/s es porta a {{medianaPga}} g amb Newmark & Hall (1982), α = {{alfa}} cm/s per g per a sòl {{suelo}}. La correlació PGV–PGA és moderada (ρ≈0,70–0,73, Bradley 2012), així que la corba en PGA arrossega aquesta incertesa; amb PGV mesurat, feu servir PGV.",
     "soilRockShort": "roca",
     "soilStiffShort": "ferm",
-    "soilSoftShort": "tou"
+    "soilSoftShort": "tou",
+    "seriesSoil": "sòl {{suelo}} (α = {{alfa}})"
   },
   "mapViewer": {
     "title": "Visor de xarxa",
