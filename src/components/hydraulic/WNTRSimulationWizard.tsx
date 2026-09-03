@@ -1,4 +1,5 @@
 import { logger } from '@/utils/logger'
+import { useTranslation } from 'react-i18next';
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,6 +45,7 @@ export const WNTRSimulationWizard: React.FC<WNTRSimulationWizardProps> = ({
   projectId,
   onSimulationComplete
 }) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [simulationConfig, setSimulationConfig] = useState<SimulationConfig>({
@@ -156,7 +158,10 @@ export const WNTRSimulationWizard: React.FC<WNTRSimulationWizardProps> = ({
         network_file: networkFile
       });
 
-      const blob = new Blob([reportData.content], { type: 'text/markdown' });
+      // Un informe se reenvía sin la aplicación alrededor, igual que un CSV,
+      // así que el aviso viaja dentro (#108).
+      const contenido = `> ${t('descargo.avisoExportado')}\n\n${reportData.content}`;
+      const blob = new Blob([contenido], { type: 'text/markdown' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

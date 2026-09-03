@@ -21,6 +21,7 @@ import {
 import { cn } from '@/utils/cn'
 import { hydraulicService } from '@/services/hydraulic/hydraulicService'
 import { HydraulicFormula, CalculationResult } from '@/types/hydraulic'
+import { AvisoDescargo } from '@/components/descargo/AvisoDescargo'
 
 export function HydraulicCalculator() {
   const { t } = useTranslation()
@@ -491,6 +492,10 @@ export function HydraulicCalculator() {
                       <div className="text-3xl font-bold text-primary">
                         {cifrasSignificativas(result.result.value, 6)} {result.result.unit}
                       </div>
+                      {/* Segunda tanda del #108: la calculadora quedó fuera de
+                          la primera, y se pidió expresamente que no se quedara
+                          ahí por inercia. */}
+                      <AvisoDescargo />
                     </div>
                     
                     {result.intermediateSteps && result.intermediateSteps.length > 0 && (

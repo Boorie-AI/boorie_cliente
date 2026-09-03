@@ -1,4 +1,5 @@
 import { logger } from '@/utils/logger'
+import { useTranslation } from 'react-i18next';
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,6 +47,7 @@ export const WNTRAnalysisPanel: React.FC<WNTRAnalysisPanelProps> = ({
   projectId,
   onAnalysisComplete
 }) => {
+  const { t } = useTranslation();
   const [networkFile, setNetworkFile] = useState<string>('');
   const [activeTab, setActiveTab] = useState('topology');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -194,7 +196,10 @@ export const WNTRAnalysisPanel: React.FC<WNTRAnalysisPanelProps> = ({
         analysis_type: analysisType
       });
 
-      const blob = new Blob([reportData.content], { type: 'text/markdown' });
+      // Un informe se reenvía sin la aplicación alrededor, igual que un CSV,
+      // así que el aviso viaja dentro (#108).
+      const contenido = `> ${t('descargo.avisoExportado')}\n\n${reportData.content}`;
+      const blob = new Blob([contenido], { type: 'text/markdown' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
