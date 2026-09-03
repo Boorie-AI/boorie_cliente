@@ -218,7 +218,19 @@ y se le clica su propio botón por CDP, que es lo que dispara `app.quit()` de ve
 import { chromium } from 'playwright-core';
 const b = await chromium.connectOverCDP('http://127.0.0.1:9222');
 const page = b.contexts()[0].pages().find(p => !p.url().startsWith('devtools://'));
-await page.click('button[title="Close"]');   // el título va en el idioma de la aplicación
+// El descargo de la 1.29.0 tapa los controles de ventana: su velo es un
+// `fixed inset-0 z-[100]` que cubre también la barra de título, así que el
+// clic en «Cerrar» se lo come el velo y Playwright agota su espera sin decir
+// por qué. Hay que aceptarlo primero.
+await page.locator('[role=dialog] button', { hasText: 'Entendido' }).click();
+await page.waitForTimeout(1500);
+await page.click('button[title="Cerrar"]');   // el título va en el idioma de la aplicación
+```
+
+Si el clic en cerrar se queda esperando, esto lo dice en una línea:
+
+```js
+document.elementFromPoint(1896, 16)   // ¿quién hay realmente encima del botón?
 ```
 
 **El AppImage se renombra, no se sobrescribe.** Tras instalar, el fichero de la versión
