@@ -9,6 +9,25 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.30.0] - 2026-09-03
+
+La curva de fragilidad enseña las tres clases de suelo a la vez.
+
+- **La curva en aceleración salía casi igual que la de velocidad**, y hacía dudar de un
+  cálculo que estaba bien. Con los topes que traía cada eje —100 cm/s y 1 g— y la clase de
+  suelo que viene puesta, las dos curvas coincidían punto por punto con dos puntos
+  porcentuales de diferencia: parecía que sólo se hubiera cambiado el rótulo del eje. No
+  había ningún error en las cifras, que eran y son las mismas; era una coincidencia entre
+  dos valores por defecto. El tope en aceleración pasa a 1,2 g, que cubre igual el rango
+  normativo, y la coincidencia desaparece.
+- **Las tres clases de suelo se dibujan juntas** cuando la curva se lee en aceleración, que
+  es donde el suelo cambia el resultado: a 0,30 g, la probabilidad de que una tubería falle
+  es del 68 % en roca, del 87 % en suelo firme y del 93 % en blando, con la misma red y el
+  mismo material. Antes se dibujaba una clase a la vez, así que comparar exigía generar la
+  curva tres veces y acordarse de los números. La clase elegida en el selector va en trazo
+  grueso, porque es la que llevan la tabla por diámetros y el fichero exportado, que ahora
+  trae una columna por clase de suelo.
+
 ## [1.29.0] - 2026-09-03
 
 Boorie dice dónde acaba lo que sabe.

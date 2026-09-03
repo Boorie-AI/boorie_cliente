@@ -39,15 +39,20 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.29.0
+### 🚀 Última Versión - v1.30.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.29.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.29.0/Boorie-1.29.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.29.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.29.0/Boorie-Setup-1.29.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.29.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.29.0/Boorie-1.29.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.30.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.30.0/Boorie-1.30.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.30.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.30.0/Boorie-Setup-1.30.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.30.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.30.0/Boorie-1.30.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.30.0
+- La curva en aceleración salía casi igual que la de velocidad, y hacía dudar de un cálculo que estaba bien: con los topes que traía cada eje —100 cm/s y 1 g— y la clase de suelo que viene puesta, las dos coincidían punto por punto con dos puntos porcentuales de diferencia. Las cifras eran y son las mismas; era una coincidencia entre dos valores por defecto. El tope en aceleración pasa a 1,2 g y desaparece.
+- Las tres clases de suelo se dibujan juntas cuando la curva se lee en aceleración, que es donde el suelo cambia el resultado: a 0,30 g, la probabilidad de que una tubería falle es del 68 % en roca, del 87 % en suelo firme y del 93 % en blando, con la misma red y el mismo material. Antes había que generar la curva tres veces para comparar. La clase elegida va en trazo grueso, porque es la que llevan la tabla por diámetros y el fichero exportado, que ahora trae una columna por clase.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.30.0).
 
 ### 📝 Novedades en v1.29.0
 - La aplicación avisaba de sus límites sólo en algunas pantallas: la curva de fragilidad decía que necesita la validación de un experto, y el chat, la calculadora y las simulaciones no decían nada, aunque son las que pueden llevar a decidir dónde reforzar una red o cuánto presupuestar una reparación. Ahora hay un descargo de responsabilidad que se acepta una vez al empezar, y un aviso al pie de cada cifra. El texto está revisado por el Dr. Luis E. Mora M. y puede consultarse entero en «Acerca de».
@@ -344,12 +349,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.29.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.29.0.AppImage`
-3. Ejecuta: `./Boorie-1.29.0.AppImage`
+1. Descarga `Boorie-1.30.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.30.0.AppImage`
+3. Ejecuta: `./Boorie-1.30.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.29.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.30.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 

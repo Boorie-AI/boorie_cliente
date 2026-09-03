@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.29.0
+### 🚀 Latest Release - v1.30.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.29.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.29.0/Boorie-1.29.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.29.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.29.0/Boorie-Setup-1.29.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.29.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.29.0/Boorie-1.29.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.30.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.30.0/Boorie-1.30.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.30.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.30.0/Boorie-Setup-1.30.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.30.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.30.0/Boorie-1.30.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.30.0**: The fragility curve now shows the three soil classes at once. The acceleration curve came out almost identical to the velocity one, and it made you doubt a calculation that was right: with the ceilings each axis carried —100 cm/s and 1 g— and the soil class that comes preset, the two curves matched point by point to within two percentage points, as if only the axis label had changed. Nothing was wrong with the figures, which were and are the same; it was a coincidence between two defaults. The acceleration ceiling is now 1.2 g, which covers the same code range, and the coincidence is gone. And the three soil classes are drawn together when the curve is read against acceleration, which is where the soil changes the answer: at 0.30 g, the chance of a pipe failing is 68 % on rock, 87 % on stiff soil and 93 % on soft — same network, same material. Before, one class was drawn at a time, so comparing meant generating the curve three times and remembering the numbers. The class picked in the selector is drawn thick, because it is the one the per-diameter table and the exported file carry, and that file now has one column per soil class. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.30.0).
 - **v1.29.0**: Boorie now says where what it knows ends. The application warned about its limits on some screens only: the fragility curve said it needs expert validation, while the chat, the calculator and the simulations said nothing — even though those are the ones that can lead to deciding where to reinforce a network or how much to budget for a repair. There is now a disclaimer accepted once at the start, and a notice at the foot of every figure: under each answer from the AI —which can be wrong even when it looks confident—, on simulation, water quality and scenario results, and in the calculator. The text was reviewed by Dr. Luis E. Mora M. and can be read in full under «About». The notice also travels inside what you export: a CSV, a report or a conversation gets forwarded by email without the application around it, and nobody goes back to the original screen to read the warning. And exported files were named as if they were something else: the fragility one came out as `curva_fragilidad_PVC_Net3 2.inp.csv`, which Windows —hiding known extensions— showed as `...Net3 2.inp`: a file claiming to be a network when it was a table. The same happened with the resilience indicators and the viewer's GeoJSON. The name no longer drags the network's extension along. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.29.0).
 - **v1.28.0**: The interface mixed languages: hundreds of strings were hand-written in the code, outside the translation system, so the English application still showed Spanish sentences. All three languages are now complete across settings, projects, calculator, chat, network viewer and resilience — including what the calculation engine writes, which used to let whoever called it decide the language. The **Wisdom Center** is now the **Base de Conocimiento** in Spanish and Catalan; the English name is unchanged. The window opens maximized and the restore button works: it opened at 1200x800 on much larger screens, and restoring did nothing. Seismic damage is now broken down by pipe diameter, with the affected pipes and kilometres of each group, so a repair can be costed — two diameters can hold one pipe each and eighteen times the length, which is why both columns are needed. The fragility curve can be read against peak ground acceleration (PGA), which is what seismic hazard codes give, with the conversion and its margin stated on screen; tanks and pumps, governed by acceleration rather than velocity, get their own curve from the coefficients you supply. Per-material medians now come from the published FEMA/HAZUS-MH (2003) and ALA (2001) tables instead of unsourced generic values, which changes figures that were already shown. Node size did nothing in the schematic view — moving it from 2 to 20 drew the same thing — and link width and opacity were the same; the control scales each type's size rather than levelling them, so a tank still looks bigger than a junction. The vector graph tabs appeared stuck together. And four dependency vulnerabilities, two of them high severity, are fixed. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.28.0).
 - **v1.27.0**: Flow now reads in litres per second across the whole application. The energy panel gave flow in cubic metres per second while the viewer and the simulation comparison gave it in litres per second: an 824 l/s pump appeared as «0.8242 m³/s», and you had to count decimals to recognise it on the other screen. It now says «824,179 l/s». The calculator offers l/s by default in flow fields and returns the continuity equation and orifice flow results in l/s — no option is lost: cubic metres per second and gallons per minute are still in the dropdown, and the conversion appears as one more calculation step so it can be checked by hand. And pressure serviceability is shown as a percentage in both places it appears; it read «98.1 %» in the indicators panel and «0.9812» in the analysis one. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.27.0).
@@ -107,12 +108,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.29.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.29.0.AppImage`
-3. Run: `./Boorie-1.29.0.AppImage`
+1. Download `Boorie-1.30.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.30.0.AppImage`
+3. Run: `./Boorie-1.30.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.29.0.exe` from the link above
+1. Download `Boorie-Setup-1.30.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 
