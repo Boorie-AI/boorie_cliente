@@ -39,15 +39,20 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.29.0
+### 🚀 Última Versió - v1.30.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.29.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.29.0/Boorie-1.29.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.29.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.29.0/Boorie-Setup-1.29.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.29.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.29.0/Boorie-1.29.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.30.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.30.0/Boorie-1.30.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.30.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.30.0/Boorie-Setup-1.30.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.30.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.30.0/Boorie-1.30.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.30.0
+- La corba en acceleració sortia gairebé igual que la de velocitat, i feia dubtar d'un càlcul que estava bé: amb els topalls que portava cada eix —100 cm/s i 1 g— i la classe de sòl que ve posada, totes dues coincidien punt per punt amb dos punts percentuals de diferència. Les xifres eren i són les mateixes; era una coincidència entre dos valors per defecte. El topall en acceleració passa a 1,2 g i desapareix.
+- Les tres classes de sòl es dibuixen juntes quan la corba es llegeix en acceleració, que és on el sòl canvia el resultat: a 0,30 g, la probabilitat que una canonada falli és del 68 % en roca, del 87 % en sòl ferm i del 93 % en tou, amb la mateixa xarxa i el mateix material. Abans calia generar la corba tres vegades per comparar. La classe triada va en traç gruixut, perquè és la que porten la taula per diàmetres i el fitxer exportat, que ara té una columna per classe.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.30.0).
 
 ### 📝 Novetats a v1.29.0
 - L'aplicació avisava dels seus límits només en algunes pantalles: la corba de fragilitat deia que necessita la validació d'un expert, i el xat, la calculadora i les simulacions no deien res, tot i que són les que poden portar a decidir on reforçar una xarxa o quant pressupostar una reparació. Ara hi ha un descàrrec de responsabilitat que s'accepta un cop en començar, i un avís al peu de cada xifra. El text està revisat pel Dr. Luis E. Mora M. i es pot consultar sencer a «Quant a».
@@ -344,12 +349,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.29.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.29.0.AppImage`
-3. Executa: `./Boorie-1.29.0.AppImage`
+1. Descarrega `Boorie-1.30.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.30.0.AppImage`
+3. Executa: `./Boorie-1.30.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.29.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.30.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
