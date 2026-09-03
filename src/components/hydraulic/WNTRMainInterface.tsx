@@ -39,6 +39,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { nombreDescarga } from '@/utils/nombreArchivo'
+import { AvisoDescargo } from '@/components/descargo/AvisoDescargo'
 
 ChartJS.register(
   CategoryScale,
@@ -984,7 +985,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       ['Redundancia hidráulica', b.hydraulic_redundancy.toFixed(4), a ? a.hydraulic_redundancy.toFixed(4) : '', d ? d.hydraulic_redundancy.toFixed(4) : ''],
       ['Nivel de servicio por presión', b.serviceability.pressure_serviceability.toFixed(4), a ? a.serviceability.pressure_serviceability.toFixed(4) : '', d ? d.pressure_serviceability.toFixed(4) : '']
     ];
-    const csv = rows.map(r => r.join(',')).join('\n');
+    // El aviso viaja dentro del fichero: un CSV se reenvía por correo sin la
+    // aplicación alrededor, y nadie vuelve a la pantalla original a leerlo (#108).
+    const csv = [`# ${t('descargo.avisoExportado')}`, ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -1056,7 +1059,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
         });
       });
     }
-    const csv = rows.map(r => r.join(',')).join('\n');
+    // El aviso viaja dentro del fichero: un CSV se reenvía por correo sin la
+    // aplicación alrededor, y nadie vuelve a la pantalla original a leerlo (#108).
+    const csv = [`# ${t('descargo.avisoExportado')}`, ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -1431,6 +1436,9 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               </div>
                             </div>
                           )}
+                          {/* Al pie de la cifra, que es donde alguien la va a
+                              usar para decidir algo (#108). */}
+                          <AvisoDescargo />
                         </CardContent>
                       </Card>
                     ) : (

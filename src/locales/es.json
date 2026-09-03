@@ -876,6 +876,19 @@
     "maximize": "Maximizar",
     "restore": "Restaurar"
   },
+  "descargo": {
+    "titulo": "Antes de empezar",
+    "parrafoModelos": "Boorie es una herramienta de apoyo a la decisión, no un sustituto del criterio profesional. Los resultados de cálculo, simulación y análisis parten de modelos con supuestos y de los datos que usted aporta. Su validez depende de que la red esté bien descrita y de que el modelo sea aplicable al caso; Boorie no puede comprobar ninguna de las dos cosas.",
+    "parrafoIA": "Las respuestas generadas por inteligencia artificial pueden ser inexactas o estar incompletas, incluso cuando parecen seguras. Contrástelas antes de actuar sobre ellas.",
+    "parrafoDecision": "Ninguna decisión sobre infraestructura real debería tomarse a partir de una cifra de Boorie sin la validación de un profesional calificado, y cuando la normativa lo exija, de un profesional habilitado para firmar el proyecto.",
+    "parrafoResponsabilidad": "Usted es responsable del uso que haga de los resultados y del cumplimiento de la normativa que le aplique.",
+    "aceptar": "Entendido",
+    "avisoCorto": "Resultado de un modelo: requiere validación profesional antes de usarse en decisiones reales.",
+    "avisoIA": "Respuesta generada por IA: puede ser inexacta. Contrástela antes de actuar sobre ella.",
+    "avisoExportado": "Generado por Boorie. Herramienta de apoyo a la decision: requiere validacion de un profesional calificado antes de usarse en decisiones reales.",
+    "enAcercaDe": "Descargo de responsabilidad",
+    "prevalece": "La versión castellana es la que prevalece; el inglés y el catalán son traducción de cortesía."
+  },
   "energy": {
     "noConverge": "Alguna simulación no convergió: las cifras de esos instantes no son fiables.",
     "analyzing": "Analizando consumo…",

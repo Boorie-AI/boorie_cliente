@@ -6,6 +6,7 @@ import { GlobalErrorTracker } from '@/components/GlobalErrorTracker'
 import { ProjectMismatchDialog } from '@/components/project/ProjectMismatchDialog'
 import { MigracionAvisoDialog } from '@/components/project/MigracionAvisoDialog'
 import { Onboarding } from '@/components/Onboarding'
+import { DialogoDescargo } from '@/components/descargo/DialogoDescargo'
 import { SetupWizard } from '@/components/setup/SetupWizard'
 import { useAppStore } from '@/stores/appStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -109,6 +110,10 @@ function App() {
     <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
       <GlobalErrorTracker />
       <CustomTopBar />
+      {/* Antes que nada y por encima de todo: hasta que se acepte, no se usa
+          Boorie (#108). Va aquí y no dentro del contenido para que ninguna
+          vista pueda quedar por delante. */}
+      <DialogoDescargo />
       <div className="flex-1 min-h-0 relative">
         <ChatLayout />
         <Onboarding />
