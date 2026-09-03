@@ -114,7 +114,9 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
   }
 
   const handleExportConversation = () => {
-    const dataStr = JSON.stringify(conversation, null, 2)
+    // El aviso va dentro del fichero, no en la pantalla de la que salió: este
+    // JSON lleva respuestas de la IA y se reenvía sin Boorie alrededor (#108).
+    const dataStr = JSON.stringify({ _aviso: t('descargo.avisoExportado'), ...conversation }, null, 2)
     const dataBlob = new Blob([dataStr], { type: 'application/json' })
     const url = URL.createObjectURL(dataBlob)
     const link = document.createElement('a')

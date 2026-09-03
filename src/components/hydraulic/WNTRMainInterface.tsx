@@ -1507,6 +1507,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               )}
                             </>
                           )}
+                          <AvisoDescargo />
                         </CardContent>
                       </Card>
                     )}
@@ -1560,6 +1561,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           <div className="text-xs text-muted-foreground">
                             {simulationResults.scenario.data.summary?.note}
                           </div>
+                          <AvisoDescargo />
                         </CardContent>
                       </Card>
                     )}
