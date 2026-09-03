@@ -10,6 +10,14 @@ Cada punto de aquí está por algo que ya pasó, y el motivo va anotado.
       (`electron/` + `backend/`). Antes sólo cubría `src/`, y un import que faltaba en
       `electron/` no se veía hasta que el paquete corría.
 - [ ] `npm test` en verde.
+- [ ] `npm audit --audit-level=moderate` sin hallazgos, que es lo que corre el job
+      `Security Audit`. **Puede ponerse rojo sin que nadie haya tocado el repositorio**: `npm
+      audit` pregunta al registro en cada ejecución, así que un aviso publicado entre dos
+      ejecuciones tiñe de rojo el mismo `package-lock.json` que pasaba ayer. Le pasó al PR
+      #116 con `fflate` (GHSA-px8p-9vwx-vf98), que entra por `@vitest/ui` y no viaja en el
+      paquete. Se arregla con `npm audit fix --package-lock-only` y se mira el diff del lock:
+      si es un salto de parche dentro del rango que ya pedía la dependencia, entra en el
+      ciclo; si obliga a subir una dependencia directa, es su propio PR.
 - [ ] `npm run lint` **completo, sin filtrar por fichero**. Lintar sólo lo que has tocado deja
       pasar errores en ficheros nuevos: eso tumbó el CI de la v1.21.0 por un `catch (e)` sin usar
       en un test recién añadido.
