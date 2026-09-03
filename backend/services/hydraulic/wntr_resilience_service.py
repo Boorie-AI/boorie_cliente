@@ -1079,8 +1079,11 @@ class WNTRResilienceService:
                 alpha = ratios_newmark_hall[soil_class]
                 median = median_pgv / alpha            # g
                 intensity_unit = 'g'
-                # 1 g de tope por defecto, que es el orden de las normativas.
-                max_intensity = float(options.get('max_intensity', 1.0))
+                # 1,2 g de tope por defecto: cubre el rango normativo con holgura
+                # y, a diferencia del 1 g redondo, no divide justo por el alfa de
+                # suelo firme (97 ~ el 100 cm/s de PGV), que hacia salir la curva
+                # en PGA calcada a la de PGV punto por punto.
+                max_intensity = float(options.get('max_intensity', 1.2))
                 intensities = list(np.linspace(0, max_intensity, steps))
             else:
                 alpha = None
@@ -1088,6 +1091,30 @@ class WNTRResilienceService:
                 intensity_unit = 'cm/s'
 
             pipe_failure_probability = [float(p) for p in lognorm.cdf(intensities, s=beta, scale=median)]
+
+            # Las tres clases de suelo sobre el mismo eje de PGA (#94).
+            #
+            # Para un mismo PGA, alfa decide cuanta velocidad de suelo llega a la
+            # tuberia, asi que la curva se desplaza. Es la unica diferencia de
+            # esta pantalla que cambia una decision: PGV y PGA son la misma curva
+            # con el eje reescalado, pero roca y suelo blando no. Con una sola
+            # curva a la vez habia que generar tres veces y recordar los numeros.
+            #
+            # El orden es fijo -de mas firme a mas blando-, para que el color de
+            # cada clase no cambie al cambiar de seleccion.
+            por_suelo = None
+            if en_pga:
+                por_suelo = []
+                for clase in ('rock', 'stiff_soil', 'soft_soil'):
+                    a = ratios_newmark_hall[clase]
+                    m = median_pgv / a
+                    por_suelo.append({
+                        'soil_class': clase,
+                        'alpha_cm_s_per_g': a,
+                        'median': m,
+                        'probability': [float(p) for p in lognorm.cdf(intensities, s=beta, scale=m)],
+                    })
+
             pipe_count = len(wn.pipe_name_list)
             expected_failed_pipes = [p * pipe_count for p in pipe_failure_probability]
             total_length_km = sum(wn.get_link(p).length for p in wn.pipe_name_list) / 1000.0
@@ -1173,6 +1200,7 @@ class WNTRResilienceService:
                     'median': median,
                     'intensity_unit': intensity_unit,
                     'soil_class': soil_class if en_pga else None,
+                    'by_soil_class': por_suelo,
                     'alpha_cm_s_per_g': alpha,
                     'beta': beta,
                     'intensities': [float(i) for i in intensities],

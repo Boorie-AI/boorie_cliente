@@ -585,7 +585,8 @@
     "methodPga": "PGA input: the median of {{medianaPgv}} cm/s becomes {{medianaPga}} g via Newmark & Hall (1982), α = {{alfa}} cm/s per g for {{suelo}} soil. The PGV–PGA correlation is only moderate (ρ≈0.70–0.73, Bradley 2012), so the PGA curve carries that uncertainty; with measured PGV, use PGV.",
     "soilRockShort": "rock",
     "soilStiffShort": "stiff",
-    "soilSoftShort": "soft"
+    "soilSoftShort": "soft",
+    "seriesSoil": "{{suelo}} soil (α = {{alfa}})"
   },
   "mapViewer": {
     "title": "Network viewer",

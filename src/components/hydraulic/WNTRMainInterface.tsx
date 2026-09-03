@@ -131,6 +131,30 @@ const sinNegativos = (valor: string): number => Math.max(0, Number(valor) || 0);
  */
 const impacto = (valor: number | undefined | null): number => Math.max(0, valor ?? 0);
 
+/**
+ * Un color por clase de suelo, y siempre el mismo (#94).
+ *
+ * El color sigue a la clase, no a la selección: cambiar el selector mueve qué
+ * curva va en grueso, no de qué color es cada una. El naranja se queda en
+ * «firme», que es el que llevaba la curva única antes de superponerlas.
+ */
+const COLOR_SUELO: Record<string, string> = {
+  rock: 'rgb(57, 135, 229)',
+  stiff_soil: 'rgb(234, 88, 12)',
+  soft_soil: 'rgb(25, 158, 112)',
+};
+
+/** El CSV lleva sus cabeceras en castellano, como el resto del fichero. */
+const NOMBRE_SUELO_CSV: Record<string, string> = {
+  rock: 'roca', stiff_soil: 'firme', soft_soil: 'blando',
+};
+
+const SUELO_CORTO: Record<string, string> = {
+  rock: 'soilRockShort',
+  stiff_soil: 'soilStiffShort',
+  soft_soil: 'soilSoftShort',
+};
+
 export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   projectId: _projectId,
   onAnalysisComplete,
@@ -1031,11 +1055,19 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     if (!fragilityResult) return;
     const rows = [
       [`${fragilityResult.intensity_unit === 'g' ? 'PGA (g)' : 'PGV (cm/s)'}`,
-       'Prob. falla de tubería', 'Tuberías afectadas esperadas'],
+       'Prob. falla de tubería', 'Tuberías afectadas esperadas',
+       // Las columnas de las otras clases de suelo solo existen en PGA, que es
+       // donde hay tres curvas en pantalla: el fichero lleva lo que se ve.
+       ...(fragilityResult.by_soil_class ?? []).map(
+         (s: any) => `Prob. suelo ${NOMBRE_SUELO_CSV[s.soil_class]} (α = ${s.alpha_cm_s_per_g})`
+       )],
       ...fragilityResult.intensities.map((pgv: number, i: number) => [
         pgv.toFixed(2),
         fragilityResult.pipe_failure_probability[i]?.toFixed(6) ?? '',
-        fragilityResult.expected_failed_pipes[i]?.toFixed(2) ?? ''
+        fragilityResult.expected_failed_pipes[i]?.toFixed(2) ?? '',
+        ...(fragilityResult.by_soil_class ?? []).map(
+          (s: any) => s.probability[i]?.toFixed(6) ?? ''
+        )
       ])
     ];
     // El reparto por diámetro va en el mismo fichero, y en formato largo: una
@@ -2186,8 +2218,8 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           onChange={(e) => {
                             const h = e.target.value as 'seismic_pgv' | 'seismic_pga';
                             setFragilityHazard(h);
-                            // El tope va en las unidades del eje: 100 cm/s o 1 g.
-                            setFragilityMaxIntensity(h === 'seismic_pga' ? 1 : 100);
+                            // El tope va en las unidades del eje: 100 cm/s o 1,2 g.
+                            setFragilityMaxIntensity(h === 'seismic_pga' ? 1.2 : 100);
                           }}
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         >
@@ -2306,33 +2338,60 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     {fragilityResult && (
                       <Card>
                         <CardContent className="p-3 text-xs space-y-2">
-                          <div className="h-40">
+                          <div className={fragilityResult.by_soil_class?.length ? 'h-48' : 'h-40'}>
                             <Line
                               data={{
                                 labels: fragilityResult.intensities.map(
                                   (v: number) => v.toFixed(fragilityResult.intensity_unit === 'g' ? 2 : 0)
                                 ),
-                                datasets: [{
-                                  label: 'Prob. falla de tubería',
-                                  data: fragilityResult.pipe_failure_probability,
-                                  borderColor: 'rgb(234, 88, 12)',
-                                  backgroundColor: 'rgba(234, 88, 12, 0.3)',
-                                  borderWidth: 2,
-                                  pointRadius: 0,
-                                  tension: 0.3
-                                }]
+                                /**
+                                 * Tres curvas en PGA, una por clase de suelo.
+                                 *
+                                 * En PGV sigue habiendo una sola: sin alfa que
+                                 * aplicar no hay tres lecturas que comparar. La
+                                 * clase elegida va en grueso porque es la que
+                                 * alimentan la tabla y el CSV.
+                                 */
+                                datasets: fragilityResult.by_soil_class?.length
+                                  ? fragilityResult.by_soil_class.map((suelo: any) => ({
+                                    label: t('networkView.seriesSoil', {
+                                      suelo: t(`networkView.${SUELO_CORTO[suelo.soil_class]}`),
+                                      alfa: suelo.alpha_cm_s_per_g,
+                                    }),
+                                    data: suelo.probability,
+                                    borderColor: COLOR_SUELO[suelo.soil_class],
+                                    borderWidth: suelo.soil_class === fragilityResult.soil_class ? 2.5 : 1.5,
+                                    pointRadius: 0,
+                                    tension: 0.3,
+                                  }))
+                                  : [{
+                                    label: 'Prob. falla de tubería',
+                                    data: fragilityResult.pipe_failure_probability,
+                                    borderColor: 'rgb(234, 88, 12)',
+                                    backgroundColor: 'rgba(234, 88, 12, 0.3)',
+                                    borderWidth: 2,
+                                    pointRadius: 0,
+                                    tension: 0.3
+                                  }]
                               }}
                               options={{
                                 responsive: true,
                                 maintainAspectRatio: false,
                                 animation: { duration: 0 },
                                 plugins: {
-                                  legend: { display: false },
+                                  legend: {
+                                    display: !!fragilityResult.by_soil_class?.length,
+                                    position: 'bottom',
+                                    labels: { boxWidth: 8, font: { size: 9 } },
+                                  },
                                   tooltip: {
                                     callbacks: {
                                       // Las dos lecturas de una vez, que es lo que se
                                       // quiere saber al mirar un punto de la curva (#94).
-                                      label: (ctx: { parsed: { y: number } }) =>
+                                      // Con las tres clases de suelo encima hace falta
+                                      // además saber de cuál es el punto.
+                                      label: (ctx: { parsed: { y: number }; dataset: { label?: string } }) =>
+                                        (fragilityResult.by_soil_class?.length ? `${ctx.dataset.label}: ` : '') +
                                         `${(ctx.parsed.y * 100).toFixed(1)} % · ` +
                                         `${(ctx.parsed.y * fragilityResult.pipe_count).toFixed(1)} de ${fragilityResult.pipe_count} tuberías`,
                                     },
