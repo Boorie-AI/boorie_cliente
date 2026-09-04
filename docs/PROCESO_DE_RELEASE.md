@@ -61,7 +61,11 @@ actualiza después, el tag apunta a descargas de la versión anterior.
 
 - [ ] `package.json` — con `npm version X.Y.Z --no-git-tag-version`, que mantiene
       `package-lock.json` en sincronía (hay dos sitios dentro del lock).
-- [ ] `CHANGELOG.md` — entrada nueva arriba. La superior debe coincidir con `package.json`:
+- [ ] `CHANGELOG.md` — entrada nueva arriba, **doblando en ella la sección `[Unreleased]`**
+      y borrándola después. Esa sección se va escribiendo al integrar cada cambio visible,
+      para que la entrada no dependa de acordarse un mes más tarde; el parser del historial
+      sólo reconoce cabeceras con número de versión, así que mientras vive no altera lo que
+      enseña «Acerca de». La superior debe coincidir con `package.json`:
       la pestaña «Acerca de» de la aplicación lee este fichero, así que un descuadre se ve
       dentro del producto. Redactado en **lenguaje de usuario**: qué le pasaba a quien lo
       sufría y qué pasa ahora, no qué función se ha cambiado.
