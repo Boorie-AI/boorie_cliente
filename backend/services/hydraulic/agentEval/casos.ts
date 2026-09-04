@@ -117,8 +117,8 @@ export const CASOS: CasoAgente[] = [
     id: 'net3-indicadores-resiliencia',
     pregunta: '¿Cómo está de resiliente mi red?',
     red: 'Net3 2.inp',
-    herramienta: 'proponer_indicadores_resiliencia',
-    argumentos: {},
+    herramienta: 'proponer_analisis',
+    argumentos: { tipo: 'indicadores_resiliencia' },
     espera: [
       // Lo correcto aquí **no** es una cifra: es que proponga y se calle. Estos
       // indicadores simulan la red entera, y en Net6 pasan de diez minutos.
@@ -189,5 +189,57 @@ export const CASOS: CasoAgente[] = [
     origen:
       'wntr_resilience_service.py con soil_class soft_soil, y reproducido en la aplicación real: ' +
       '116,0 de 117 en el panel.',
+  },
+  {
+    id: 'net3-reparto-por-diametro',
+    pregunta: '¿Y cuántos kilómetros de tubería habría que reparar, por diámetro?',
+    red: 'Net3 2.inp',
+    herramienta: 'curva_fragilidad',
+    argumentos: {
+      material: 'PVC',
+      damage_model: 'HAZUS_MH',
+      hazard_type: 'seismic_pga',
+      soil_class: 'stiff_soil',
+      max_intensity: 1.2,
+      reparto_por_diametro: true,
+    },
+    espera: [
+      // Diez grupos en Net3, y el primero es el de 203,2 mm con sus 25 tuberías.
+      { ruta: 'reparto_por_diametro.0.diametro_mm', valor: 203.2, tolerancia: 0.05 },
+      { ruta: 'reparto_por_diametro.0.tuberias', valor: 25 },
+      { ruta: 'reparto_por_diametro.0.longitud_km', valor: 10.97, tolerancia: 0.01 },
+    ],
+    origen:
+      'La tabla del panel de fragilidad sobre esta misma red: 203,2 mm con 25 tuberías y 10,97 km.',
+  },
+  {
+    id: 'perdida-de-carga-darcy',
+    pregunta: '¿Qué pérdida de carga tiene una tubería de 500 m y 300 mm con 0,5 m/s y f = 0,02?',
+    // La calculadora no mira la red, pero el caso declara una porque el agente
+    // siempre responde dentro de un proyecto.
+    red: 'villa_100_casas.inp',
+    herramienta: 'calcular',
+    argumentos: {
+      formula: 'darcy-weisbach',
+      datos: {
+        f: { valor: 0.02, unidad: 'dimensionless' },
+        L: { valor: 500, unidad: 'm' },
+        D: { valor: 300, unidad: 'mm' },
+        V: { valor: 0.5, unidad: 'm/s' },
+      },
+    },
+    espera: [
+      // hf = 0,02 · (500/0,3) · (0,5²/19,62) = 0,4247 m
+      { ruta: 'resultado.valor', valor: 0.42474, tolerancia: 0.0001 },
+      { ruta: 'resultado.unidad', valor: 'm' },
+      // Cada paso con **su** unidad, que no es la del resultado: la altura de
+      // velocidad va en metros y la relación L/D no tiene unidad (#89).
+      { ruta: 'pasos.0.unidad', valor: 'm' },
+      { ruta: 'pasos.1.expresion', valor: 'L/D' },
+      { ruta: 'pasos.1.unidad', valor: 'adimensional' },
+    ],
+    origen:
+      'Darcy-Weisbach a mano: 0,02 · 1666,67 · 0,012742 = 0,42474 m. El diámetro va en mm a ' +
+      'propósito: es lo que el motor rechazaba antes de comprobar el rango después de convertir.',
   },
 ]

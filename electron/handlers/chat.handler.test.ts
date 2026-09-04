@@ -134,7 +134,8 @@ describe('bucle de herramientas con Anthropic', () => {
       'consultar_elemento',
       'listar_elementos',
       'curva_fragilidad',
-      'proponer_indicadores_resiliencia',
+      'calcular',
+      'proponer_analisis',
       'proponer_escenario',
     ])
 

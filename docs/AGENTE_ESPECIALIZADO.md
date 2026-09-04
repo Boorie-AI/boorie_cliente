@@ -37,11 +37,14 @@ De modo que el corte se hace por esa propiedad, que además el agente puede apli
 
 | Se ejecutan **directas** | Se **proponen** para que el usuario confirme |
 |---|---|
-| Consultas de topología (las tres de hoy) | Simulación hidráulica |
-| Calculadora (`calculationEngine`) | Calidad del agua |
-| Curva de fragilidad y reparto por diámetro | Indicadores de resiliencia |
-| | Eficiencia energética (necesita simulación) |
-| | Escenarios de interrupción (ya lo hace) |
+| `consultar_elemento`, `listar_elementos` | `proponer_analisis`, con cuatro tipos: |
+| `curva_fragilidad`, con su reparto por diámetro | indicadores de resiliencia |
+| `calcular`, las seis fórmulas | simulación hidráulica |
+| | calidad del agua |
+| | eficiencia energética |
+| | `proponer_escenario` (ya lo hacía) |
+
+Las cuatro que se proponen van en **una sola herramienta con un `tipo`**, no en cuatro. Todas tienen la misma forma —preparar, decir qué calcula y qué cuesta, y pedir confirmación—, y un catálogo más corto es un catálogo en el que el modelo se equivoca menos. El `tipo` lleva en su descripción qué calcula cada uno, que es lo que necesita para elegir.
 
 Dos cautelas que van con la decisión:
 
@@ -83,7 +86,7 @@ El orden importa: si la herramienta miente, el agente miente por mucho que elija
 ### Marcador
 
 ```
-batería del agente: 10/10 (100 %) · 0 pendientes
+batería del agente: 12/12 (100 %) · 0 pendientes
 ```
 
 Los tres casos que estaban pendientes se activaron al llegar la fase 1, borrando su línea `pendiente`. Los dos de fragilidad corren **el motor de verdad**: se les podría inyectar un doble y correrían en cualquier sitio, pero entonces medirían que la herramienta llama bien a algo, no que la cifra que llega al agente es la del motor. Por eso el bloque se salta donde no haya Python con WNTR en lugar de fingirlo.
@@ -96,10 +99,14 @@ El de resiliencia cambió de forma al activarse, y el cambio es la decisión hec
 
 - **Una cifra sin los argumentos con los que se obtuvo no se puede contrastar con nada.** Anotando la curva de fragilidad de `Net3 2` apunté 116,0 de 117 y creí que discrepaba del motor, que daba 114,4. No discrepaba: 116,0 es el valor de **suelo blando**, y lo que estaba mal era mi apunte de con qué suelo se había generado. Reproducido después en la aplicación, las dos cifras salen donde tienen que salir. De ahí que los casos fijen los tres suelos y que `origen` sea obligatorio.
 
+- **Dos llamadas a la vez comparten el fichero temporal.** `ejecutarLlamadas` resuelve las herramientas de un turno **en paralelo**, así que dos curvas de fragilidad sobre la misma red escribían el mismo `.inp` y una borraba el que la otra estaba leyendo. Sale como un error del motor sin causa visible, y sólo con la suite entera —la peor forma de salir—. El temporal es uno por llamada, no por red.
+
+- **La calculadora comprobaba el rango antes de convertir la unidad.** Un diámetro de 300 mm quedaba «fuera del rango [0.01, 10]», que está en metros: el aviso hablaba de un rango que el usuario no había escrito. No era del agente —se llega desde el panel—, va en el [#122](https://github.com/Boorie-AI/boorie_cliente/issues/122) y se arregló aquí porque una herramienta de cálculo que rechaza 300 mm no sirve para nada.
+
 - **El escenario no se propone donde uno cree.** Escribí su caso suponiendo la forma del resultado en vez de leerla, y falló al primer intento: la propuesta no viene en `propuesta.tipo` sino en `definicion.eventos.0.tipo`. Es exactamente el error que la batería existe para impedir, y lo cazó a los cinco minutos de nacer.
 
 ## Lo que queda
 
 Las fases 2 a 4 del #119: lo que cita, la disciplina del prompt —unidades en cada cifra, no dar impacto sin simular, citar la simulación de la que sale cada número— y correr la batería en cada cambio, añadiendo como caso cada fallo que aparezca usando el producto. Es la misma disciplina que sostiene `PROCESO_DE_RELEASE.md`.
 
-De la fase 1 quedan por exponer las que faltan de cada lado: la calculadora y el reparto por diámetro entre las directas; la simulación hidráulica, la calidad del agua y la eficiencia energética entre las que se proponen. El camino ya está abierto y cada una es un motor más inyectado en el contexto.
+La fase 1 está cerrada: las cinco herramientas de cada lado del criterio, con la batería en 12 de 12.

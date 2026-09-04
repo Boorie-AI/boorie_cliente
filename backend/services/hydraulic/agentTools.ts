@@ -11,6 +11,8 @@
  * devuelve datos, sin tocar la base ni Electron.
  */
 
+import { HydraulicCalculationEngine } from './calculationEngine'
+
 export interface NodoRed {
   id: string
   label?: string
@@ -185,30 +187,81 @@ export const HERRAMIENTAS: DefinicionHerramienta[] = [
           type: 'number',
           description: 'Tope del eje: 100 cm/s en PGV, 1,2 g en PGA si no se dice otra cosa.',
         },
+        reparto_por_diametro: {
+          type: 'boolean',
+          description:
+            'Anadir cuantas tuberias y cuantos km se ven afectados por cada diametro, en el tope ' +
+            'del eje. Es lo que permite costear la reparacion: no cuesta lo mismo reparar veinte ' +
+            'tuberias de 50 m que de 500. No cuesta una llamada mas: sale del mismo calculo.',
+        },
       },
       required: [],
     },
   },
   {
-    nombre: 'proponer_indicadores_resiliencia',
+    nombre: 'calcular',
     descripcion:
-      'Propone calcular los indicadores de resiliencia de la red —indice de Todini, entropia, ' +
-      'redundancia hidraulica y nivel de servicio por presion—. NO los calcula: estos indicadores ' +
-      'corren una simulacion hidraulica completa, que en una red grande pasa de diez minutos, asi ' +
-      'que la ejecucion la lanza el usuario desde la interfaz. Usala cuando pregunten por la ' +
-      'resiliencia, la robustez o el margen de la red. Despues de llamarla, di que has preparado el ' +
-      'calculo y pide que lo confirme; no des cifras, porque no se ha calculado nada.',
+      'Resuelve una formula de hidraulica con los datos que de el usuario: perdida de carga por ' +
+      'Darcy-Weisbach o Hazen-Williams, factor de friccion por Colebrook-White, golpe de ariete, ' +
+      'volumen de deposito o potencia de bombeo. Se ejecuta en el momento: no simula la red, es ' +
+      'aritmetica. Usala siempre en lugar de calcular tu: devuelve tambien los pasos intermedios ' +
+      'con su unidad, que es lo que permite comprobar el resultado a mano.',
     esquema: {
       type: 'object',
       properties: {
+        formula: {
+          type: 'string',
+          enum: [
+            'darcy-weisbach', 'hazen-williams', 'colebrook-white',
+            'water-hammer', 'tank-volume', 'pump-power',
+          ],
+          description: 'Que formula aplicar.',
+        },
+        datos: {
+          type: 'object',
+          description:
+            'Los parametros de la formula, por su simbolo, cada uno con su valor y su unidad: ' +
+            '{"L": {"valor": 500, "unidad": "m"}, "D": {"valor": 300, "unidad": "mm"}}. Si falta ' +
+            'alguno o la unidad no es de las admitidas, la herramienta te lo dice con la lista.',
+        },
+      },
+      required: ['formula', 'datos'],
+    },
+  },
+  {
+    nombre: 'proponer_analisis',
+    descripcion:
+      'Prepara uno de los analisis que necesitan **simular** la red: indicadores de resiliencia, ' +
+      'simulacion hidraulica, calidad del agua o eficiencia energetica. NO los ejecuta: simular una ' +
+      'red grande pasa de diez minutos, asi que la ejecucion la lanza el usuario desde la interfaz. ' +
+      'Usala cuando pregunten por presiones, caudales, cloro, edad del agua, consumo energetico, ' +
+      'resiliencia o robustez. Despues de llamarla, di que analisis has preparado y pide que lo ' +
+      'confirme; no des cifras, porque no se ha simulado nada.',
+    esquema: {
+      type: 'object',
+      properties: {
+        tipo: {
+          type: 'string',
+          enum: [
+            'indicadores_resiliencia',
+            'simulacion_hidraulica',
+            'calidad_del_agua',
+            'eficiencia_energetica',
+          ],
+          description:
+            'indicadores_resiliencia: indice de Todini, entropia, redundancia y servicio por ' +
+            'presion. simulacion_hidraulica: presiones, caudales y velocidades a lo largo del dia. ' +
+            'calidad_del_agua: cloro residual, edad del agua o trazador. eficiencia_energetica: ' +
+            'consumo y coste de las bombas.',
+        },
         comparar_con_interrupcion: {
           type: 'boolean',
           description:
-            'Comparar el antes y el despues de un escenario de interrupcion. Simula la red dos ' +
-            'veces, asi que tarda aproximadamente el doble.',
+            'Solo para indicadores_resiliencia: comparar el antes y el despues de un escenario de ' +
+            'interrupcion. Simula la red dos veces, asi que tarda aproximadamente el doble.',
         },
       },
-      required: [],
+      required: ['tipo'],
     },
   },
   {
@@ -515,7 +568,7 @@ const PUNTOS_CURVA = 5
  * que es con lo que se responde a «cuantas tuberias fallarian». Si el usuario
  * quiere la tabla entera, la tiene en el panel y en el CSV.
  */
-function resumirCurva(datos: Record<string, unknown>): ResultadoHerramienta {
+function resumirCurva(datos: Record<string, unknown>, conReparto: boolean): ResultadoHerramienta {
   const intensidades = (datos.intensities as number[]) ?? []
   const probabilidades = (datos.pipe_failure_probability as number[]) ?? []
   const esperadas = (datos.expected_failed_pipes as number[]) ?? []
@@ -542,10 +595,31 @@ function resumirCurva(datos: Record<string, unknown>): ResultadoHerramienta {
     tuberias_de_la_red: datos.pipe_count,
     longitud_total_km: Number((datos.total_length_km as number).toFixed(2)),
     puntos,
+    ...(conReparto ? { reparto_por_diametro: repartoEnElTope(datos) } : {}),
     aviso:
       'Parametros genericos por material, publicados pero no calibrados con esta red. ' +
       'Diselo al usuario: la curva necesita la validacion de un experto antes de decidir con ella.',
   }
+}
+
+/**
+ * El reparto por diametro, en el tope del eje.
+ *
+ * Las dos columnas —tuberias y kilometros— son lo que permite costear el dano:
+ * no cuesta lo mismo reparar veinte tuberias de 50 m que de 500. Se da solo en
+ * el tope y no en los veintiun puntos porque ahi son veintiuno por grupo, y en
+ * Net3 hay diez grupos.
+ */
+function repartoEnElTope(datos: Record<string, unknown>): ResultadoHerramienta[] {
+  const grupos = (datos.by_diameter as Array<Record<string, unknown>>) ?? []
+  const ultimo = ((datos.intensities as number[]) ?? []).length - 1
+  return grupos.map(g => ({
+    diametro_mm: g.diameter_mm,
+    tuberias: g.pipe_count,
+    longitud_km: Number((g.length_km as number).toFixed(2)),
+    tuberias_afectadas: Number((((g.affected_pipes as number[]) ?? [])[ultimo] ?? 0).toFixed(1)),
+    km_afectados: Number((((g.affected_length_km as number[]) ?? [])[ultimo] ?? 0).toFixed(2)),
+  }))
 }
 
 async function curvaFragilidad(
@@ -561,11 +635,54 @@ async function curvaFragilidad(
     }
   }
 
-  const salida = await motor(argumentos)
+  // El argumento es nuestro, no del motor: no se lo pasamos.
+  const { reparto_por_diametro: conReparto, ...paraElMotor } = argumentos
+  const salida = await motor(paraElMotor)
   // El error del motor se le pasa tal cual: puede corregir un material que no
   // existe o una clase de suelo mal escrita en la siguiente llamada.
   if (salida.error) return salida
-  return resumirCurva(salida as Record<string, unknown>)
+  return resumirCurva(salida as Record<string, unknown>, conReparto === true)
+}
+
+/**
+ * La calculadora, que es TypeScript puro y por eso no necesita motor inyectado.
+ *
+ * Los pasos intermedios viajan **con su unidad cada uno**, que no siempre es la
+ * del resultado: en Darcy-Weisbach la altura de velocidad va en metros y la
+ * relacion L/D no tiene unidad (#89). Es lo que permite comprobar la cuenta a
+ * mano, y lo que evita que el modelo le ponga al paso la unidad del final.
+ */
+function calcular(argumentos: Record<string, unknown>): ResultadoHerramienta {
+  const formula = typeof argumentos.formula === 'string' ? argumentos.formula : ''
+  const crudos = (argumentos.datos ?? {}) as Record<string, { valor?: number; unidad?: string }>
+
+  const entradas: Record<string, { value: number; unit: string }> = {}
+  for (const [simbolo, v] of Object.entries(crudos)) {
+    if (typeof v?.valor !== 'number' || typeof v?.unidad !== 'string') {
+      return { error: `El parametro "${simbolo}" necesita {"valor": <numero>, "unidad": "<unidad>"}.` }
+    }
+    entradas[simbolo] = { value: v.valor, unit: v.unidad }
+  }
+
+  try {
+    const r = new HydraulicCalculationEngine().calculate(formula, entradas)
+    return {
+      formula,
+      ecuacion: r.formula,
+      resultado: { valor: Number(r.result.value.toPrecision(6)), unidad: r.result.unit },
+      pasos: (r.intermediateSteps ?? []).map(p => ({
+        expresion: p.formula,
+        valor: Number(p.result.toPrecision(6)),
+        // Vacia cuando el paso es adimensional, y entonces se dice: un hueco se
+        // lee como un olvido, "adimensional" se lee como una decision.
+        unidad: p.unit || 'adimensional',
+      })),
+    }
+  } catch (error) {
+    // El motor valida los parametros y las unidades, y su mensaje ya trae la
+    // lista de lo que falta: se le pasa al modelo para que corrija la llamada.
+    return { error: (error as Error).message }
+  }
 }
 
 /**
@@ -578,30 +695,53 @@ async function curvaFragilidad(
  * 3,5 s a mas de diez minutos en esa misma red. Lanzarlos a ciegas dentro de un
  * tope de cuatro vueltas dejaria la conversacion colgada sin explicacion.
  */
-function proponerIndicadoresResiliencia(argumentos: Record<string, unknown>): ResultadoHerramienta {
-  const comparar = argumentos.comparar_con_interrupcion === true
+const ANALISIS: Record<string, { resumen: string; calcula: string[] }> = {
+  indicadores_resiliencia: {
+    resumen: 'Indicadores de resiliencia de la red activa',
+    calcula: ['indice de Todini', 'entropia de red', 'redundancia hidraulica', 'nivel de servicio por presion'],
+  },
+  simulacion_hidraulica: {
+    resumen: 'Simulacion hidraulica de la red activa',
+    calcula: ['presion en cada nudo', 'caudal y velocidad en cada tramo', 'niveles de deposito'],
+  },
+  calidad_del_agua: {
+    resumen: 'Simulacion de calidad del agua',
+    calcula: ['cloro residual', 'edad del agua', 'procedencia por trazador'],
+  },
+  eficiencia_energetica: {
+    resumen: 'Analisis de eficiencia energetica del bombeo',
+    calcula: ['consumo por bomba', 'coste segun tarifa', 'rendimiento y horas de funcionamiento'],
+  },
+}
+
+function proponerAnalisis(argumentos: Record<string, unknown>): ResultadoHerramienta {
+  const tipo = typeof argumentos.tipo === 'string' ? argumentos.tipo : ''
+  const ficha = ANALISIS[tipo]
+  if (!ficha) {
+    return { error: `Analisis no reconocido: "${tipo}". Validos: ${Object.keys(ANALISIS).join(', ')}.` }
+  }
+
+  // Comparar solo significa algo en resiliencia: en los demas no hay un antes y
+  // un despues que enfrentar, y aceptarlo en silencio prometeria algo que no es.
+  const comparar = tipo === 'indicadores_resiliencia' && argumentos.comparar_con_interrupcion === true
+
   return {
     propuesta: true,
     requiere_confirmacion: true,
-    analisis: 'indicadores_resiliencia',
+    analisis: tipo,
     resumen: comparar
-      ? 'Indicadores de resiliencia, comparando antes y despues de la interrupcion simulada.'
-      : 'Indicadores de resiliencia de la red activa.',
-    definicion: { analisis: 'indicadores_resiliencia', comparar_con_interrupcion: comparar },
-    calcula: [
-      'indice de Todini',
-      'entropia de red',
-      'redundancia hidraulica',
-      'nivel de servicio por presion',
-    ],
+      ? `${ficha.resumen}, comparando antes y despues de la interrupcion simulada.`
+      : `${ficha.resumen}.`,
+    definicion: { analisis: tipo, ...(tipo === 'indicadores_resiliencia' ? { comparar_con_interrupcion: comparar } : {}) },
+    calcula: ficha.calcula,
     // Que el modelo pueda decir por que hay que confirmar, en vez de que la
     // espera parezca un fallo de la aplicacion.
     coste: comparar
       ? 'Simula la red dos veces; en una red grande puede pasar de veinte minutos.'
       : 'Simula la red completa; en una red grande puede pasar de diez minutos.',
     siguiente_paso:
-      'Dile al usuario que has preparado el calculo y pidele que lo confirme. No des cifras de ' +
-      'resiliencia: no se ha calculado nada todavia.',
+      'Dile al usuario que has preparado el analisis y pidele que lo confirme. No des cifras: no se ' +
+      'ha simulado nada todavia.',
   }
 }
 
@@ -627,8 +767,10 @@ export async function ejecutarHerramienta(
       return proponerEscenario(argumentos, red)
     case 'curva_fragilidad':
       return curvaFragilidad(argumentos, contexto)
-    case 'proponer_indicadores_resiliencia':
-      return proponerIndicadoresResiliencia(argumentos)
+    case 'calcular':
+      return calcular(argumentos)
+    case 'proponer_analisis':
+      return proponerAnalisis(argumentos)
     default:
       return { error: `Herramienta desconocida: "${nombre}".` }
   }

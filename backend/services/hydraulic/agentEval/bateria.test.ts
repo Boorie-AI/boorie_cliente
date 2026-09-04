@@ -3,6 +3,7 @@ import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 import { execFileSync } from 'child_process'
+import { randomUUID } from 'crypto'
 import { getPythonStatus } from '../pythonDetector'
 import { ejecutarHerramienta, HERRAMIENTAS, type ContextoHerramientas, type RedCompleta } from '../agentTools'
 import { WNTRResilienceService } from '../resilienceService'
@@ -52,7 +53,10 @@ const contexto = (red: RedGuardada): ContextoHerramientas => ({
   red: red.datos,
   motores: {
     curvaFragilidad: async (opciones) => {
-      const ruta = path.join(os.tmpdir(), `boorie-bateria-${process.pid}.inp`)
+      // Uno por llamada: los casos se resuelven en paralelo, y con un nombre
+      // compartido una llamada borraba el .inp que otra estaba leyendo. Salia
+      // sólo con la suite entera, que es la peor forma de salir.
+      const ruta = path.join(os.tmpdir(), `boorie-bateria-${randomUUID()}.inp`)
       await fs.promises.writeFile(ruta, red.inp, 'utf8')
       try {
         const r = await new WNTRResilienceService().generateFragilityCurve(ruta, opciones as never)

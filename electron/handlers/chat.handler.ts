@@ -5,6 +5,7 @@ import { DatabaseService } from '../../backend/services'
 import * as os from 'os'
 import * as path from 'path'
 import { promises as fs } from 'fs'
+import { randomUUID } from 'crypto'
 import {
   HERRAMIENTAS,
   ejecutarHerramienta,
@@ -336,7 +337,11 @@ export class ChatHandler {
           if (!red.inp) {
             return { error: 'La red activa no tiene guardado su fichero .inp, asi que no se puede calcular la curva.' }
           }
-          const ruta = path.join(os.tmpdir(), `boorie-agente-${red.id}.inp`)
+          // Un temporal por llamada, no por red: `ejecutarLlamadas` resuelve las
+          // herramientas de un turno en paralelo, asi que dos curvas sobre la
+          // misma red compartirian fichero y una borraria el que la otra esta
+          // leyendo. Sale como un error del motor sin causa visible.
+          const ruta = path.join(os.tmpdir(), `boorie-agente-${red.id}-${randomUUID()}.inp`)
           await fs.writeFile(ruta, red.inp, 'utf8')
           try {
             const r = await resilienceService.generateFragilityCurve(ruta, opciones as never)
