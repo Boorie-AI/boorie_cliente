@@ -13,22 +13,18 @@ export function SystemPromptPanel() {
   const [isSaving, setIsSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
-  // Default system prompt for hydraulic engineering
-  const defaultPrompt = `Eres un asistente especializado en ingeniería hidráulica con experiencia en:
-
-- Diseño de redes de distribución de agua
-- Cálculos hidráulicos y análisis de presiones  
-- Normativas españolas, mexicanas y colombianas
-- Uso de software EPANET y WNTR
-- Selección y dimensionado de equipos
-
-INSTRUCCIONES:
-- Proporciona respuestas técnicas precisas
-- Incluye fórmulas cuando sea relevante
-- Cita las normativas aplicables
-- Responde en español técnico apropiado
-- Usa unidades del sistema métrico
-- Cuando sea posible, sugiere verificaciones adicionales`
+  /**
+   * La sugerencia es sólo de papel y de tono (#119, fase 3).
+   *
+   * Antes este texto traía además las instrucciones —unidades, citar la
+   * normativa, precisión—, y era una segunda definición de reglas que ahora
+   * viven en `promptDelAgente.ts` y se envían siempre. Duplicarlas aquí
+   * significaba que un usuario que guardara este texto se llevaba dos copias, y
+   * que editarlo parecía poder desactivarlas.
+   */
+  const defaultPrompt = `Escribe con el detalle de un informe técnico y ve al grano.
+Cuando una decisión dependa de la normativa local, dilo antes de responder.
+Si ves algo que conviene comprobar aparte, sugiérelo al final.`
 
   useEffect(() => {
     loadSystemPrompt()
@@ -139,6 +135,14 @@ INSTRUCCIONES:
             </h3>
             <p className="text-sm text-muted-foreground">
               {t('prompt.intro')}
+            </p>
+            {/**
+              * Que se vea que esto suma y no sustituye: las reglas de unidades
+              * y de no dar cifras sin calcularlas van siempre, y no están aquí
+              * para que no se puedan borrar sin querer.
+              */}
+            <p className="text-sm text-muted-foreground">
+              {t('prompt.seAnade')}
             </p>
           </div>
 

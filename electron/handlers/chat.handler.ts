@@ -13,6 +13,7 @@ import {
   type RedCompleta,
 } from '../../backend/services/hydraulic/agentTools'
 import { WNTRResilienceService } from '../../backend/services/hydraulic/resilienceService'
+import { componerPromptDeSistema } from '../../backend/services/hydraulic/promptDelAgente'
 import { detectarIntencionEscenario, detectarIntencionEnergia } from '../../backend/services/hydraulic/intencionEscenario'
 
 /**
@@ -380,26 +381,30 @@ export class ChatHandler {
         return messages
       }
 
-      // Get system prompt from database
-      const systemPromptSetting = await this.databaseService.prisma.appSetting.findUnique({
+      /**
+       * La disciplina va siempre; lo del usuario se le añade (#119, fase 3).
+       *
+       * Antes el prompt salía **entero** de `app_settings`, y esa fila no
+       * existe en una instalación recién hecha: se anotaba «No system prompt
+       * found in database» y el mensaje se enviaba sin ningún sistema. Las
+       * reglas que impiden inventar cifras dependían de que alguien hubiera
+       * entrado en una pantalla de configuración y le hubiera dado a guardar.
+       */
+      const propio = await this.databaseService.prisma.appSetting.findUnique({
         where: { key: 'system_prompt' }
       })
 
-      if (systemPromptSetting && systemPromptSetting.value.trim()) {
-        logger.info('Adding system prompt to conversation', { promptLength: systemPromptSetting.value.length })
-        // Add system prompt as first message
-        return [
-          { role: 'system', content: systemPromptSetting.value },
-          ...messages
-        ]
-      } else {
-        logger.warn('No system prompt found in database')
-      }
-
-      return messages
+      const contenido = componerPromptDeSistema(propio?.value)
+      logger.info('Adding system prompt to conversation', {
+        promptLength: contenido.length,
+        conPersonalizacion: !!propio?.value?.trim(),
+      })
+      return [{ role: 'system', content: contenido }, ...messages]
     } catch (error) {
-      logger.warn('Failed to load system prompt, proceeding without it', error as Error)
-      return messages
+      // Que no se pueda leer la personalizacion no puede dejar al agente sin
+      // reglas: se envia la disciplina sola, que es lo que no es opcional.
+      logger.warn('No se pudo leer el prompt propio; va la disciplina sola', error as Error)
+      return [{ role: 'system', content: componerPromptDeSistema() }, ...messages]
     }
   }
 

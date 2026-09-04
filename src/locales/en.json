@@ -1014,6 +1014,7 @@
     "restore": "Restore",
     "withRag": "It is combined with the RAG system if you have indexed documents",
     "intro": "This prompt is applied at the start of every conversation, whichever AI provider you use (OpenAI, Anthropic, etc.). This is where you define your assistant’s character and speciality.",
+    "seAnade": "It is **added** to Boorie’s base rules, it does not replace them: every figure carrying its unit, and none given without having been computed, always apply and cannot be turned off here.",
     "characters": "Characters: {{count}}",
     "lines": "Lines: {{count}}"
   },

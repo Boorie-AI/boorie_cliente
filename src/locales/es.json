@@ -1014,6 +1014,7 @@
     "restore": "Restaurar",
     "withRag": "Se combina con el sistema RAG si tienes documentos indexados",
     "intro": "Este prompt se aplica al principio de todas las conversaciones, sea cual sea el proveedor de IA que uses (OpenAI, Anthropic, etc.). Aquí defines el carácter y la especialidad de tu asistente.",
+    "seAnade": "Se **añade** a las reglas base de Boorie, no las sustituye: que toda cifra lleve su unidad y que ninguna se dé sin haberla calculado van siempre, y no se pueden desactivar desde aquí.",
     "characters": "Caracteres: {{count}}",
     "lines": "Líneas: {{count}}"
   },
