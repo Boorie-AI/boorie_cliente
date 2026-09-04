@@ -224,6 +224,12 @@ completa.
 > (`window-all-closed` → `app.quit()`, `electron/main.ts`). Entonces sí aparece
 > `Auto install update on quit` y el AppImage queda sustituido por el de la versión nueva.
 
+> **Un `net::ERR_NETWORK_CHANGED` no es un fallo de la release.** El registro dice
+> `Checking for update` y a los veinte segundos ese error, sin llegar a `Found version`.
+> Es Chromium avisando de que la interfaz de red cambió a mitad de la petición, no un
+> `latest-linux.yml` inalcanzable. Se distingue en un segundo:
+> `curl -sI .../latest-linux.yml` — si da 200, era eso, y basta relanzar. Pasó en la v1.31.0.
+
 **Cómo cerrar esa ventana sin manos.** Boorie no tiene marco: el botón de cerrar lo dibuja el
 renderer, así que no hay ventana nativa que un `wmctrl` pueda cerrar, y bajo Wayland tampoco se
 puede leer el estado de las ventanas desde fuera. Se lanza el paquete con puerto de depuración
@@ -252,6 +258,25 @@ Si el clic en cerrar se queda esperando, esto lo dice en una línea:
 ```js
 document.elementFromPoint(1896, 16)   // ¿quién hay realmente encima del botón?
 ```
+
+**El script tiene que estar dentro del directorio que tiene `node_modules`.** En ESM la
+resolución va por la ubicación del fichero y no por el directorio de trabajo, así que
+`cd deps && node ../cerrar.mjs` falla con `ERR_MODULE_NOT_FOUND` aunque `playwright-core`
+esté ahí al lado. `NODE_PATH` tampoco vale, que ya está dicho arriba.
+
+**Y matar el AppImage deja `start_milvus.py` huérfano con el puerto de depuración cogido.**
+Es un hijo que hereda el descriptor del socket, se reparenta a systemd y sobrevive al
+`pkill` del AppImage. La instancia siguiente arranca sin poder enlazar el 9222 y el
+`connectOverCDP` muere con un `Timeout 30000ms exceeded` que no explica nada. Se ve y se
+arregla así:
+
+```bash
+ss -tlnp | grep 9222          # si el dueño es «python» y no «boorie», es el huérfano
+pkill -f '[s]tart_milvus.py'
+```
+
+Pasó en la v1.31.0, y cuesta un rato porque el síntoma —un timeout de CDP— no señala al
+puerto.
 
 **El AppImage se renombra, no se sobrescribe.** Tras instalar, el fichero de la versión
 anterior **desaparece** y en su sitio queda `Boorie-<nueva>.AppImage`. Conviene saberlo por dos
