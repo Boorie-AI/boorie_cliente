@@ -408,6 +408,7 @@
     "referenceHint": "Documentació de les fórmules i consells",
     "export": "Exporta",
     "exportHint": "Desa i exporta els teus càlculs",
+    "validRangeWithUnit": "Interval vàlid: {{min}} – {{max}} {{unit}}",
     "validRange": "Interval vàlid: {{min}} – {{max}}",
     "enterValue": "Escriu un valor",
     "pickFormulaOf": "Tria una fórmula de {{categoria}}"

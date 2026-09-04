@@ -408,6 +408,7 @@
     "referenceHint": "Formula documentation and tips",
     "export": "Export",
     "exportHint": "Save and export your calculations",
+    "validRangeWithUnit": "Valid range: {{min}} – {{max}} {{unit}}",
     "validRange": "Valid range: {{min}} – {{max}}",
     "enterValue": "Enter a value",
     "pickFormulaOf": "Choose a formula from {{categoria}}"
