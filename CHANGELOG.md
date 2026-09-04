@@ -9,6 +9,43 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+Lo que hay integrado en `main` y todavía sin publicar. El parser del historial
+(`src/utils/changelog.ts`) sólo reconoce cabeceras con número de versión, así que esta
+sección no la ve y la pestaña «Acerca de» sigue cuadrando con `package.json`. Al publicar,
+esto se dobla en la entrada de la versión nueva.
+
+- **El asistente no podía hacer los análisis que Boorie ya sabía calcular.** Leía la
+  topología de la red y ahí se acababa, así que el usuario ejecutaba el panel a mano y
+  después volvía a contarle al chat los números que acababa de ver. Ahora ejecuta él la
+  curva de fragilidad y la calculadora, y propone —para que las confirme el usuario— los
+  análisis que exigen simular la red entera, que en una red grande pasan de diez minutos.
+  El criterio de qué hace directo y qué propone no es «rápido o lento»: es si hay que
+  simular.
+- **Cada afirmación que sale de la documentación viene ahora con su fuente**, y la fuente
+  se puede resolver: la respuesta lleva una marca y debajo está la lista numerada con el
+  documento, la sección y la página. Antes el asistente no podía citar una sección porque
+  nadie se la decía, y tampoco se le pedía citar. Y si lo que se pregunta no está en los
+  documentos indexados, lo dice en vez de completarlo de memoria — una cifra normativa sin
+  fuente no se distingue de una inventada.
+- **Las reglas que impiden al asistente inventarse cifras dependían de una pantalla de
+  configuración.** En una instalación recién hecha la fila no existía y el asistente
+  respondía sin ninguna regla: ni las de unidades, ni la de no dar cifras de impacto sin
+  simular, ni el papel de especialista en hidráulica. Ahora van siempre, y lo que se
+  escriba en Ajustes se añade a ellas en vez de sustituirlas: ese texto es para el papel y
+  el tono, y que una cifra lleve su unidad no es una preferencia.
+- **La calculadora rechazaba un diámetro de 300 mm.** Avisaba de que estaba «fuera del
+  rango [0.01, 10]» — un rango en metros, que es la unidad interna, mientras el usuario
+  tenía elegidos milímetros en el desplegable. Con pulgadas pasaba lo mismo. Ahora el rango
+  se comprueba después de convertir la unidad, y el rótulo que va bajo cada campo lo dice
+  en la unidad que está elegida: «10 – 10000 mm» con milímetros, «0.394 – 394 in» con
+  pulgadas. Además, elegir pies por segundo o centímetros cuadrados no convertía nada y el
+  valor entraba al cálculo como si ya estuviera en la unidad interna.
+- **El desplegable de unidades desaparece donde no había nada que elegir.** En los
+  parámetros adimensionales —el factor de fricción, el coeficiente de descarga— ofrecía una
+  única opción, que era un guion.
+
 ## [1.30.0] - 2026-09-03
 
 La curva de fragilidad enseña las tres clases de suelo a la vez.
