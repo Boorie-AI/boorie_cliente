@@ -1,0 +1,71 @@
+[TITLE]
+Red mejorada para villa cerrada de 100 casas (400 hab, 250 L/hab/día)
+
+[JUNCTIONS]
+;ID      Elevación (m)
+J1       10.0
+J2       12.0
+J3       9.0
+J4       14.0
+J5       11.0
+
+[RESERVOIRS]
+;ID      Cota (m)
+R1       100.0
+
+[TANKS]
+;ID      Elev. base  Nivel.Ini  Nivel.Min  Nivel.Max  Diámetro (m)
+T1       15.0        2.0        0.5        3.5        4.0
+
+[PIPES]
+;ID      Nodo1  Nodo2  Longitud(m) Diámetro(mm) Rugosidad (C-HW)
+P1       R1     J1     200         75           100
+P2       J1     J2     200         75           100
+P3       J1     J3     250         75           100
+P4       J2     J4     150         50           100
+P5       J3     J5     180         50           100
+P6       J1     T1     50          100          100
+
+[DEMANDS]
+;Nodo     Caudal Base (L/s)   Patrón Asignado
+J1        0.231               P1
+J2        0.231               P1
+J3        0.231               P1
+J4        0.231               P1
+J5        0.231               P1
+
+[PATTERNS]
+;ID     Multiplicadores para 24 horas (0:00 a 23:00)
+; Valle profundo a las 3 am, picos a las 7 am y 7 pm
+P1      0.3 0.2 0.15 0.15 0.2 0.6 1.2 1.8 1.6 1.4 1.2 1.0 1.0 1.2 1.1 1.2 1.4 1.6 1.9 2.0 1.8 1.5 1.0 0.6
+
+[TIMES]
+Duration                24:00
+Hydraulic Timestep      1:00
+Pattern Timestep        1:00
+Pattern Start           0:00
+Report Timestep         1:00
+
+[REPORT]
+Nodes    All
+Links    All
+
+[OPTIONS]
+Units                 LPS
+Headloss             H-W
+Quality              None
+Viscosity            1.00
+Trials               40
+Accuracy             0.001
+Unbalanced           Stop
+Demand Multiplier    1.0
+
+[COORDINATES]
+;Nodo     Longitud (X)    Latitud (Y)
+R1        -71.292113      42.347856
+J1        -71.292113      42.346958
+J2        -71.289683      42.346958
+J3        -71.295151      42.346958
+J4        -71.287860      42.348305
+J5        -71.297338      42.345342
+T1        -71.291505      42.346509
