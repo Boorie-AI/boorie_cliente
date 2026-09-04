@@ -1380,6 +1380,7 @@
       "toKw": "Pas a kW"
     },
     "msg": {
+      "outOfRange": "{{symbol}} = {{value}} {{unit}} és fora de l'interval vàlid [{{min}}, {{max}}].",
       "lowVelocitySediment": "Velocitat baixa: risc de sedimentació.",
       "highVelocityErosion": "Velocitat alta: risc d’erosió i soroll.",
       "laminar": "El flux és laminar: amb f = 64/Re n’hi ha prou.",

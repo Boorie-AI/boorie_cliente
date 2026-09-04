@@ -1,10 +1,25 @@
 import { logger } from '@/utils/logger'
-import { 
+import {
+  AvisoDelMotor,
   HydraulicContext,
   HydraulicProject,
   HydraulicFormula,
   CalculationResult
 } from '@/types/hydraulic'
+
+/**
+ * Un fallo de cálculo con sus avisos traducibles, si los trae.
+ *
+ * El motor escribe la frase en inglés y no sabe en qué idioma se va a leer
+ * (#96), así que lo que se enseña son los avisos; la frase queda de reserva
+ * para los fallos que no traen ninguno.
+ */
+export class ErrorDeCalculo extends Error {
+  constructor(mensaje: string, readonly avisos?: AvisoDelMotor[]) {
+    super(mensaje)
+    this.name = 'ErrorDeCalculo'
+  }
+}
 
 export class HydraulicService {
   // Query classification and context processing
@@ -46,7 +61,7 @@ export class HydraulicService {
     
     if (!result.success) {
       logger.error('Calculation failed:', result.error)
-      throw new Error(result.error || 'Calculation failed')
+      throw new ErrorDeCalculo(result.error || 'Calculation failed', result.avisos)
     }
     
     if (!result.data) {

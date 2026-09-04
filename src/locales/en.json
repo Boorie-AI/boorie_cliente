@@ -1380,6 +1380,7 @@
       "toKw": "Convert to kW"
     },
     "msg": {
+      "outOfRange": "{{symbol}} = {{value}} {{unit}} is outside the valid range [{{min}}, {{max}}].",
       "lowVelocitySediment": "Low velocity: risk of sedimentation.",
       "highVelocityErosion": "High velocity: risk of erosion and noise.",
       "laminar": "The flow is laminar: f = 64/Re is enough.",

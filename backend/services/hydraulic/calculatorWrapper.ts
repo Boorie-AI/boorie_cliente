@@ -1,6 +1,7 @@
 import { spawn } from 'child_process'
 import * as path from 'path'
 import { HydraulicFormula, CalculationResult } from '../../../src/types/hydraulic'
+import { RangoInvalido } from './calculationEngine'
 
 export class HydraulicCalculatorWrapper {
   private scriptPath: string
@@ -102,7 +103,11 @@ export class HydraulicCalculatorWrapper {
               console.log('Returning data:', result.data)
               resolve(result.data)
             } else {
-              reject(new Error(result.error))
+              // Los avisos traducibles del error viajan con él: la interfaz va
+              // en tres idiomas y no puede enseñar la frase en inglés (#128).
+              reject(result.avisos?.length
+                ? new RangoInvalido(result.error, result.avisos)
+                : new Error(result.error))
             }
           } catch (error) {
             console.error('JSON parse error:', error)
