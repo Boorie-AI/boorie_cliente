@@ -176,7 +176,55 @@ La primera corrida dio 11, y el fallo enseñó algo sobre la batería y no sobre
 
 ### Lo que sigue sin medirse
 
-Que **obedezca** la disciplina: que ponga la unidad, que no dé impacto sin simular, que cite con la marca. Eso no se lee de una llamada a herramienta sino de la respuesta escrita, y puntuarlo pide o un humano o un modelo juez. Es el siguiente paso natural de esta fase.
+Que **obedezca** la disciplina: que ponga la unidad, que no dé impacto sin simular, que cite con la marca. Eso no se lee de una llamada a herramienta sino de la respuesta escrita. Es la fase 5.
+
+## Medir lo que escribe (fase 5)
+
+Quedó anotado como «pide o un humano o un modelo juez». **Dos de las tres reglas no lo piden**, y la tercera tampoco:
+
+| Regla | Cómo se puntúa |
+|---|---|
+| Toda cifra con su unidad | Del texto: donde la frase dice qué magnitud es, la cifra tiene que llevar una unidad **de esa** magnitud |
+| Cita con la marca de la fase 2 | Del texto: toda marca `F<n>` tiene que caer dentro de las fuentes que se dieron |
+| Nada de impacto sin simular | En la batería **ninguna** herramienta simula, así que cualquier cifra de servicio o de presión es, por construcción, una cifra sin nada detrás |
+
+De modo que el medidor es determinista y vive en `agentEval/disciplina.ts`, con sus propias pruebas dentro de `npm test`. El modelo hace falta para **tomar** la medida, no para puntuarla.
+
+La de las citas es además el riesgo que la fase 2 dejó escrito y nada comprobaba: «una cita (F1) que el lector no puede resolver es peor que ninguna cita, porque parece comprobable y no lo es».
+
+### La conversación entera, no la primera llamada
+
+Para que haya prosa que puntuar hay que devolverle el resultado de la herramienta y dejarle escribir. El bucle es el mismo que corre `chat.handler.ts` en producción —un mensaje `role: 'tool'` por llamada, con tope de vueltas—, porque medir un camino que nadie recorre no mide nada. Eso ata la medida a WNTR: los casos de fragilidad piden el motor, y sin él se estaría midiendo cómo escribe un error.
+
+### Conservador a propósito
+
+Un medidor que marca donde no hay falta da un número peor que no tener número, y además **empuja en la dirección contraria**: si castigara «no puedo decirte cuántos nudos se quedarían sin servicio sin simular», estaría penalizando exactamente la respuesta que la disciplina pide.
+
+Así que sólo se mira donde el texto dice de quién es el número. «El nudo 101», «117 tuberías» y «página 4» no llevan unidad porque no son magnitudes; «la presión en el nudo 101 es de 45,2» no se marca aunque le falte, porque entre la magnitud y la cifra hay un sustantivo que podría ser su dueño. Las dos decisiones están escritas como pruebas, para que se sepa que son decisiones y no descuidos.
+
+Tres cosas se ganaron probando el medidor antes de creerle:
+
+- El identificador pegado al vocabulario de impacto —«la tubería 329 deja sin servicio»— casaba como cifra. Hizo falta cortarle el retroceso al motor de expresiones: sin el `(?<![\d.,])`, casaba «29» dentro de «329», donde lo que precede al 29 es un 3 y no el sustantivo.
+- La respuesta que **obedece** salía marcada, porque lleva cifra y vocabulario de impacto. De ahí la lista de salvedades.
+- Y una salvedad demasiado ancha es peor que ninguna: «no se» a secas aparece en «no se recuperan hasta las 6 h» y tapaba la falta de la misma frase que la cometía.
+
+### Lo que cuesta tomarla, y por qué está en su propio fichero
+
+Cada caso son **dos peticiones**: la primera de ~2.900 tokens —el catálogo de herramientas ya son 2.000, y viaja en cada caso—, la segunda barata porque Ollama reutiliza el prefijo ya procesado. En CPU eso es del orden de un minuto por petición, o sea unos **2 min 15 s por caso y media hora los doce**.
+
+De ahí tres decisiones que salieron de fallar tres veces al tomarla:
+
+- **Cada medida en su fichero.** Estaban las dos en `modelo.test.ts`, así que la de disciplina hacía cola detrás de la de la fase 4 —11 min 30 s— y no se podía tomar una sin pagar la otra. Lo común vive en `contraElModelo.ts`.
+- **Tope de una hora, no de media.** Con media se moría por tiempo en el caso 11 de 12, sin dar número.
+- **Sólo se cargan las redes que los casos nombran.** Se cargaban las ocho guardadas con su `networkData` y su `.inp` parseados, y la batería usa dos; una de las que no usa pesa 2 MB.
+
+Y un aviso para quien la tome: **el 8B ocupa unos 7 GB durante la corrida**, y dos intentos se los llevó el matarratas de memoria de Linux. Conviene mirar `free -h` antes de empezar y no lanzar `npm test` en paralelo —eso tumbó la detección de Python, que arranca un intérprete, y el bloque se saltó en silencio—. Por eso ahora el salto dice por qué.
+
+La ventana de contexto sí da de sobra: con `n_ctx_slot = 4096`, los prompts se quedan en ~2.900 y el log de Ollama da `truncated = 0` en todas. Importaba comprobarlo: si los resultados de herramienta desbordaran la ventana, Ollama arranca con `--context-shift` y se habría medido la ventana en vez de al agente.
+
+### Lo que este medidor no mide
+
+El porcentaje escrito como fracción (v1.26.0) no se distingue del porcentaje bien escrito sin entender la frase. Y la disciplina pide también decir **de qué** simulación sale un número: eso es una afirmación sobre el origen, no una forma, y ahí sí haría falta un juez.
 
 ## Lo que queda
 
