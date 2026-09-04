@@ -148,7 +148,41 @@ export const CASOS: CasoAgente[] = [
       { ruta: 'pipe_failure_probability.20', valor: 0.9774, tolerancia: 0.0005 },
       { ruta: 'expected_failed_pipes.20', valor: 114.356, tolerancia: 0.01 },
     ],
-    origen: 'wntr_resilience_service.py fragility_curve con esos argumentos explícitos.',
+    origen:
+      'wntr_resilience_service.py fragility_curve con esos argumentos explícitos, y contrastado ' +
+      'contra la aplicación real: el panel muestra 114,4 de 117 y 97,7 % con suelo firme.',
+    pendiente: 'La herramienta no existe: la curva sólo se genera desde el panel de resiliencia.',
+  },
+  {
+    id: 'net3-curva-fragilidad-suelo-blando',
+    pregunta: 'La misma pregunta, pero el emplazamiento es de suelo blando.',
+    red: 'Net3 2.inp',
+    herramienta: 'curva_fragilidad',
+    argumentos: {
+      material: 'PVC',
+      damage_model: 'HAZUS_MH',
+      hazard_type: 'seismic_pga',
+      soil_class: 'soft_soil',
+      max_intensity: 1.2,
+    },
+    espera: [
+      { ruta: 'pipe_failure_probability.20', valor: 0.99146, tolerancia: 0.0005 },
+      { ruta: 'expected_failed_pipes.20', valor: 116.0, tolerancia: 0.05 },
+    ],
+    /**
+     * Este caso existe por un susto. Mirando la aplicación anoté 116,0 de 117
+     * para esta red y creí que discrepaba del motor, que daba 114,4. No
+     * discrepaba: 116,0 es el valor de **suelo blando**, y lo que estaba mal
+     * era mi apunte de con qué suelo lo había generado. Reproducido después en
+     * la aplicación, las dos cifras salen donde tienen que salir.
+     *
+     * La lección es del tamaño de la batería entera: una cifra sin los
+     * argumentos con los que se obtuvo no se puede contrastar con nada. Con
+     * los tres suelos fijados, la duda se resuelve mirando cuál coincide.
+     */
+    origen:
+      'wntr_resilience_service.py con soil_class soft_soil, y reproducido en la aplicación real: ' +
+      '116,0 de 117 en el panel.',
     pendiente: 'La herramienta no existe: la curva sólo se genera desde el panel de resiliencia.',
   },
 ]
