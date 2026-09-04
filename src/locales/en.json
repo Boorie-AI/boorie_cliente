@@ -833,6 +833,8 @@
     "improvedQuery": "Improved query",
     "copied": "Copied!",
     "ragSources": "RAG sources:",
+    "ragSection": "section",
+    "ragPage": "page",
     "ragOn": "RAG enabled",
     "ragNothing": "RAG: no relevant information found",
     "helperAnswer": "Answer from the helper model",

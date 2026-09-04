@@ -103,10 +103,28 @@ El de resiliencia cambió de forma al activarse, y el cambio es la decisión hec
 
 - **La calculadora comprobaba el rango antes de convertir la unidad.** Un diámetro de 300 mm quedaba «fuera del rango [0.01, 10]», que está en metros: el aviso hablaba de un rango que el usuario no había escrito. No era del agente —se llega desde el panel—, va en el [#122](https://github.com/Boorie-AI/boorie_cliente/issues/122) y se arregló aquí porque una herramienta de cálculo que rechaza 300 mm no sirve para nada.
 
+- **Los metadatos de un mensaje se guardan como texto y hay que deshacerlos al leer.** Otros sitios del código ya lo hacían —proyectos, documentos, modelos—; a los mensajes se les había pasado. Se ve sólo reabriendo una conversación vieja, nunca en la sesión que la creó.
+
 - **El escenario no se propone donde uno cree.** Escribí su caso suponiendo la forma del resultado en vez de leerla, y falló al primer intento: la propuesta no viene en `propuesta.tipo` sino en `definicion.eventos.0.tipo`. Es exactamente el error que la batería existe para impedir, y lo cazó a los cinco minutos de nacer.
+
+## Las citas (fase 2)
+
+Que una afirmación normativa venga con su documento y su parte, y que quien la lee pueda comprobarla.
+
+El RAG ya estaba enchufado al chat: `enhancePromptWithRAG` en `chatStore` inyecta las fuentes recuperadas. El hueco estaba en tres sitios a la vez, y los tres había que cerrarlos para que una cita significara algo.
+
+**El prompt tiraba la identidad.** `formatSources` recupera `section`, `page` y `category` de cada fragmento, y el prompt llevaba sólo `[Source 1]: <título>` y el contenido. El modelo no podía citar una sección porque nadie se la había dicho.
+
+**No se le pedía citar.** No había ninguna instrucción al respecto, así que no citaba. Las reglas van ahora **después** de las fuentes y antes de la pregunta: puestas antes, quedan a varios miles de caracteres del momento de responder.
+
+**La interfaz no numeraba.** La lista de fuentes mostraba título, categoría y relevancia. Una cita «(F1)» habría sido irresoluble para el lector, que es peor que no citar: parece comprobable y no lo es. Ahora la marca la pintan los dos, prompt e interfaz, en el mismo orden, y `marcaDeFuente` es la única función que la construye.
+
+Y un cuarto, que salió al ir a comprobarlo en la aplicación: **las fuentes desaparecían al reabrir la conversación.** `Message.metadata` se guarda como texto JSON y nadie lo deshacía al leerlo, así que `metadata.sources` era `undefined` sobre una cadena. La evidencia de una respuesta duraba lo que la sesión.
+
+La política entera vive en `src/services/contextoConocimiento.ts`, que es puro y se prueba sin levantar el RAG ni hablar con ningún proveedor. Incluye el caso sin fuentes: decirle al modelo que no se ha encontrado nada es parte de la política, no un `else` suelto — sin esa frase negaba tener acceso a ningún RAG, contradiciendo a la insignia de la propia interfaz (#19/#20).
 
 ## Lo que queda
 
-Las fases 2 a 4 del #119: lo que cita, la disciplina del prompt —unidades en cada cifra, no dar impacto sin simular, citar la simulación de la que sale cada número— y correr la batería en cada cambio, añadiendo como caso cada fallo que aparezca usando el producto. Es la misma disciplina que sostiene `PROCESO_DE_RELEASE.md`.
+Las fases 3 y 4 del #119: la disciplina del prompt —unidades en cada cifra, no dar impacto sin simular, citar la simulación de la que sale cada número— y correr la batería en cada cambio, añadiendo como caso cada fallo que aparezca usando el producto. Es la misma disciplina que sostiene `PROCESO_DE_RELEASE.md`.
 
 La fase 1 está cerrada: las cinco herramientas de cada lado del criterio, con la batería en 12 de 12.
