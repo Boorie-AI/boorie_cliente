@@ -24,7 +24,15 @@
 
 interface Magnitud {
   nombre: string
-  /** Cómo la nombra el texto. Sin tilde también: el modelo no siempre la pone. */
+  /**
+   * Cómo la nombra el texto. Sin tilde también: el modelo no siempre la pone.
+   *
+   * Sólo entran palabras que se hayan visto fallar en una medida. Ampliar esto
+   * a ojo es lo que rompe el medidor: `mide`, por ejemplo, parece obvio para
+   * longitud —«la tubería mide 500 m»— y marcaría «el índice de Todini mide
+   * 0,8» como una longitud sin unidad, cuando el índice es adimensional. Cada
+   * palabra que se añada, con su caso.
+   */
   palabras: string[]
   /** Las unidades que le corresponden, símbolo y palabra. */
   unidades: string[]
@@ -38,7 +46,10 @@ const MAGNITUDES: Magnitud[] = [
   },
   {
     nombre: 'caudal',
-    palabras: ['caudal', 'demanda', 'consumo'],
+    // Las formas verbales importan: «el nudo J3 **consume** 0,231 litros por
+    // segundo» es una cifra rotulada que el medidor no miraba, porque la tabla
+    // sólo tenía el sustantivo. Salió al contar `conCifras`.
+    palabras: ['caudal', 'demanda', 'demandan', 'consumo', 'consume', 'consumen'],
     unidades: ['l/s', 'L/s', 'm³/s', 'm3/s', 'm³/h', 'm3/h', 'gpm', 'litros por segundo'],
   },
   {

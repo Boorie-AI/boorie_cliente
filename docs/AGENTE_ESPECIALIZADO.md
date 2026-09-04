@@ -228,11 +228,11 @@ Tomada con `llama3.2` —3,2B— porque el 8B de la fase 4 no cabía en la máqu
 
 ```
 modelo llama3.2:latest: 12/12 respuestas sin faltas (100 %)
-  con cifra que medir: 1/12
+  con cifra que medir: 2/12
   unidades: 0 · citas: 0 · impacto: 0
 ```
 
-Un pleno **sacado sobre una sola respuesta**. Once de las doce no llevaban ninguna cifra de magnitud que mirar.
+Un pleno **sacado sobre dos respuestas**. Diez de las doce no llevaban ninguna cifra de magnitud que mirar.
 
 Ese segundo número no estaba en la primera corrida, y sin él el porcentaje engaña: se leía «12 de 12» y parecía que el agente escribiera impecablemente. Se añadió justo por esto. El modelo lo hace **mal**: de los doce casos, en cinco se equivoca de herramienta o se pierde.
 
@@ -252,11 +252,21 @@ De donde sale la regla para leer esto: **los números de las fases 4 y 5 no se l
 
 ### Y el contador delató al propio medidor
 
-`villa-demanda-j3` respondió «El nudo J3 **consume** 0.231 litros por segundo de agua» —una cifra rotulada con la unidad de su magnitud, exactamente lo que el medidor está para agarrar— y la cuenta como **cero cifras miradas**.
+La primera corrida con `conCifras` dio **uno de doce**, y el que faltaba era éste:
 
-El motivo: en la tabla de magnitudes está `consumo`, el sustantivo, y no `consume`, el verbo. Sin `conCifras` el caso habría pasado por «cumple» sin que nadie se enterara de que no se había mirado nada.
+> El nudo J3 **consume** 0.231 litros por segundo de agua.
 
-No se arregla en la misma corrida a propósito: cambiar el vocabulario obliga a volver a medir, y un número tomado con un medidor distinto del que está en el repositorio no vale. Queda anotado abajo con su caso.
+Una cifra rotulada con la unidad de su magnitud, exactamente lo que el medidor está para agarrar, y la contaba como cero. El motivo: en la tabla de magnitudes estaba `consumo`, el sustantivo, y no `consume`, el verbo. Sin `conCifras` el caso habría pasado por «cumple» sin que nadie se enterara de que no se había mirado nada.
+
+Arreglado —entran `consume`, `consumen` y `demandan`— y **vuelta a medir entera**, porque un número tomado con un medidor distinto del que está en el repositorio no vale. De ahí que el número de arriba sea dos de doce y no uno.
+
+**Y lo que no entra, escrito donde se va a leer al querer ampliarlo:** `mide` parece obvio para longitud —«la tubería mide 500 m»— y convertiría «el índice de Todini **mide** 0,8» en una longitud sin unidad, cuando el índice es adimensional. Esa frase la escribió el modelo en el caso de resiliencia, así que el falso positivo no es hipotético; hay una prueba que lo fija. Cada palabra entra con su caso, no a ojo.
+
+### Dos de doce es el hallazgo, no un detalle
+
+Con el vocabulario ya arreglado, el medidor **sigue sin poder mirar casi nada**: diez de las doce respuestas no le dan ninguna cifra que juzgar. No es que le falten palabras —es que el modelo no da cifras—.
+
+De modo que la conclusión no es «el agente escribe bien». Es que **con un modelo que falla al elegir, la obediencia no se puede medir**, y `conCifras` es lo que impide confundir una cosa con la otra. Para que este número diga algo hace falta un modelo que acierte al elegir: el `12/12` de la fase 4 se tomó con `llama3.1:8b`, y la medida de esta fase con ese modelo es lo que falta.
 
 ### Lo que este medidor no mide
 
@@ -266,6 +276,6 @@ El porcentaje escrito como fracción (v1.26.0) no se distingue del porcentaje bi
 
 Del #119: que cada fallo que aparezca usando el producto entre como caso, que es la misma disciplina que sostiene `PROCESO_DE_RELEASE.md`.
 
-Y lo que la primera medida de la fase 5 dejó a la vista: **ensanchar el vocabulario de magnitudes del medidor a las formas verbales**. Con `conCifras` en uno de doce, el medidor casi no llega a mirar nada de lo que el agente escribe. El caso que lo enseña está arriba: «el nudo J3 **consume** 0,231 litros por segundo» no se cuenta porque la tabla tiene `consumo` y no `consume`. Cada palabra que se añada es un riesgo de marcar donde no hay falta, así que entra con su caso y su medida nueva.
+Y **tomar la medida de la fase 5 con `llama3.1:8b`**, que es el modelo con el que la fase 4 dio `12/12`. Con `llama3.2` sale un pleno sobre dos respuestas de doce, y eso no dice si el agente escribe bien: dice que un modelo que falla al elegir no da cifras que juzgar. Hace falta la máquina despejada —el 8B ocupa unos 7 GB durante la corrida— y las dos medidas del mismo modelo, leídas juntas.
 
 La fase 1 está cerrada: las cinco herramientas de cada lado del criterio, con la batería en 12 de 12.

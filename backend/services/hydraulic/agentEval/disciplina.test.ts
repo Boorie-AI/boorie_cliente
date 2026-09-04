@@ -199,6 +199,30 @@ describe('sobre cuántas respuestas se ha podido medir algo', () => {
     ])
   })
 
+  /**
+   * El caso que salió midiendo con `llama3.2`: una cifra rotulada con la unidad
+   * de su magnitud, que el medidor no miraba porque la tabla tenía el
+   * sustantivo y no el verbo.
+   */
+  it('mira la cifra que el texto nombra con un verbo', () => {
+    const r = puntuarRespuesta('a', 'El nudo J3 consume 0.231 litros por segundo de agua.')
+    expect(r.cifrasMiradas).toBe(1)
+    expect(r.cumple).toBe(true)
+
+    // Y con la unidad de otra magnitud, lo marca como cualquier otra.
+    expect(detalles(fallosDeUnidades('El nudo J3 consume 0.231 m.')))
+      .toEqual(['caudal en m: no es unidad de caudal (0.231 m)'])
+  })
+
+  /**
+   * Y lo que **no** se añade, porque el riesgo va en la dirección contraria:
+   * `mide` parece obvio para longitud y convertiría «el índice de Todini mide
+   * 0,8» —adimensional— en una longitud sin unidad.
+   */
+  it('no mira una cifra que ninguna magnitud reclama', () => {
+    expect(puntuarRespuesta('b', 'El índice de Todini mide 0,8.').cifrasMiradas).toBe(0)
+  })
+
   it('no cuenta un recuento ni un identificador, que no son magnitudes', () => {
     expect(cifrasDeMagnitud('Hay 117 tuberías y 92 nudos en la red.')).toEqual([])
     expect(puntuarRespuesta('c', 'No hay bombas en la red.').cifrasMiradas).toBe(0)
