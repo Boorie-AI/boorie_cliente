@@ -2,7 +2,16 @@
 import { ipcMain } from 'electron'
 import { createLogger } from '../../backend/utils/logger'
 import { DatabaseService } from '../../backend/services'
-import { HERRAMIENTAS, ejecutarHerramienta, type RedCompleta } from '../../backend/services/hydraulic/agentTools'
+import * as os from 'os'
+import * as path from 'path'
+import { promises as fs } from 'fs'
+import {
+  HERRAMIENTAS,
+  ejecutarHerramienta,
+  type ContextoHerramientas,
+  type RedCompleta,
+} from '../../backend/services/hydraulic/agentTools'
+import { WNTRResilienceService } from '../../backend/services/hydraulic/resilienceService'
 import { detectarIntencionEscenario, detectarIntencionEnergia } from '../../backend/services/hydraulic/intencionEscenario'
 
 /**
@@ -16,6 +25,8 @@ import { detectarIntencionEscenario, detectarIntencionEnergia } from '../../back
 interface RedParaHerramientas {
   id: string
   datos: RedCompleta
+  /** El `.inp` de esa misma red, para los motores que lo necesitan (#119). */
+  inp: string
 }
 import { leerRedActiva } from '../../backend/services/hydraulic/redActiva'
 import {
@@ -54,6 +65,9 @@ export interface ChatProvider {
 }
 
 const logger = createLogger('ChatHandler')
+
+/** El mismo motor que usan los paneles; aqui se le da de comer otra ruta. */
+const resilienceService = new WNTRResilienceService()
 
 export interface SendChatMessageParams {
   provider: string
@@ -205,7 +219,7 @@ export class ChatHandler {
           ?? ''
         const intencion = detectarIntencionEscenario(pregunta, red.datos)
         if (intencion) {
-          const propuesta = ejecutarHerramienta('proponer_escenario', { ...intencion }, red.datos)
+          const propuesta = await ejecutarHerramienta('proponer_escenario', { ...intencion }, { red: red.datos })
           if (propuesta.requiere_confirmacion === true) {
             result = {
               response:
@@ -276,7 +290,7 @@ export class ChatHandler {
     if (!projectId) return null
     try {
       const red = await leerRedActiva(this.databaseService.prisma, projectId)
-      return red ? { id: red.id, datos: red.datos } : null
+      return red ? { id: red.id, datos: red.datos, inp: red.inp } : null
     } catch (error) {
       // Quedarse sin herramientas degrada la respuesta; tumbar el mensaje del
       // usuario por no poder leer la red seria peor.
@@ -305,17 +319,51 @@ export class ChatHandler {
     return null
   }
 
-  private ejecutarLlamadas(llamadas: LlamadaHerramienta[], red: RedCompleta) {
-    return llamadas.map(llamada => {
+  /**
+   * El contexto de las herramientas, con los motores ya inyectados (#119).
+   *
+   * `agentTools` sigue sin saber de Python ni de Electron: recibe funciones. El
+   * `.inp` se escribe en un temporal porque el servicio de WNTR come rutas, y
+   * sale del `fileContent` de **la red activa del proyecto**, no del global que
+   * pone el visor: si no, el agente podria calcular sobre una red distinta de
+   * la que describe su propio resumen.
+   */
+  private contextoDeHerramientas(red: RedParaHerramientas): ContextoHerramientas {
+    return {
+      red: red.datos,
+      motores: {
+        curvaFragilidad: async (opciones) => {
+          if (!red.inp) {
+            return { error: 'La red activa no tiene guardado su fichero .inp, asi que no se puede calcular la curva.' }
+          }
+          const ruta = path.join(os.tmpdir(), `boorie-agente-${red.id}.inp`)
+          await fs.writeFile(ruta, red.inp, 'utf8')
+          try {
+            const r = await resilienceService.generateFragilityCurve(ruta, opciones as never)
+            return r.success && r.data
+              ? (r.data as unknown as Record<string, unknown>)
+              : { error: r.error ?? 'El motor de fragilidad no devolvio resultados.' }
+          } finally {
+            // El temporal no se queda: es una copia de datos del proyecto.
+            await fs.unlink(ruta).catch(() => {})
+          }
+        },
+      },
+    }
+  }
+
+  private async ejecutarLlamadas(llamadas: LlamadaHerramienta[], red: RedParaHerramientas) {
+    const contexto = this.contextoDeHerramientas(red)
+    return Promise.all(llamadas.map(async llamada => {
       logger.debug('Herramienta solicitada por el agente', { nombre: llamada.nombre, argumentos: llamada.argumentos })
       try {
-        return { llamada, salida: ejecutarHerramienta(llamada.nombre, llamada.argumentos, red) }
+        return { llamada, salida: await ejecutarHerramienta(llamada.nombre, llamada.argumentos, contexto) }
       } catch (error) {
         // El error se le devuelve al modelo como resultado, no se lanza: puede
         // reformular la llamada o explicar que no ha podido consultarlo.
         return { llamada, salida: { error: (error as Error).message } }
       }
-    })
+    }))
   }
 
   private async addSystemPrompt(messages: ChatMessage[]): Promise<ChatMessage[]> {
@@ -418,7 +466,7 @@ export class ChatHandler {
       if (llamadas.length === 0) break
 
       historial.push({ role: 'assistant', content: data.content })
-      const resultados = this.ejecutarLlamadas(llamadas, red!.datos)
+      const resultados = await this.ejecutarLlamadas(llamadas, red!)
       propuestaEscenario = this.propuestaDeEscenario(resultados, red?.id) ?? propuestaEscenario
       historial.push(mensajeResultadosAnthropic(resultados))
 
@@ -586,7 +634,7 @@ export class ChatHandler {
       if (llamadas.length === 0) break
 
       historial.push(data.choices[0].message)
-      const resultados = this.ejecutarLlamadas(llamadas, red!.datos)
+      const resultados = await this.ejecutarLlamadas(llamadas, red!)
       propuestaEscenario = this.propuestaDeEscenario(resultados, red?.id) ?? propuestaEscenario
       historial.push(...mensajesResultadosOpenAI(resultados))
 
@@ -867,7 +915,7 @@ export class ChatHandler {
         if (llamadas.length === 0) break
 
         historial.push(data.message)
-        const resultados = this.ejecutarLlamadas(llamadas, red!.datos)
+        const resultados = await this.ejecutarLlamadas(llamadas, red!)
         propuestaEscenario = this.propuestaDeEscenario(resultados, red?.id) ?? propuestaEscenario
         historial.push(...mensajesResultadosOpenAI(resultados))
 

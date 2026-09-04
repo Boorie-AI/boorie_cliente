@@ -9,10 +9,11 @@ import type { CasoAgente } from './bateria'
  * ejecutado sobre ella. Un número sin procedencia aquí es una creencia con
  * aspecto de prueba.
  *
- * Los casos `pendiente` describen herramientas que todavía no existen: son el
- * objetivo de la fase 1, escritos antes para que la fase se pueda dar por
- * terminada contra algo. Su valor esperado también está calculado ya, así que
- * el día que la herramienta aparezca el caso se activa borrando una línea.
+ * Los casos `pendiente` describen herramientas que todavía no existen. Se
+ * escriben antes, con su valor esperado ya calculado, para que la fase que las
+ * traiga se pueda dar por terminada contra algo; el día que la herramienta
+ * aparece, el caso se activa borrando una línea. Así entraron los tres de la
+ * fase 1, que ya están activos.
  */
 export const CASOS: CasoAgente[] = [
   // ---------------------------------------------------------------- topología
@@ -116,18 +117,18 @@ export const CASOS: CasoAgente[] = [
     id: 'net3-indicadores-resiliencia',
     pregunta: '¿Cómo está de resiliente mi red?',
     red: 'Net3 2.inp',
-    herramienta: 'indicadores_resiliencia',
+    herramienta: 'proponer_indicadores_resiliencia',
     argumentos: {},
     espera: [
-      { ruta: 'todini_index', valor: 0.3841, tolerancia: 0.0005 },
-      { ruta: 'network_entropy', valor: 3.6668, tolerancia: 0.0005 },
-      { ruta: 'hydraulic_redundancy', valor: 2.5372, tolerancia: 0.0005 },
-      // Fracción, no porcentaje: es justo la confusión que costó el #89.
-      { ruta: 'serviceability.pressure_serviceability', valor: 0.9565, tolerancia: 0.0005 },
-      { ruta: 'serviceability.junctions_meeting_pressure', valor: 88 },
+      // Lo correcto aquí **no** es una cifra: es que proponga y se calle. Estos
+      // indicadores simulan la red entera, y en Net6 pasan de diez minutos.
+      { ruta: 'requiere_confirmacion', valor: true },
+      { ruta: 'definicion.analisis', valor: 'indicadores_resiliencia' },
+      { ruta: 'definicion.comparar_con_interrupcion', valor: false },
     ],
-    origen: 'wntr_resilience_service.py resilience_indicators sobre el .inp de la red guardada.',
-    pendiente: 'La herramienta no existe: hoy los indicadores sólo se lanzan desde el panel.',
+    origen:
+      'Decisión de diseño del #119: se propone lo que simula. Medido, resilience_indicators pasa ' +
+      'de 3,45 s en Net3 a más de 600 s en Net6, mientras fragility_curve se queda en 2,5 s en las dos.',
   },
   {
     id: 'net3-curva-fragilidad',
@@ -142,16 +143,20 @@ export const CASOS: CasoAgente[] = [
       max_intensity: 1.2,
     },
     espera: [
-      { ruta: 'pipe_count', valor: 117 },
-      { ruta: 'total_length_km', valor: 65.75, tolerancia: 0.01 },
-      { ruta: 'intensity_unit', valor: 'g' },
-      { ruta: 'pipe_failure_probability.20', valor: 0.9774, tolerancia: 0.0005 },
-      { ruta: 'expected_failed_pipes.20', valor: 114.356, tolerancia: 0.01 },
+      { ruta: 'tuberias_de_la_red', valor: 117 },
+      { ruta: 'longitud_total_km', valor: 65.75, tolerancia: 0.01 },
+      { ruta: 'unidad_de_intensidad', valor: 'g' },
+      { ruta: 'mediana_en_unidad_del_eje', valor: 0.3608, tolerancia: 0.0002 },
+      // Cinco puntos repartidos por el eje: la curva entera no cabe en el prompt.
+      { ruta: 'puntos.0.intensidad', valor: 0.24, tolerancia: 0.001 },
+      { ruta: 'puntos.0.probabilidad_de_fallo', valor: 0.2484, tolerancia: 0.0002 },
+      { ruta: 'puntos.4.intensidad', valor: 1.2, tolerancia: 0.001 },
+      { ruta: 'puntos.4.probabilidad_de_fallo', valor: 0.9774, tolerancia: 0.0002 },
+      { ruta: 'puntos.4.tuberias_afectadas', valor: 114.4, tolerancia: 0.05 },
     ],
     origen:
       'wntr_resilience_service.py fragility_curve con esos argumentos explícitos, y contrastado ' +
       'contra la aplicación real: el panel muestra 114,4 de 117 y 97,7 % con suelo firme.',
-    pendiente: 'La herramienta no existe: la curva sólo se genera desde el panel de resiliencia.',
   },
   {
     id: 'net3-curva-fragilidad-suelo-blando',
@@ -166,8 +171,9 @@ export const CASOS: CasoAgente[] = [
       max_intensity: 1.2,
     },
     espera: [
-      { ruta: 'pipe_failure_probability.20', valor: 0.99146, tolerancia: 0.0005 },
-      { ruta: 'expected_failed_pipes.20', valor: 116.0, tolerancia: 0.05 },
+      { ruta: 'clase_de_suelo', valor: 'soft_soil' },
+      { ruta: 'puntos.4.probabilidad_de_fallo', valor: 0.9915, tolerancia: 0.0002 },
+      { ruta: 'puntos.4.tuberias_afectadas', valor: 116.0, tolerancia: 0.05 },
     ],
     /**
      * Este caso existe por un susto. Mirando la aplicación anoté 116,0 de 117
@@ -183,6 +189,5 @@ export const CASOS: CasoAgente[] = [
     origen:
       'wntr_resilience_service.py con soil_class soft_soil, y reproducido en la aplicación real: ' +
       '116,0 de 117 en el panel.',
-    pendiente: 'La herramienta no existe: la curva sólo se genera desde el panel de resiliencia.',
   },
 ]

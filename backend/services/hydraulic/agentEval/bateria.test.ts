@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
 import { execFileSync } from 'child_process'
-import { ejecutarHerramienta, HERRAMIENTAS, type RedCompleta } from '../agentTools'
+import { getPythonStatus } from '../pythonDetector'
+import { ejecutarHerramienta, HERRAMIENTAS, type ContextoHerramientas, type RedCompleta } from '../agentTools'
+import { WNTRResilienceService } from '../resilienceService'
 import { comprobarCaso, marcador, valorEnRuta } from './bateria'
 import { CASOS } from './casos'
 
@@ -20,19 +23,48 @@ const DB = path.join(REPO_ROOT, 'prisma', 'hydraulic.db')
  * vez de saltarse. Y de paso dejaba una `hydraulic.db` de cero bytes en el
  * repositorio, que hace que el `existsSync` de los otros tests mienta.
  */
-const leerDeLaBase = (): Map<string, RedCompleta> => {
+interface RedGuardada { datos: RedCompleta; inp: string }
+
+const leerDeLaBase = (): Map<string, RedGuardada> => {
   const salida = execFileSync('python3', ['-c', `
 import sqlite3, json, sys
 c = sqlite3.connect(${JSON.stringify(DB)})
-filas = [{'nombre': n, 'datos': json.loads(d)} for n, d in c.execute('select name, networkData from hydraulic_networks')]
+filas = [{'nombre': n, 'datos': json.loads(d), 'inp': i}
+         for n, d, i in c.execute('select name, networkData, fileContent from hydraulic_networks')]
 json.dump(filas, sys.stdout)
-`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
-  const m = new Map<string, RedCompleta>()
-  for (const f of JSON.parse(salida) as Array<{ nombre: string; datos: RedCompleta }>) {
-    if (!m.has(f.nombre)) m.set(f.nombre, f.datos)
+`], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 })
+  const m = new Map<string, RedGuardada>()
+  for (const f of JSON.parse(salida) as Array<{ nombre: string; datos: RedCompleta; inp: string }>) {
+    if (!m.has(f.nombre)) m.set(f.nombre, { datos: f.datos, inp: f.inp })
   }
   return m
 }
+
+/**
+ * El contexto con el **motor de verdad** detrás.
+ *
+ * Podría inyectarse un doble y la batería correría en cualquier sitio, pero
+ * entonces mediría que la herramienta llama bien a algo, no que la cifra que
+ * llega al agente es la del motor. Que es justo lo que hay que medir, así que
+ * el bloque se salta donde no haya Python con WNTR en lugar de fingirlo.
+ */
+const contexto = (red: RedGuardada): ContextoHerramientas => ({
+  red: red.datos,
+  motores: {
+    curvaFragilidad: async (opciones) => {
+      const ruta = path.join(os.tmpdir(), `boorie-bateria-${process.pid}.inp`)
+      await fs.promises.writeFile(ruta, red.inp, 'utf8')
+      try {
+        const r = await new WNTRResilienceService().generateFragilityCurve(ruta, opciones as never)
+        return r.success && r.data
+          ? (r.data as unknown as Record<string, unknown>)
+          : { error: r.error ?? 'sin resultados' }
+      } finally {
+        await fs.promises.unlink(ruta).catch(() => {})
+      }
+    },
+  },
+})
 
 describe('la batería está bien formada', () => {
   it('no repite identificadores', () => {
@@ -84,19 +116,23 @@ describe('comprobarCaso', () => {
   })
 })
 
-describe.skipIf(!fs.existsSync(DB))('la batería contra las herramientas reales', { timeout: 60_000 }, () => {
-  let cache: Map<string, RedCompleta> | null = null
+// El motor de fragilidad corre en Python: sin él, la batería no puede medir lo
+// que dice medir, así que se salta entera en vez de medir a medias.
+const puedeCorrer = fs.existsSync(DB) && getPythonStatus().wntrAvailable
+
+describe.skipIf(!puedeCorrer)('la batería contra las herramientas reales', { timeout: 120_000 }, () => {
+  let cache: Map<string, RedGuardada> | null = null
   const leerRedes = () => (cache ??= leerDeLaBase())
 
-  it('todos los casos ejecutables aciertan', () => {
+  it('todos los casos ejecutables aciertan', async () => {
     const redes = leerRedes()
-    const resultados = CASOS.map(caso => {
+    const resultados = await Promise.all(CASOS.map(async caso => {
       if (caso.pendiente) return comprobarCaso(caso, null)
       const red = redes.get(caso.red)
       // Una red que falte no puede pasar por acierto silencioso.
       expect(red, `falta la red ${caso.red} en la base`).toBeTruthy()
-      return comprobarCaso(caso, ejecutarHerramienta(caso.herramienta, caso.argumentos, red!))
-    })
+      return comprobarCaso(caso, await ejecutarHerramienta(caso.herramienta, caso.argumentos, contexto(red!)))
+    }))
 
     const fallan = resultados.filter(r => r.estado === 'falla')
     expect(fallan.map(f => `${f.id}: ${f.fallos.map(x =>

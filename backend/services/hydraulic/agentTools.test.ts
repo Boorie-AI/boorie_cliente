@@ -7,6 +7,13 @@ import { HERRAMIENTAS, ejecutarHerramienta, type RedCompleta } from './agentTool
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..')
 const DB = path.join(REPO_ROOT, 'prisma', 'hydraulic.db')
 
+/**
+ * El ejecutor pide un contexto desde la fase 1 del #119; estas herramientas solo
+ * necesitan la red, asi que el envoltorio ahorra repetir `{ red }` veinte veces.
+ */
+const ejecutar = (nombre: string, argumentos: Record<string, unknown>, red: RedCompleta) =>
+  ejecutarHerramienta(nombre, argumentos, { red })
+
 const RED: RedCompleta = {
   nodes: [
     { id: 'J1', type: 'junction', elevation: 10, demand: 0.000231, pattern: 'P1', x: -71.29, y: 42.34 },
@@ -24,7 +31,7 @@ const RED: RedCompleta = {
 }
 
 describe('definiciones de las herramientas', () => {
-  it('declaran esquema de objeto con los obligatorios marcados', () => {
+  it('declaran esquema de objeto con los obligatorios marcados', async () => {
     // Los tres dialectos (Anthropic, OpenAI, Google) exigen JSON Schema de tipo
     // objeto; un esquema mal formado lo rechaza la API, no el test.
     for (const h of HERRAMIENTAS) {
@@ -38,55 +45,55 @@ describe('definiciones de las herramientas', () => {
 })
 
 describe('consultar_elemento', () => {
-  it('devuelve el nudo con los tramos que llegan a el', () => {
-    const r = ejecutarHerramienta('consultar_elemento', { id: 'J1' }, RED) as any
+  it('devuelve el nudo con los tramos que llegan a el', async () => {
+    const r = await ejecutar('consultar_elemento', { id: 'J1' }, RED) as any
     expect(r.encontrado).toBe(true)
     expect(r.elemento.id).toBe('J1')
     expect(r.elemento.cota_m).toBe(10)
     expect(r.tramos_conectados.map((t: any) => t.id).sort()).toEqual(['P1', 'P2'])
   })
 
-  it('devuelve el tramo con sus dos nudos extremos', () => {
-    const r = ejecutarHerramienta('consultar_elemento', { id: 'P2' }, RED) as any
+  it('devuelve el tramo con sus dos nudos extremos', async () => {
+    const r = await ejecutar('consultar_elemento', { id: 'P2' }, RED) as any
     expect(r.encontrado).toBe(true)
     expect(r.elemento.desde).toBe('J1')
     expect(r.elemento.hasta).toBe('J2')
     expect(r.nudos_extremos.map((n: any) => n.id)).toEqual(['J1', 'J2'])
   })
 
-  it('entrega diametros en mm y demandas en l/s, no en unidades de WNTR', () => {
+  it('entrega diametros en mm y demandas en l/s, no en unidades de WNTR', async () => {
     // WNTR normaliza a SI: 0.075 m y 0.000231 m3/s. Son numeros que el modelo
     // lee mal o redondea a cero, asi que la conversion se hace aqui.
-    const nudo = ejecutarHerramienta('consultar_elemento', { id: 'J1' }, RED) as any
+    const nudo = await ejecutar('consultar_elemento', { id: 'J1' }, RED) as any
     expect(nudo.elemento.demanda_base_litros_por_segundo).toBe(0.231)
-    const tramo = ejecutarHerramienta('consultar_elemento', { id: 'P1' }, RED) as any
+    const tramo = await ejecutar('consultar_elemento', { id: 'P1' }, RED) as any
     expect(tramo.elemento.diametro_mm).toBe(75)
     expect(tramo.elemento.longitud_m).toBe(200)
   })
 
-  it('acepta el id en minusculas', () => {
+  it('acepta el id en minusculas', async () => {
     // Los modelos escriben «j3» donde el .inp pone «J3».
-    const r = ejecutarHerramienta('consultar_elemento', { id: 'j3' }, RED) as any
+    const r = await ejecutar('consultar_elemento', { id: 'j3' }, RED) as any
     expect(r.encontrado).toBe(true)
     expect(r.elemento.id).toBe('J3')
   })
 
-  it('con un id inexistente lo dice y ofrece candidatos, en vez de callar', () => {
+  it('con un id inexistente lo dice y ofrece candidatos, en vez de callar', async () => {
     // El modelo necesita con que decir «ese nudo no esta en tu red». Un error
     // seco invita justo a lo que #34 quiere evitar: rellenar el hueco.
-    const r = ejecutarHerramienta('consultar_elemento', { id: 'J99' }, RED) as any
+    const r = await ejecutar('consultar_elemento', { id: 'J99' }, RED) as any
     expect(r.encontrado).toBe(false)
     expect(r.error).toContain('J99')
     expect(r.ids_parecidos.length).toBeGreaterThan(0)
   })
 
-  it('sin id devuelve error en lugar de un resultado vacio', () => {
-    const r = ejecutarHerramienta('consultar_elemento', {}, RED) as any
+  it('sin id devuelve error en lugar de un resultado vacio', async () => {
+    const r = await ejecutar('consultar_elemento', {}, RED) as any
     expect(r.error).toContain('id')
   })
 
-  it('describe la bomba con sus campos propios', () => {
-    const r = ejecutarHerramienta('consultar_elemento', { id: 'B1' }, RED) as any
+  it('describe la bomba con sus campos propios', async () => {
+    const r = await ejecutar('consultar_elemento', { id: 'B1' }, RED) as any
     expect(r.elemento.tipo).toBe('pump')
     expect(r.elemento.tipo_bomba).toBe('HEAD')
     expect(r.elemento.estado).toBe('Closed')
@@ -95,19 +102,19 @@ describe('consultar_elemento', () => {
 })
 
 describe('listar_elementos', () => {
-  it('cuenta y devuelve los elementos de un tipo', () => {
-    const r = ejecutarHerramienta('listar_elementos', { tipo: 'junction' }, RED) as any
+  it('cuenta y devuelve los elementos de un tipo', async () => {
+    const r = await ejecutar('listar_elementos', { tipo: 'junction' }, RED) as any
     expect(r.total).toBe(3)
     expect(r.elementos).toHaveLength(3)
   })
 
-  it('ordena de mayor a menor por defecto', () => {
-    const r = ejecutarHerramienta('listar_elementos', { tipo: 'pipe', ordenar_por: 'length' }, RED) as any
+  it('ordena de mayor a menor por defecto', async () => {
+    const r = await ejecutar('listar_elementos', { tipo: 'pipe', ordenar_por: 'length' }, RED) as any
     expect(r.elementos.map((e: any) => e.id)).toEqual(['P3', 'P1', 'P2'])
   })
 
-  it('ordena al reves cuando se pide', () => {
-    const r = ejecutarHerramienta(
+  it('ordena al reves cuando se pide', async () => {
+    const r = await ejecutar(
       'listar_elementos',
       { tipo: 'pipe', ordenar_por: 'length', descendente: false },
       RED
@@ -115,38 +122,38 @@ describe('listar_elementos', () => {
     expect(r.elementos.map((e: any) => e.id)).toEqual(['P2', 'P1', 'P3'])
   })
 
-  it('avisa cuando recorta, para que no presente una parte como el todo', () => {
+  it('avisa cuando recorta, para que no presente una parte como el todo', async () => {
     // Sin el aviso, el modelo ensena dos tuberias como si fueran las tres.
-    const r = ejecutarHerramienta('listar_elementos', { tipo: 'pipe', limite: 2 }, RED) as any
+    const r = await ejecutar('listar_elementos', { tipo: 'pipe', limite: 2 }, RED) as any
     expect(r.devueltos).toBe(2)
     expect(r.total).toBe(3)
     expect(r.aviso).toContain('2 de 3')
   })
 
-  it('no deja pedir mas de 50 elementos aunque se pidan', () => {
+  it('no deja pedir mas de 50 elementos aunque se pidan', async () => {
     const muchos: RedCompleta = {
       nodes: Array.from({ length: 200 }, (_, i) => ({ id: `J${i}`, type: 'junction', demand: i / 1000 })),
       links: [],
     }
-    const r = ejecutarHerramienta('listar_elementos', { tipo: 'junction', limite: 500 }, muchos) as any
+    const r = await ejecutar('listar_elementos', { tipo: 'junction', limite: 500 }, muchos) as any
     expect(r.devueltos).toBe(50)
     expect(r.total).toBe(200)
   })
 
-  it('rechaza ordenar nudos por una magnitud de tramo', () => {
-    const r = ejecutarHerramienta('listar_elementos', { tipo: 'junction', ordenar_por: 'length' }, RED) as any
+  it('rechaza ordenar nudos por una magnitud de tramo', async () => {
+    const r = await ejecutar('listar_elementos', { tipo: 'junction', ordenar_por: 'length' }, RED) as any
     expect(r.error).toContain('length')
   })
 
-  it('rechaza un tipo que no existe', () => {
-    const r = ejecutarHerramienta('listar_elementos', { tipo: 'hidrante' }, RED) as any
+  it('rechaza un tipo que no existe', async () => {
+    const r = await ejecutar('listar_elementos', { tipo: 'hidrante' }, RED) as any
     expect(r.error).toContain('hidrante')
   })
 })
 
-it('una herramienta desconocida se responde con error, no lanza', () => {
+it('una herramienta desconocida se responde con error, no lanza', async () => {
   // El error viaja al modelo como resultado: puede rectificar o explicarlo.
-  const r = ejecutarHerramienta('borrar_red', {}, RED) as any
+  const r = await ejecutar('borrar_red', {}, RED) as any
   expect(r.error).toContain('borrar_red')
 })
 
@@ -175,33 +182,33 @@ json.dump(filas, sys.stdout)
   let cache: Array<{ nombre: string; datos: RedCompleta }> | null = null
   const leerRedes = () => (cache ??= leerDeLaBase())
 
-  it('todo id de la red se puede consultar y se encuentra', () => {
+  it('todo id de la red se puede consultar y se encuentra', async () => {
     for (const { nombre, datos } of leerRedes()) {
       for (const n of datos.nodes ?? []) {
-        const r = ejecutarHerramienta('consultar_elemento', { id: n.id }, datos) as any
+        const r = await ejecutar('consultar_elemento', { id: n.id }, datos) as any
         expect(r.encontrado, `${nombre} / ${n.id}`).toBe(true)
       }
       for (const l of datos.links ?? []) {
-        const r = ejecutarHerramienta('consultar_elemento', { id: l.id }, datos) as any
+        const r = await ejecutar('consultar_elemento', { id: l.id }, datos) as any
         expect(r.encontrado, `${nombre} / ${l.id}`).toBe(true)
       }
     }
   })
 
-  it('el listado nunca supera el tope aunque la red sea grande', () => {
+  it('el listado nunca supera el tope aunque la red sea grande', async () => {
     for (const { nombre, datos } of leerRedes()) {
-      const r = ejecutarHerramienta('listar_elementos', { tipo: 'pipe', limite: 999 }, datos) as any
+      const r = await ejecutar('listar_elementos', { tipo: 'pipe', limite: 999 }, datos) as any
       expect(r.devueltos, nombre).toBeLessThanOrEqual(50)
       expect(r.total, nombre).toBe((datos.links ?? []).filter(l => l.type === 'pipe').length)
     }
   })
 
-  it('el resultado de una consulta cabe holgadamente en el prompt', () => {
+  it('el resultado de una consulta cabe holgadamente en el prompt', async () => {
     // Un nudo de Net3 con todos sus tramos no puede acercarse al tamano de la
     // red entera: si lo hiciera, las herramientas no resolverian nada.
     for (const { nombre, datos } of leerRedes()) {
       for (const n of datos.nodes ?? []) {
-        const r = ejecutarHerramienta('consultar_elemento', { id: n.id }, datos)
+        const r = await ejecutar('consultar_elemento', { id: n.id }, datos)
         expect(JSON.stringify(r).length, `${nombre} / ${n.id}`).toBeLessThan(4000)
       }
     }

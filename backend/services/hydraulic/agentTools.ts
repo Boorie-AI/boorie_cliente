@@ -60,6 +60,26 @@ export interface DefinicionHerramienta {
 /** Lo que devuelve una herramienta, ya listo para serializar hacia el modelo. */
 export type ResultadoHerramienta = Record<string, unknown>
 
+/**
+ * Lo que el ejecutor necesita, explicito (#119, fase 1).
+ *
+ * Las herramientas nuevas no se conforman con la red: la curva de fragilidad
+ * corre un motor en Python. Pero este modulo se mantiene puro —recibe datos y
+ * devuelve datos, sin tocar la base ni Electron ni lanzar procesos—, asi que el
+ * motor **se inyecta**. Quien monta el contexto es el handler del chat, que si
+ * puede hacer esas cosas; aqui se sigue pudiendo probar todo sin Python.
+ *
+ * Sin motor, la herramienta que lo necesita lo dice. No se calla ni se inventa
+ * una respuesta: que el agente sepa que no ha podido calcularlo es justo lo que
+ * evita que rellene el hueco.
+ */
+export interface ContextoHerramientas {
+  red: RedCompleta
+  motores?: {
+    curvaFragilidad?: (opciones: Record<string, unknown>) => Promise<ResultadoHerramienta>
+  }
+}
+
 const TIPOS_NODO = ['junction', 'tank', 'reservoir']
 const TIPOS_TRAMO = ['pipe', 'pump', 'valve']
 
@@ -121,6 +141,74 @@ export const HERRAMIENTAS: DefinicionHerramienta[] = [
         },
       },
       required: ['tipo'],
+    },
+  },
+  {
+    nombre: 'curva_fragilidad',
+    descripcion:
+      'Calcula la curva de fragilidad sismica de las tuberias de la red activa: que probabilidad de ' +
+      'fallo tienen y cuantas se esperan danadas para cada intensidad del sismo. Se ejecuta en el ' +
+      'momento, sin pedir confirmacion, porque no simula la red: es una lognormal sobre la lista de ' +
+      'tuberias. Usala para preguntas de riesgo sismico ("cuantas tuberias fallarian con un sismo ' +
+      'de 0,3 g", "que pasa si tiembla"). Los parametros por material son genericos y publicados: ' +
+      'di siempre que la curva necesita la validacion de un experto antes de decidir con ella.',
+    esquema: {
+      type: 'object',
+      properties: {
+        material: {
+          type: 'string',
+          enum: ['CI', 'AC', 'STEEL', 'DI', 'PVC', 'HDPE', 'CONCRETE', 'DEFAULT'],
+          description:
+            'Material predominante de las tuberias. Si el usuario no lo dice, no lo adivines por el ' +
+            'aspecto de la red: usa DEFAULT y avisale de que has asumido el generico.',
+        },
+        damage_model: {
+          type: 'string',
+          enum: ['HAZUS_MH', 'ALA_2001'],
+          description: 'Tabla de medianas publicada. Por defecto HAZUS_MH.',
+        },
+        hazard_type: {
+          type: 'string',
+          enum: ['seismic_pgv', 'seismic_pga'],
+          description:
+            'En que magnitud viene la intensidad: velocidad maxima del suelo (PGV, cm/s) o ' +
+            'aceleracion maxima (PGA, g). Las normativas suelen dar PGA.',
+        },
+        soil_class: {
+          type: 'string',
+          enum: ['rock', 'stiff_soil', 'soft_soil'],
+          description:
+            'Clase de suelo del emplazamiento. Solo cambia el resultado con entrada en PGA, y lo ' +
+            'cambia mucho: a 0,30 g la probabilidad va del 68 % en roca al 93 % en suelo blando.',
+        },
+        max_intensity: {
+          type: 'number',
+          description: 'Tope del eje: 100 cm/s en PGV, 1,2 g en PGA si no se dice otra cosa.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    nombre: 'proponer_indicadores_resiliencia',
+    descripcion:
+      'Propone calcular los indicadores de resiliencia de la red —indice de Todini, entropia, ' +
+      'redundancia hidraulica y nivel de servicio por presion—. NO los calcula: estos indicadores ' +
+      'corren una simulacion hidraulica completa, que en una red grande pasa de diez minutos, asi ' +
+      'que la ejecucion la lanza el usuario desde la interfaz. Usala cuando pregunten por la ' +
+      'resiliencia, la robustez o el margen de la red. Despues de llamarla, di que has preparado el ' +
+      'calculo y pide que lo confirme; no des cifras, porque no se ha calculado nada.',
+    esquema: {
+      type: 'object',
+      properties: {
+        comparar_con_interrupcion: {
+          type: 'boolean',
+          description:
+            'Comparar el antes y el despues de un escenario de interrupcion. Simula la red dos ' +
+            'veces, asi que tarda aproximadamente el doble.',
+        },
+      },
+      required: [],
     },
   },
   {
@@ -415,11 +503,121 @@ function proponerEscenario(argumentos: Record<string, unknown>, red: RedCompleta
   }
 }
 
-export function ejecutarHerramienta(
+/** Cuantos puntos de la curva se le pasan al modelo. */
+const PUNTOS_CURVA = 5
+
+/**
+ * La curva entera no cabe en el prompt, y tampoco hace falta.
+ *
+ * El motor devuelve veintiun puntos por cada una de sus series, mas el reparto
+ * por diametro con otros veintiuno cada grupo: en Net3 son miles de numeros. Al
+ * modelo se le dan cinco puntos repartidos por el eje y las cifras de cabecera,
+ * que es con lo que se responde a «cuantas tuberias fallarian». Si el usuario
+ * quiere la tabla entera, la tiene en el panel y en el CSV.
+ */
+function resumirCurva(datos: Record<string, unknown>): ResultadoHerramienta {
+  const intensidades = (datos.intensities as number[]) ?? []
+  const probabilidades = (datos.pipe_failure_probability as number[]) ?? []
+  const esperadas = (datos.expected_failed_pipes as number[]) ?? []
+  const n = intensidades.length
+
+  const puntos = Array.from({ length: PUNTOS_CURVA }, (_, i) => {
+    const idx = Math.round(((i + 1) * (n - 1)) / PUNTOS_CURVA)
+    return {
+      intensidad: intensidades[idx],
+      probabilidad_de_fallo: Number((probabilidades[idx] ?? 0).toFixed(4)),
+      tuberias_afectadas: Number((esperadas[idx] ?? 0).toFixed(1)),
+    }
+  })
+
+  return {
+    material: datos.material,
+    modelo_de_dano: datos.damage_model,
+    magnitud: datos.hazard_type,
+    // La unidad va en el nombre del campo y en el valor, como en describirNodo:
+    // el modelo no tiene que deducirla del contexto.
+    unidad_de_intensidad: datos.intensity_unit,
+    clase_de_suelo: datos.soil_class,
+    mediana_en_unidad_del_eje: Number((datos.median as number).toFixed(4)),
+    tuberias_de_la_red: datos.pipe_count,
+    longitud_total_km: Number((datos.total_length_km as number).toFixed(2)),
+    puntos,
+    aviso:
+      'Parametros genericos por material, publicados pero no calibrados con esta red. ' +
+      'Diselo al usuario: la curva necesita la validacion de un experto antes de decidir con ella.',
+  }
+}
+
+async function curvaFragilidad(
+  argumentos: Record<string, unknown>,
+  contexto: ContextoHerramientas
+): Promise<ResultadoHerramienta> {
+  const motor = contexto.motores?.curvaFragilidad
+  if (!motor) {
+    return {
+      error:
+        'No hay motor de fragilidad disponible en esta conversacion. Suele ser que el proyecto no ' +
+        'tiene una red activa guardada. Dile al usuario que abra la red y vuelva a preguntar.',
+    }
+  }
+
+  const salida = await motor(argumentos)
+  // El error del motor se le pasa tal cual: puede corregir un material que no
+  // existe o una clase de suelo mal escrita en la siguiente llamada.
+  if (salida.error) return salida
+  return resumirCurva(salida as Record<string, unknown>)
+}
+
+/**
+ * Los indicadores de resiliencia se proponen, no se ejecutan (#119).
+ *
+ * El corte entre lo que el agente lanza y lo que propone no es «rapido» o
+ * «lento» por comando: es si el motor **simula**. La fragilidad no simula y su
+ * coste es plano en el tamano de la red —2,5 s en Net3 y 2,6 s en Net6, con
+ * treinta y tres veces mas tuberias—. Estos indicadores simulan, y ahi pasan de
+ * 3,5 s a mas de diez minutos en esa misma red. Lanzarlos a ciegas dentro de un
+ * tope de cuatro vueltas dejaria la conversacion colgada sin explicacion.
+ */
+function proponerIndicadoresResiliencia(argumentos: Record<string, unknown>): ResultadoHerramienta {
+  const comparar = argumentos.comparar_con_interrupcion === true
+  return {
+    propuesta: true,
+    requiere_confirmacion: true,
+    analisis: 'indicadores_resiliencia',
+    resumen: comparar
+      ? 'Indicadores de resiliencia, comparando antes y despues de la interrupcion simulada.'
+      : 'Indicadores de resiliencia de la red activa.',
+    definicion: { analisis: 'indicadores_resiliencia', comparar_con_interrupcion: comparar },
+    calcula: [
+      'indice de Todini',
+      'entropia de red',
+      'redundancia hidraulica',
+      'nivel de servicio por presion',
+    ],
+    // Que el modelo pueda decir por que hay que confirmar, en vez de que la
+    // espera parezca un fallo de la aplicacion.
+    coste: comparar
+      ? 'Simula la red dos veces; en una red grande puede pasar de veinte minutos.'
+      : 'Simula la red completa; en una red grande puede pasar de diez minutos.',
+    siguiente_paso:
+      'Dile al usuario que has preparado el calculo y pidele que lo confirme. No des cifras de ' +
+      'resiliencia: no se ha calculado nada todavia.',
+  }
+}
+
+/**
+ * Asincrono desde la fase 1 del #119: hay herramientas que corren un motor.
+ *
+ * Las que solo leen la red siguen siendo sincronas por dentro —no se ha vuelto
+ * asincrono lo que no lo necesita—, pero el ejecutor tiene una sola firma para
+ * que el catalogo que ve el modelo sea uno solo.
+ */
+export async function ejecutarHerramienta(
   nombre: string,
   argumentos: Record<string, unknown>,
-  red: RedCompleta
-): ResultadoHerramienta {
+  contexto: ContextoHerramientas
+): Promise<ResultadoHerramienta> {
+  const red = contexto.red
   switch (nombre) {
     case 'consultar_elemento':
       return consultarElemento(argumentos, red)
@@ -427,6 +625,10 @@ export function ejecutarHerramienta(
       return listarElementos(argumentos, red)
     case 'proponer_escenario':
       return proponerEscenario(argumentos, red)
+    case 'curva_fragilidad':
+      return curvaFragilidad(argumentos, contexto)
+    case 'proponer_indicadores_resiliencia':
+      return proponerIndicadoresResiliencia(argumentos)
     default:
       return { error: `Herramienta desconocida: "${nombre}".` }
   }

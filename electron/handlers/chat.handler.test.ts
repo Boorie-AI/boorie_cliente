@@ -124,11 +124,19 @@ describe('bucle de herramientas con Anthropic', () => {
 
     await enviar({ provider: 'anthropic' })
 
-    // La tercera es la de escenarios (#44). Va en la misma lista a propósito:
-    // proponer un escenario es otra forma de consultar la red, y el agente
-    // decide cuál usar con la misma información.
-    expect(cuerpoDe(0).tools.map((t: any) => t.name))
-      .toEqual(['consultar_elemento', 'listar_elementos', 'proponer_escenario'])
+    // Van todas en la misma lista a propósito, las que consultan y las que
+    // proponen (#44, #119): proponer un escenario o un análisis es otra forma
+    // de responder, y el agente decide cuál usar con la misma información. La
+    // lista va escrita y no derivada de HERRAMIENTAS: lo que se comprueba es
+    // que el catálogo llega entero al proveedor, y una lista que se genera sola
+    // no puede detectar que se ha quedado una por el camino.
+    expect(cuerpoDe(0).tools.map((t: any) => t.name)).toEqual([
+      'consultar_elemento',
+      'listar_elementos',
+      'curva_fragilidad',
+      'proponer_indicadores_resiliencia',
+      'proponer_escenario',
+    ])
 
     // Anthropic exige que el turno del asistente se reenvie intacto y que el
     // resultado venga en un mensaje de usuario con el id que el asigno.

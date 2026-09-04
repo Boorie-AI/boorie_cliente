@@ -48,7 +48,15 @@ Dos cautelas que van con la decisión:
 - **El tope de vueltas.** `MAX_VUELTAS_HERRAMIENTAS` son cuatro. Una herramienta directa que se pase de tiempo se come el turno entero, así que cada una lleva su propio tope y, al agotarlo, se degrada a propuesta en vez de colgar la conversación. El criterio de arriba hace que eso sea excepcional, no lo normal.
 - **Nada de coeficientes inventados.** La curva de fragilidad ya sienta la regla: sin coeficientes de tanque y bomba, no hay curva. Una herramienta que rellene un hueco con un valor por defecto convierte una laguna en un dato, y eso es peor que no responder.
 
-Hay además un cambio de forma que la fase 1 tiene que hacer antes que nada: `ejecutarHerramienta` es hoy **sincrónico y puro** —recibe la red ya leída y devuelve datos, sin tocar la base ni Electron—, y eso es una virtud del módulo. Las nuevas son asíncronas y necesitan más que la red: cliente de Prisma, proyecto e intérprete de Python. El ejecutor recibe un contexto explícito y se vuelve asíncrono, en lugar de que cada herramienta se busque la vida.
+### Cómo quedó montado
+
+`ejecutarHerramienta` era **sincrónico y puro** —recibía la red ya leída y devolvía datos, sin tocar la base ni Electron—, y eso es una virtud del módulo que no había que perder. Ahora es asíncrono y recibe un `ContextoHerramientas`, pero **los motores se inyectan**: `agentTools` sigue sin saber de Python ni de Electron, recibe funciones. Quien las monta es `chat.handler.ts`, que sí puede lanzar procesos. La consecuencia práctica es que todo el módulo se sigue probando sin Python.
+
+Sólo las herramientas que ejecutan necesitaban esto. **Una herramienta que propone no ejecuta nada, así que sigue siendo pura y sincrónica por dentro** — el ejecutor tiene una sola firma para que el catálogo que ve el modelo sea uno solo.
+
+Un detalle que importa más de lo que parece: el `.inp` que come el motor sale del `fileContent` de **la red activa del proyecto**, no del `global.currentWNTRFile` que usan los paneles. Ese global lo pone el visor al abrir una red, así que puede no existir —el chat responde sin que nadie haya abierto el visor— o, peor, ser **otra red** distinta de la activa. El agente calcula sobre la red de la que habla su propio resumen, o no calcula.
+
+Y la curva no viaja entera al modelo. El motor devuelve veintiún puntos por serie más el reparto por diámetro con otros veintiuno por grupo: en `Net3` son miles de números. Al modelo se le dan las cifras de cabecera y cinco puntos repartidos por el eje, que es con lo que se responde a «cuántas tuberías fallarían». La tabla completa sigue en el panel y en el CSV.
 
 ## La batería (fase 0)
 
@@ -75,8 +83,12 @@ El orden importa: si la herramienta miente, el agente miente por mucho que elija
 ### Marcador
 
 ```
-batería del agente: 7/7 (100 %) · 3 pendientes de la fase 1
+batería del agente: 10/10 (100 %) · 0 pendientes
 ```
+
+Los tres casos que estaban pendientes se activaron al llegar la fase 1, borrando su línea `pendiente`. Los dos de fragilidad corren **el motor de verdad**: se les podría inyectar un doble y correrían en cualquier sitio, pero entonces medirían que la herramienta llama bien a algo, no que la cifra que llega al agente es la del motor. Por eso el bloque se salta donde no haya Python con WNTR en lugar de fingirlo.
+
+El de resiliencia cambió de forma al activarse, y el cambio es la decisión hecha prueba: **lo correcto ahí no es una cifra, es que proponga y se calle.**
 
 ## Trampas
 
@@ -88,4 +100,6 @@ batería del agente: 7/7 (100 %) · 3 pendientes de la fase 1
 
 ## Lo que queda
 
-Las fases 1 a 4 del #119: las manos, lo que cita, la disciplina del prompt —unidades en cada cifra, no dar impacto sin simular, citar la simulación de la que sale cada número— y correr la batería en cada cambio, añadiendo como caso cada fallo que aparezca usando el producto. Es la misma disciplina que sostiene `PROCESO_DE_RELEASE.md`.
+Las fases 2 a 4 del #119: lo que cita, la disciplina del prompt —unidades en cada cifra, no dar impacto sin simular, citar la simulación de la que sale cada número— y correr la batería en cada cambio, añadiendo como caso cada fallo que aparezca usando el producto. Es la misma disciplina que sostiene `PROCESO_DE_RELEASE.md`.
+
+De la fase 1 quedan por exponer las que faltan de cada lado: la calculadora y el reparto por diámetro entre las directas; la simulación hidráulica, la calidad del agua y la eficiencia energética entre las que se proponen. El camino ya está abierto y cada una es un motor más inyectado en el contexto.
