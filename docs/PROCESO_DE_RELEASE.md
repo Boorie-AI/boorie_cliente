@@ -29,6 +29,18 @@ Cada punto de aquí está por algo que ya pasó, y el motivo va anotado.
       `.claude/skills/run-app`. Los tests no ven lo que ve una persona: el cuadro congelado del
       #74, el botón que simulaba sin que se notara, el redondeo que mostraba «80 %» bajo un
       umbral de 0.8 y las viñetas truncadas del historial salieron todos así.
+- [ ] **Los PR mergeados desde el tag anterior, a la vista** antes de redactar la entrada:
+
+      ```bash
+      gh pr list --state merged --base main --limit 50 \
+        --json number,title,mergedAt --jq '.[] | "\(.number) \(.mergedAt) \(.title)"'
+      ```
+
+      El paso 3 pide escribir la entrada del `CHANGELOG.md`, pero no decía de dónde sale lo
+      que va en ella, así que salía de acordarse. Un arreglo que cambia lo que ve quien usa
+      la aplicación y se mergeó tres semanas antes no se recuerda solo: el #122 dejó
+      anotado «que quede constancia en el CHANGELOG» justamente porque no había forma de
+      que apareciera si nadie lo miraba.
 
 ## 2. Elegir el número
 

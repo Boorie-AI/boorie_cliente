@@ -1,9 +1,9 @@
 import {
   HydraulicFormula,
   CalculationResult,
-  FormulaParameter,
   AvisoDelMotor
 } from '../../../src/types/hydraulic'
+import { convertirUnidad, unidadEstandarDe } from './unidadesDeCalculo'
 
 /**
  * Un aviso del motor no es una frase: es una clave del diccionario y, si lleva
@@ -14,10 +14,8 @@ const aviso = (clave: string, datos?: Record<string, string | number>): AvisoDel
 
 export class HydraulicCalculationEngine {
   private formulas: Map<string, HydraulicFormula>
-  private unitConverter: UnitConverter
   
   constructor() {
-    this.unitConverter = new UnitConverter()
     this.formulas = new Map()
     this.initializeFormulas()
   }
@@ -361,7 +359,7 @@ export class HydraulicCalculationEngine {
         // El valor se dice en la unidad del rango, no en la que escribio el
         // usuario: si no, el mensaje enfrenta dos numeros que no se comparan.
         errores.push(
-          `${symbol} = ${valor} ${this.getStandardUnit(param)} is outside the valid range ` +
+          `${symbol} = ${valor} ${unidadEstandarDe(param)} is outside the valid range ` +
           `[${param.range.min}, ${param.range.max}]`
         )
       }
@@ -379,10 +377,10 @@ export class HydraulicCalculationEngine {
       const param = formula.parameters.find(p => p.symbol === symbol)
       if (param) {
         // Convert to SI units
-        standardInputs[symbol] = this.unitConverter.convert(
+        standardInputs[symbol] = convertirUnidad(
           input.value,
           input.unit,
-          this.getStandardUnit(param)
+          unidadEstandarDe(param)
         )
       }
     }
@@ -397,16 +395,6 @@ export class HydraulicCalculationEngine {
     return standardInputs
   }
   
-  private getStandardUnit(param: FormulaParameter): string {
-    // Infer type from units
-    if (param.units.includes('m') || param.units.includes('ft')) return 'm'
-    if (param.units.includes('m³/s') || param.units.includes('l/s')) return 'm³/s'
-    if (param.units.includes('m/s') || param.units.includes('ft/s')) return 'm/s'
-    if (param.units.includes('Pa') || param.units.includes('kPa')) return 'Pa'
-    if (param.units.includes('kg/m³')) return 'kg/m³'
-    
-    return param.units[0] // Default to first unit if no match
-  }
   
   private performCalculation(
     formula: HydraulicFormula,
@@ -700,81 +688,5 @@ export class HydraulicCalculationEngine {
   // Get formulas by category
   getFormulasByCategory(category: string): HydraulicFormula[] {
     return Array.from(this.formulas.values()).filter(f => f.category === category)
-  }
-}
-
-// Unit conversion utility
-class UnitConverter {
-  private conversionFactors: Map<string, Map<string, number>>
-  
-  constructor() {
-    this.conversionFactors = new Map()
-    this.initializeConversions()
-  }
-  
-  private initializeConversions() {
-    // Length conversions (to meters)
-    this.addConversion('length', {
-      'm': 1,
-      'mm': 0.001,
-      'cm': 0.01,
-      'km': 1000,
-      'ft': 0.3048,
-      'in': 0.0254,
-      'mi': 1609.344
-    })
-    
-    // Flow conversions (to m³/s)
-    this.addConversion('flow', {
-      'm³/s': 1,
-      'm3/s': 1,
-      'l/s': 0.001,
-      // La grafía anterior sigue reconociéndose: hay cálculos guardados con ella.
-      'L/s': 0.001,
-      'm³/h': 1/3600,
-      'm3/h': 1/3600,
-      'gpm': 0.0000630902,
-      'cfs': 0.0283168466
-    })
-    
-    // Pressure conversions (to Pa)
-    this.addConversion('pressure', {
-      'Pa': 1,
-      'kPa': 1000,
-      'bar': 100000,
-      'psi': 6894.757,
-      'mH2O': 9806.65,
-      'mca': 9806.65,
-      'm.c.a.': 9806.65
-    })
-    
-    // Time conversions (to seconds)
-    this.addConversion('time', {
-      's': 1,
-      'min': 60,
-      'h': 3600,
-      'day': 86400
-    })
-  }
-  
-  private addConversion(category: string, factors: Record<string, number>) {
-    this.conversionFactors.set(category, new Map(Object.entries(factors)))
-  }
-  
-  convert(value: number, fromUnit: string, toUnit: string): number {
-    if (fromUnit === toUnit) return value
-    
-    // Find conversion category
-    for (const [, factors] of this.conversionFactors) {
-      if (factors.has(fromUnit) && factors.has(toUnit)) {
-        const fromFactor = factors.get(fromUnit)!
-        const toFactor = factors.get(toUnit)!
-        return value * fromFactor / toFactor
-      }
-    }
-    
-    // If no conversion found, return original value
-    console.warn(`No conversion found from ${fromUnit} to ${toUnit}`)
-    return value
   }
 }

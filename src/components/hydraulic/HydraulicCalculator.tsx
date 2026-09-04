@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { cifrasSignificativas } from '@/services/network/unidades'
+import { esAdimensional, rangoEnUnidad } from '@/../backend/services/hydraulic/unidadesDeCalculo'
 import { logger } from '@/utils/logger'
 import { useState, useEffect } from 'react'
 import { useClarity } from '@/components/ClarityProvider'
@@ -22,6 +23,14 @@ import { cn } from '@/utils/cn'
 import { hydraulicService } from '@/services/hydraulic/hydraulicService'
 import { HydraulicFormula, CalculationResult } from '@/types/hydraulic'
 import { AvisoDescargo } from '@/components/descargo/AvisoDescargo'
+
+/**
+ * Convertir el rango deja colas de decimales —10 m son 393,7007874 pulgadas— y
+ * el rótulo sólo tiene que dar el orden de magnitud. Sin separador de miles a
+ * propósito: `cifrasSignificativas` escribe «10.000», que en la interfaz en
+ * inglés se lee como diez.
+ */
+const tresCifras = (valor: number) => String(Number(valor.toPrecision(3)))
 
 export function HydraulicCalculator() {
   const { t } = useTranslation()
@@ -365,7 +374,15 @@ export function HydraulicCalculator() {
                     </h3>
                     
                     <div className="grid gap-6">
-                      {selectedFormula.parameters.map((param) => (
+                      {selectedFormula.parameters.map((param) => {
+                        /* El rango se dice en la unidad elegida en el desplegable,
+                           no en la unidad estándar en que está escrito. Con mm
+                           elegidos, «0,01 – 10» dejaba fuera un diámetro de 300 mm
+                           que la calculadora sí acepta (#122). */
+                        const unidad = inputs[param.symbol]?.unit || param.units[0]
+                        const rango = rangoEnUnidad(param, unidad)
+
+                        return (
                         <div key={param.symbol} className="bg-muted/50 p-6 rounded-lg border border-border">
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex-1">
@@ -378,9 +395,18 @@ export function HydraulicCalculator() {
                               <p className="text-sm text-muted-foreground mt-1">
                                 {t(param.descriptionKey)}
                               </p>
-                              {param.range && (
+                              {rango && (
                                 <p className="text-xs text-muted-foreground mt-1">
-                                  {t('calculator.validRange', { min: param.range.min, max: param.range.max })}
+                                  {t(
+                                    esAdimensional(unidad)
+                                      ? 'calculator.validRange'
+                                      : 'calculator.validRangeWithUnit',
+                                    {
+                                      min: tresCifras(rango.min),
+                                      max: tresCifras(rango.max),
+                                      unit: unidad
+                                    }
+                                  )}
                                 </p>
                               )}
                             </div>
@@ -401,22 +427,32 @@ export function HydraulicCalculator() {
                               step="any"
                             />
                             
-                            <select
-                              value={inputs[param.symbol]?.unit || param.units[0]}
-                              onChange={(e) => handleInputChange(param.symbol, 'unit', e.target.value)}
-                              className={cn(
-                                "px-4 py-3 rounded-lg text-base font-medium",
-                                "bg-background border-2 border-border",
-                                "focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-                              )}
-                            >
-                              {param.units.map((unit) => (
-                                <option key={unit} value={unit}>{unit}</option>
-                              ))}
-                            </select>
+                            {/* Desplegable sólo donde hay algo que elegir. Con una
+                                unidad única no había nada que desplegar, y en un
+                                parámetro adimensional el desplegable ofrecía «-». */}
+                            {param.units.length > 1 ? (
+                              <select
+                                value={unidad}
+                                onChange={(e) => handleInputChange(param.symbol, 'unit', e.target.value)}
+                                className={cn(
+                                  "px-4 py-3 rounded-lg text-base font-medium",
+                                  "bg-background border-2 border-border",
+                                  "focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                                )}
+                              >
+                                {param.units.map((unit) => (
+                                  <option key={unit} value={unit}>{unit}</option>
+                                ))}
+                              </select>
+                            ) : esAdimensional(unidad) ? null : (
+                              <span className="px-4 py-3 text-base font-medium text-muted-foreground shrink-0">
+                                {unidad}
+                              </span>
+                            )}
                           </div>
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
                     
                     {/* Al final de los campos y quieto ahí. Con `sticky bottom-0`
