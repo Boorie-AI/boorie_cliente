@@ -18,6 +18,10 @@ Cada punto de aquí está por algo que ya pasó, y el motivo va anotado.
       paquete. Se arregla con `npm audit fix --package-lock-only` y se mira el diff del lock:
       si es un salto de parche dentro del rango que ya pedía la dependencia, entra en el
       ciclo; si obliga a subir una dependencia directa, es su propio PR.
+      **Y hay un rojo que no es ningún hallazgo**: `npm error audit endpoint returned an
+      error` con un `503 Service Unavailable` es el registro de npm caído, no una
+      vulnerabilidad. Se distingue en un segundo corriendo `npm audit` en local —si da cero,
+      era eso— y se arregla con `gh run rerun <id> --failed`. Pasó en el PR #124.
 - [ ] `npm run lint` **completo, sin filtrar por fichero**. Lintar sólo lo que has tocado deja
       pasar errores en ficheros nuevos: eso tumbó el CI de la v1.21.0 por un `catch (e)` sin usar
       en un test recién añadido.
