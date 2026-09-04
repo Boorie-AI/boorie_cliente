@@ -39,15 +39,22 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.30.0
+### 🚀 Última Versió - v1.31.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.30.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.30.0/Boorie-1.30.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.30.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.30.0/Boorie-Setup-1.30.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.30.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.30.0/Boorie-1.30.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.31.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.31.0/Boorie-1.31.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.31.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.31.0/Boorie-Setup-1.31.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.31.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.31.0/Boorie-1.31.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.31.0
+- L'assistent feia les anàlisis a mitges: llegia la xarxa i allà s'acabava, així que calia executar el panell a mà i tornar a explicar-li al xat els números que s'acabaven de veure. Ara executa ell la corba de fragilitat i la calculadora, i proposa —per tal que vostè els confirmi— les anàlisis que exigeixen simular la xarxa sencera, que en una xarxa gran passen de deu minuts.
+- Cada afirmació que surt de la documentació ve amb la seva font, i la font es pot resoldre: la resposta porta una marca i a sota hi ha la llista numerada amb el document, la secció i la pàgina. I si allò que pregunta no és als documents indexats, li ho diu en lloc de completar-ho de memòria: una xifra normativa sense font no es distingeix d'una inventada.
+- Les regles que impedeixen a l'assistent inventar-se xifres depenien d'una pantalla de configuració. En una instal·lació acabada de fer no existien, i responia sense cap: ni les d'unitats, ni la de no donar xifres d'impacte sense simular. Ara van sempre, i allò que vostè escrigui a Ajustos s'hi afegeix en lloc de substituir-les.
+- La calculadora rebutjava un diàmetre de 300 mm i donava per bo un de 20 metres. El primer perquè comprovava l'interval abans de convertir la unitat, i el segon perquè el motor que resol el panell no el comprovava gens. Ara l'interval es comprova després de convertir i sempre, el rètol sota cada camp ho diu en la unitat que vostè té triada, i l'avís surt en l'idioma en què s'està llegint.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.31.0).
 
 ### 📝 Novetats a v1.30.0
 - La corba en acceleració sortia gairebé igual que la de velocitat, i feia dubtar d'un càlcul que estava bé: amb els topalls que portava cada eix —100 cm/s i 1 g— i la classe de sòl que ve posada, totes dues coincidien punt per punt amb dos punts percentuals de diferència. Les xifres eren i són les mateixes; era una coincidència entre dos valors per defecte. El topall en acceleració passa a 1,2 g i desapareix.
@@ -349,12 +356,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.30.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.30.0.AppImage`
-3. Executa: `./Boorie-1.30.0.AppImage`
+1. Descarrega `Boorie-1.31.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.31.0.AppImage`
+3. Executa: `./Boorie-1.31.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.30.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.31.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 

@@ -39,15 +39,22 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.30.0
+### 🚀 Última Versión - v1.31.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.30.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.30.0/Boorie-1.30.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.30.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.30.0/Boorie-Setup-1.30.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.30.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.30.0/Boorie-1.30.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.31.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.31.0/Boorie-1.31.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.31.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.31.0/Boorie-Setup-1.31.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.31.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.31.0/Boorie-1.31.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.31.0
+- El asistente hacía los análisis a medias: leía la red y ahí se acababa, así que había que ejecutar el panel a mano y volver a contarle al chat los números que se acababan de ver. Ahora ejecuta él la curva de fragilidad y la calculadora, y propone —para que usted los confirme— los análisis que exigen simular la red entera, que en una red grande pasan de diez minutos.
+- Cada afirmación que sale de la documentación viene con su fuente, y la fuente se puede resolver: la respuesta lleva una marca y debajo está la lista numerada con el documento, la sección y la página. Y si lo que pregunta no está en los documentos indexados, se lo dice en vez de completarlo de memoria: una cifra normativa sin fuente no se distingue de una inventada.
+- Las reglas que impiden al asistente inventarse cifras dependían de una pantalla de configuración. En una instalación recién hecha no existían, y respondía sin ninguna: ni las de unidades, ni la de no dar cifras de impacto sin simular. Ahora van siempre, y lo que usted escriba en Ajustes se añade a ellas en vez de sustituirlas.
+- La calculadora rechazaba un diámetro de 300 mm y daba por bueno uno de 20 metros. Lo primero porque comprobaba el rango antes de convertir la unidad, y lo segundo porque el motor que resuelve el panel no lo comprobaba en absoluto. Ahora el rango se comprueba después de convertir y siempre, el rótulo bajo cada campo lo dice en la unidad que usted tiene elegida, y el aviso sale en el idioma en que se está leyendo.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.31.0).
 
 ### 📝 Novedades en v1.30.0
 - La curva en aceleración salía casi igual que la de velocidad, y hacía dudar de un cálculo que estaba bien: con los topes que traía cada eje —100 cm/s y 1 g— y la clase de suelo que viene puesta, las dos coincidían punto por punto con dos puntos porcentuales de diferencia. Las cifras eran y son las mismas; era una coincidencia entre dos valores por defecto. El tope en aceleración pasa a 1,2 g y desaparece.
@@ -349,12 +356,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.30.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.30.0.AppImage`
-3. Ejecuta: `./Boorie-1.30.0.AppImage`
+1. Descarga `Boorie-1.31.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.31.0.AppImage`
+3. Ejecuta: `./Boorie-1.31.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.30.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.31.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
