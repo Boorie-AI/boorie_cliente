@@ -9,12 +9,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.31.0] - 2026-09-04
 
-Lo que hay integrado en `main` y todavía sin publicar. El parser del historial
-(`src/utils/changelog.ts`) sólo reconoce cabeceras con número de versión, así que esta
-sección no la ve y la pestaña «Acerca de» sigue cuadrando con `package.json`. Al publicar,
-esto se dobla en la entrada de la versión nueva.
+El asistente hace los análisis en vez de explicarlos, y cita de dónde sale cada cifra.
 
 - **El asistente no podía hacer los análisis que Boorie ya sabía calcular.** Leía la
   topología de la red y ahí se acababa, así que el usuario ejecutaba el panel a mano y
@@ -45,6 +42,16 @@ esto se dobla en la entrada de la versión nueva.
 - **El desplegable de unidades desaparece donde no había nada que elegir.** En los
   parámetros adimensionales —el factor de fricción, el coeficiente de descarga— ofrecía una
   única opción, que era un guion.
+- **La calculadora daba por bueno un diámetro de 20 metros.** Devolvía un resultado, con su
+  aspecto de cifra buena y su aviso de que conviene validarla, para una tubería que no existe:
+  el motor que resuelve el panel no comprobaba ningún rango, y el que sí lo hacía sólo entraba
+  cuando el primero fallaba. Ahora se comprueba siempre, y el aviso aparece **en el idioma en
+  que se está leyendo** — antes esa frase sólo existía en inglés. Un dato que sólo es mala
+  práctica y no un imposible —una velocidad de 0,05 m/s— se sigue calculando y avisando, que
+  es lo que se hacía y lo que hay que hacer.
+- **El rango válido de cada campo se ve donde antes no aparecía.** El diámetro y la longitud
+  de la tubería no lo mostraban, así que había que calcular para descubrir que el valor no
+  servía.
 
 ## [1.30.0] - 2026-09-03
 
