@@ -94,9 +94,25 @@ function mensajesIniciales(pregunta: string, red: RedGuardada, nombreRed: string
   ] as any[]
 }
 
+/**
+ * Todas las peticiones de una corrida, para poder cortarlas de golpe.
+ *
+ * Sin esto, una medida que muere —por tiempo, o porque el matarratas de memoria
+ * de Linux se lleva el proceso— deja la petición en vuelo, y Ollama la sigue
+ * generando para un cliente que ya no existe: mantiene el modelo fijado en
+ * memoria, no lo suelta ni con `ollama stop`, y encola las siguientes. Tomando
+ * la fase 5 se llegó a tener un `llama-server` con 7,4 GB y 351 % de CPU
+ * escribiendo para nadie, y la única salida fue reiniciar el servicio.
+ */
+const enVuelo = new AbortController()
+
+/** Corta lo que quede pidiéndose. Se llama al acabar la medida, pase lo que pase. */
+export const cortarPeticiones = () => enVuelo.abort()
+
 async function pedirA(mensajes: any[], conHerramientas: boolean) {
   const respuesta = await fetch(`${OLLAMA}/api/chat`, {
     method: 'POST',
+    signal: enVuelo.signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: MODELO,

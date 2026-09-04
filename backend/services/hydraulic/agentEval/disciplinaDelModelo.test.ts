@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { afterAll, describe, it, expect } from 'vitest'
 import { marcadorDeDisciplina, puntuarRespuesta } from './disciplina'
-import { MODELO, conversar, leerRedes, puedeMedirDisciplina } from './contraElModelo'
+import { MODELO, cortarPeticiones, conversar, leerRedes, puedeMedirDisciplina } from './contraElModelo'
 import { CASOS } from './casos'
 
 /**
@@ -41,11 +41,14 @@ describe.skipIf(!puedeMedirDisciplina)(`la disciplina en lo que escribe (${MODEL
       // «(F1)» que aparezca no puede resolverse contra nada.
       const r = puntuarRespuesta(caso.id, texto, { fuentes: 0 })
       resultados.push(r)
-      textos.push(`  · ${caso.id} [${usadas.join(', ') || 'sin herramientas'}]: ${texto.slice(0, 400)}`)
+      textos.push(`  · ${caso.id} [${usadas.join(', ') || 'sin herramientas'}] (${r.cifrasMiradas} cifras): ${texto.slice(0, 400)}`)
     }
 
     const m = marcadorDeDisciplina(resultados)
     console.log(`\nmodelo ${MODELO}: ${m.cumplen}/${m.total} respuestas sin faltas (${m.porcentaje} %)`)
+    // Sin este número el porcentaje engaña: un pleno a base de disculpas no se
+    // distingue de un pleno de verdad.
+    console.log(`  con cifra que medir: ${m.conCifras}/${m.total}`)
     console.log(`  unidades: ${m.porRegla.unidades} · citas: ${m.porRegla.citas} · impacto: ${m.porRegla.impacto}`)
     for (const r of resultados.filter(r => r.fallos.length)) {
       console.log(`  · ${r.id}: ${r.fallos.map(f => f.detalle).join('; ')}`)
@@ -60,3 +63,6 @@ describe.skipIf(!puedeMedirDisciplina)(`la disciplina en lo que escribe (${MODEL
     expect(resultados.every(r => r.id)).toBe(true)
   })
 })
+
+// Aunque la medida muera por tiempo: si no, Ollama sigue escribiendo para nadie.
+afterAll(cortarPeticiones)
