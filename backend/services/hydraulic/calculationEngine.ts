@@ -300,14 +300,28 @@ export class HydraulicCalculationEngine {
       throw new Error(`Formula ${formulaId} not found`)
     }
     
-    // Validate inputs
-    const validation = this.validateInputs(formula, inputs)
-    if (!validation.isValid) {
-      throw new Error(`Invalid inputs: ${validation.errors.join(', ')}`)
+    // Que no falte ninguno, antes de intentar convertir nada.
+    const faltan = this.comprobarObligatorios(formula, inputs)
+    if (faltan.length) {
+      throw new Error(`Invalid inputs: ${faltan.join(', ')}`)
     }
-    
+
     // Convert units to standard SI
     const standardInputs = this.convertToStandardUnits(formula, inputs)
+
+    /**
+     * El rango se comprueba **despues** de convertir, no antes.
+     *
+     * Los rangos estan escritos en la unidad estandar del parametro —el
+     * diametro, en metros: [0,01, 10]— pero el desplegable ofrece tambien mm y
+     * pulgadas. Comprobandolo sobre el valor crudo, un diametro perfectamente
+     * normal de 300 mm quedaba «fuera del rango [0.01, 10]», y 12 in tambien.
+     * El aviso hablaba de un rango que el usuario no habia escrito.
+     */
+    const fuera = this.comprobarRangos(formula, standardInputs)
+    if (fuera.length) {
+      throw new Error(`Invalid inputs: ${fuera.join(', ')}`)
+    }
     
     // Perform calculation based on formula
     const result = this.performCalculation(formula, standardInputs)
@@ -326,37 +340,35 @@ export class HydraulicCalculationEngine {
     }
   }
   
-  private validateInputs(
+  private comprobarObligatorios(
     formula: HydraulicFormula,
     inputs: Record<string, { value: number; unit: string }>
-  ): { isValid: boolean; errors: string[] } {
-    const errors: string[] = []
-    
-    // Check required parameters
-    for (const param of formula.parameters) {
-      if (!param.defaultValue && !inputs[param.symbol]) {
-        errors.push(`Missing required parameter: ${param.symbol}`)
-      }
-    }
-    
-    // Validate ranges
-    for (const [symbol, input] of Object.entries(inputs)) {
-      const param = formula.parameters.find(p => p.symbol === symbol)
-      if (param && param.range) {
-        if (input.value < param.range.min || input.value > param.range.max) {
-          errors.push(
-            `${symbol} = ${input.value} is outside the valid range [${param.range.min}, ${param.range.max}]`
-          )
-        }
-      }
-    }
-    
-    return {
-      isValid: errors.length === 0,
-      errors
-    }
+  ): string[] {
+    return formula.parameters
+      .filter(param => !param.defaultValue && !inputs[param.symbol])
+      .map(param => `Missing required parameter: ${param.symbol}`)
   }
-  
+
+  /** Sobre los valores ya en unidad estandar, que es donde vive el rango. */
+  private comprobarRangos(
+    formula: HydraulicFormula,
+    standardInputs: Record<string, number>
+  ): string[] {
+    const errores: string[] = []
+    for (const [symbol, valor] of Object.entries(standardInputs)) {
+      const param = formula.parameters.find(p => p.symbol === symbol)
+      if (param?.range && (valor < param.range.min || valor > param.range.max)) {
+        // El valor se dice en la unidad del rango, no en la que escribio el
+        // usuario: si no, el mensaje enfrenta dos numeros que no se comparan.
+        errores.push(
+          `${symbol} = ${valor} ${this.getStandardUnit(param)} is outside the valid range ` +
+          `[${param.range.min}, ${param.range.max}]`
+        )
+      }
+    }
+    return errores
+  }
+
   private convertToStandardUnits(
     formula: HydraulicFormula,
     inputs: Record<string, { value: number; unit: string }>

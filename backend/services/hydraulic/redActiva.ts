@@ -28,6 +28,16 @@ export interface RedActiva {
   /** `HydraulicNetwork.summary` ya parseado. */
   contadores: ContadoresRed
   datos: DatosRedGuardados
+  /**
+   * El `.inp` tal cual, que es lo que comen los motores de WNTR (#119).
+   *
+   * Sale de aqui y no del `global.currentWNTRFile` que usan los paneles: ese
+   * fichero lo pone el visor al abrir una red, asi que puede no existir —el
+   * chat responde sin que nadie haya abierto el visor— o, peor, ser **otra
+   * red** distinta de la activa del proyecto. El agente responde sobre la red
+   * de la que habla su propio resumen, o no responde.
+   */
+  inp: string
 }
 
 export async function leerRedActiva(
@@ -47,5 +57,6 @@ export async function leerRedActiva(
     nombre: red.name,
     contadores: JSON.parse(red.summary || '{}'),
     datos: JSON.parse(red.networkData || '{}'),
+    inp: red.fileContent || '',
   }
 }

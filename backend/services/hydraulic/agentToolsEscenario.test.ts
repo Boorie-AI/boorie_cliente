@@ -26,17 +26,17 @@ const red: RedCompleta = {
 }
 
 const proponer = (argumentos: Record<string, unknown>) =>
-  ejecutarHerramienta('proponer_escenario', argumentos, red)
+  ejecutarHerramienta('proponer_escenario', argumentos, { red })
 
 describe('proponer_escenario', () => {
-  it('está ofrecida al agente y dice que no ejecuta', () => {
+  it('está ofrecida al agente y dice que no ejecuta', async () => {
     const definicion = HERRAMIENTAS.find(h => h.nombre === 'proponer_escenario')
     expect(definicion).toBeDefined()
     expect(definicion!.descripcion).toContain('NO ejecuta')
   })
 
-  it('traduce el caso del criterio de aceptación: control perdido 4 horas', () => {
-    const r = proponer({ tipo: 'control_loss', elementos: ['B1', 'B2'], desde_h: 0, duracion_h: 4 })
+  it('traduce el caso del criterio de aceptación: control perdido 4 horas', async () => {
+    const r = await proponer({ tipo: 'control_loss', elementos: ['B1', 'B2'], desde_h: 0, duracion_h: 4 })
 
     expect(r.requiere_confirmacion).toBe(true)
     const evento = (r.definicion as any).eventos[0]
@@ -51,8 +51,8 @@ describe('proponer_escenario', () => {
     expect(r.resumen).toContain('4')
   })
 
-  it('nunca devuelve resultados de simulación: sólo la propuesta', () => {
-    const r = proponer({ tipo: 'pump_outage', elementos: ['B1'], duracion_h: 2 })
+  it('nunca devuelve resultados de simulación: sólo la propuesta', async () => {
+    const r = await proponer({ tipo: 'pump_outage', elementos: ['B1'], duracion_h: 2 })
 
     // Si alguna de estas claves apareciera, la herramienta habría simulado, y el
     // usuario no habría confirmado nada.
@@ -62,8 +62,8 @@ describe('proponer_escenario', () => {
     expect(r.propuesta).toBe(true)
   })
 
-  it('valida los elementos contra la red y señala los que no existen', () => {
-    const r = proponer({ tipo: 'pump_outage', elementos: ['B1', 'B99'] })
+  it('valida los elementos contra la red y señala los que no existen', async () => {
+    const r = await proponer({ tipo: 'pump_outage', elementos: ['B1', 'B99'] })
 
     expect((r.definicion as any).eventos[0].elementos).toEqual(['B1'])
     expect(r.elementos_inexistentes).toEqual([
@@ -71,54 +71,54 @@ describe('proponer_escenario', () => {
     ])
   })
 
-  it('si no existe ninguno, no propone nada', () => {
-    const r = proponer({ tipo: 'pipe_break', elementos: ['no-existe'] })
+  it('si no existe ninguno, no propone nada', async () => {
+    const r = await proponer({ tipo: 'pipe_break', elementos: ['no-existe'] })
 
     expect(r.error).toContain('Ninguno')
     expect(r.definicion).toBeUndefined()
   })
 
-  it('acepta los ids como los escriba el modelo, sin distinguir mayúsculas', () => {
-    const r = proponer({ tipo: 'pump_outage', elementos: ['b1'] })
+  it('acepta los ids como los escriba el modelo, sin distinguir mayúsculas', async () => {
+    const r = await proponer({ tipo: 'pump_outage', elementos: ['b1'] })
     // Se devuelve el id **de la red**, no el que escribió el modelo: es el que
     // el motor va a buscar.
     expect((r.definicion as any).eventos[0].elementos).toEqual(['B1'])
   })
 
-  it('sin elementos ofrece los candidatos de la red en vez de un error seco', () => {
-    const r = proponer({ tipo: 'pump_outage' })
+  it('sin elementos ofrece los candidatos de la red en vez de un error seco', async () => {
+    const r = await proponer({ tipo: 'pump_outage' })
 
     expect(r.error).toContain('necesita al menos un elemento')
     expect(r.candidatos_en_la_red).toEqual(['B1', 'B2'])
   })
 
-  it('la pérdida de control sí puede no llevar elementos: es la red entera', () => {
-    const r = proponer({ tipo: 'control_loss' })
+  it('la pérdida de control sí puede no llevar elementos: es la red entera', async () => {
+    const r = await proponer({ tipo: 'control_loss' })
 
     expect(r.requiere_confirmacion).toBe(true)
     expect((r.definicion as any).eventos[0]).toMatchObject({ tipo: 'control_loss', alcance: 'todos' })
     expect((r.definicion as any).eventos[0].congelar).toBeUndefined()
   })
 
-  it('la sobredemanda sin multiplicador usable coge el doble', () => {
-    const r = proponer({ tipo: 'demand_surge', nudos: ['10'], multiplicador: 0.5 })
+  it('la sobredemanda sin multiplicador usable coge el doble', async () => {
+    const r = await proponer({ tipo: 'demand_surge', nudos: ['10'], multiplicador: 0.5 })
     expect((r.definicion as any).eventos[0].multiplicador).toBe(2)
   })
 
-  it('la sequía sin factor usable baja el origen a la mitad', () => {
-    const r = proponer({ tipo: 'source_reduction', elementos: ['R1'], factor: 3 })
+  it('la sequía sin factor usable baja el origen a la mitad', async () => {
+    const r = await proponer({ tipo: 'source_reduction', elementos: ['R1'], factor: 3 })
     expect((r.definicion as any).eventos[0].factor).toBe(0.5)
   })
 
-  it('sin duración el evento dura hasta el final, y así lo dice', () => {
-    const r = proponer({ tipo: 'pump_outage', elementos: ['B1'], desde_h: 6 })
+  it('sin duración el evento dura hasta el final, y así lo dice', async () => {
+    const r = await proponer({ tipo: 'pump_outage', elementos: ['B1'], desde_h: 6 })
 
     expect((r.definicion as any).eventos[0].hasta_h).toBeUndefined()
     expect(r.resumen).toContain('hasta el final')
   })
 
-  it('un tipo inventado se rechaza enumerando los válidos', () => {
-    const r = proponer({ tipo: 'apagon_total', elementos: ['B1'] })
+  it('un tipo inventado se rechaza enumerando los válidos', async () => {
+    const r = await proponer({ tipo: 'apagon_total', elementos: ['B1'] })
     expect(r.error).toContain('pump_outage')
   })
 })

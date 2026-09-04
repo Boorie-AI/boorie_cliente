@@ -80,3 +80,40 @@ describe('cada paso intermedio dice en qué unidad está', () => {
     expect(r.intermediateSteps!.map(p => p.unit)).toEqual(['m³', 'm³', 'm³'])
   })
 })
+
+describe('el rango se comprueba en la unidad del rango', () => {
+  /**
+   * El desplegable de diámetro ofrece m, mm y pulgadas, pero el rango del
+   * parámetro está escrito en metros: [0,01, 10]. Comprobándolo sobre el valor
+   * crudo, un diámetro perfectamente normal de 300 mm quedaba «fuera del rango
+   * [0.01, 10]» y 12 in también. El aviso hablaba de un rango que el usuario no
+   * había escrito, y no había forma de salir salvo cambiar de unidad.
+   */
+  it('acepta 300 mm y 12 in, que antes rechazaba', () => {
+    const enMetros = motor.calculate('darcy-weisbach', {
+      f: m(0.02, 'dimensionless'), L: m(500, 'm'), D: m(0.3, 'm'), V: m(0.5, 'm/s'),
+    })
+    const enMilimetros = motor.calculate('darcy-weisbach', {
+      f: m(0.02, 'dimensionless'), L: m(500, 'm'), D: m(300, 'mm'), V: m(0.5, 'm/s'),
+    })
+    // La misma tubería descrita de dos maneras da el mismo número.
+    expect(enMilimetros.result.value).toBeCloseTo(enMetros.result.value, 10)
+    expect(enMetros.result.value).toBeCloseTo(0.42474, 5)
+
+    expect(() => motor.calculate('darcy-weisbach', {
+      f: m(0.02, 'dimensionless'), L: m(500, 'm'), D: m(12, 'in'), V: m(0.5, 'm/s'),
+    })).not.toThrow()
+  })
+
+  it('sigue rechazando lo que de verdad está fuera, y lo dice en la unidad del rango', () => {
+    // 20 m de diámetro no es una tubería, en ninguna unidad.
+    expect(() => motor.calculate('darcy-weisbach', {
+      f: m(0.02, 'dimensionless'), L: m(500, 'm'), D: m(20000, 'mm'), V: m(0.5, 'm/s'),
+    })).toThrow(/D = 20 m is outside the valid range \[0.01, 10\]/)
+  })
+
+  it('sigue avisando de lo que falta antes de intentar convertirlo', () => {
+    expect(() => motor.calculate('darcy-weisbach', { f: m(0.02, 'dimensionless') }))
+      .toThrow(/Missing required parameter/)
+  })
+})
