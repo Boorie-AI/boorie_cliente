@@ -10,10 +10,17 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..')
 const DB = path.join(REPO_ROOT, 'prisma', 'hydraulic.db')
 
 /**
- * Las redes viven en SQLite, no en disco, igual que en `agentTools.test.ts`: se
- * leen una sola vez y el bloque se salta entero donde no haya base.
+ * Las redes viven en SQLite, no en disco, igual que en `agentTools.test.ts`.
+ *
+ * **La lectura va dentro del `it`, no en el cuerpo del `describe`.** `skipIf`
+ * sólo marca saltados los tests: el cuerpo del bloque se ejecuta igual, para
+ * recolectarlos. Leyendo ahí, en un runner sin base —el CI— se ejecutaba el
+ * `sqlite3.connect`, que **crea el fichero vacío**, y la consulta moría con «no
+ * such table» durante la recolección: el fichero entero contaba como fallado en
+ * vez de saltarse. Y de paso dejaba una `hydraulic.db` de cero bytes en el
+ * repositorio, que hace que el `existsSync` de los otros tests mienta.
  */
-const leerRedes = (): Map<string, RedCompleta> => {
+const leerDeLaBase = (): Map<string, RedCompleta> => {
   const salida = execFileSync('python3', ['-c', `
 import sqlite3, json, sys
 c = sqlite3.connect(${JSON.stringify(DB)})
@@ -78,9 +85,11 @@ describe('comprobarCaso', () => {
 })
 
 describe.skipIf(!fs.existsSync(DB))('la batería contra las herramientas reales', { timeout: 60_000 }, () => {
-  const redes = leerRedes()
+  let cache: Map<string, RedCompleta> | null = null
+  const leerRedes = () => (cache ??= leerDeLaBase())
 
   it('todos los casos ejecutables aciertan', () => {
+    const redes = leerRedes()
     const resultados = CASOS.map(caso => {
       if (caso.pendiente) return comprobarCaso(caso, null)
       const red = redes.get(caso.red)
