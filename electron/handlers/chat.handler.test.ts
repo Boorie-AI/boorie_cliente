@@ -189,9 +189,31 @@ describe('bucle de herramientas con los compatibles con OpenAI', () => {
 
     expect(r.data.response).toBe('J3 esta a 8 m de cota.')
     const segundo = cuerpoDe(1)
-    expect(segundo.messages[1]).toMatchObject({ role: 'assistant' })
-    expect(segundo.messages[2]).toMatchObject({ role: 'tool', tool_call_id: 'call_1' })
-    expect(JSON.parse(segundo.messages[2].content).elemento).toMatchObject({ id: 'J3' })
+    // Por papel y no por posición: en los compatibles con OpenAI el sistema va
+    // dentro de `messages`, así que fijar índices los rompe cada vez que cambia
+    // lo que se antepone (#119, fase 3).
+    const herramienta = segundo.messages.find((m: any) => m.role === 'tool')
+    expect(segundo.messages.some((m: any) => m.role === 'assistant')).toBe(true)
+    expect(herramienta).toMatchObject({ role: 'tool', tool_call_id: 'call_1' })
+    expect(JSON.parse(herramienta.content).elemento).toMatchObject({ id: 'J3' })
+  })
+
+  it('el sistema va siempre, aunque no haya nada guardado', async () => {
+    // `appSetting.findUnique` devuelve null aquí, que es lo que pasa en una
+    // instalación recién hecha: antes se enviaba el mensaje **sin ningún
+    // sistema**, así que las reglas dependían de que alguien hubiera entrado en
+    // Ajustes y le hubiera dado a guardar (#119, fase 3).
+    new ChatHandler(baseDeDatos(true))
+    fetchSimulado.mockResolvedValueOnce(respuesta(openaiResponde))
+
+    await enviar({ provider: 'openai' })
+
+    const sistema = cuerpoDe(0).messages.find((m: any) => m.role === 'system')
+    expect(sistema).toBeTruthy()
+    expect(sistema.content).toMatch(/lleva su unidad, siempre/)
+    expect(sistema.content).toMatch(/No des cifras de impacto/)
+    // Y sin personalización no se cuela el encabezado de la parte del usuario.
+    expect(sistema.content).not.toMatch(/Indicaciones de quien usa Boorie/)
   })
 
   it('las herramientas van envueltas en function', async () => {
@@ -245,8 +267,9 @@ describe('bucle de herramientas con Ollama', () => {
     // sin recortarlo el chat ensena un mensaje en blanco.
     expect(r.data.response).toBe('La cota de J3 es 8 m.')
     const segundo = cuerpoDe(1)
-    expect(segundo.messages[2]).toMatchObject({ role: 'tool', tool_call_id: 'call_x' })
-    expect(JSON.parse(segundo.messages[2].content).elemento).toMatchObject({ id: 'J3', cota_m: 8 })
+    const resultado = segundo.messages.find((m: any) => m.role === 'tool')
+    expect(resultado).toMatchObject({ role: 'tool', tool_call_id: 'call_x' })
+    expect(JSON.parse(resultado.content).elemento).toMatchObject({ id: 'J3', cota_m: 8 })
   })
 
   it('un modelo local sin plantilla de herramientas no rompe el chat', async () => {

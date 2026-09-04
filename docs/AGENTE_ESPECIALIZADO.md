@@ -123,8 +123,31 @@ Y un cuarto, que salió al ir a comprobarlo en la aplicación: **las fuentes des
 
 La política entera vive en `src/services/contextoConocimiento.ts`, que es puro y se prueba sin levantar el RAG ni hablar con ningún proveedor. Incluye el caso sin fuentes: decirle al modelo que no se ha encontrado nada es parte de la política, no un `else` suelto — sin esa frase negaba tener acceso a ningún RAG, contradiciendo a la insignia de la propia interfaz (#19/#20).
 
+## La disciplina (fase 3)
+
+Las reglas que se han ido ganando a base de fallos, escritas donde el agente las lea: `backend/services/hydraulic/promptDelAgente.ts`.
+
+**Y en código, no en un ajuste.** Hasta aquí el prompt de sistema salía **entero** de `app_settings`, y esa fila **no existe** en una instalación recién hecha: el handler anotaba «No system prompt found in database» y el mensaje se enviaba sin ningún sistema. El «por defecto» que se veía en Ajustes vivía dentro del componente del panel y sólo llegaba a la base si el usuario le daba a guardar. O sea que las reglas que impiden inventar cifras dependían de que alguien hubiera entrado en una pantalla de configuración.
+
+Ahora la disciplina va siempre, y lo que el usuario escriba **se añade** al final: su prompt es para el papel y el tono; que una cifra lleve unidad no es una preferencia. El panel lo dice, y su sugerencia dejó de duplicar reglas —duplicarlas significaba que quien la guardara se llevaba dos copias, y que editarla pareciera poder desactivarlas—.
+
+Las reglas, y por qué cada una:
+
+| Regla | De dónde viene |
+|---|---|
+| Toda cifra con su unidad, también en los pasos intermedios | La familia de fallos que más ha reaparecido: l/s frente a m³/s en el comparador (v1.25.0) y en energía (v1.27.0), la fracción mostrada como porcentaje (v1.26.0) |
+| No convertir ni redondear por cuenta propia | Las herramientas ya entregan l/s y mm con la unidad en el nombre del campo |
+| Nada de cifras de impacto sin simular; proponer no es simular | Ya lo decía `proponer_escenario`; ahora vale para todos |
+| Cada número, de una herramienta, una simulación o una fuente citada | Es lo que separa una respuesta comprobable de una inventada |
+| Decir de qué simulación sale el número | Una cifra sin origen no se puede comprobar |
+| Consultar la red en vez de responder de memoria | El #34: a «cómo mejoro el flujo en la junta 3» respondió cómo se limpia una junta mecánica |
+| No inventar identificadores | La herramienta devuelve los parecidos para poder proponer el correcto |
+| Explicar por qué un análisis se propone | Para que la espera no parezca un fallo de la aplicación |
+
+No fija idioma: responde en el que le escriban. La aplicación va en tres, y clavar uno rompería dos.
+
 ## Lo que queda
 
-Las fases 3 y 4 del #119: la disciplina del prompt —unidades en cada cifra, no dar impacto sin simular, citar la simulación de la que sale cada número— y correr la batería en cada cambio, añadiendo como caso cada fallo que aparezca usando el producto. Es la misma disciplina que sostiene `PROCESO_DE_RELEASE.md`.
+La fase 4 del #119: correr la batería en cada cambio, añadiendo como caso cada fallo que aparezca usando el producto. Es la misma disciplina que sostiene `PROCESO_DE_RELEASE.md`.
 
 La fase 1 está cerrada: las cinco herramientas de cada lado del criterio, con la batería en 12 de 12.
