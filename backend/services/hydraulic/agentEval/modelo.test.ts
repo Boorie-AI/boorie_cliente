@@ -1,12 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import * as fs from 'fs'
-import * as path from 'path'
-import { execFileSync } from 'child_process'
-import { HERRAMIENTAS, type RedCompleta } from '../agentTools'
-import { herramientasOpenAI, llamadasDesdeOllama } from '../../ai/toolWire'
-import { componerPromptDeSistema } from '../promptDelAgente'
-import { construirResumenRed, formatearContextoRed } from '../networkContext'
 import { comprobarLlamadaDelModelo, marcadorDelModelo } from './bateria'
+import { MODELO, leerRedes, preguntar, puedeCorrer } from './contraElModelo'
 import { CASOS } from './casos'
 
 /**
@@ -22,56 +16,13 @@ import { CASOS } from './casos'
  *
  * Sin la variable se salta. Con ella y sin Ollama, también: medir a medias
  * daría un número peor que no tener número.
+ *
+ * La obediencia de la disciplina —la fase 5— se mide aparte, en
+ * `disciplinaDelModelo.test.ts`: es otra corrida y otra media hora.
  */
-const MODELO = process.env.BOORIE_EVAL_MODELO
-const OLLAMA = process.env.BOORIE_EVAL_OLLAMA ?? 'http://127.0.0.1:11434'
-const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..')
-const DB = path.join(REPO_ROOT, 'prisma', 'hydraulic.db')
-
-const leerRedes = (): Map<string, { datos: RedCompleta; contadores: any }> => {
-  const salida = execFileSync('python3', ['-c', `
-import sqlite3, json, sys
-c = sqlite3.connect(${JSON.stringify(DB)})
-filas = [{'nombre': n, 'datos': json.loads(d), 'contadores': json.loads(s or '{}')}
-         for n, d, s in c.execute('select name, networkData, summary from hydraulic_networks')]
-json.dump(filas, sys.stdout)
-`], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 })
-  const m = new Map()
-  for (const f of JSON.parse(salida)) if (!m.has(f.nombre)) m.set(f.nombre, f)
-  return m
-}
-
-/** Lo mismo que arma el handler: sistema, resumen de la red y la pregunta. */
-async function preguntar(pregunta: string, red: { datos: RedCompleta; contadores: any }, nombreRed: string) {
-  const resumen = construirResumenRed({
-    nombreRed, contadores: red.contadores, datos: red.datos as any,
-  } as any)
-
-  const respuesta = await fetch(`${OLLAMA}/api/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: MODELO,
-      stream: false,
-      // Sin temperatura la medida no se repite dos veces igual, y una batería
-      // que da un número distinto cada vez no sirve para ver si se mejora.
-      options: { temperature: 0 },
-      tools: herramientasOpenAI(HERRAMIENTAS),
-      messages: [
-        { role: 'system', content: componerPromptDeSistema() },
-        { role: 'user', content: `${formatearContextoRed(resumen, true)}\n\n${pregunta}` },
-      ],
-    }),
-  })
-  if (!respuesta.ok) throw new Error(`Ollama respondió ${respuesta.status}`)
-  return llamadasDesdeOllama(await respuesta.json())
-}
-
-const puedeCorrer = !!MODELO && fs.existsSync(DB)
-
 describe.skipIf(!puedeCorrer)(`la batería contra el modelo (${MODELO ?? 'sin modelo'})`, () => {
-  it('elige la herramienta que resuelve cada pregunta', { timeout: 900_000 }, async () => {
-    const redes = leerRedes()
+  it('elige la herramienta que resuelve cada pregunta', { timeout: 1_800_000 }, async () => {
+    const redes = leerRedes([...new Set(CASOS.filter(c => !c.pendiente).map(c => c.red))])
     const resultados = []
 
     // En serie y no en paralelo: doce peticiones a la vez a un modelo local se
