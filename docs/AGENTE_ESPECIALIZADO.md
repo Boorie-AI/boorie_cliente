@@ -146,8 +146,40 @@ Las reglas, y por qué cada una:
 
 No fija idioma: responde en el que le escriban. La aplicación va en tres, y clavar uno rompería dos.
 
+## Medir al modelo (fase 4)
+
+La batería tenía media medida: que la herramienta acierta. Falta la otra, que es **si el modelo elige bien**, y esa necesita un modelo delante.
+
+```bash
+BOORIE_EVAL_MODELO=llama3.1:8b npx vitest run backend/services/hydraulic/agentEval/modelo.test.ts
+```
+
+Va detrás de una variable de entorno y no en `npm test` por tres razones: son doce llamadas a un modelo, tardan del orden de doce minutos, y el resultado depende del modelo que haya delante. Un número que cambia según la máquina no puede tumbar el CI. Sin la variable se salta; con ella y sin modelo accesible, también —medir a medias da un número peor que no tener número—.
+
+La temperatura va a cero. Una batería que da un resultado distinto cada vez no sirve para ver si se mejora.
+
+Las preguntas se hacen **en serie**. Doce peticiones a la vez a un modelo local se pisan, y entonces se mide la máquina y no al agente.
+
+### Qué se puntúa, y qué no
+
+Que llame a la herramienta que resuelve la pregunta, y que acierte **los argumentos que la pregunta determina**. Esos van en `argumentosDelModelo`, que no es lo mismo que `argumentos`: con los segundos se corre la herramienta para comprobar la cifra, e incluyen cosas que la pregunta no dice —el modelo de daño, la clase de suelo—. Exigirle esos al modelo sería medirlo por adivinar.
+
+Se acepta que llame a varias herramientas y una sea la correcta: consultar la red antes de calcular no es un error.
+
+Y la comparación de argumentos es laxa con el tipo a propósito. Un modelo que devuelve `"101"` donde se esperaba `101` ha entendido la pregunta; medirlo por el tipo del JSON mediría al proveedor.
+
+### La primera medida
+
+`llama3.1:8b`, con las doce preguntas de la batería: **12 de 12**.
+
+La primera corrida dio 11, y el fallo enseñó algo sobre la batería y no sobre el modelo: el caso del reparto por diámetro preguntaba «¿**Y** cuántos kilómetros…?», escrito como continuación de la pregunta anterior. Medido suelto —que es como se mide— sonaba a listar tuberías por diámetro, y el modelo llamaba a `listar_elementos`. Acertaba a la pregunta que se le hacía, no a la que yo creía estar haciendo. **Un caso tiene que sostenerse solo.**
+
+### Lo que sigue sin medirse
+
+Que **obedezca** la disciplina: que ponga la unidad, que no dé impacto sin simular, que cite con la marca. Eso no se lee de una llamada a herramienta sino de la respuesta escrita, y puntuarlo pide o un humano o un modelo juez. Es el siguiente paso natural de esta fase.
+
 ## Lo que queda
 
-La fase 4 del #119: correr la batería en cada cambio, añadiendo como caso cada fallo que aparezca usando el producto. Es la misma disciplina que sostiene `PROCESO_DE_RELEASE.md`.
+Del #119: que cada fallo que aparezca usando el producto entre como caso, que es la misma disciplina que sostiene `PROCESO_DE_RELEASE.md`, y puntuar la respuesta escrita además de la llamada.
 
 La fase 1 está cerrada: las cinco herramientas de cada lado del criterio, con la batería en 12 de 12.

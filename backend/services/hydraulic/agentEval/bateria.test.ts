@@ -7,7 +7,7 @@ import { randomUUID } from 'crypto'
 import { getPythonStatus } from '../pythonDetector'
 import { ejecutarHerramienta, HERRAMIENTAS, type ContextoHerramientas, type RedCompleta } from '../agentTools'
 import { WNTRResilienceService } from '../resilienceService'
-import { comprobarCaso, marcador, valorEnRuta } from './bateria'
+import { comprobarCaso, comprobarLlamadaDelModelo, marcador, marcadorDelModelo, valorEnRuta } from './bateria'
 import { CASOS } from './casos'
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..')
@@ -123,6 +123,57 @@ describe('comprobarCaso', () => {
 // El motor de fragilidad corre en Python: sin él, la batería no puede medir lo
 // que dice medir, así que se salta entera en vez de medir a medias.
 const puedeCorrer = fs.existsSync(DB) && getPythonStatus().wntrAvailable
+
+describe('la puntuación de lo que elige el modelo', () => {
+  const caso = { ...CASOS[0], herramienta: 'consultar_elemento', argumentosDelModelo: { id: '101' } }
+
+  it('acierta cuando llama a la herramienta con el argumento que la pregunta determina', () => {
+    const r = comprobarLlamadaDelModelo(caso, [{ nombre: 'consultar_elemento', argumentos: { id: '101' } }])
+    expect(r.acertoHerramienta).toBe(true)
+    expect(r.acertoArgumentos).toBe(true)
+    expect(r.fallos).toEqual([])
+  })
+
+  it('vale que llame a varias y una sea la buena', () => {
+    // Consultar la red antes de calcular no es un error.
+    const r = comprobarLlamadaDelModelo(caso, [
+      { nombre: 'listar_elementos', argumentos: { tipo: 'junction' } },
+      { nombre: 'consultar_elemento', argumentos: { id: '101' } },
+    ])
+    expect(r.acertoHerramienta).toBe(true)
+  })
+
+  it('es laxo con el tipo: "101" y 101 son la misma respuesta', () => {
+    // Medir el tipo del JSON mediría al proveedor, no al agente.
+    const r = comprobarLlamadaDelModelo(caso, [{ nombre: 'consultar_elemento', argumentos: { id: 101 } }])
+    expect(r.acertoArgumentos).toBe(true)
+  })
+
+  it('dice a qué llamó cuando se equivoca de herramienta', () => {
+    const r = comprobarLlamadaDelModelo(caso, [{ nombre: 'listar_elementos', argumentos: {} }])
+    expect(r.acertoHerramienta).toBe(false)
+    expect(r.fallos[0]).toMatch(/listar_elementos en vez de consultar_elemento/)
+  })
+
+  it('no llamar a ninguna es un fallo, y se distingue de llamar mal', () => {
+    const r = comprobarLlamadaDelModelo(caso, [])
+    expect(r.fallos[0]).toMatch(/no llamó a ninguna/)
+    expect(r.llamada).toBeNull()
+  })
+
+  it('la herramienta correcta con el argumento equivocado cuenta a medias', () => {
+    const r = comprobarLlamadaDelModelo(caso, [{ nombre: 'consultar_elemento', argumentos: { id: 'J9' } }])
+    expect(r.acertoHerramienta).toBe(true)
+    expect(r.acertoArgumentos).toBe(false)
+    expect(marcadorDelModelo([r])).toMatchObject({ herramientaOk: 1, argumentosOk: 0, porcentajeHerramienta: 100 })
+  })
+
+  it('sin argumentos declarados sólo se puntúa la elección', () => {
+    const sinArgs = { ...caso, argumentosDelModelo: undefined }
+    const r = comprobarLlamadaDelModelo(sinArgs, [{ nombre: 'consultar_elemento', argumentos: { id: 'lo que sea' } }])
+    expect(r.acertoArgumentos).toBe(true)
+  })
+})
 
 describe.skipIf(!puedeCorrer)('la batería contra las herramientas reales', { timeout: 120_000 }, () => {
   let cache: Map<string, RedGuardada> | null = null

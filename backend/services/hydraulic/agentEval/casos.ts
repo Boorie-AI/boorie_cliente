@@ -32,6 +32,7 @@ export const CASOS: CasoAgente[] = [
       { ruta: 'elemento.demanda_base_litros_por_segundo', valor: 11.984, tolerancia: 0.001 },
       { ruta: 'tramos_conectados.0.id', valor: '101' },
     ],
+    argumentosDelModelo: { id: '101' },
     origen: 'networkData de la red guardada: elevation 12.8016, demand 0.01198398280618 m³/s.',
   },
   {
@@ -43,6 +44,7 @@ export const CASOS: CasoAgente[] = [
     espera: [{ ruta: 'encontrado', valor: false }],
     // Este caso vale más que los que aciertan: mide que el agente tenga con qué
     // decir «ese nudo no está en tu red» en lugar de rellenar el hueco.
+    argumentosDelModelo: { id: 'J999' },
     origen: 'En Net3 los nudos son numéricos; no existe ningún J999.',
   },
   {
@@ -59,6 +61,7 @@ export const CASOS: CasoAgente[] = [
       { ruta: 'elementos.0.diametro_mm', valor: 762 },
       { ruta: 'elementos.1.id', valor: '101' },
     ],
+    argumentosDelModelo: { tipo: 'pipe', ordenar_por: 'length' },
     origen: 'networkData ordenado por length: 329 (13868,4 m, 0,762 m) y 101 (4328,16 m).',
   },
   {
@@ -72,6 +75,7 @@ export const CASOS: CasoAgente[] = [
       { ruta: 'elementos.0.id', valor: '109' },
       { ruta: 'elementos.0.demanda_base_litros_por_segundo', valor: 14.599, tolerancia: 0.001 },
     ],
+    argumentosDelModelo: { tipo: 'junction', ordenar_por: 'demand' },
     origen: 'networkData ordenado por demand: 109 con 0,0145990714 m³/s.',
   },
   {
@@ -81,6 +85,7 @@ export const CASOS: CasoAgente[] = [
     herramienta: 'listar_elementos',
     argumentos: { tipo: 'pump' },
     espera: [{ ruta: 'total', valor: 2 }],
+    argumentosDelModelo: { tipo: 'pump' },
     origen: 'Recuento por tipo sobre links: 117 pipe y 2 pump.',
   },
   {
@@ -93,6 +98,7 @@ export const CASOS: CasoAgente[] = [
       { ruta: 'encontrado', valor: true },
       { ruta: 'elemento.demanda_base_litros_por_segundo', valor: 0.231, tolerancia: 0.001 },
     ],
+    argumentosDelModelo: { id: 'J3' },
     origen: 'networkData de villa_100_casas: los cinco nudos llevan 0,000231 m³/s.',
   },
   {
@@ -109,6 +115,7 @@ export const CASOS: CasoAgente[] = [
       { ruta: 'definicion.eventos.0.tipo', valor: 'pipe_break' },
       { ruta: 'definicion.eventos.0.elementos.0', valor: '329' },
     ],
+    argumentosDelModelo: { tipo: 'pipe_break' },
     origen: 'Salida real de proponer_escenario sobre la red guardada; la 329 existe y se valida antes de proponer.',
   },
 
@@ -126,6 +133,7 @@ export const CASOS: CasoAgente[] = [
       { ruta: 'definicion.analisis', valor: 'indicadores_resiliencia' },
       { ruta: 'definicion.comparar_con_interrupcion', valor: false },
     ],
+    argumentosDelModelo: { tipo: 'indicadores_resiliencia' },
     origen:
       'Decisión de diseño del #119: se propone lo que simula. Medido, resilience_indicators pasa ' +
       'de 3,45 s en Net3 a más de 600 s en Net6, mientras fragility_curve se queda en 2,5 s en las dos.',
@@ -154,6 +162,7 @@ export const CASOS: CasoAgente[] = [
       { ruta: 'puntos.4.probabilidad_de_fallo', valor: 0.9774, tolerancia: 0.0002 },
       { ruta: 'puntos.4.tuberias_afectadas', valor: 114.4, tolerancia: 0.05 },
     ],
+    argumentosDelModelo: { material: 'PVC' },
     origen:
       'wntr_resilience_service.py fragility_curve con esos argumentos explícitos, y contrastado ' +
       'contra la aplicación real: el panel muestra 114,4 de 117 y 97,7 % con suelo firme.',
@@ -192,7 +201,16 @@ export const CASOS: CasoAgente[] = [
   },
   {
     id: 'net3-reparto-por-diametro',
-    pregunta: '¿Y cuántos kilómetros de tubería habría que reparar, por diámetro?',
+    /**
+     * Se preguntaba «¿Y cuántos kilómetros…?», como continuación de la
+     * anterior. Medida suelta —que es como se mide— sonaba a listar tuberías
+     * por diámetro, y `llama3.1:8b` llamaba a `listar_elementos`: acertaba a la
+     * pregunta que se le hacía, no a la que yo creía estar haciendo.
+     *
+     * Un caso tiene que sostenerse solo. Si algún día se mide la conversación
+     * entera, la continuación será otro caso, con su turno anterior dentro.
+     */
+    pregunta: '¿Cuántos kilómetros de tubería habría que reparar por diámetro tras un sismo de 1,2 g?',
     red: 'Net3 2.inp',
     herramienta: 'curva_fragilidad',
     argumentos: {
@@ -238,6 +256,7 @@ export const CASOS: CasoAgente[] = [
       { ruta: 'pasos.1.expresion', valor: 'L/D' },
       { ruta: 'pasos.1.unidad', valor: 'adimensional' },
     ],
+    argumentosDelModelo: { formula: 'darcy-weisbach' },
     origen:
       'Darcy-Weisbach a mano: 0,02 · 1666,67 · 0,012742 = 0,42474 m. El diámetro va en mm a ' +
       'propósito: es lo que el motor rechazaba antes de comprobar el rango después de convertir.',
