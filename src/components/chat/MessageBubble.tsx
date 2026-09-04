@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { marcaDeFuente } from '@/services/contextoConocimiento'
 import { logger } from '@/utils/logger'
 import { Message } from '@/stores/chatStore'
 import { Copy, User, Bot } from 'lucide-react'
@@ -147,9 +148,24 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
                             <div className="text-blue-700 dark:text-blue-300">• {source}</div>
                           ) : (
                             <div className="space-y-1">
+                              {/**
+                                * La marca va aquí y en el prompt, y tienen que
+                                * ser la misma: una cita «(F1)» que el lector no
+                                * puede resolver en esta lista es peor que
+                                * ninguna, porque parece comprobable y no lo es.
+                                */}
                               <div className="font-medium text-blue-800 dark:text-blue-200">
+                                <span className="font-mono mr-1">[{marcaDeFuente(index)}]</span>
                                 📄 {source.title || `Documento ${index + 1}`}
                               </div>
+                              {(source.section || source.page) && (
+                                <div className="text-blue-600 dark:text-blue-400">
+                                  🔖 {[
+                                    source.section && `${t('chatInput.ragSection')} ${source.section}`,
+                                    source.page && `${t('chatInput.ragPage')} ${source.page}`,
+                                  ].filter(Boolean).join(' · ')}
+                                </div>
+                              )}
                               {source.category && (
                                 <div className="text-blue-600 dark:text-blue-400">
                                   🏷️ {source.category}

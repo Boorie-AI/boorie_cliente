@@ -833,6 +833,8 @@
     "improvedQuery": "Consulta millorada",
     "copied": "Copiat!",
     "ragSources": "Fonts RAG:",
+    "ragSection": "secció",
+    "ragPage": "pàgina",
     "ragOn": "RAG activat",
     "ragNothing": "RAG: no s’ha trobat informació rellevant",
     "helperAnswer": "Resposta del model auxiliar",

@@ -1,4 +1,5 @@
 import { logger } from '@/utils/logger'
+import { contextoDeConocimiento } from '@/services/contextoConocimiento'
 import i18n from '@/i18n'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
@@ -862,24 +863,18 @@ export const useChatStore = create<ChatState>()(
             enhancedPrompt += `${systemPrompt}\n\n`
           }
 
-          // Add RAG context
-          if (sources.length > 0) {
-            enhancedPrompt += '=== CONTEXT FROM HYDRAULIC ENGINEERING KNOWLEDGE ===\n\n'
-
-            sources.forEach((source: any, index: number) => {
-              enhancedPrompt += `[Source ${index + 1}]: ${source.title}\n`
-              enhancedPrompt += `${source.content}\n\n`
-            })
-
-            enhancedPrompt += '=== END CONTEXT ===\n\n'
-            enhancedPrompt += 'Based on the above hydraulic engineering context, please answer the following question:\n\n'
-          } else {
-            // No matches: tell the model explicitly instead of letting it guess
-            // (previously it would deny having any RAG access at all, contradicting
-            // the "RAG Habilitado" badge shown from the enabled toggle).
-            enhancedPrompt += 'No se encontró información relevante en los documentos indexados del RAG para esta consulta. Indícaselo claramente al usuario en vez de afirmar que no tienes acceso a ningún sistema RAG.\n\n'
-          }
-
+          /**
+           * El bloque y sus reglas los arma `contextoConocimiento`, que es puro
+           * y está probado aparte (#119, fase 2). Aquí se tiraban la sección y
+           * la página de cada fuente —el RAG sí las recupera— y no se le pedía
+           * citar nada, así que no citaba: no podía.
+           *
+           * El caso sin fuentes también vive allí. Decirle que no hay nada es
+           * parte de la política, no un `else` suelto: sin esa frase el modelo
+           * negaba tener acceso a ningún RAG, contradiciendo a la propia
+           * insignia de la interfaz (#19/#20).
+           */
+          enhancedPrompt += contextoDeConocimiento(sources)
           enhancedPrompt += originalPrompt
 
           return { enhancedPrompt: enhancedPrompt, sources }

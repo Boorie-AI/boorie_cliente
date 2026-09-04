@@ -1,6 +1,35 @@
 import { PrismaClient } from '@prisma/client';
 
 // Simple database service wrapper for legacy code
+/**
+ * `Message.metadata` se guarda como texto JSON —lo hace `createMessage`— y
+ * al leerlo hay que deshacer eso, que es lo que no se hacia.
+ *
+ * La consecuencia se veia abriendo una conversacion vieja: el mensaje salia
+ * pero **sus fuentes no**, porque `metadata.sources` sobre una cadena es
+ * `undefined`. Con las citas de la fase 2 (#119) eso pasa de incomodo a
+ * roto: una respuesta que dice «(F1)» sin la lista de fuentes al lado es una
+ * cita que el lector no puede resolver.
+ *
+ * Un JSON malo no puede tumbar la lista entera de conversaciones: hay filas
+ * viejas escritas por versiones anteriores, y perder el `metadata` de un
+ * mensaje es mucho menos que perder todas las conversaciones.
+ */
+export function conMetadatosLeidos(conversacion: any) {
+    if (!conversacion?.messages) return conversacion;
+    return {
+        ...conversacion,
+        messages: conversacion.messages.map((m: any) => {
+            if (typeof m.metadata !== 'string') return m;
+            try {
+                return { ...m, metadata: JSON.parse(m.metadata) };
+            } catch {
+                return { ...m, metadata: null };
+            }
+        })
+    };
+}
+
 export class DatabaseService {
     public prisma: PrismaClient;
 
@@ -334,7 +363,7 @@ export class DatabaseService {
                 }
             });
 
-            return { success: true, data: conversations as any };
+            return { success: true, data: conversations.map(c => conMetadatosLeidos(c)) as any };
         } catch (error) {
             console.error('Error getting conversations:', error);
             return {
@@ -362,7 +391,7 @@ export class DatabaseService {
                 return { success: false, error: 'Conversation not found' };
             }
 
-            return { success: true, data: conversation as any };
+            return { success: true, data: conMetadatosLeidos(conversation) as any };
         } catch (error) {
             console.error('Error getting conversation by ID:', error);
             return {
