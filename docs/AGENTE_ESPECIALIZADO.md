@@ -276,6 +276,8 @@ El porcentaje escrito como fracción (v1.26.0) no se distingue del porcentaje bi
 
 Del #119: que cada fallo que aparezca usando el producto entre como caso, que es la misma disciplina que sostiene `PROCESO_DE_RELEASE.md`.
 
-Y **tomar la medida de la fase 5 con `llama3.1:8b`**, que es el modelo con el que la fase 4 dio `12/12`. Con `llama3.2` sale un pleno sobre dos respuestas de doce, y eso no dice si el agente escribe bien: dice que un modelo que falla al elegir no da cifras que juzgar. Hace falta la máquina despejada —el 8B ocupa unos 7 GB durante la corrida— y las dos medidas del mismo modelo, leídas juntas.
+Y **tomar la medida de la fase 5 con `llama3.1:8b`**, que es el modelo con el que la fase 4 dio `12/12`. Con `llama3.2` sale un pleno sobre dos respuestas de doce, y eso no dice si el agente escribe bien: dice que un modelo que falla al elegir no da cifras que juzgar. Hacen falta las dos medidas del mismo modelo, leídas juntas.
+
+Está en el [issue #133](https://github.com/Boorie-AI/boorie_cliente/issues/133), con lo que hay que tener montado y las trampas que ya costaron dos corridas. **No es trabajo de código**: el medidor está hecho y probado, falta la máquina. El 8B ocupa unos 7 GB mientras corre y en el equipo donde se desarrolla no cabe, así que la toma Luis Mora.
 
 La fase 1 está cerrada: las cinco herramientas de cada lado del criterio, con la batería en 12 de 12.
