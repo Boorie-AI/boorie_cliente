@@ -266,7 +266,15 @@ Arreglado —entran `consume`, `consumen` y `demandan`— y **vuelta a medir ent
 
 Con el vocabulario ya arreglado, el medidor **sigue sin poder mirar casi nada**: diez de las doce respuestas no le dan ninguna cifra que juzgar. No es que le falten palabras —es que el modelo no da cifras—.
 
-De modo que la conclusión no es «el agente escribe bien». Es que **con un modelo que falla al elegir, la obediencia no se puede medir**, y `conCifras` es lo que impide confundir una cosa con la otra. Para que este número diga algo hace falta un modelo que acierte al elegir: el `12/12` de la fase 4 se tomó con `llama3.1:8b`, y la medida de esta fase con ese modelo es lo que falta.
+De modo que la conclusión no es «el agente escribe bien». Es que **con un modelo que falla al elegir, la obediencia no se puede medir**, y `conCifras` es lo que impide confundir una cosa con la otra.
+
+### La medida con el 8B, considerada y no tomada
+
+Lo natural sería repetirla con `llama3.1:8b`, el modelo del `12/12` de la fase 4, para leer los dos números juntos. **Se decidió no hacerlo**, y conviene que quede dicho para que no parezca un olvido.
+
+El modelo ocupa unos 7 GB mientras corre y en el equipo donde se desarrolla no cabe: dos intentos se los llevó el matarratas de memoria de Linux, uno en el caso 10 de 12. Y lo que se estaba comprobando —que el criterio del medidor es de fiar— ya lo dice la corrida que sí se completó: el medidor no marcó ninguna falta donde no la había, marcó las que había en las pruebas deterministas, y `conCifras` delató un pleno hueco y además un agujero del propio medidor. Repetirlo con otro modelo daría otro número, no más confianza en el criterio.
+
+Así que el número de esta fase es el de `llama3.2`, con su modelo dicho al lado. Cuando haya una máquina que lo aguante, la corrida es un comando.
 
 ### Lo que este medidor no mide
 
@@ -276,8 +284,6 @@ El porcentaje escrito como fracción (v1.26.0) no se distingue del porcentaje bi
 
 Del #119: que cada fallo que aparezca usando el producto entre como caso, que es la misma disciplina que sostiene `PROCESO_DE_RELEASE.md`.
 
-Y **tomar la medida de la fase 5 con `llama3.1:8b`**, que es el modelo con el que la fase 4 dio `12/12`. Con `llama3.2` sale un pleno sobre dos respuestas de doce, y eso no dice si el agente escribe bien: dice que un modelo que falla al elegir no da cifras que juzgar. Hacen falta las dos medidas del mismo modelo, leídas juntas.
-
-Está en el [issue #133](https://github.com/Boorie-AI/boorie_cliente/issues/133), con lo que hay que tener montado y las trampas que ya costaron dos corridas. **No es trabajo de código**: el medidor está hecho y probado, falta la máquina. El 8B ocupa unos 7 GB mientras corre y en el equipo donde se desarrolla no cabe, así que la toma Luis Mora.
+Y **ensanchar el alcance del medidor**, que es lo que `conCifras` dejó a la vista: con dos de doce, apenas llega a mirar lo que el agente escribe. Ampliar el vocabulario de magnitudes ayuda poco —ya se hizo con las formas verbales y pasó de uno a dos—; el techo está en que las reglas sólo saben juzgar cifras, y una respuesta puede ser falsa sin llevar ninguna. `llama3.2` respondió «no hay bombas en la red», que es falso, y el medidor no tiene nada que decir de eso. Medir la verdad y no la forma es otro problema, y ahí sí haría falta un juez.
 
 La fase 1 está cerrada: las cinco herramientas de cada lado del criterio, con la batería en 12 de 12.
