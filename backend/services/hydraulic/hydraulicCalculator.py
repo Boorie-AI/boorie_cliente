@@ -11,6 +11,22 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 
 
+class RangoInvalido(ValueError):
+    """
+    Un dato fuera de rango, con sus avisos traducibles.
+
+    La frase en ingles se conserva para el registro y para quien llame por CLI,
+    pero lo que llega a la interfaz son `avisos`: la aplicacion va en tres
+    idiomas y el motor no sabe en cual se va a leer (#96). Sin esto, activar la
+    comprobacion de rangos (#128) hacia aparecer «is outside the valid range»
+    en un panel en castellano.
+    """
+
+    def __init__(self, mensaje: str, avisos: List[Dict[str, Any]]):
+        super().__init__(mensaje)
+        self.avisos = avisos
+
+
 def aviso(clave: str, **datos) -> Dict[str, Any]:
     """
     Un aviso no es una frase, es una clave y sus datos: el motor no sabe en qué
@@ -106,21 +122,23 @@ class HydraulicCalculator:
                         'nameKey': 'calc.param.pipeLength',
                         'descriptionKey': 'calc.paramDesc.pipeLength',
                         'units': ['m', 'ft', 'km'],
-                        'defaultValue': 100
+                        'defaultValue': 100,
+                        'range': {'min': 0, 'max': 100000}
                     },
                     {
                         'symbol': 'D',
                         'nameKey': 'calc.param.pipeDiameter',
                         'descriptionKey': 'calc.paramDesc.pipeDiameter',
                         'units': ['m', 'mm', 'in', 'ft'],
-                        'defaultValue': 0.15
+                        'defaultValue': 0.15,
+                        'range': {'min': 0.01, 'max': 10}
                     },
                     {
                         'symbol': 'V',
                         'nameKey': 'calc.param.velocity',
                         'descriptionKey': 'calc.paramDesc.velocityPipe',
                         'units': ['m/s', 'ft/s'],
-                        'range': {'min': 0.1, 'max': 5}
+                        'range': {'min': 0, 'max': 10}
                     }
                 ]
             },
@@ -135,14 +153,16 @@ class HydraulicCalculator:
                         'nameKey': 'calc.param.pipeLength',
                         'descriptionKey': 'calc.paramDesc.pipeLength',
                         'units': ['m', 'ft', 'km'],
-                        'defaultValue': 100
+                        'defaultValue': 100,
+                        'range': {'min': 0, 'max': 100000}
                     },
                     {
                         'symbol': 'Q',
                         'nameKey': 'calc.param.flowRate',
                         'descriptionKey': 'calc.paramDesc.flowRate',
                         'units': ['l/s', 'm³/s', 'gpm'],
-                        'defaultValue': 0.05
+                        'defaultValue': 0.05,
+                        'range': {'min': 0, 'max': 10}
                     },
                     {
                         'symbol': 'C',
@@ -150,14 +170,15 @@ class HydraulicCalculator:
                         'descriptionKey': 'calc.paramDesc.hazenC',
                         'units': ['-'],
                         'defaultValue': 130,
-                        'range': {'min': 80, 'max': 150}
+                        'range': {'min': 50, 'max': 150}
                     },
                     {
                         'symbol': 'D',
                         'nameKey': 'calc.param.pipeDiameter',
                         'descriptionKey': 'calc.paramDesc.pipeDiameter',
                         'units': ['m', 'mm', 'in'],
-                        'defaultValue': 0.15
+                        'defaultValue': 0.15,
+                        'range': {'min': 0.01, 'max': 10}
                     }
                 ]
             },
@@ -180,7 +201,8 @@ class HydraulicCalculator:
                         'nameKey': 'calc.param.velocity',
                         'descriptionKey': 'calc.paramDesc.velocity',
                         'units': ['m/s', 'ft/s'],
-                        'defaultValue': 2
+                        'defaultValue': 2,
+                        'range': {'min': 0, 'max': 10}
                     }
                 ]
             },
@@ -226,14 +248,16 @@ class HydraulicCalculator:
                         'nameKey': 'calc.param.flowRate',
                         'descriptionKey': 'calc.paramDesc.flowRate',
                         'units': ['l/s', 'm³/s', 'gpm'],
-                        'defaultValue': 0.05
+                        'defaultValue': 0.05,
+                        'range': {'min': 0, 'max': 10}
                     },
                     {
                         'symbol': 'H',
                         'nameKey': 'calc.param.totalHead',
                         'descriptionKey': 'calc.paramDesc.totalHead',
                         'units': ['m', 'ft'],
-                        'defaultValue': 30
+                        'defaultValue': 30,
+                        'range': {'min': 0, 'max': 1000}
                     },
                     {
                         'symbol': 'η',
@@ -281,14 +305,17 @@ class HydraulicCalculator:
                         'descriptionKey': 'calc.paramDesc.waveSpeed',
                         'units': ['m/s', 'ft/s'],
                         'defaultValue': 1200,
-                        'range': {'min': 900, 'max': 1400}
+                        # 900-1400 es la banda de un material concreto, no el
+                        # limite fisico. El motor de JavaScript admite 200-1500.
+                        'range': {'min': 200, 'max': 1500}
                     },
                     {
                         'symbol': 'ΔV',
                         'nameKey': 'calc.param.velocityChange',
                         'descriptionKey': 'calc.paramDesc.velocityChange',
                         'units': ['m/s', 'ft/s'],
-                        'defaultValue': 2
+                        'defaultValue': 2,
+                        'range': {'min': 0, 'max': 10}
                     }
                 ]
             }
@@ -296,9 +323,20 @@ class HydraulicCalculator:
     
     def calculate(self, formula_id: str, inputs: Dict[str, Dict[str, Any]]) -> CalculationResponse:
         """Perform calculation for the specified formula"""
-        
+
         # Convert units to SI
         si_inputs = self._convert_to_si(inputs)
+
+        # Y despues de convertir, comprobar el rango. Este calculador no lo
+        # comprobaba en absoluto (#128): aceptaba un diametro de 20 m y
+        # devolvia una cifra, mientras el motor de JavaScript lo rechazaba, asi
+        # que el mismo dato daba dos comportamientos segun si Python estaba
+        # instalado. Despues y no antes por el #122: el rango esta escrito en
+        # unidad estandar y el desplegable ofrece mm y pulgadas, asi que
+        # comprobarlo sobre el valor crudo dejaba fuera un diametro de 300 mm.
+        fuera, avisos = self._fuera_de_rango(formula_id, si_inputs)
+        if fuera:
+            raise RangoInvalido('Invalid inputs: ' + ', '.join(fuera), avisos)
         
         # Route to appropriate calculation method
         if formula_id == 'darcy_weisbach':
@@ -318,6 +356,60 @@ class HydraulicCalculator:
         else:
             raise ValueError(f"Unknown formula ID: {formula_id}")
     
+    # La unidad en la que estan escritos el rango y la formula: la primera de
+    # las del desplegable con equivalente en el SI. Mismo criterio que
+    # `unidadEstandarDe` en unidadesDeCalculo.ts, y hay una prueba que exige que
+    # los dos lados no se separen.
+    _ESTANDAR = [
+        (('m', 'ft'), 'm'),
+        (('m³/s', 'l/s'), 'm³/s'),
+        (('m/s', 'ft/s'), 'm/s'),
+        (('Pa', 'kPa'), 'Pa'),
+        (('kg/m³',), 'kg/m³'),
+        (('m²', 'cm²'), 'm²'),
+    ]
+
+    def _unidad_estandar(self, parametro: Dict[str, Any]) -> str:
+        unidades = parametro.get('units') or ['']
+        for candidatas, estandar in self._ESTANDAR:
+            if any(u in unidades for u in candidatas):
+                return estandar
+        return unidades[0]
+
+    def _fuera_de_rango(self, formula_id: str, si_inputs: Dict[str, float]):
+        """
+        Los parametros que se salen de su rango: la frase para el registro y el
+        aviso traducible para la interfaz.
+        """
+        formula = next((f for f in self.get_formulas() if f['id'] == formula_id), None)
+        if not formula:
+            return [], []
+
+        errores = []
+        avisos = []
+        for parametro in formula['parameters']:
+            rango = parametro.get('range')
+            simbolo = parametro['symbol']
+            if not rango or simbolo not in si_inputs:
+                continue
+            valor = si_inputs[simbolo]
+            if valor < rango['min'] or valor > rango['max']:
+                # El valor se dice en la unidad del rango y no en la que
+                # escribio el usuario: si no, el mensaje enfrenta dos numeros
+                # que no se comparan.
+                unidad = self._unidad_estandar(parametro)
+                cifra = f'{valor:g}'
+                errores.append(
+                    f"{simbolo} = {cifra} {unidad} is outside the valid range "
+                    f"[{rango['min']}, {rango['max']}]"
+                )
+                avisos.append(aviso(
+                    'outOfRange',
+                    symbol=simbolo, value=cifra, unit=unidad,
+                    min=rango['min'], max=rango['max'],
+                ))
+        return errores, avisos
+
     def _convert_to_si(self, inputs: Dict[str, Dict[str, Any]]) -> Dict[str, float]:
         """Convert all inputs to SI units"""
         si_values = {}
@@ -786,10 +878,15 @@ def main():
             }))
             
     except Exception as e:
-        print(json.dumps({
+        salida = {
             'success': False,
             'error': str(e)
-        }))
+        }
+        # Los avisos traducibles viajan aparte de la frase, para que la interfaz
+        # pueda escribirlos en el idioma en que se esta leyendo.
+        if isinstance(e, RangoInvalido):
+            salida['avisos'] = e.avisos
+        print(json.dumps(salida))
 
 
 if __name__ == '__main__':

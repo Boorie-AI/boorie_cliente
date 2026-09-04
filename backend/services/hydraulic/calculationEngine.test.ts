@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { HydraulicCalculationEngine } from './calculationEngine'
+import { HydraulicCalculationEngine, RangoInvalido } from './calculationEngine'
 
 /**
  * Los pasos intermedios de la calculadora (#89).
@@ -103,6 +103,28 @@ describe('el rango se comprueba en la unidad del rango', () => {
     expect(() => motor.calculate('darcy-weisbach', {
       f: m(0.02, 'dimensionless'), L: m(500, 'm'), D: m(12, 'in'), V: m(0.5, 'm/s'),
     })).not.toThrow()
+  })
+
+  /**
+   * Lo que la interfaz necesita para no enseñar inglés en un panel en
+   * castellano (#128): el error lleva la clave y sus datos, no sólo la frase.
+   * Activar la comprobación en el calculador de Python hizo alcanzable ese
+   * mensaje, que hasta entonces casi no se veía porque el panel no rechazaba.
+   */
+  it('el error lleva su aviso traducible, no sólo la frase en inglés', () => {
+    const motor = new HydraulicCalculationEngine()
+    try {
+      motor.calculate('darcy-weisbach', {
+        f: m(0.02, 'dimensionless'), L: m(500, 'm'), D: m(20, 'm'), V: m(0.5, 'm/s'),
+      })
+      expect.unreachable('tenía que rechazarlo')
+    } catch (e) {
+      expect(e).toBeInstanceOf(RangoInvalido)
+      expect((e as RangoInvalido).avisos).toEqual([{
+        clave: 'calc.msg.outOfRange',
+        datos: { symbol: 'D', value: 20, unit: 'm', min: 0.01, max: 10 },
+      }])
+    }
   })
 
   it('sigue rechazando lo que de verdad está fuera, y lo dice en la unidad del rango', () => {

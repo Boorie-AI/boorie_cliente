@@ -2,6 +2,8 @@ import { ipcMain } from 'electron'
 import { ServiceContainer } from '../../backend/services'
 import { HydraulicContextProcessor } from '../../backend/services/hydraulic/contextProcessor'
 import { HydraulicCalculationEngine } from '../../backend/services/hydraulic/calculationEngine'
+import { idParaElMotorJS, SIN_EQUIVALENTE } from '../../backend/services/hydraulic/idsDeFormula'
+import { RangoInvalido } from '../../backend/services/hydraulic/calculationEngine'
 import { calculatorWrapper } from '../../backend/services/hydraulic/calculatorWrapper'
 import { HydraulicRAGService } from '../../backend/services/hydraulic/ragService'
 import { 
@@ -85,13 +87,35 @@ export class HydraulicHandler {
         return { success: true, data: result }
       } catch (error) {
         appLogger.error('Calculation failed', error as Error)
-        // Fallback to JavaScript calculator if Python fails
-        try {
-          const fallbackResult = this.calculationEngine.calculate(formulaId, inputs)
-          appLogger.warn('Using JavaScript calculator as fallback')
-          return { success: true, data: fallbackResult }
-        } catch {
+        // Respaldo en el motor de JavaScript, si esa fórmula tiene respaldo.
+        //
+        // Hay que traducir el id: el panel manda el de Python —`darcy_weisbach`—
+        // y el motor de JavaScript los escribe con guion, así que este `catch`
+        // moría en «Formula not found» y el respaldo no había funcionado nunca
+        // (#128). Y no todas lo tienen: `tank_volume` se llama igual en los dos
+        // pero no es la misma fórmula.
+        // Un dato fuera de rango no es un fallo de Python: el respaldo lo
+        // rechazaría igual, así que se devuelve tal cual con sus avisos.
+        if (error instanceof RangoInvalido) {
+          return { success: false, error: error.message, avisos: error.avisos }
+        }
+
+        const idJS = idParaElMotorJS(formulaId)
+        if (!idJS) {
+          appLogger.warn('Sin respaldo en el motor de JavaScript', {
+            formulaId, motivo: SIN_EQUIVALENTE[formulaId] ?? 'no está en el catálogo',
+          })
           return { success: false, error: (error as Error).message }
+        }
+        try {
+          const fallbackResult = this.calculationEngine.calculate(idJS, inputs)
+          appLogger.warn('Using JavaScript calculator as fallback', { formulaId, idJS })
+          return { success: true, data: fallbackResult }
+        } catch (fallo) {
+          appLogger.error('El respaldo también falló', fallo as Error)
+          return fallo instanceof RangoInvalido
+            ? { success: false, error: fallo.message, avisos: fallo.avisos }
+            : { success: false, error: (error as Error).message }
         }
       }
     })

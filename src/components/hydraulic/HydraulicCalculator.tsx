@@ -20,7 +20,7 @@ import {
   ArrowRight
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
-import { hydraulicService } from '@/services/hydraulic/hydraulicService'
+import { ErrorDeCalculo, hydraulicService } from '@/services/hydraulic/hydraulicService'
 import { HydraulicFormula, CalculationResult } from '@/types/hydraulic'
 import { AvisoDescargo } from '@/components/descargo/AvisoDescargo'
 
@@ -147,7 +147,12 @@ export function HydraulicCalculator() {
       }
     } catch (err) {
       logger.error('Calculation error:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Calculation failed';
+      // Si el motor manda avisos, se enseñan traducidos: la frase que trae el
+      // error va en inglés y la aplicación se lee en tres idiomas (#128).
+      const avisos = err instanceof ErrorDeCalculo ? err.avisos : undefined
+      const errorMessage = avisos?.length
+        ? avisos.map(a => t(a.clave, a.datos)).join(' ')
+        : err instanceof Error ? err.message : t('calculator.calculationFailed');
       setError(errorMessage)
       
       // Track calculation error

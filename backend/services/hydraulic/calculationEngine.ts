@@ -12,6 +12,21 @@ import { convertirUnidad, unidadEstandarDe } from './unidadesDeCalculo'
 const aviso = (clave: string, datos?: Record<string, string | number>): AvisoDelMotor =>
   datos ? { clave: `calc.msg.${clave}`, datos } : { clave: `calc.msg.${clave}` }
 
+/**
+ * Un dato fuera de rango, con sus avisos traducibles.
+ *
+ * La frase en inglés se conserva —es lo que espera quien ya la registraba— pero
+ * lo que llega a la interfaz son `avisos`: la aplicación va en tres idiomas y el
+ * motor no sabe en cuál se va a leer (#96). Sin esto, comprobar los rangos
+ * hacía aparecer «is outside the valid range» en un panel en castellano (#128).
+ */
+export class RangoInvalido extends Error {
+  constructor(mensaje: string, readonly avisos: AvisoDelMotor[]) {
+    super(mensaje)
+    this.name = 'RangoInvalido'
+  }
+}
+
 export class HydraulicCalculationEngine {
   private formulas: Map<string, HydraulicFormula>
   
@@ -318,7 +333,10 @@ export class HydraulicCalculationEngine {
      */
     const fuera = this.comprobarRangos(formula, standardInputs)
     if (fuera.length) {
-      throw new Error(`Invalid inputs: ${fuera.join(', ')}`)
+      throw new RangoInvalido(
+        `Invalid inputs: ${fuera.map(f => f.frase).join(', ')}`,
+        fuera.map(f => f.aviso)
+      )
     }
     
     // Perform calculation based on formula
@@ -351,17 +369,23 @@ export class HydraulicCalculationEngine {
   private comprobarRangos(
     formula: HydraulicFormula,
     standardInputs: Record<string, number>
-  ): string[] {
-    const errores: string[] = []
+  ): Array<{ frase: string; aviso: AvisoDelMotor }> {
+    const errores: Array<{ frase: string; aviso: AvisoDelMotor }> = []
     for (const [symbol, valor] of Object.entries(standardInputs)) {
       const param = formula.parameters.find(p => p.symbol === symbol)
       if (param?.range && (valor < param.range.min || valor > param.range.max)) {
         // El valor se dice en la unidad del rango, no en la que escribio el
         // usuario: si no, el mensaje enfrenta dos numeros que no se comparan.
-        errores.push(
-          `${symbol} = ${valor} ${unidadEstandarDe(param)} is outside the valid range ` +
-          `[${param.range.min}, ${param.range.max}]`
-        )
+        const unidad = unidadEstandarDe(param)
+        errores.push({
+          frase:
+            `${symbol} = ${valor} ${unidad} is outside the valid range ` +
+            `[${param.range.min}, ${param.range.max}]`,
+          aviso: aviso('outOfRange', {
+            symbol, value: valor, unit: unidad,
+            min: param.range.min, max: param.range.max,
+          }),
+        })
       }
     }
     return errores
