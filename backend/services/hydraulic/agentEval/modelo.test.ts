@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { afterAll, describe, it, expect } from 'vitest'
 import { comprobarLlamadaDelModelo, marcadorDelModelo } from './bateria'
-import { MODELO, leerRedes, preguntar, puedeCorrer } from './contraElModelo'
+import { MODELO, cortarPeticiones, leerRedes, preguntar, puedeCorrer } from './contraElModelo'
 import { CASOS } from './casos'
 
 /**
@@ -47,3 +47,6 @@ describe.skipIf(!puedeCorrer)(`la batería contra el modelo (${MODELO ?? 'sin mo
     expect(m.herramientaOk).toBeGreaterThan(0)
   })
 })
+
+// Aunque la medida muera por tiempo: si no, Ollama sigue escribiendo para nadie.
+afterAll(cortarPeticiones)

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  cifrasDeMagnitud,
   fallosDeCitas,
   fallosDeImpacto,
   fallosDeUnidades,
@@ -132,6 +133,7 @@ describe('el marcador', () => {
       total: 3,
       cumplen: 1,
       porcentaje: 33.3,
+      conCifras: 2,
       porRegla: { unidades: 1, citas: 1, impacto: 1 },
     })
   })
@@ -162,5 +164,43 @@ describe('los límites del medidor, escritos', () => {
    */
   it('no mide donde no puede saber de quién es el número', () => {
     expect(fallosDeUnidades('La presión en el nudo 101 es de 45,2.')).toEqual([])
+  })
+})
+
+describe('sobre cuántas respuestas se ha podido medir algo', () => {
+  /**
+   * El número que hay que leer al lado del porcentaje. La primera medida de la
+   * fase 5 dio un pleno —12 de 12 sin faltas con `llama3.2`— y el modelo se
+   * equivocaba de herramienta en cinco casos: las reglas son «si escribes una
+   * cifra, escríbela así», y quien se disculpa en vez de responder no incumple
+   * ninguna. El porcentaje solo no lo delataba.
+   */
+  it('una disculpa cumple, pero no había nada que medir', () => {
+    const disculpa = puntuarRespuesta('a',
+      'Lo siento, no pude encontrar el nudo. ¿Podrías darme más información?')
+    expect(disculpa.cumple).toBe(true)
+    expect(disculpa.cifrasMiradas).toBe(0)
+
+    const conCifra = puntuarRespuesta('b', 'La cota es 12,8 m.')
+    expect(conCifra.cumple).toBe(true)
+    expect(conCifra.cifrasMiradas).toBe(1)
+
+    // Mismo porcentaje, y el marcador ya distingue una cosa de la otra.
+    const m = marcadorDeDisciplina([disculpa, conCifra])
+    expect(m.porcentaje).toBe(100)
+    expect(m.conCifras).toBe(1)
+  })
+
+  it('cuenta cada cifra que el texto dice de qué magnitud es', () => {
+    const miradas = cifrasDeMagnitud('El diámetro es 762 mm y la longitud 13868,4 m.')
+    expect(miradas).toEqual([
+      { magnitud: 'diámetro', cifra: '762', unidad: 'mm' },
+      { magnitud: 'longitud', cifra: '13868,4', unidad: 'm' },
+    ])
+  })
+
+  it('no cuenta un recuento ni un identificador, que no son magnitudes', () => {
+    expect(cifrasDeMagnitud('Hay 117 tuberías y 92 nudos en la red.')).toEqual([])
+    expect(puntuarRespuesta('c', 'No hay bombas en la red.').cifrasMiradas).toBe(0)
   })
 })

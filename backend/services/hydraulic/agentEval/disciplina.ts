@@ -106,16 +106,27 @@ export interface FalloDisciplina {
   detalle: string
 }
 
+export interface CifraMirada {
+  magnitud: string
+  cifra: string
+  /** Vacío si la escribió desnuda. */
+  unidad: string
+}
+
 /**
- * Cifras de una magnitud que el texto nombra, escritas sin su unidad o con la
- * unidad de otra magnitud.
+ * Las cifras que el medidor **ha podido mirar**: las que el propio texto dice
+ * de qué magnitud son.
  *
- * Es la familia de fallos que más ha reaparecido en el producto: l/s donde
- * había m³/s en el comparador (v1.25.0) y en energía (v1.27.0), la fracción
- * mostrada como porcentaje (v1.26.0), las tres cifras sin rótulo.
+ * Se saca aparte de la puntuación porque hace falta contarlas. Con `llama3.2`
+ * la primera medida dio un pleno —12 de 12 sin faltas— y el modelo se
+ * equivocaba de herramienta en cinco casos: las reglas son de la forma «si
+ * escribes una cifra, escríbela así», y quien se disculpa en vez de responder
+ * no incumple ninguna. Un pleno sacado a base de disculpas tiene que
+ * distinguirse de un pleno de verdad, y lo que los separa es sobre cuántas
+ * respuestas había algo que medir.
  */
-export function fallosDeUnidades(respuesta: string): FalloDisciplina[] {
-  const fallos: FalloDisciplina[] = []
+export function cifrasDeMagnitud(respuesta: string): CifraMirada[] {
+  const miradas: CifraMirada[] = []
 
   for (const magnitud of MAGNITUDES) {
     // Entre la magnitud y su cifra sólo se admiten enlaces —«es de», «media
@@ -128,24 +139,36 @@ export function fallosDeUnidades(respuesta: string): FalloDisciplina[] {
     )
 
     for (const m of respuesta.matchAll(patron)) {
-      const cifra = m[1]
-      const unidad = m[2]?.trim()
+      miradas.push({ magnitud: magnitud.nombre, cifra: m[1], unidad: m[2]?.trim() ?? '' })
+    }
+  }
 
-      if (!unidad) {
-        fallos.push({
-          regla: 'unidades',
-          detalle: `«${magnitud.nombre} ... ${cifra}» sin unidad`,
-        })
-        continue
-      }
+  return miradas
+}
 
-      const propia = new RegExp(`^(?:${alternancia(magnitud.unidades)})$`, 'iu').test(unidad)
-      if (!propia) {
-        fallos.push({
-          regla: 'unidades',
-          detalle: `${magnitud.nombre} en ${unidad}: no es unidad de ${magnitud.nombre} (${cifra} ${unidad})`,
-        })
-      }
+/**
+ * Cifras de una magnitud que el texto nombra, escritas sin su unidad o con la
+ * unidad de otra magnitud.
+ *
+ * Es la familia de fallos que más ha reaparecido en el producto: l/s donde
+ * había m³/s en el comparador (v1.25.0) y en energía (v1.27.0), la fracción
+ * mostrada como porcentaje (v1.26.0), las tres cifras sin rótulo.
+ */
+export function fallosDeUnidades(respuesta: string): FalloDisciplina[] {
+  const fallos: FalloDisciplina[] = []
+
+  for (const { magnitud, cifra, unidad } of cifrasDeMagnitud(respuesta)) {
+    if (!unidad) {
+      fallos.push({ regla: 'unidades', detalle: `«${magnitud} ... ${cifra}» sin unidad` })
+      continue
+    }
+
+    const suyas = MAGNITUDES.find(m => m.nombre === magnitud)!.unidades
+    if (!new RegExp(`^(?:${alternancia(suyas)})$`, 'iu').test(unidad)) {
+      fallos.push({
+        regla: 'unidades',
+        detalle: `${magnitud} en ${unidad}: no es unidad de ${magnitud} (${cifra} ${unidad})`,
+      })
     }
   }
 
@@ -256,6 +279,11 @@ export interface ResultadoDisciplina {
   id: string
   cumple: boolean
   fallos: FalloDisciplina[]
+  /**
+   * Cuántas cifras ha podido mirar el medidor. Cero significa que la respuesta
+   * no dio ninguna cifra de magnitud: cumple, pero no porque escriba bien.
+   */
+  cifrasMiradas: number
 }
 
 export function puntuarRespuesta(
@@ -268,13 +296,28 @@ export function puntuarRespuesta(
     ...fallosDeCitas(respuesta, opciones.fuentes ?? 0),
     ...fallosDeImpacto(respuesta),
   ]
-  return { id, cumple: fallos.length === 0, fallos }
+  return {
+    id,
+    cumple: fallos.length === 0,
+    fallos,
+    cifrasMiradas: cifrasDeMagnitud(respuesta).length,
+  }
 }
 
 export interface MarcadorDisciplina {
   total: number
   cumplen: number
   porcentaje: number
+  /**
+   * Sobre cuántas respuestas había algo que medir.
+   *
+   * Es el número que hay que leer al lado del porcentaje. Un pleno sobre dos
+   * respuestas con cifra y diez disculpas no dice lo mismo que un pleno sobre
+   * doce: las reglas son «si escribes una cifra, escríbela así», y quien no da
+   * cifras no las escribe mal. La primera medida de esta fase fue exactamente
+   * eso, y el porcentaje solo no lo delataba.
+   */
+  conCifras: number
   /** Cuántas respuestas incumplen cada regla, para saber por dónde empezar. */
   porRegla: Record<FalloDisciplina['regla'], number>
 }
@@ -291,6 +334,7 @@ export function marcadorDeDisciplina(resultados: ResultadoDisciplina[]): Marcado
     total: resultados.length,
     cumplen,
     porcentaje: resultados.length ? Math.round((cumplen / resultados.length) * 1000) / 10 : 0,
+    conCifras: resultados.filter(r => r.cifrasMiradas > 0).length,
     porRegla,
   }
 }

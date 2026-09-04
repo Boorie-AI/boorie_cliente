@@ -222,12 +222,50 @@ Y un aviso para quien la tome: **el 8B ocupa unos 7 GB durante la corrida**, y d
 
 La ventana de contexto sí da de sobra: con `n_ctx_slot = 4096`, los prompts se quedan en ~2.900 y el log de Ollama da `truncated = 0` en todas. Importaba comprobarlo: si los resultados de herramienta desbordaran la ventana, Ollama arranca con `--context-shift` y se habría medido la ventana en vez de al agente.
 
+### La primera medida, y por qué un pleno no es una buena noticia
+
+Tomada con `llama3.2` —3,2B— porque el 8B de la fase 4 no cabía en la máquina donde se midió: durante la corrida ocupa unos 7 GB y dos intentos se los llevó el matarratas de memoria de Linux. **Así que este número no es comparable con el `12/12` de la fase 4**, que se tomó con `llama3.1:8b`. Diecisiete minutos, los doce casos.
+
+```
+modelo llama3.2:latest: 12/12 respuestas sin faltas (100 %)
+  con cifra que medir: 1/12
+  unidades: 0 · citas: 0 · impacto: 0
+```
+
+Un pleno **sacado sobre una sola respuesta**. Once de las doce no llevaban ninguna cifra de magnitud que mirar.
+
+Ese segundo número no estaba en la primera corrida, y sin él el porcentaje engaña: se leía «12 de 12» y parecía que el agente escribiera impecablemente. Se añadió justo por esto. El modelo lo hace **mal**: de los doce casos, en cinco se equivoca de herramienta o se pierde.
+
+| Caso | Lo que escribió |
+|---|---|
+| `net3-cuantas-bombas` | Llamó a `consultar_elemento`, confundió una bomba con un tanque y concluyó «No hay bombas en la red», que es falso |
+| `net3-nudo-mas-demandante` | Llamó a `consultar_elemento` con id `92`, que es el *recuento* de nudos del resumen de la red |
+| `net3-tuberia-mas-larga` | Falló y se inventó un comando: «puedo ejecutar `list pipes` en la red cargada» |
+| `net3-curva-fragilidad-suelo-blando` | Se perdió y se puso a hablar de otro nudo |
+| `net3-curva-fragilidad` | «115 tuberías, según el modelo ALA_2001», y atribuye la cifra a «el uso de EPANET» |
+
+Saca el pleno de todas formas porque **las tres reglas son de la forma «si escribes una cifra, escríbela así»**. Una respuesta que se equivoca de herramienta, o que se disculpa y no da ninguna cifra, no puede incumplirlas. Las cifras que sí dio —`12,8016 metros`, `0,231 litros por segundo`— están impecablemente rotuladas, y que la de fragilidad salga de los argumentos equivocados no es asunto de este medidor.
+
+**Este medidor mide la forma, no la verdad.** Y `llama3.2` saca un 100 % de obediencia en parte *porque* falla al elegir: quien no da cifras no las escribe mal.
+
+De donde sale la regla para leer esto: **los números de las fases 4 y 5 no se leen separados.** Un 100 % de obediencia sólo dice algo si al lado hay un porcentaje de elección alto. Con la elección baja, la obediencia mide silencio, y `conCifras` es lo que pone cifra a ese silencio: uno de doce.
+
+### Y el contador delató al propio medidor
+
+`villa-demanda-j3` respondió «El nudo J3 **consume** 0.231 litros por segundo de agua» —una cifra rotulada con la unidad de su magnitud, exactamente lo que el medidor está para agarrar— y la cuenta como **cero cifras miradas**.
+
+El motivo: en la tabla de magnitudes está `consumo`, el sustantivo, y no `consume`, el verbo. Sin `conCifras` el caso habría pasado por «cumple» sin que nadie se enterara de que no se había mirado nada.
+
+No se arregla en la misma corrida a propósito: cambiar el vocabulario obliga a volver a medir, y un número tomado con un medidor distinto del que está en el repositorio no vale. Queda anotado abajo con su caso.
+
 ### Lo que este medidor no mide
 
 El porcentaje escrito como fracción (v1.26.0) no se distingue del porcentaje bien escrito sin entender la frase. Y la disciplina pide también decir **de qué** simulación sale un número: eso es una afirmación sobre el origen, no una forma, y ahí sí haría falta un juez.
 
 ## Lo que queda
 
-Del #119: que cada fallo que aparezca usando el producto entre como caso, que es la misma disciplina que sostiene `PROCESO_DE_RELEASE.md`, y puntuar la respuesta escrita además de la llamada.
+Del #119: que cada fallo que aparezca usando el producto entre como caso, que es la misma disciplina que sostiene `PROCESO_DE_RELEASE.md`.
+
+Y lo que la primera medida de la fase 5 dejó a la vista: **ensanchar el vocabulario de magnitudes del medidor a las formas verbales**. Con `conCifras` en uno de doce, el medidor casi no llega a mirar nada de lo que el agente escribe. El caso que lo enseña está arriba: «el nudo J3 **consume** 0,231 litros por segundo» no se cuenta porque la tabla tiene `consumo` y no `consume`. Cada palabra que se añada es un riesgo de marcar donde no hay falta, así que entra con su caso y su medida nueva.
 
 La fase 1 está cerrada: las cinco herramientas de cada lado del criterio, con la batería en 12 de 12.
