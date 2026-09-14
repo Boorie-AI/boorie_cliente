@@ -1254,22 +1254,35 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
     language?: string
   }) => {
     try {
-      console.log(`[Bulk Upload] Processing ${options.files.length} files with mode: ${options.mode}`)
+      // Contra los que se puede contar de verdad: los que no se van a indexar
+      // engordaban el total y nunca llegaban a sumar en el numerador (#138).
+      const indexables = options.files.filter((f) =>
+        ['.pdf', '.txt', '.md', '.docx', '.doc'].includes(path.extname(f).toLowerCase())
+      )
+      const omitidos = options.files.length - indexables.length
+
+      console.log(
+        `[Bulk Upload] Processing ${indexables.length} files with mode: ${options.mode}` +
+        (omitidos > 0 ? ` (${omitidos} omitidos por su extensión)` : '')
+      )
 
       const uploadedDocs = []
       let errors = 0
+      /**
+       * Por qué documento va, no cuántos han salido bien. El contador mostraba
+       * `uploadedDocs.length + 1`, así que en cuanto un documento fallaba se
+       * quedaba atrás y repetía número: con una carpeta donde fallaban varios
+       * —lo que pasa si no hay modelo de embeddings— la cuenta parecía aleatoria.
+       */
+      let posicion = 0
 
-      for (const filePath of options.files) {
+      for (const filePath of indexables) {
+        posicion++
         try {
           const fileName = path.basename(filePath)
           const fileExtension = path.extname(fileName).toLowerCase()
 
           console.log(`[Bulk Upload] Processing file: ${fileName}`)
-
-          if (!['.pdf', '.txt', '.md', '.docx', '.doc'].includes(fileExtension)) {
-            console.warn(`[Bulk Upload] Skipping unsupported file: ${fileName}`)
-            continue
-          }
 
           let fileContent: string
 
@@ -1362,8 +1375,8 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
           // Notify start of file processing
           if (event.sender) {
             event.sender.send('wisdom:upload-progress', {
-              current: uploadedDocs.length + 1,
-              total: options.files.length,
+              current: posicion,
+              total: indexables.length,
               message: `Iniciando carga de ${fileName}...`,
               filename: fileName
             })
@@ -1382,8 +1395,8 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
             // Forward chunk progress
             if (event.sender) {
               event.sender.send('wisdom:upload-progress', {
-                current: uploadedDocs.length + 1,
-                total: options.files.length,
+                current: posicion,
+                total: indexables.length,
                 message: `${fileName}: ${progress.message}`,
                 filename: fileName
               })
@@ -1413,9 +1426,11 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
         documents: uploadedDocs,
         processed: uploadedDocs.length,
         errors,
+        omitidos,
         stats: {
           total: uploadedDocs.length,
           errors,
+          omitidos,
           successful: uploadedDocs.length
         },
         message: `Successfully uploaded ${uploadedDocs.length} documents${errors > 0 ? ` (${errors} errors)` : ''}`

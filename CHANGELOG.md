@@ -20,6 +20,12 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   aparece marcado y sin poder elegirse, el que queda seleccionado por defecto es uno que
   funciona, y si no hay ninguno se explica qué instalar, en el idioma de la aplicación.
 
+- **El contador de la carga por carpeta enseñaba números que no correspondían.** Contaba los
+  documentos que habían salido bien, no por cuál iba, así que en cuanto uno fallaba se
+  quedaba atrás y repetía número; y el total incluía ficheros que nunca se iban a indexar.
+  Con una carpeta donde fallaban varios —lo que pasa justo cuando no hay modelo de
+  embeddings— la cuenta parecía aleatoria.
+
 - **Abrir el centro de conocimiento con muchos documentos se llevaba por delante la
   aplicación.** Para escribir «40 fragmentos, 30 vectorizados» al lado de cada título, el
   listado se traía el embedding de cada fragmento —unos 15 KB por fragmento— y los contaba

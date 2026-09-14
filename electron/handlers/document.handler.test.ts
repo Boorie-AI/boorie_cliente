@@ -22,7 +22,20 @@ vi.mock('electron', () => ({
 vi.mock('pdf-parse', () => ({ default: vi.fn() }))
 vi.mock('mammoth', () => ({ default: { extractRawText: vi.fn() } }))
 
+// El segundo documento falla, que es lo que descolocaba el contador.
+const addDocument = vi.fn(async (doc: any) => {
+  if (doc.title === 'b') throw new Error('sin modelo de embeddings')
+  return `id-${doc.title}`
+})
+vi.mock('../../backend/services/hydraulic/ragService', () => ({
+  HydraulicRAGService: class {
+    addDocument = (...args: any[]) => addDocument(...args)
+  },
+}))
 
+import * as fs from 'fs'
+import * as os from 'os'
+import * as path from 'path'
 import { registerVectorGraphHandlers, registerWisdomHandlers } from './document.handler'
 
 const DOCS = [
@@ -214,5 +227,46 @@ describe('wisdom:getEmbeddingProviders', () => {
       const elegido = res.providers.find((p: any) => p.id === res.currentProviderId)
       expect(elegido.disponible).toBe(true)
     }
+  })
+})
+
+describe('wisdom:bulkUploadDocuments', () => {
+  /**
+   * El contador enseñaba `uploadedDocs.length + 1` —cuántos habían salido bien—
+   * contra el total de ficheros de la carpeta. En cuanto uno fallaba se quedaba
+   * atrás y repetía número, y los que no se pueden indexar engordaban el total
+   * sin sumar nunca: de ahí los números que no correspondían (#138).
+   */
+  it('cuenta por qué documento va, aunque alguno falle', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'boorie-bulk-'))
+    const ficheros = ['a.txt', 'b.txt', 'c.txt'].map((n) => {
+      const ruta = path.join(dir, n)
+      fs.writeFileSync(ruta, 'contenido hidráulico de prueba '.repeat(10))
+      return ruta
+    })
+    const noIndexable = path.join(dir, 'foto.jpg')
+    fs.writeFileSync(noIndexable, 'x')
+
+    const progreso: { current: number; total: number; filename: string }[] = []
+    const evento = { sender: { send: (_canal: string, datos: any) => progreso.push(datos) } }
+
+    registerWisdomHandlers(prismaFalso().prisma)
+    const res = await handlersRegistrados['wisdom:bulkUploadDocuments'](evento, {
+      files: [...ficheros, noIndexable],
+      mode: 'folder',
+    })
+
+    expect(res.success).toBe(true)
+    expect(res.processed).toBe(2) // a y c; b falló
+    expect(res.errors).toBe(1)
+    expect(res.omitidos).toBe(1) // el .jpg
+
+    // Un aviso de inicio por documento indexable, en orden y sin repetirse.
+    const inicios = progreso.filter((p) => p.filename && p.current !== undefined)
+    expect(inicios.map((p) => p.current)).toEqual([1, 2, 3])
+    // Y el total no cuenta el fichero que nunca se iba a indexar.
+    expect(inicios.every((p) => p.total === 3)).toBe(true)
+
+    fs.rmSync(dir, { recursive: true, force: true })
   })
 })
