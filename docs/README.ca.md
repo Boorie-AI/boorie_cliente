@@ -39,15 +39,22 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.31.0
+### 🚀 Última Versió - v1.32.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.31.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.31.0/Boorie-1.31.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.31.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.31.0/Boorie-Setup-1.31.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.31.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.31.0/Boorie-1.31.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.32.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.32.0/Boorie-1.32.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.32.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.32.0/Boorie-Setup-1.32.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.32.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.32.0/Boorie-1.32.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.32.0
+- Obrir el centre de coneixement amb molts documents s'enduia l'aplicació. Per escriure «90 fragments» al costat de cada títol es carregava a memòria el vector de cada fragment —uns 29 KB cadascun— i els comptava allà: en una base d'1,1 GB això és demanar prop d'un gigabyte cada vegada que s'obre el plafó, i un altre cop després de cada càrrega. Ara aquests comptes els fa la base de dades.
+- Un document podia quedar indexat sobre el paper i absent de la cerca. La base vectorial es creava sempre amb la mida del model local, així que allò indexat amb OpenAI es rebutjava a cada inserció sense dir res, i la cerca semàntica no el trobava mai.
+- El desplegable de models d'indexació ja no ofereix opcions que no poden funcionar —OpenAI sense clau, o models d'Ollama que no estan instal·lats—, i quan no n'hi ha cap de disponible explica què cal instal·lar.
+- El comptador de la càrrega per carpeta deixa d'ensenyar números que no corresponen: comptava els documents que sortien bé en lloc de per quin anava.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.32.0).
 
 ### 📝 Novetats a v1.31.0
 - L'assistent feia les anàlisis a mitges: llegia la xarxa i allà s'acabava, així que calia executar el panell a mà i tornar a explicar-li al xat els números que s'acabaven de veure. Ara executa ell la corba de fragilitat i la calculadora, i proposa —per tal que vostè els confirmi— les anàlisis que exigeixen simular la xarxa sencera, que en una xarxa gran passen de deu minuts.
@@ -356,12 +363,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.31.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.31.0.AppImage`
-3. Executa: `./Boorie-1.31.0.AppImage`
+1. Descarrega `Boorie-1.32.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.32.0.AppImage`
+3. Executa: `./Boorie-1.32.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.31.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.32.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
