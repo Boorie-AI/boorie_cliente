@@ -78,6 +78,86 @@ export function registerChatAttachmentHandler() {
   })
 }
 
+/**
+ * Cuántos trozos tiene cada documento y cuántos están ya vectorizados. Es lo
+ * único que la lista necesita saber de ellos, y se cuenta en SQL: traerse las
+ * filas para contarlas cargaba el embedding de cada trozo —unos 15 KB— en el
+ * proceso principal cada vez que se abría el panel o terminaba una subida. Con
+ * cien documentos eran cientos de MB por listado (issue #139).
+ */
+async function recuentoDeIndexado(
+  prismaClient: PrismaClient
+): Promise<Map<string, { total: number; conEmbedding: number }>> {
+  const filas = await prismaClient.$queryRaw<
+    { knowledgeId: string; total: number | bigint; conEmbedding: number | bigint | null }[]
+  >`
+    SELECT "knowledgeId",
+           COUNT(*) AS total,
+           SUM(CASE WHEN "embedding" IS NOT NULL
+                     AND "embedding" NOT IN ('', '[]', 'null')
+                    THEN 1 ELSE 0 END) AS "conEmbedding"
+      FROM "knowledge_chunks"
+     GROUP BY "knowledgeId"
+  `
+
+  return new Map(
+    filas.map((f) => [
+      f.knowledgeId,
+      { total: Number(f.total), conEmbedding: Number(f.conEmbedding ?? 0) },
+    ])
+  )
+}
+
+/** Un trozo indexado es el que tiene embedding; los demás no cuentan para el grafo. */
+const TROZO_INDEXADO = { embedding: { notIn: ['', '[]', 'null'] } }
+
+/**
+ * Cuántos trozos indexados tiene cada documento y cuánto texto suman. Se agrega
+ * en SQL en vez de traerse las filas: el grafo sólo necesita dos números por
+ * documento, y las filas pesan porque cada una carga su embedding.
+ */
+async function resumenDeTrozos(
+  prismaClient: PrismaClient
+): Promise<Map<string, { total: number; caracteres: number }>> {
+  const filas = await prismaClient.$queryRaw<
+    { knowledgeId: string; total: number | bigint; caracteres: number | bigint | null }[]
+  >`
+    SELECT "knowledgeId",
+           COUNT(*) AS total,
+           SUM(LENGTH("content")) AS caracteres
+      FROM "knowledge_chunks"
+     WHERE "embedding" IS NOT NULL
+       AND "embedding" NOT IN ('', '[]', 'null')
+     GROUP BY "knowledgeId"
+  `
+
+  return new Map(
+    filas.map((f) => [
+      f.knowledgeId,
+      { total: Number(f.total), caracteres: Number(f.caracteres ?? 0) },
+    ])
+  )
+}
+
+/** Los tres primeros trozos de cada documento, que son los que el grafo dibuja. */
+async function muestrasDeTrozos(
+  prismaClient: PrismaClient
+): Promise<Map<string, { id: string; chunkIndex: number; content: string }[]>> {
+  const trozos = await prismaClient.knowledgeChunk.findMany({
+    where: { ...TROZO_INDEXADO, chunkIndex: { lt: 3 } },
+    select: { id: true, knowledgeId: true, chunkIndex: true, content: true },
+    orderBy: { chunkIndex: 'asc' },
+  })
+
+  const porDocumento = new Map<string, { id: string; chunkIndex: number; content: string }[]>()
+  for (const trozo of trozos) {
+    const lista = porDocumento.get(trozo.knowledgeId) ?? []
+    lista.push({ id: trozo.id, chunkIndex: trozo.chunkIndex, content: trozo.content })
+    porDocumento.set(trozo.knowledgeId, lista)
+  }
+  return porDocumento
+}
+
 export function registerWisdomHandlers(prisma?: PrismaClient) {
   const prismaClient = prisma || new PrismaClient()
   const embeddingService = new EmbeddingService(prismaClient)
@@ -268,24 +348,27 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
       const documents = await prismaClient.hydraulicKnowledge.findMany({
         where,
         orderBy: { updatedAt: 'desc' },
-        include: {
-          chunks: {
-            select: {
-              id: true,
-              embedding: true
-            }
-          }
+        // Sin `content`: la lista enseña títulos y estado, y el texto entero de
+        // cada documento no llega ni a cruzar el IPC.
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          subcategory: true,
+          region: true,
+          language: true,
+          updatedAt: true,
+          version: true,
         }
       })
+
+      const recuento = await recuentoDeIndexado(prismaClient)
 
       return {
         success: true,
         documents: documents.map((doc: any) => {
-          const totalChunks = doc.chunks.length
-          const chunksWithEmbeddings = doc.chunks.filter((chunk: any) => {
-            // Check for valid embedding: not null, not empty string, not empty array
-            return chunk.embedding && chunk.embedding !== '' && chunk.embedding !== '[]' && chunk.embedding !== 'null'
-          }).length
+          const { total: totalChunks, conEmbedding: chunksWithEmbeddings } =
+            recuento.get(doc.id) ?? { total: 0, conEmbedding: 0 }
           const isIndexed = totalChunks > 0
           const hasEmbeddings = chunksWithEmbeddings > 0
           const indexingComplete = totalChunks > 0 && chunksWithEmbeddings === totalChunks
@@ -1449,17 +1532,25 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
   // Get Vector Graph data for visualization
   ipcMain.handle('wisdom:getVectorGraph', async (_event, _options?: any) => {
     try {
-      // Get all documents with their chunks and embeddings
+      // Sólo los campos que el grafo dibuja. Traer el documento entero incluía
+      // `content` —el texto completo del PDF— y, con `include: { chunks: ... }`,
+      // el embedding de cada trozo: unos 15 KB por trozo que este handler no
+      // mira. Con más de cien documentos eran cientos de MB materializados en el
+      // proceso principal para pintar unos círculos, y el proceso se caía
+      // llevándose la ventana (issue #139).
       const documents = await prismaClient.hydraulicKnowledge.findMany({
         where: { status: 'active' },
-        include: {
-          chunks: {
-            where: {
-              embedding: { notIn: ['', '[]', 'null'] }
-            }
-          }
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          secondaryCategories: true,
+          region: true,
         }
       })
+
+      const resumen = await resumenDeTrozos(prismaClient)
+      const muestras = await muestrasDeTrozos(prismaClient)
 
       const nodes = []
       const edges = []
@@ -1482,6 +1573,8 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
           }
         }
 
+        const trozos = resumen.get(doc.id) ?? { total: 0, caracteres: 0 }
+
         nodes.push({
           id: nodeId,
           label: doc.title,
@@ -1489,9 +1582,9 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
           category: doc.category,
           allCategories: categories, // Pass all categories to frontend
           region: JSON.parse(doc.region),
-          chunks: (doc as any).chunks.length,
+          chunks: trozos.total,
           color: getColorForCategory(doc.category),
-          size: Math.max(15, Math.min(35, (doc as any).chunks.length * 2))
+          size: Math.max(15, Math.min(35, trozos.total * 2))
         })
 
         // Process categories for graph nodes and links
@@ -1519,7 +1612,7 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
         })
 
         // Create nodes for chunks
-        for (const chunk of (doc as any).chunks.slice(0, 3)) { // Limit to first 3 chunks per doc
+        for (const chunk of muestras.get(doc.id) ?? []) { // Limit to first 3 chunks per doc
           const chunkId = `chunk-${chunk.id}`
           nodes.push({
             id: chunkId,
@@ -1558,12 +1651,11 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
           categoryStats[doc.category] = { count: 0, totalChunks: 0, totalSize: 0, avgChunkSize: 0 }
         }
 
+        const trozos = resumen.get(doc.id) ?? { total: 0, caracteres: 0 }
         const stats = categoryStats[doc.category]
         stats.count++
-        stats.totalChunks += doc.chunks.length
-
-        const docChunkSize = doc.chunks.reduce((sum, chunk) => sum + chunk.content.length, 0)
-        stats.totalSize += docChunkSize
+        stats.totalChunks += trozos.total
+        stats.totalSize += trozos.caracteres
       }
 
       // Finalize averages
@@ -1581,7 +1673,7 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
             totalNodes: nodes.length,
             totalEdges: edges.length,
             totalDocuments: documents.length,
-            totalChunks: documents.reduce((sum, doc) => sum + doc.chunks.length, 0),
+            totalChunks: documents.reduce((sum, doc) => sum + (resumen.get(doc.id)?.total ?? 0), 0),
             categories: categoryNodes.size, // Use size of all unique categories found
             categoryStats
           }
@@ -1701,16 +1793,15 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
   // Get vector clusters analysis
   ipcMain.handle('wisdom:getVectorClusters', async (_event, _options?: any) => {
     try {
-      // Clustering based on categories and similarity
+      // Clustering based on categories and similarity. Aquí ya no se traía el
+      // embedding, pero sí el texto entero de cada documento y el de todos sus
+      // trozos para acabar sumando longitudes: eso lo cuenta SQL (issue #139).
       const documents = await prismaClient.hydraulicKnowledge.findMany({
         where: { status: 'active' },
-        include: {
-          chunks: {
-            where: { embedding: { notIn: ['', '[]', 'null'] } },
-            select: { id: true, content: true } // Need content length, don't need embedding for basic clustering
-          }
-        }
+        select: { id: true, title: true, category: true, region: true }
       })
+
+      const resumen = await resumenDeTrozos(prismaClient)
 
       const clusters = new Map()
       let totalChunksInSystem = 0
@@ -1734,8 +1825,9 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
           region: JSON.parse(doc.region)
         })
 
-        const docChunks = doc.chunks.length
-        const docContentLength = doc.chunks.reduce((sum, chunk) => sum + chunk.content.length, 0)
+        const trozos = resumen.get(doc.id) ?? { total: 0, caracteres: 0 }
+        const docChunks = trozos.total
+        const docContentLength = trozos.caracteres
 
         cluster.totalChunks += docChunks
         cluster.totalContentLength += docContentLength
@@ -2014,16 +2106,15 @@ export function registerWisdomExtendedHandlers(prisma?: PrismaClient) {
           orderBy: { [sortBy]: sortOrder },
           skip: offset,
           take: limit,
-          include: {
-            chunks: {
-              select: { id: true, embedding: true },
-            },
-          },
         }),
         prismaClient.hydraulicKnowledge.count({ where }),
       ])
 
-      const formattedDocs = documents.map((doc: any) => ({
+      const recuento = await recuentoDeIndexado(prismaClient)
+
+      const formattedDocs = documents.map((doc: any) => {
+        const { total, conEmbedding } = recuento.get(doc.id) ?? { total: 0, conEmbedding: 0 }
+        return {
         id: doc.id,
         title: doc.title,
         category: doc.category,
@@ -2037,15 +2128,15 @@ export function registerWisdomExtendedHandlers(prisma?: PrismaClient) {
         createdAt: doc.createdAt?.toISOString(),
         type: 'uploaded' as const,
         indexing: {
-          totalChunks: doc.chunks?.length || 0,
-          chunksWithEmbeddings: doc.chunks?.filter((c: any) => c.embedding && c.embedding !== '[]' && c.embedding !== 'null').length || 0,
-          isIndexed: doc.chunks?.length > 0,
-          hasEmbeddings: doc.chunks?.some((c: any) => c.embedding && c.embedding !== '[]' && c.embedding !== 'null') || false,
-          indexingComplete: doc.chunks?.length > 0 && doc.chunks?.every((c: any) => c.embedding && c.embedding !== '[]' && c.embedding !== 'null'),
-          status: doc.chunks?.length === 0 ? 'not_indexed' :
-            doc.chunks?.every((c: any) => c.embedding && c.embedding !== '[]' && c.embedding !== 'null') ? 'completed' : 'partial',
+          totalChunks: total,
+          chunksWithEmbeddings: conEmbedding,
+          isIndexed: total > 0,
+          hasEmbeddings: conEmbedding > 0,
+          indexingComplete: total > 0 && conEmbedding === total,
+          status: total === 0 ? 'not_indexed' : conEmbedding === total ? 'completed' : 'partial',
         },
-      }))
+        }
+      })
 
       return {
         success: true,

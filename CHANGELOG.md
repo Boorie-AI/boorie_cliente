@@ -11,6 +11,16 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 
 ## [Unreleased]
 
+- **Abrir el centro de conocimiento con muchos documentos se llevaba por delante la
+  aplicación.** Para escribir «40 fragmentos, 30 vectorizados» al lado de cada título, el
+  listado se traía el embedding de cada fragmento —unos 15 KB por fragmento— y los contaba
+  en memoria; el grafo del RAG hacía lo mismo y además cargaba el texto completo de cada
+  documento para dibujar unos círculos. Con ciento diez documentos eso son 490 MB de
+  memoria al abrir el panel y otros 538 MB al pedir el grafo, en el mismo proceso y casi a
+  la vez, y con los modelos de OpenAI el doble. Ahora esas cuentas las hace la base de
+  datos: 3 MB y 1 MB. El listado, además, ya no cruza el texto entero de cada documento
+  hacia la interfaz.
+
 - **Los documentos que se subían al Wisdom Center podían quedarse sin un solo vector, sin
   decirlo.** La base vectorial se creaba siempre con vectores de 768 números, el tamaño del
   modelo local; quien indexaba con OpenAI (1536) veía el documento aparecer en la lista y
