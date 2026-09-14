@@ -714,7 +714,11 @@
     "theProject": "the project",
     "internalOf": "Internal document of {{proyecto}}",
     "thisProject": "this project",
-    "generalKnowledge": "General knowledge, shared by every project"
+    "generalKnowledge": "General knowledge, shared by every project",
+    "sinProveedorTitulo": "Nothing available to index documents with",
+    "sinProveedorCuerpo": "Adding documents to the knowledge base needs an embedding model. Install Ollama and pull “nomic-embed-text” (ollama pull nomic-embed-text), or add an OpenAI key under Settings → AI configuration.",
+    "proveedorNoDisponible": "unavailable",
+    "sinClaveOpenAI": "no OpenAI key"
   },
   "wisdomCatalog": {
     "title": "Boorie Wisdom Catalog",
@@ -1275,7 +1279,8 @@
     "measuresFailed": "The measures could not be worked out",
     "scenarioFailed": "The scenario could not be simulated",
     "energyFailed": "The energy use could not be analysed",
-    "measureFailed": "The measure could not be checked"
+    "measureFailed": "The measure could not be checked",
+    "sinProveedorDeEmbeddings": "Could not index: no embedding model is available. Install Ollama with “nomic-embed-text”, or add an OpenAI key under Settings → AI configuration."
   },
   "layers": {
     "junction": "Demand junctions",

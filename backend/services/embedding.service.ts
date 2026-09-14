@@ -239,15 +239,3 @@ export class EmbeddingService {
         throw new Error("No active embedding provider found. Please configure OpenAI or ensure Ollama is running with 'nomic-embed-text'.");
     }
 }
-
-/**
- * BOORIE BUG FIX #9: Validate embedding dimension consistency
- * All embeddings in the DB must have the same dimension.
- * Default: 768 (nomic-embed-text via Ollama)
- * If OpenAI embeddings (1536 dims) are mixed in, search will fail.
- */
-export const EXPECTED_EMBEDDING_DIM = 768;
-
-export function validateEmbeddingDimension(embedding: number[]): boolean {
-  return Array.isArray(embedding) && embedding.length === EXPECTED_EMBEDDING_DIM;
-}

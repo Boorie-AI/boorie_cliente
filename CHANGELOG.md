@@ -9,6 +9,50 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **La tabla de fragmentos tiene ahora un índice por documento.** Contar cuántos fragmentos
+  tiene cada documento —lo primero que se hace al abrir el centro de conocimiento— obligaba
+  a recorrerla entera, y cada fila arrastra su vector: en una base de 1,1 GB eso son 4,6
+  segundos, y 0,6 con el índice. Se crea solo al arrancar sobre las bases que ya existen.
+
+- **El desplegable de modelos de indexación ofrecía opciones que no podían funcionar.** Los
+  modelos de OpenAI aparecían hubiera clave o no, y si la consulta al proceso principal
+  fallaba la interfaz se inventaba dos modelos de Ollama «como mínimo», estuviera Ollama
+  instalado o no. En un equipo recién instalado se podía elegir cualquiera de los cuatro y
+  ninguno servía: la subida fallaba después en todos los fragmentos, con un mensaje en
+  inglés que no decía qué faltaba. Ahora sólo se ofrece lo que puede trabajar, lo que no
+  aparece marcado y sin poder elegirse, el que queda seleccionado por defecto es uno que
+  funciona, y si no hay ninguno se explica qué instalar, en el idioma de la aplicación.
+
+- **El contador de la carga por carpeta enseñaba números que no correspondían.** Contaba los
+  documentos que habían salido bien, no por cuál iba, así que en cuanto uno fallaba se
+  quedaba atrás y repetía número; y el total incluía ficheros que nunca se iban a indexar.
+  Con una carpeta donde fallaban varios —lo que pasa justo cuando no hay modelo de
+  embeddings— la cuenta parecía aleatoria.
+
+- **Abrir el centro de conocimiento con muchos documentos se llevaba por delante la
+  aplicación.** Para escribir «40 fragmentos, 30 vectorizados» al lado de cada título, el
+  listado se traía el embedding de cada fragmento —unos 15 KB por fragmento— y los contaba
+  en memoria; el grafo del RAG hacía lo mismo y además cargaba el texto completo de cada
+  documento para dibujar unos círculos. Con ciento diez documentos eso son 490 MB de
+  memoria al abrir el panel y otros 538 MB al pedir el grafo, en el mismo proceso y casi a
+  la vez, y con los modelos de OpenAI el doble. Ahora esas cuentas las hace la base de
+  datos: 3 MB y 1 MB. El listado, además, ya no cruza el texto entero de cada documento
+  hacia la interfaz.
+
+- **Los documentos que se subían al Wisdom Center podían quedarse sin un solo vector, sin
+  decirlo.** La base vectorial se creaba siempre con vectores de 768 números, el tamaño del
+  modelo local; quien indexaba con OpenAI (1536) veía el documento aparecer en la lista y
+  marcado como indexado —sus trozos sí se guardan en la base relacional— mientras el
+  almacén vectorial rechazaba cada inserción y la búsqueda semántica no lo encontraba
+  nunca. El rechazo no era un error para el programa: Milvus lo devuelve dentro de la
+  respuesta, y nadie la miraba. Ahora el tamaño lo fija el modelo que se esté usando, un
+  rechazo del almacén se ve, y el botón de sincronizar cuenta lo que entró de verdad en
+  lugar de lo que se envió. Si el modelo cambia cuando ya hay documentos indexados, la
+  subida se detiene y lo dice: rehacer la base vectorial sola tiraría los vectores de todo
+  lo anterior, y regenerarlos es un reindexado completo.
+
 ## [1.31.0] - 2026-09-04
 
 El asistente hace los análisis en vez de explicarlos, y cita de dónde sale cada cifra.

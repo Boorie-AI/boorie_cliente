@@ -312,6 +312,7 @@ model KnowledgeChunk {
 
   knowledge HydraulicKnowledge @relation(fields: [knowledgeId], references: [id], onDelete: Cascade)
 
+  @@index([knowledgeId])
   @@map("knowledge_chunks")
 }
 
