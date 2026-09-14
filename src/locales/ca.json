@@ -714,7 +714,11 @@
     "theProject": "el projecte",
     "internalOf": "Document intern de {{proyecto}}",
     "thisProject": "aquest projecte",
-    "generalKnowledge": "Coneixement general, compartit per tots els projectes"
+    "generalKnowledge": "Coneixement general, compartit per tots els projectes",
+    "sinProveedorTitulo": "No hi ha res amb què indexar documents",
+    "sinProveedorCuerpo": "Afegir documents a la base de coneixement necessita un model d’embeddings. Instal·la Ollama i descarrega «nomic-embed-text» (ollama pull nomic-embed-text), o afegeix una clau d’OpenAI a Configuració → Configuració d’IA.",
+    "proveedorNoDisponible": "no disponible",
+    "sinClaveOpenAI": "sense clau d’OpenAI"
   },
   "wisdomCatalog": {
     "title": "Catàleg de la base de coneixement",
@@ -1275,7 +1279,8 @@
     "measuresFailed": "No s’han pogut calcular les mesures",
     "scenarioFailed": "L’escenari no s’ha pogut simular",
     "energyFailed": "No s’ha pogut analitzar el consum energètic",
-    "measureFailed": "No s’ha pogut verificar la mesura"
+    "measureFailed": "No s’ha pogut verificar la mesura",
+    "sinProveedorDeEmbeddings": "No s’ha pogut indexar: no hi ha cap model d’embeddings disponible. Instal·la Ollama amb «nomic-embed-text», o afegeix una clau d’OpenAI a Configuració → Configuració d’IA."
   },
   "layers": {
     "junction": "Nusos de consum",

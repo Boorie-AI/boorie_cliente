@@ -714,7 +714,11 @@
     "theProject": "el proyecto",
     "internalOf": "Documento interno de {{proyecto}}",
     "thisProject": "este proyecto",
-    "generalKnowledge": "Conocimiento general, compartido por todos los proyectos"
+    "generalKnowledge": "Conocimiento general, compartido por todos los proyectos",
+    "sinProveedorTitulo": "No hay con qué indexar documentos",
+    "sinProveedorCuerpo": "Añadir documentos a la base de conocimiento necesita un modelo de embeddings. Instala Ollama y descarga «nomic-embed-text» (ollama pull nomic-embed-text), o añade una clave de OpenAI en Configuración → Configuración de IA.",
+    "proveedorNoDisponible": "no disponible",
+    "sinClaveOpenAI": "sin clave de OpenAI"
   },
   "wisdomCatalog": {
     "title": "Catálogo de la base de conocimiento",
@@ -1275,7 +1279,8 @@
     "measuresFailed": "No se pudieron calcular las medidas",
     "scenarioFailed": "El escenario no se pudo simular",
     "energyFailed": "No se pudo analizar el consumo energético",
-    "measureFailed": "No se pudo verificar la medida"
+    "measureFailed": "No se pudo verificar la medida",
+    "sinProveedorDeEmbeddings": "No se pudo indexar: no hay ningún modelo de embeddings disponible. Instala Ollama con «nomic-embed-text», o añade una clave de OpenAI en Configuración → Configuración de IA."
   },
   "layers": {
     "junction": "Nudos de consumo",

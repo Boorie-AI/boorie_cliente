@@ -67,6 +67,10 @@ interface EmbeddingProvider {
   name: string
   model: string
   dimension: number
+  /** Si con este modelo se puede indexar de verdad ahora mismo. */
+  disponible?: boolean
+  /** Clave de traducción que explica por qué no. */
+  motivo?: string
 }
 
 type ViewMode = 'grid' | 'list'
@@ -133,6 +137,7 @@ export function UnifiedWisdomPanel() {
 
   // Embedding settings
   const [embeddingProviders, setEmbeddingProviders] = useState<EmbeddingProvider[]>([])
+  const [hayProveedorDisponible, setHayProveedorDisponible] = useState(true)
   const [selectedProviderId, setSelectedProviderId] = useState<string>('')
 
   // Helper function to get indexing status component
@@ -360,6 +365,8 @@ export function UnifiedWisdomPanel() {
         setSelectedProviderId(currentProviderId)
         logger.debug('✅ [React] setSelectedProviderId called successfully')
 
+        setHayProveedorDisponible(result.hayDisponible !== false)
+
         // Update Ollama status based on dynamic providers
         if (result.dynamicCount > 0) {
           logger.debug(`✅ Ollama available with ${result.dynamicCount} models`)
@@ -370,27 +377,14 @@ export function UnifiedWisdomPanel() {
         }
       } else {
         logger.error('❌ Failed to get providers from backend:', result)
-        logger.debug('🔄 Trying fallback approach - creating minimal providers')
 
-        // FALLBACK: Create basic Ollama providers as minimum
-        const fallbackProviders = [
-          {
-            id: 'ollama-nomic',
-            name: 'Ollama Nomic Embed',
-            model: 'nomic-embed-text',
-            dimension: 768
-          },
-          {
-            id: 'ollama-mxbai',
-            name: 'Ollama MxBai Embed',
-            model: 'mxbai-embed-large',
-            dimension: 1024
-          }
-        ]
-
-        logger.debug('📦 Using fallback providers:', fallbackProviders.length)
-        setEmbeddingProviders(fallbackProviders)
-        setSelectedProviderId(fallbackProviders[0].id)
+        // Aquí se inventaban dos proveedores de Ollama «como mínimo», estuviera
+        // Ollama instalado o no. Elegir uno de ellos no podía funcionar: cada
+        // subida fallaba después en todos sus trozos. Sin lista es más honesto
+        // que con una lista falsa, y el aviso de abajo dice qué hacer.
+        setEmbeddingProviders([])
+        setSelectedProviderId('')
+        setHayProveedorDisponible(false)
 
         // Test Ollama connection separately to set correct status
         logger.debug('🔄 Testing Ollama status for UI display...')
@@ -416,11 +410,11 @@ export function UnifiedWisdomPanel() {
           logger.debug('⚠️ Ollama status test failed - setting to unavailable')
         }
 
-        logger.debug('⚠️ Using fallback providers due to IPC failure')
       }
     } catch (error) {
       logger.error('❌ Error loading embedding providers:', error)
       setEmbeddingProviders([])
+      setHayProveedorDisponible(false)
     }
   }
 
@@ -588,7 +582,10 @@ export function UnifiedWisdomPanel() {
 
         showNotification(message, 'success')
       } else {
-        showNotification(result.message, 'error')
+        showNotification(
+          result.codigo ? t(`messages.${result.codigo}`) : result.message,
+          'error'
+        )
       }
     } catch (error) {
       logger.error('Error uploading documents:', error)
@@ -1139,7 +1136,7 @@ export function UnifiedWisdomPanel() {
                 }}
                 disabled={loading}
                 className="flex items-center gap-2 px-3 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors disabled:opacity-50"
-                title="{t('wisdom.refreshAll')}"
+                title={t('wisdom.refreshAll')}
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 {t('wisdom.refresh')}
@@ -1150,7 +1147,7 @@ export function UnifiedWisdomPanel() {
                 <button
                   onClick={() => setShowSettings(!showSettings)}
                   className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-                  title="{t('wisdom.embeddingSettings')}"
+                  title={t('wisdom.embeddingSettings')}
                 >
                   <Settings className="w-4 h-4" />
                 </button>
@@ -1180,14 +1177,20 @@ export function UnifiedWisdomPanel() {
                       </button>
                     </div>
 
+                    {!hayProveedorDisponible && (
+                      <div className="mb-3 rounded-lg border border-yellow-600/40 bg-yellow-500/10 p-3">
+                        <div className="text-sm font-medium text-foreground mb-1">
+                          ⚠️ {t('wisdom.sinProveedorTitulo')}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {t('wisdom.sinProveedorCuerpo')}
+                        </div>
+                      </div>
+                    )}
+
                     <label className="block text-sm text-muted-foreground mb-2">
                       {t('wisdom.embeddingProvider')}
                     </label>
-
-                    {/* Debug info */}
-                    <div className="text-xs text-muted-foreground mb-1">
-                      Debug: {embeddingProviders.length} providers loaded, selected: {selectedProviderId || 'none'}
-                    </div>
                     <select
                       key={`provider-select-${embeddingProviders.length}`}
                       value={selectedProviderId}
@@ -1197,8 +1200,15 @@ export function UnifiedWisdomPanel() {
                     >
                       {embeddingProviders.length > 0 ? (
                         embeddingProviders.map((provider) => (
-                          <option key={provider.id} value={provider.id}>
+                          <option
+                            key={provider.id}
+                            value={provider.id}
+                            disabled={provider.disponible === false}
+                          >
                             {provider.name} ({provider.dimension}d)
+                            {provider.disponible === false
+                              ? ` — ${provider.motivo ? t(`wisdom.${provider.motivo}`) : t('wisdom.proveedorNoDisponible')}`
+                              : ''}
                           </option>
                         ))
                       ) : (

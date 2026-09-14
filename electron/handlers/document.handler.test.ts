@@ -22,6 +22,7 @@ vi.mock('electron', () => ({
 vi.mock('pdf-parse', () => ({ default: vi.fn() }))
 vi.mock('mammoth', () => ({ default: { extractRawText: vi.fn() } }))
 
+
 import { registerVectorGraphHandlers, registerWisdomHandlers } from './document.handler'
 
 const DOCS = [
@@ -30,7 +31,12 @@ const DOCS = [
 ]
 
 function prismaFalso() {
-  const registro = { documentos: null as any, trozos: null as any, rawLanzado: false }
+  const registro = {
+    documentos: null as any,
+    trozos: null as any,
+    rawLanzado: false,
+    proveedorOpenAI: null as any,
+  }
 
   return {
     registro,
@@ -53,6 +59,9 @@ function prismaFalso() {
             { id: 'c2', knowledgeId: 'd1', chunkIndex: 1, content: 'dos' },
           ]
         }),
+      },
+      aIProvider: {
+        findFirst: vi.fn(async () => registro.proveedorOpenAI),
       },
       $queryRaw: vi.fn(async () => {
         registro.rawLanzado = true
@@ -147,5 +156,63 @@ describe('wisdom:list', () => {
 
     const d2 = res.documents.find((d: any) => d.id === 'd2')
     expect(d2.indexing).toMatchObject({ totalChunks: 0, isIndexed: false, status: 'not_indexed' })
+  })
+})
+
+describe('wisdom:getEmbeddingProviders', () => {
+  /**
+   * El desplegable ofrecía los modelos de OpenAI hubiera clave o no, y si la
+   * consulta al backend fallaba la interfaz se inventaba dos de Ollama. En un
+   * equipo recién instalado se podía elegir cualquiera de los cuatro y ninguno
+   * podía indexar: cada subida fallaba luego en todos sus trozos (#139).
+   *
+   * Los modelos de Ollama dependen de lo que haya en la máquina que corre el
+   * test, así que las afirmaciones se hacen sobre los de OpenAI y sobre la
+   * propiedad que importa: nunca se deja elegido uno que no pueda trabajar.
+   */
+  const deOpenAI = (res: any) => res.providers.filter((p: any) => p.id.startsWith('openai-'))
+
+  it('marca OpenAI como no disponible cuando no hay clave', async () => {
+    delete process.env.OPENAI_API_KEY
+    const falso = prismaFalso()
+    registerWisdomHandlers(falso.prisma)
+
+    const res = await handlersRegistrados['wisdom:getEmbeddingProviders']({})
+
+    expect(res.success).toBe(true)
+    expect(deOpenAI(res).length).toBeGreaterThan(0)
+    expect(deOpenAI(res).every((p: any) => p.disponible === false)).toBe(true)
+    expect(deOpenAI(res).every((p: any) => p.motivo === 'sinClaveOpenAI')).toBe(true)
+
+    // Sin Ollama tampoco hay con qué indexar, y entonces no se elige nada.
+    if (res.dynamicCount === 0) {
+      expect(res.hayDisponible).toBe(false)
+      expect(res.currentProviderId).toBe('')
+    }
+  })
+
+  it('los da por disponibles cuando la clave está en la base', async () => {
+    delete process.env.OPENAI_API_KEY
+    const falso = prismaFalso()
+    falso.registro.proveedorOpenAI = { id: 'p1', name: 'OpenAI', apiKey: 'sk-loquesea', isActive: true }
+    registerWisdomHandlers(falso.prisma)
+
+    const res = await handlersRegistrados['wisdom:getEmbeddingProviders']({})
+
+    expect(deOpenAI(res).every((p: any) => p.disponible === true)).toBe(true)
+    expect(res.hayDisponible).toBe(true)
+  })
+
+  it('nunca deja elegido un modelo que no puede indexar', async () => {
+    delete process.env.OPENAI_API_KEY
+    const falso = prismaFalso()
+    registerWisdomHandlers(falso.prisma)
+
+    const res = await handlersRegistrados['wisdom:getEmbeddingProviders']({})
+
+    if (res.currentProviderId) {
+      const elegido = res.providers.find((p: any) => p.id === res.currentProviderId)
+      expect(elegido.disponible).toBe(true)
+    }
   })
 })

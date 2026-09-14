@@ -240,7 +240,13 @@ export class HydraulicRAGService {
     }
 
     if (successfulChunks.length === 0 && chunks.length > 0) {
-      throw new Error('Failed to generate embeddings for any chunk. The embedding provider (Ollama/OpenAI) may be unreachable or misconfigured.')
+      // El código viaja con el error para que la interfaz pueda explicarlo en el
+      // idioma de quien mira y decir qué instalar, en vez de enseñar esta frase.
+      const error: Error & { codigo?: string } = new Error(
+        'Failed to generate embeddings for any chunk. The embedding provider (Ollama/OpenAI) may be unreachable or misconfigured.'
+      )
+      error.codigo = 'sinProveedorDeEmbeddings'
+      throw error
     }
 
     return { chunks: successfulChunks, failedCount, totalChunks: chunks.length }
@@ -431,7 +437,11 @@ export class HydraulicRAGService {
 
     } catch (error: any) {
       console.error('Add document error:', error)
-      throw new Error(`Failed to add document to knowledge base: ${error.message || error}`)
+      const envuelto: Error & { codigo?: string } = new Error(
+        `Failed to add document to knowledge base: ${error.message || error}`
+      )
+      envuelto.codigo = error?.codigo
+      throw envuelto
     }
   }
 

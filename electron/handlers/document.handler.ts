@@ -108,6 +108,20 @@ async function recuentoDeIndexado(
   )
 }
 
+/**
+ * ¿Hay una clave con la que OpenAI pueda generar embeddings? Sus modelos se
+ * ofrecían en el desplegable hubiera clave o no, así que en un equipo recién
+ * instalado se podía elegir uno y cada subida fallaba después en todos sus
+ * trozos, sin que nada hubiera avisado de que esa opción no podía funcionar.
+ */
+async function hayClaveDeOpenAI(prismaClient: PrismaClient): Promise<boolean> {
+  if (process.env.OPENAI_API_KEY) return true
+  const proveedor = await prismaClient.aIProvider.findFirst({
+    where: { name: { contains: 'OpenAI' }, isActive: true },
+  })
+  return Boolean(proveedor?.apiKey)
+}
+
 /** Un trozo indexado es el que tiene embedding; los demás no cuentan para el grafo. */
 const TROZO_INDEXADO = { embedding: { notIn: ['', '[]', 'null'] } }
 
@@ -294,9 +308,12 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
 
     } catch (error: any) {
       console.error('Document upload error:', error)
-      console.error('Document upload error:', error)
       return {
         success: false,
+        // El motivo viaja como código para que la interfaz lo diga en el idioma
+        // de quien mira: «Failed to generate embeddings for any chunk» no le
+        // decía a nadie que le faltaba instalar un modelo.
+        codigo: error?.codigo,
         message: `Failed to add document to knowledge base: ${error.message || 'Unknown error'}. Check the developer console for more details.`
       }
     }
@@ -941,8 +958,13 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
       console.log('[Document Handler] Getting embedding providers...')
 
       // Get static providers from service
-      const staticProviders = embeddingService.getProviders()
-      console.log(`[Document Handler] Static providers: ${staticProviders.length}`)
+      const conClaveDeOpenAI = await hayClaveDeOpenAI(prismaClient)
+      const staticProviders = embeddingService.getProviders().map((p: any) => ({
+        ...p,
+        disponible: conClaveDeOpenAI,
+        motivo: conClaveDeOpenAI ? undefined : 'sinClaveOpenAI',
+      }))
+      console.log(`[Document Handler] Static providers: ${staticProviders.length} (clave de OpenAI: ${conClaveDeOpenAI})`)
 
       // Get dynamic Ollama providers
       let dynamicProviders = []
@@ -996,7 +1018,9 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
               id: `ollama-${model.name}`,
               name: `Ollama: ${model.name}`,
               model: model.name,
-              dimension
+              dimension,
+              // Están porque Ollama acaba de decir que los tiene descargados.
+              disponible: true,
             }
           })
 
@@ -1010,12 +1034,19 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
       const allProviders = [...staticProviders, ...dynamicProviders]
       console.log(`[Document Handler] Total providers: ${allProviders.length}`)
 
-      const currentProvider = embeddingService.activeProvider
+      // El elegido por defecto tiene que ser uno que pueda trabajar: dejar
+      // seleccionado el primero de la lista ponía a OpenAI sin clave por delante
+      // del modelo local que sí estaba instalado.
+      const disponibles = allProviders.filter((p: any) => p.disponible)
+      const actual = embeddingService.activeProvider
+      const currentProviderId =
+        (actual && disponibles.some((p: any) => p.id === actual.id) ? actual.id : disponibles[0]?.id) ?? ''
 
       return {
         success: true,
         providers: allProviders,
-        currentProviderId: currentProvider?.id || (allProviders.length > 0 ? allProviders[0].id : ''),
+        currentProviderId,
+        hayDisponible: disponibles.length > 0,
         dynamicCount: dynamicProviders.length,
         staticCount: staticProviders.length
       }

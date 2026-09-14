@@ -11,6 +11,15 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 
 ## [Unreleased]
 
+- **El desplegable de modelos de indexación ofrecía opciones que no podían funcionar.** Los
+  modelos de OpenAI aparecían hubiera clave o no, y si la consulta al proceso principal
+  fallaba la interfaz se inventaba dos modelos de Ollama «como mínimo», estuviera Ollama
+  instalado o no. En un equipo recién instalado se podía elegir cualquiera de los cuatro y
+  ninguno servía: la subida fallaba después en todos los fragmentos, con un mensaje en
+  inglés que no decía qué faltaba. Ahora sólo se ofrece lo que puede trabajar, lo que no
+  aparece marcado y sin poder elegirse, el que queda seleccionado por defecto es uno que
+  funciona, y si no hay ninguno se explica qué instalar, en el idioma de la aplicación.
+
 - **Abrir el centro de conocimiento con muchos documentos se llevaba por delante la
   aplicación.** Para escribir «40 fragmentos, 30 vectorizados» al lado de cada título, el
   listado se traía el embedding de cada fragmento —unos 15 KB por fragmento— y los contaba
