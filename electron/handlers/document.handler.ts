@@ -823,7 +823,13 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
             // ignore - may not exist yet
           }
 
-          await milvusService.insert('hydraulic_knowledge', milvusRows)
+          // Se cuenta lo que Milvus aceptó, no lo que se le mandó: contar el
+          // envío hacía que el botón de reparar informara «N sincronizados»
+          // mientras el almacén se quedaba vacío.
+          const res = await milvusService.insert('hydraulic_knowledge', milvusRows)
+          if (res?.skipped) {
+            throw new Error('Milvus no está disponible')
+          }
           totalSynced += milvusRows.length
         } catch (e: any) {
           errors.push(`${doc.title}: ${e.message}`)

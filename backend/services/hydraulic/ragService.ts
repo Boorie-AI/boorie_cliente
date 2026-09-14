@@ -319,7 +319,10 @@ export class HydraulicRAGService {
         }))
 
       if (rows.length > 0) {
-        await milvusService.insert('hydraulic_knowledge', rows)
+        const res = await milvusService.insert('hydraulic_knowledge', rows)
+        if (res?.skipped) {
+          throw new Error('Milvus no estaba disponible: los vectores no se han guardado')
+        }
         console.log(`[RAG Service] Reindexed ${rows.length} chunks into Milvus for "${doc.title}"`)
       }
       milvusSynced = true
@@ -414,7 +417,10 @@ export class HydraulicRAGService {
         }))
 
         if (milvusRows.length > 0) {
-          await milvusService.insert('hydraulic_knowledge', milvusRows)
+          const res = await milvusService.insert('hydraulic_knowledge', milvusRows)
+          if (res?.skipped) {
+            throw new Error('Milvus no estaba disponible: los vectores no se han guardado')
+          }
           console.log(`[RAG Service] Inserted ${milvusRows.length} chunks into Milvus for doc ${created.title}`)
         }
       } catch (milvusErr) {

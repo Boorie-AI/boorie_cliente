@@ -167,12 +167,21 @@ export class MilvusService {
         }
     }
 
+    /**
+     * Dimensión con la que se creó cada colección, cacheada al asegurarla. Sirve
+     * para detectar que se está buscando con un vector de otro tamaño, que es un
+     * fallo mudo en Milvus: la búsqueda responde «Success» con cero resultados.
+     */
+    private dimensiones = new Map<string, number>();
+
     private async initCollections() {
-        // We need to determine the dimension. For now, we default to 768 (Ollama) if not specified, 
-        // but ideally this should come from config.
-        // Let's assume the user is moving to Ollama (768).
-        // If we really want to be dynamic, we need to pass this in.
-        // For this specific fix, we'll try to check the active provider or default to 768.
+        // Al arrancar todavía no se sabe qué modelo de embeddings se va a usar,
+        // así que esto es sólo una suposición para las colecciones que aún no
+        // existan (768 = nomic-embed-text, el modelo local por defecto). La
+        // dimensión de verdad la fija el primer insert, que sí conoce el vector:
+        // por eso aquí NO se reconcilia la dimensión de una colección existente.
+        // Hacerlo la borraría en cada reconexión y devolvería el almacén a 768
+        // detrás de quien indexa con OpenAI.
         const dimension = process.env.EMBEDDING_DIMENSION ? parseInt(process.env.EMBEDDING_DIMENSION) : 768;
 
         // 1. Knowledge Collection (RAG)
@@ -188,7 +197,47 @@ export class MilvusService {
         await this.ensureCollection(MilvusService.COLLECTIONS.GUARDRAIL_VIOLATIONS, dimension);
     }
 
-    private async ensureCollection(name: string, dimension: number) {
+    /**
+     * ¿La colección no guarda nada? Ante la duda se responde que sí guarda: la
+     * respuesta sólo se usa para decidir si se puede destruir, y equivocarse
+     * hacia «está vacía» borra datos de alguien.
+     */
+    private async estaVacia(collection: string): Promise<boolean> {
+        try {
+            const res: any = await this.client.query({
+                collection_name: collection,
+                filter: 'id != ""',
+                output_fields: ['id'],
+                limit: 1,
+                consistency_level: ConsistencyLevelEnum.Strong,
+            });
+            return Array.isArray(res?.data) && res.data.length === 0;
+        } catch (e) {
+            console.warn(`[MilvusService] Could not tell whether ${collection} is empty:`, (e as Error).message);
+            return false;
+        }
+    }
+
+    /**
+     * Milvus no lanza cuando rechaza una escritura: devuelve un estado de error
+     * en la respuesta. Ignorarlo es lo que dejaba a un documento listado en el
+     * panel y con cero vectores en el almacén, sin un solo error en el log.
+     */
+    private static exigirExito(res: any, que: string) {
+        const status = res?.status ?? res;
+        if (!status) return;
+        const code = status.error_code ?? status.code;
+        if (code === undefined || code === 0 || code === 'Success') return;
+        throw new Error(`Milvus rechazó ${que}: ${status.reason || `código ${code}`}`);
+    }
+
+    /**
+     * @param reconciliarDimension si una colección existente con otra dimensión
+     *   debe recrearse. Sólo lo pide quien conoce la dimensión real de los
+     *   vectores —el insert—; al arrancar la dimensión es una suposición y
+     *   recrear con ella destruiría el índice bueno.
+     */
+    private async ensureCollection(name: string, dimension: number, reconciliarDimension = false) {
         const has = await this.client.hasCollection({ collection_name: name });
         if (has.value) {
             // Defensive describe — milvus-lite sometimes returns schema=null for
@@ -202,19 +251,34 @@ export class MilvusService {
                     canDescribe = false;
                 } else {
                     const vectorField = fields.find((f: any) => f.name === 'vector');
-                    currentDim = vectorField && (vectorField as any).params
-                        ? parseInt((vectorField as any).params.find((p: any) => p.key === 'dim')?.value || '0')
+                    // `describeCollection` devuelve los parámetros del campo en
+                    // `type_params`. Leerlos de `params` —que no existe— daba
+                    // siempre 0, y el 0 se interpretaba como «no se sabe, déjala
+                    // estar»: por eso la reconciliación de dimensión de abajo no
+                    // se disparó nunca desde que se escribió.
+                    const typeParams = (vectorField as any)?.type_params ?? (vectorField as any)?.params;
+                    currentDim = Array.isArray(typeParams)
+                        ? parseInt(typeParams.find((p: any) => p.key === 'dim')?.value || '0')
                         : 0;
+                    if (!currentDim) {
+                        console.warn(`[MilvusService] Could not read the dimension of ${name} from its schema.`);
+                    }
                 }
             } catch (e) {
                 canDescribe = false;
                 console.warn(`[MilvusService] describeCollection(${name}) failed, will recreate:`, (e as Error).message);
             }
 
-            if (!canDescribe || (currentDim !== dimension && currentDim !== 0)) {
+            const dimensionIncompatible = currentDim !== dimension && currentDim !== 0;
+
+            if (!canDescribe || (dimensionIncompatible && reconciliarDimension)) {
                 console.warn(`[MilvusService] Recreating collection ${name} (currentDim=${currentDim}, required=${dimension}, describable=${canDescribe})`);
                 try { await this.client.dropCollection({ collection_name: name }); } catch { /* ignore */ }
             } else {
+                if (dimensionIncompatible) {
+                    console.warn(`[MilvusService] Collection ${name} has dim=${currentDim}, not the ${dimension} guessed at startup — leaving it alone; the next insert will reconcile it.`);
+                }
+                if (currentDim > 0) this.dimensiones.set(name, currentDim);
                 try { await this.client.loadCollection({ collection_name: name }); } catch { /* ignore */ }
                 return;
             }
@@ -260,6 +324,7 @@ export class MilvusService {
             params: { nlist: 1024 }
         });
         console.log(`[MilvusService] Collection ${name} created.`);
+        this.dimensiones.set(name, dimension);
         await this.client.loadCollection({ collection_name: name });
     }
 
@@ -274,6 +339,18 @@ export class MilvusService {
             // Fail-soft: return empty results so RAG can fall back to in-DB chunks.
             return { results: [] } as any;
         }
+        // Buscar con un vector de otro tamaño no es un error para Milvus: responde
+        // «Success» y una lista vacía. Sin este aviso, cambiar de modelo de
+        // embeddings sin reindexar deja el RAG mudo y sin rastro en el log.
+        const dimensionColeccion = this.dimensiones.get(collection);
+        if (dimensionColeccion && dimensionColeccion !== vector.length) {
+            console.warn(
+                `[MilvusService] Search on ${collection} with a ${vector.length}-dim vector, but the collection holds ${dimensionColeccion}-dim vectors. ` +
+                `Returning no results — reindex the knowledge base with the embedding model in use.`
+            );
+            return { results: [] } as any;
+        }
+
         return this.client.search({
             collection_name: collection,
             data: vector,
@@ -298,10 +375,43 @@ export class MilvusService {
             // Skip silently — chunks remain in DB and can be synced later via wisdom:syncMilvus.
             return { insert_cnt: 0, skipped: true } as any;
         }
-        return this.client.insert({
+
+        // Los vectores que llegan son la única fuente fiable de la dimensión: el
+        // modelo de embeddings lo elige quien usa el programa y puede cambiarlo.
+        // Indexar con OpenAI (1536) contra la colección de 768 que se creaba fija
+        // al arrancar era el fallo mudo: Milvus devolvía «FieldData 'vector' has
+        // 1536 elements, expected dim(768)» en el estado —sin lanzar—, nadie lo
+        // miraba, y la búsqueda con ese mismo vector contestaba «Success» con
+        // cero resultados. El documento quedaba en la lista, marcado como
+        // indexado porque sus trozos sí están en SQLite, y el RAG no lo veía.
+        const dimension = rows[0]?.vector?.length;
+        if (dimension) {
+            await this.ensureCollection(collection, dimension);
+
+            const actual = this.dimensiones.get(collection);
+            if (actual && actual !== dimension) {
+                // Rehacer la colección es tirar todos sus vectores. Se hace sólo
+                // si está vacía —el caso de la instalación nueva, donde la
+                // dimensión de arranque fue una suposición y no hay nada que
+                // perder—. Con documentos dentro, cambiar de modelo de
+                // embeddings exige regenerarlos todos: borrarlos aquí, y encima
+                // en silencio, dejaría al usuario sin su base indexada.
+                if (!(await this.estaVacia(collection))) {
+                    throw new Error(
+                        `La base vectorial ${collection} guarda vectores de ${actual} números y el modelo de embeddings actual produce ${dimension}. ` +
+                        `Cambiar de modelo obliga a reindexar toda la base de conocimientos: hasta entonces no se puede añadir nada.`
+                    );
+                }
+                await this.ensureCollection(collection, dimension, true);
+            }
+        }
+
+        const res = await this.client.insert({
             collection_name: collection,
             data: rows
         });
+        MilvusService.exigirExito(res, `la inserción de ${rows.length} vectores en ${collection}`);
+        return res;
     }
 
     public async delete(collection: string, ids: string[]) {

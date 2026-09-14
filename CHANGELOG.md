@@ -9,6 +9,20 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **Los documentos que se subían al Wisdom Center podían quedarse sin un solo vector, sin
+  decirlo.** La base vectorial se creaba siempre con vectores de 768 números, el tamaño del
+  modelo local; quien indexaba con OpenAI (1536) veía el documento aparecer en la lista y
+  marcado como indexado —sus trozos sí se guardan en la base relacional— mientras el
+  almacén vectorial rechazaba cada inserción y la búsqueda semántica no lo encontraba
+  nunca. El rechazo no era un error para el programa: Milvus lo devuelve dentro de la
+  respuesta, y nadie la miraba. Ahora el tamaño lo fija el modelo que se esté usando, un
+  rechazo del almacén se ve, y el botón de sincronizar cuenta lo que entró de verdad en
+  lugar de lo que se envió. Si el modelo cambia cuando ya hay documentos indexados, la
+  subida se detiene y lo dice: rehacer la base vectorial sola tiraría los vectores de todo
+  lo anterior, y regenerarlos es un reindexado completo.
+
 ## [1.31.0] - 2026-09-04
 
 El asistente hace los análisis en vez de explicarlos, y cita de dónde sale cada cifra.
