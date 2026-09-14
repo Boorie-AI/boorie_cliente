@@ -11,6 +11,11 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 
 ## [Unreleased]
 
+- **La tabla de fragmentos tiene ahora un índice por documento.** Contar cuántos fragmentos
+  tiene cada documento —lo primero que se hace al abrir el centro de conocimiento— obligaba
+  a recorrerla entera, y cada fila arrastra su vector: en una base de 1,1 GB eso son 4,6
+  segundos, y 0,6 con el índice. Se crea solo al arrancar sobre las bases que ya existen.
+
 - **El desplegable de modelos de indexación ofrecía opciones que no podían funcionar.** Los
   modelos de OpenAI aparecían hubiera clave o no, y si la consulta al proceso principal
   fallaba la interfaz se inventaba dos modelos de Ollama «como mínimo», estuviera Ollama
