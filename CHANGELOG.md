@@ -9,12 +9,31 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.32.0] - 2026-09-14
 
-- **La tabla de fragmentos tiene ahora un índice por documento.** Contar cuántos fragmentos
-  tiene cada documento —lo primero que se hace al abrir el centro de conocimiento— obligaba
-  a recorrerla entera, y cada fila arrastra su vector: en una base de 1,1 GB eso son 4,6
-  segundos, y 0,6 con el índice. Se crea solo al arrancar sobre las bases que ya existen.
+El centro de conocimiento aguanta una base grande, y lo que falla deja de fallar en silencio.
+
+- **Abrir el centro de conocimiento con muchos documentos se llevaba por delante la
+  aplicación.** Para escribir «40 fragmentos, 30 vectorizados» al lado de cada título, el
+  listado se traía el embedding de cada fragmento —unos 15 KB por fragmento— y los contaba
+  en memoria; el grafo del RAG hacía lo mismo y además cargaba el texto completo de cada
+  documento para dibujar unos círculos. Con ciento diez documentos eso son 490 MB de
+  memoria al abrir el panel y otros 538 MB al pedir el grafo, en el mismo proceso y casi a
+  la vez, y con los modelos de OpenAI el doble. Ahora esas cuentas las hace la base de
+  datos: 3 MB y 1 MB. El listado, además, ya no cruza el texto entero de cada documento
+  hacia la interfaz.
+
+- **Los documentos que se subían a la base de conocimiento podían quedarse sin un solo vector, sin
+  decirlo.** La base vectorial se creaba siempre con vectores de 768 números, el tamaño del
+  modelo local; quien indexaba con OpenAI (1536) veía el documento aparecer en la lista y
+  marcado como indexado —sus fragmentos sí se guardan en la base de datos— mientras el
+  almacén vectorial rechazaba cada inserción y la búsqueda semántica no lo encontraba
+  nunca. El rechazo no era un error para el programa: Milvus lo devuelve dentro de la
+  respuesta, y nadie la miraba. Ahora el tamaño lo fija el modelo que se esté usando, un
+  rechazo del almacén se ve, y el botón de sincronizar cuenta lo que entró de verdad en
+  lugar de lo que se envió. Si el modelo cambia cuando ya hay documentos indexados, la
+  subida se detiene y lo dice: rehacer la base vectorial sola tiraría los vectores de todo
+  lo anterior, y regenerarlos es un reindexado completo.
 
 - **El desplegable de modelos de indexación ofrecía opciones que no podían funcionar.** Los
   modelos de OpenAI aparecían hubiera clave o no, y si la consulta al proceso principal
@@ -31,27 +50,10 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   Con una carpeta donde fallaban varios —lo que pasa justo cuando no hay modelo de
   embeddings— la cuenta parecía aleatoria.
 
-- **Abrir el centro de conocimiento con muchos documentos se llevaba por delante la
-  aplicación.** Para escribir «40 fragmentos, 30 vectorizados» al lado de cada título, el
-  listado se traía el embedding de cada fragmento —unos 15 KB por fragmento— y los contaba
-  en memoria; el grafo del RAG hacía lo mismo y además cargaba el texto completo de cada
-  documento para dibujar unos círculos. Con ciento diez documentos eso son 490 MB de
-  memoria al abrir el panel y otros 538 MB al pedir el grafo, en el mismo proceso y casi a
-  la vez, y con los modelos de OpenAI el doble. Ahora esas cuentas las hace la base de
-  datos: 3 MB y 1 MB. El listado, además, ya no cruza el texto entero de cada documento
-  hacia la interfaz.
-
-- **Los documentos que se subían al Wisdom Center podían quedarse sin un solo vector, sin
-  decirlo.** La base vectorial se creaba siempre con vectores de 768 números, el tamaño del
-  modelo local; quien indexaba con OpenAI (1536) veía el documento aparecer en la lista y
-  marcado como indexado —sus trozos sí se guardan en la base relacional— mientras el
-  almacén vectorial rechazaba cada inserción y la búsqueda semántica no lo encontraba
-  nunca. El rechazo no era un error para el programa: Milvus lo devuelve dentro de la
-  respuesta, y nadie la miraba. Ahora el tamaño lo fija el modelo que se esté usando, un
-  rechazo del almacén se ve, y el botón de sincronizar cuenta lo que entró de verdad en
-  lugar de lo que se envió. Si el modelo cambia cuando ya hay documentos indexados, la
-  subida se detiene y lo dice: rehacer la base vectorial sola tiraría los vectores de todo
-  lo anterior, y regenerarlos es un reindexado completo.
+- **La tabla de fragmentos tiene ahora un índice por documento.** Contar cuántos fragmentos
+  tiene cada documento —lo primero que se hace al abrir el centro de conocimiento— obligaba
+  a recorrerla entera, y cada fila arrastra su vector: en una base de 1,1 GB eso son 4,6
+  segundos, y 0,6 con el índice. Se crea solo al arrancar sobre las bases que ya existen.
 
 ## [1.31.0] - 2026-09-04
 
