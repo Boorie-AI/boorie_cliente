@@ -5,7 +5,7 @@ import pdf from 'pdf-parse'
 import mammoth from 'mammoth'
 import { HydraulicRAGService } from '../../backend/services/hydraulic/ragService'
 import { duenosPermitidos, filtroPrisma, type Ambito } from '../../backend/services/hydraulic/ambitos'
-import { PrismaClient } from '@prisma/client'
+import { Prisma, PrismaClient } from '@prisma/client'
 
 import { EmbeddingService } from '../../backend/services/embedding.service'
 
@@ -86,19 +86,33 @@ export function registerChatAttachmentHandler() {
  * cien documentos eran cientos de MB por listado (issue #139).
  */
 async function recuentoDeIndexado(
-  prismaClient: PrismaClient
+  prismaClient: PrismaClient,
+  /**
+   * Documentos que interesan. Una página de veinte no tiene por qué pagar el
+   * agregado de toda la tabla: con 9.900 fragmentos son 545 ms contra 91 ms, y
+   * eso crece con la base. Por encima de este tamaño la lista de ids deja de
+   * compensar —y roza el límite de parámetros de SQLite—, así que se agrega
+   * entera, que es lo que hace falta cuando se piden todos igualmente.
+   */
+  ids: string[]
 ): Promise<Map<string, { total: number; conEmbedding: number }>> {
+  if (ids.length === 0) return new Map()
+
+  const CONTEO = Prisma.sql`
+    COUNT(*) AS total,
+    SUM(CASE WHEN "embedding" IS NOT NULL
+              AND "embedding" NOT IN ('', '[]', 'null')
+             THEN 1 ELSE 0 END) AS "conEmbedding"
+  `
+  const consulta =
+    ids.length > 500
+      ? Prisma.sql`SELECT "knowledgeId", ${CONTEO} FROM "knowledge_chunks" GROUP BY "knowledgeId"`
+      : Prisma.sql`SELECT "knowledgeId", ${CONTEO} FROM "knowledge_chunks"
+                    WHERE "knowledgeId" IN (${Prisma.join(ids)}) GROUP BY "knowledgeId"`
+
   const filas = await prismaClient.$queryRaw<
     { knowledgeId: string; total: number | bigint; conEmbedding: number | bigint | null }[]
-  >`
-    SELECT "knowledgeId",
-           COUNT(*) AS total,
-           SUM(CASE WHEN "embedding" IS NOT NULL
-                     AND "embedding" NOT IN ('', '[]', 'null')
-                    THEN 1 ELSE 0 END) AS "conEmbedding"
-      FROM "knowledge_chunks"
-     GROUP BY "knowledgeId"
-  `
+  >(consulta)
 
   return new Map(
     filas.map((f) => [
@@ -379,7 +393,7 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
         }
       })
 
-      const recuento = await recuentoDeIndexado(prismaClient)
+      const recuento = await recuentoDeIndexado(prismaClient, documents.map((d: any) => d.id))
 
       return {
         success: true,
@@ -2156,7 +2170,7 @@ export function registerWisdomExtendedHandlers(prisma?: PrismaClient) {
         prismaClient.hydraulicKnowledge.count({ where }),
       ])
 
-      const recuento = await recuentoDeIndexado(prismaClient)
+      const recuento = await recuentoDeIndexado(prismaClient, documents.map((d: any) => d.id))
 
       const formattedDocs = documents.map((doc: any) => {
         const { total, conEmbedding } = recuento.get(doc.id) ?? { total: 0, conEmbedding: 0 }
