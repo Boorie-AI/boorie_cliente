@@ -470,7 +470,6 @@
     "matConcrete": "Concreto",
     "fragilityCurve": "Curva de fragilidad (sismo)",
     "after": "Después",
-    "simDuration": "Duración simulación (h)",
     "maxDeficit": "Déficit máx. (h)",
     "waterAge": "Edad del agua",
     "fullSimHint": "Ejecuta una simulación hidráulica completa: en redes grandes puede tardar un minuto o más.",
@@ -587,7 +586,18 @@
     "soilRockShort": "roca",
     "soilStiffShort": "firme",
     "soilSoftShort": "blando",
-    "seriesSoil": "suelo {{suelo}} (α = {{alfa}})"
+    "seriesSoil": "suelo {{suelo}} (α = {{alfa}})",
+    "window": {
+      "label": "Ventana de simulación",
+      "file": "Duración del fichero ({{horas}} h)",
+      "fileUnknown": "Duración del fichero",
+      "day": "1 día (24 h)",
+      "threeDays": "3 días (72 h)",
+      "week": "1 semana (168 h)",
+      "fallback": "El fichero no declara duración: se usan {{horas}} h.",
+      "slow": "Una ventana larga tarda bastante más en simularse.",
+      "average": "media de {{horas}} h"
+    }
   },
   "mapViewer": {
     "title": "Visor de red",
@@ -900,7 +910,7 @@
   "energy": {
     "noConverge": "Alguna simulación no convergió: las cifras de esos instantes no son fiables.",
     "analyzing": "Analizando consumo…",
-    "analyze": "Analizar consumo energético (24 h)",
+    "analyze": "Analizar consumo energético ({{horas}} h)",
     "addBlock": "Añadir bloque",
     "blocks": "Bloques horarios",
     "pumpsList": "Bombas (separadas por comas)",
@@ -926,7 +936,7 @@
     "noSaving": "no ahorra",
     "noChange": "no cambia el consumo",
     "inHistoryOf": "en el historial del proyecto.",
-    "traceability": "en 24 h · eficiencia {{eficiencia}}% ({{origen}}) · {{intervalos}} intervalos de {{paso}} s",
+    "traceability": "en {{horas}} h · eficiencia {{eficiencia}}% ({{origen}}) · {{intervalos}} intervalos de {{paso}} s",
     "efficiencyOf": "Eficiencia {{media}}%",
     "efficiencyRange": " (entre {{min}} y {{max}})",
     "curveGives": "Su curva da {{optima}}% a",
