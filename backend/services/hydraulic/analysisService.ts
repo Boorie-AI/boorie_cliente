@@ -4,6 +4,8 @@
  */
 
 import { spawn } from 'child_process';
+import { findPythonPath } from './pythonDetector';
+import { resolvePythonScriptPath } from './pythonScriptPath';
 import fs from 'fs/promises';
 import { createLogger } from '../../utils/logger';
 
@@ -55,10 +57,14 @@ export interface ResilienceMetrics {
     score: number;
   };
   hydraulic?: {
-    pressure_satisfaction: number;
-    demand_satisfaction: number;
-    flow_reliability: number;
+    todini_index: number;
     score: number;
+  };
+  serviceability?: {
+    pressure_serviceability: number;
+    junctions_meeting_pressure: number;
+    total_junctions: number;
+    min_pressure_threshold: number;
   };
   economic: {
     estimated_replacement_cost: number;
@@ -99,14 +105,10 @@ export class WNTRAnalysisService {
 
   /** Ver nota en wntrWrapper: se resuelve en cada ejecución, no al construir. */
   private get pythonPath(): string {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { findPythonPath } = require('./pythonDetector');
     return findPythonPath();
   }
 
   constructor() {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { resolvePythonScriptPath } = require('./pythonScriptPath');
     this.servicePath = resolvePythonScriptPath('wntr_analysis_service.py');
   }
 

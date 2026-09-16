@@ -20,6 +20,11 @@ import { hydraulicService } from '@/services/hydraulic/hydraulicService';
 import { importarRed } from '@/services/hydraulic/importarRed';
 import { enUnidadDePresentacion } from '@/services/network/unidades';
 import { tipoNudo } from '@/services/network/capas';
+import { SelectorVentana } from './VentanaSimulacion';
+import {
+  horasDelFichero, resolverHoras, formatearHoras,
+  VENTANA_POR_DEFECTO, type Ventana
+} from '@/services/network/ventanaSimulacion';
 import {
   FileUp, Play, Network, History, Camera,
   RefreshCw, AlertCircle,
@@ -518,7 +523,13 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   const [skeletonizeError, setSkeletonizeError] = useState<string | null>(null);
 
   const [failureComponentIds, setFailureComponentIds] = useState('');
-  const [failureDurationHours, setFailureDurationHours] = useState<number>(24);
+  const [ventanaSimulacion, setVentanaSimulacion] = useState<Ventana>(VENTANA_POR_DEFECTO);
+  /** Lo que el .inp declara, que es la ventana por defecto de todo el panel. */
+  const horasFicheroH = useMemo(
+    () => horasDelFichero(networkData?.options?.time),
+    [networkData]
+  );
+  const failureDurationHours = resolverHoras(ventanaSimulacion, horasFicheroH);
   const [failureStartHours, setFailureStartHours] = useState<number>(0);
   const [failureRestoreHours, setFailureRestoreHours] = useState<string>('');
   const [minPressureThreshold, setMinPressureThreshold] = useState<number>(10);
@@ -643,7 +654,8 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       // 2. Criticality
       const criticalityRes = await window.electronAPI.wntr.analyzeComponentCriticality({
         network_file: networkData.name,
-        analysis_type: 'comprehensive', include_pipes: true, include_pumps: true, include_nodes: true
+        analysis_type: 'comprehensive', include_pipes: true, include_pumps: true, include_nodes: true,
+        min_pressure: minPressureThreshold
       });
       setAnalysisResults(prev => ({ ...prev, criticality: criticalityRes }));
       setAnalysisProgress(70);
@@ -651,7 +663,10 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       // 3. Resilience
       const resilienceRes = await window.electronAPI.wntr.calculateResilienceMetrics({
         network_file: networkData.name,
-        include_topological: true, include_hydraulic: true, include_economic: true, include_serviceability: true
+        include_topological: true, include_hydraulic: true, include_economic: true, include_serviceability: true,
+        // El mismo umbral que el panel de indicadores, o las dos pantallas dan
+        // niveles de servicio distintos sobre la misma red (#144).
+        min_pressure: minPressureThreshold
       });
       setAnalysisResults(prev => ({ ...prev, resilience: resilienceRes }));
       setAnalysisProgress(100);
@@ -666,7 +681,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       setIsAnalyzing(false);
       // setAnalysisProgress(0); // Leave at 100 for visual confirmation
     }
-  }, [networkData, loadedNetworkPath, onAnalysisComplete]);
+  }, [networkData, loadedNetworkPath, minPressureThreshold, onAnalysisComplete]);
 
 
 
@@ -905,12 +920,6 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       return;
     }
 
-    // El cero lo admite el campo pero no la simulación, y el motor sólo lo dice
-    // después de arrancar Python y cargar la red.
-    if (failureDurationHours <= 0) {
-      setFailureError('La duración de la simulación tiene que ser mayor que cero');
-      return;
-    }
     if (demandModuleLphd <= 0) {
       setFailureError('El módulo de demanda tiene que ser mayor que cero');
       return;
@@ -1613,7 +1622,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
                   {/* Eficiencia energética del bombeo (#42) */}
                   <div className="border-t pt-4">
-                    <PanelEnergia projectId={activeProjectId} redId={redGuardadaId} hayRed={!!networkData} />
+                    <PanelEnergia projectId={activeProjectId} redId={redGuardadaId} hayRed={!!networkData} horasFichero={horasFicheroH} />
                   </div>
 
                   <Button
@@ -1683,6 +1692,14 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             <span>{t('networkView.analysis.hydraulic')}:</span>
                             <span className="font-mono">{analysisResults.resilience.data.resilience_metrics?.hydraulic?.todini_index?.toFixed(4) || 'N/A'}</span>
                           </div>
+                          {/* El Todini se promedia paso a paso, así que la cifra
+                              depende de la ventana. Sin decirlo, la misma red
+                              parecía contradecirse entre paneles (#142). */}
+                          {horasFicheroH !== null && (
+                            <div className="text-[10px] text-muted-foreground -mt-0.5">
+                              {t('networkView.window.average', { horas: formatearHoras(horasFicheroH) })}
+                            </div>
+                          )}
                           <div className="flex justify-between">
                             <span>{t('networkView.analysis.service')}:</span>
                             {/* En porcentaje, como en el panel de indicadores: es
@@ -1817,16 +1834,12 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
                         />
                       </div>
-                      <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.simDuration')}</div>
-                        <input
-                          type="number"
-                          min={0}
-                          value={failureDurationHours}
-                          onChange={(e) => setFailureDurationHours(sinNegativos(e.target.value))}
-                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
-                        />
-                      </div>
+                      <SelectorVentana
+                        valor={ventanaSimulacion}
+                        onChange={setVentanaSimulacion}
+                        horasFichero={horasFicheroH}
+                        className="col-span-2"
+                      />
                       <div className="bg-background p-2 rounded border">
                         <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.minPressure')}</div>
                         <input
