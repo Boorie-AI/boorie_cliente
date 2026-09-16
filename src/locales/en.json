@@ -1458,7 +1458,7 @@
     "fuente": "_Source: {{origen}}, WNTR engine in PDA mode{{metodo}}._",
     "fuenteRun": "simulation `{{runId}}`",
     "fuenteSinRun": "this simulation (it could not be recorded in the history)",
-    "consumoBombeo": "**Pumping consumption**: {{kwh}} kWh and {{coste}} {{moneda}} over 24 h.",
+    "consumoBombeo": "**Pumping consumption**: {{kwh}} kWh and {{coste}} {{moneda}} over {{horas}} h.",
     "laQueMasGasta": "The biggest consumer is pump {{bomba}}: {{kwh}} kWh and {{coste}} {{moneda}}.",
     "sinMedidas": "I have not found any measure worth checking.",
     "probadaUna": "I have tried one measure, simulating it on your network",

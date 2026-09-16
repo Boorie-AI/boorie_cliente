@@ -46,6 +46,8 @@ export interface AnalisisResumido {
   coste_total: number
   moneda: string
   bombas: Array<{ nombre: string; energia_kwh: number; coste: number }>
+  /** Horas simuladas, que ya no son 24 fijas: las dice el .inp (#148). */
+  duration_hours?: number
 }
 
 const miles = (entera: string) => entera.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
@@ -55,6 +57,15 @@ const numero = (n: number, decimales = 1) => {
   const [entera, decimal = ''] = Math.abs(n).toFixed(decimales).split('.')
   const signo = n < 0 ? '−' : ''
   return decimales > 0 ? `${signo}${miles(entera)},${decimal}` : `${signo}${miles(entera)}`
+}
+
+/**
+ * El texto decía «en 24 h» a secas. Si no llegan las horas se dejan en 24, que
+ * es lo que el servicio usa para un modelo estacionario (#148).
+ */
+const horasLegibles = (horas?: number) => {
+  const h = typeof horas === 'number' && Number.isFinite(horas) && horas > 0 ? horas : 24
+  return Number.isInteger(h) ? String(h) : h.toFixed(1)
 }
 
 export function narrarEnergia(
@@ -69,6 +80,7 @@ export function narrarEnergia(
     kwh: numero(analisis.energia_total_kwh),
     coste: numero(analisis.coste_total, 2),
     moneda: m,
+    horas: horasLegibles(analisis.duration_hours),
   }))
   if (analisis.bombas.length > 1) {
     const peor = [...analisis.bombas].sort((a, b) => b.energia_kwh - a.energia_kwh)[0]

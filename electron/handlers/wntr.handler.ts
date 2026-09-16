@@ -661,7 +661,9 @@ export function setupWNTRHandlers(prisma?: import('@prisma/client').PrismaClient
 
       const tarifa = await tarifaDe(options?.projectId)
       const comun = {
-        duration_hours: options?.duration_hours ?? 24,
+        // Sin valor decide el servicio, que sí tiene la red delante y usa la
+        // duración del .inp. Reponer 24 aquí dejaba fuera al chat (#148).
+        duration_hours: options?.duration_hours,
         tarifa,
         eficiencia_global: tarifa.eficienciaGlobal,
       }

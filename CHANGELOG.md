@@ -9,6 +9,17 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **La propuesta de ahorro energético del asistente seguía midiendo el primer día.** La versión
+  anterior dejó que el periodo de simulación se eligiera una sola vez, pero sólo en el panel:
+  si usted le preguntaba al asistente cómo ahorrar luz, lo que se simulaba eran veinticuatro
+  horas fijas, aunque la red declarase una semana y aunque el panel de al lado estuviera puesto
+  en otra cosa. El mismo bombeo salía con dos consumos distintos según por dónde se preguntara.
+  Ahora, cuando nadie pide un periodo concreto, se usa el que declara el fichero de la red, y
+  el texto que escribe el asistente dice cuál ha sido en vez de afirmar «en 24 h» pasara lo que
+  pasara.
+
 ## [1.33.0] - 2026-09-15
 
 Las cifras de resiliencia dicen ahora sobre qué periodo están calculadas, y dejan de

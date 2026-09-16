@@ -55,6 +55,9 @@ DEFAULT_MONEDA = 'USD'
 # 75% es el ejemplo de la propia documentación de WNTR y un valor razonable para
 # una bomba centrífuga en su rango. Sólo se usa si el .inp no declara nada.
 DEFAULT_EFICIENCIA = 75.0
+# Respaldo para un modelo estacionario, que no declara duracion. Cuando el .inp
+# trae la suya se usa esa: es la ventana que el modelo dice representar, y
+# recortarla mide el transitorio de llenado en vez del regimen normal (#148).
 DEFAULT_DURACION_H = 24.0
 
 
@@ -65,6 +68,20 @@ class WNTREnergyService:
     # ------------------------------------------------------------------
     # Tarifa
     # ------------------------------------------------------------------
+    def _duracion(self, wn, opts):
+        """
+        Horas a simular: las que pidan, y si no las que declare el .inp.
+
+        Antes el respaldo era 24 h fijas, asi que el consumo de una red
+        declarada a una semana se medía sobre su primer dia en cuanto quien
+        llamaba no mandaba nada — el camino del chat, sin ir mas lejos (#148).
+        """
+        pedida = opts.get('duration_hours')
+        if pedida is not None:
+            return float(pedida)
+        declarada = getattr(wn.options.time, 'duration', 0) or 0
+        return float(declarada) / 3600.0 if declarada > 0 else DEFAULT_DURACION_H
+
     def _tarifa(self, opts):
         tarifa = dict(opts.get('tarifa') or {})
         tarifa.setdefault('moneda', DEFAULT_MONEDA)
@@ -359,9 +376,9 @@ class WNTREnergyService:
         inicio = time.time()
         try:
             opts = options or {}
-            duracion = float(opts.get('duration_hours', DEFAULT_DURACION_H))
 
             wn = self.base.load_network(inp_file)
+            duracion = self._duracion(wn, opts)
             if not wn.pump_name_list:
                 print(json.dumps({'success': False, 'errorKey': 'energy.noPumps'}))
                 return
@@ -394,9 +411,8 @@ class WNTREnergyService:
                 print(json.dumps({'success': False, 'errorKey': 'energy.noMeasure'}))
                 return
 
-            duracion = float(opts.get('duration_hours', DEFAULT_DURACION_H))
-
             wn_base = self.base.load_network(inp_file)
+            duracion = self._duracion(wn_base, opts)
             if not wn_base.pump_name_list:
                 print(json.dumps({'success': False, 'errorKey': 'energy.noPumpsVerify'}))
                 return
