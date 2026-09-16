@@ -470,7 +470,6 @@
     "matConcrete": "Concrete",
     "fragilityCurve": "Fragility curve (earthquake)",
     "after": "After",
-    "simDuration": "Simulation duration (h)",
     "maxDeficit": "Max deficit (h)",
     "waterAge": "Water age",
     "fullSimHint": "Runs a full hydraulic simulation: on large networks it can take a minute or more.",
@@ -587,7 +586,18 @@
     "soilRockShort": "rock",
     "soilStiffShort": "stiff",
     "soilSoftShort": "soft",
-    "seriesSoil": "{{suelo}} soil (α = {{alfa}})"
+    "seriesSoil": "{{suelo}} soil (α = {{alfa}})",
+    "window": {
+      "label": "Simulation window",
+      "file": "File duration ({{horas}} h)",
+      "fileUnknown": "File duration",
+      "day": "1 day (24 h)",
+      "threeDays": "3 days (72 h)",
+      "week": "1 week (168 h)",
+      "fallback": "The file declares no duration: {{horas}} h are used.",
+      "slow": "A long window takes considerably longer to simulate.",
+      "average": "{{horas}} h average"
+    }
   },
   "mapViewer": {
     "title": "Network viewer",
@@ -900,7 +910,7 @@
   "energy": {
     "noConverge": "Some of the simulations did not converge: the figures for those steps are not reliable.",
     "analyzing": "Analyzing consumption…",
-    "analyze": "Analyze energy use (24 h)",
+    "analyze": "Analyze energy use ({{horas}} h)",
     "addBlock": "Add block",
     "blocks": "Time blocks",
     "pumpsList": "Pumps (comma-separated)",
@@ -926,7 +936,7 @@
     "noSaving": "saves nothing",
     "noChange": "does not change consumption",
     "inHistoryOf": "in the project history.",
-    "traceability": "over 24 h · efficiency {{eficiencia}}% ({{origen}}) · {{intervalos}} steps of {{paso}} s",
+    "traceability": "over {{horas}} h · efficiency {{eficiencia}}% ({{origen}}) · {{intervalos}} steps of {{paso}} s",
     "efficiencyOf": "Efficiency {{media}}%",
     "efficiencyRange": " (between {{min}} and {{max}})",
     "curveGives": "Its curve gives {{optima}}% at",

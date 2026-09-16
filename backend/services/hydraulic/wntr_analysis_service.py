@@ -196,19 +196,25 @@ class WNTRAnalysisService:
             results = sim.run_sim()
             
             pressure = results.node['pressure']
-            min_pressure_threshold = options.get('min_pressure', 10.0) # meters
+            min_pressure_threshold = float(options.get('min_pressure', 10.0)) # meters
             
-            # Identifying nodes with pressure below threshold at any time step
+            # Identifying nodes with pressure below threshold at any time step.
+            # Solo junctions: en un embalse la presion es 0 por definicion (la
+            # carga es el nivel de la lamina) y en un deposito es la columna
+            # almacenada, asi que ambos entraban siempre con deficit maximo y
+            # encabezaban la lista de criticos (#143).
             top_critical_nodes = []
-            for node_name in wn.node_name_list:
+            for node_name in wn.junction_name_list:
                 node_pressures = pressure.loc[:, node_name]
                 min_p = float(node_pressures.min())
                 mean_p = float(node_pressures.mean())
                 
                 if min_p < min_pressure_threshold:
-                    # Calculate a score 0-1 based on deficit
+                    # Calculate a score 0-1 based on deficit, normalizado contra
+                    # el propio umbral: con el divisor fijo de antes la escala
+                    # dejaba de significar 0-1 al cambiar min_pressure.
                     deficit = min_pressure_threshold - min_p
-                    score = min(deficit / 10.0, 1.0)
+                    score = min(deficit / min_pressure_threshold, 1.0) if min_pressure_threshold > 0 else 1.0
                     classification = "high" if score > 0.7 else "medium" if score > 0.3 else "low"
                     
                     # Tuple format expected by frontend: [id, data]
@@ -243,6 +249,8 @@ class WNTRAnalysisService:
         """Calculate resilience metrics"""
         try:
             wn = self.load_network(inp_file)
+            options = options or {}
+            min_pressure_threshold = float(options.get('min_pressure', 10.0))
             
             # --- Hydraulic (Todini) ---
             sim = self._prepare_wntr_simulator(wn)
@@ -255,6 +263,15 @@ class WNTRAnalysisService:
             
             todini = wntr.metrics.hydraulic.todini_index(head, pressure, demand, flowrate, wn, 30)
             hyd_score = float(todini.mean())
+            
+            # --- Serviceability ---
+            # Mismo criterio que _resilience_snapshot en wntr_resilience_service:
+            # fraccion de junctions que cumplen la presion minima en todos los
+            # pasos. La tarjeta lo pedia y nadie lo devolvia, asi que salia N/A
+            # con cualquier red (#144).
+            junction_pressure = pressure[wn.junction_name_list]
+            meets_min = (junction_pressure >= min_pressure_threshold).all(axis=0)
+            pressure_serviceability = float(meets_min.mean()) if len(meets_min) > 0 else 0.0
             
             # --- Topographic ---
             if hasattr(wn, 'to_graph'): G = wn.to_graph()
@@ -313,6 +330,12 @@ class WNTRAnalysisService:
                         'hydraulic': {
                             'score': hyd_score_norm,
                             'todini_index': hyd_score
+                        },
+                        'serviceability': {
+                            'pressure_serviceability': pressure_serviceability,
+                            'junctions_meeting_pressure': int(meets_min.sum()),
+                            'total_junctions': int(len(meets_min)),
+                            'min_pressure_threshold': min_pressure_threshold
                         },
                         'economic': {
                             'score': econ_score,

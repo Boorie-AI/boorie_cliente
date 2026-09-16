@@ -470,7 +470,6 @@
     "matConcrete": "Formigó",
     "fragilityCurve": "Corba de fragilitat (sisme)",
     "after": "Després",
-    "simDuration": "Durada de la simulació (h)",
     "maxDeficit": "Dèficit màx. (h)",
     "waterAge": "Edat de l’aigua",
     "fullSimHint": "Executa una simulació hidràulica completa: en xarxes grans pot trigar un minut o més.",
@@ -587,7 +586,18 @@
     "soilRockShort": "roca",
     "soilStiffShort": "ferm",
     "soilSoftShort": "tou",
-    "seriesSoil": "sòl {{suelo}} (α = {{alfa}})"
+    "seriesSoil": "sòl {{suelo}} (α = {{alfa}})",
+    "window": {
+      "label": "Finestra de simulació",
+      "file": "Durada del fitxer ({{horas}} h)",
+      "fileUnknown": "Durada del fitxer",
+      "day": "1 dia (24 h)",
+      "threeDays": "3 dies (72 h)",
+      "week": "1 setmana (168 h)",
+      "fallback": "El fitxer no declara durada: s'utilitzen {{horas}} h.",
+      "slow": "Una finestra llarga triga bastant més a simular-se.",
+      "average": "mitjana de {{horas}} h"
+    }
   },
   "mapViewer": {
     "title": "Visor de xarxa",
@@ -900,7 +910,7 @@
   "energy": {
     "noConverge": "Alguna simulació no va convergir: les xifres d’aquells instants no són fiables.",
     "analyzing": "S’està analitzant el consum…",
-    "analyze": "Analitza el consum energètic (24 h)",
+    "analyze": "Analitza el consum energètic ({{horas}} h)",
     "addBlock": "Afegeix un bloc",
     "blocks": "Blocs horaris",
     "pumpsList": "Bombes (separades per comes)",
@@ -926,7 +936,7 @@
     "noSaving": "no estalvia",
     "noChange": "no canvia el consum",
     "inHistoryOf": "a l’historial del projecte.",
-    "traceability": "en 24 h · eficiència {{eficiencia}}% ({{origen}}) · {{intervalos}} intervals de {{paso}} s",
+    "traceability": "en {{horas}} h · eficiència {{eficiencia}}% ({{origen}}) · {{intervalos}} intervals de {{paso}} s",
     "efficiencyOf": "Eficiència {{media}}%",
     "efficiencyRange": " (entre {{min}} i {{max}})",
     "curveGives": "La seva corba dona {{optima}}% a",

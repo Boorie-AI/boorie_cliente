@@ -9,6 +9,10 @@ import { Badge } from '@/components/ui/badge'
 import { AlertCircle, Gauge, Lightbulb, Plus, RefreshCw, Trash2, Zap } from 'lucide-react'
 import { logger } from '@/utils/logger'
 import { FeedbackRecomendacion } from './FeedbackRecomendacion'
+import { SelectorVentana } from './VentanaSimulacion'
+import {
+  resolverHoras, formatearHoras, VENTANA_POR_DEFECTO, type Ventana
+} from '@/services/network/ventanaSimulacion'
 
 /**
  * Eficiencia energética del bombeo (#42).
@@ -48,6 +52,8 @@ interface Props {
   redId?: string | null
   /** Si no hay red cargada no hay nada que analizar. */
   hayRed: boolean
+  /** Duración declarada en el .inp, en horas; null si el modelo no la trae. */
+  horasFichero: number | null
 }
 
 const num = (v: string, porDefecto = 0) => {
@@ -55,8 +61,12 @@ const num = (v: string, porDefecto = 0) => {
   return Number.isFinite(n) ? n : porDefecto
 }
 
-export function PanelEnergia({ projectId, redId, hayRed }: Props) {
+export function PanelEnergia({ projectId, redId, hayRed, horasFichero }: Props) {
   const { t } = useTranslation()
+  // Las tres llamadas llevaban 24 h a fuego, así que el consumo de una red
+  // declarada a una semana se medía sobre su primer día (#142).
+  const [ventana, setVentana] = useState<Ventana>(VENTANA_POR_DEFECTO)
+  const duracionH = resolverHoras(ventana, horasFichero)
   const [tarifa, setTarifa] = useState<Tarifa | null>(null)
   const [propia, setPropia] = useState(false)
   const [solapados, setSolapados] = useState<Array<[string, string]>>([])
@@ -125,7 +135,7 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
     setAnalizando(true)
     setError(null)
     try {
-      const r = await window.electronAPI.wntr.energyAnalyze({ projectId: projectId ?? null, redId: redId ?? null, duration_hours: 24 })
+      const r = await window.electronAPI.wntr.energyAnalyze({ projectId: projectId ?? null, redId: redId ?? null, duration_hours: duracionH })
       if (r?.success) {
         setAnalisis(r.data)
         setSolapados(r.avisos?.bloques_solapados ?? solapados)
@@ -152,7 +162,7 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
       const r = await window.electronAPI.wntr.energyVerify({
         projectId: projectId ?? null,
         redId: redId ?? null,
-        duration_hours: 24,
+        duration_hours: duracionH,
         persons_per_connection: 4,
         medidas: [{ tipo: 'pump_outage', elementos, desde_h: desdeH, hasta_h: hastaH }],
       })
@@ -179,7 +189,7 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
       const r = await window.electronAPI.wntr.energyRecommend({
         projectId: projectId ?? null,
         redId: redId ?? null,
-        duration_hours: 24,
+        duration_hours: duracionH,
       })
       if (r?.success) {
         setAnalisis(r.data.analisis)
@@ -337,10 +347,16 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
       </div>
 
       {/* Análisis */}
+      <SelectorVentana
+        valor={ventana}
+        onChange={setVentana}
+        horasFichero={horasFichero}
+        disabled={!hayRed}
+      />
       <Button size="sm" className="w-full" onClick={analizar} disabled={!hayRed || analizando}>
         {analizando
           ? <><RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> {t('energy.analyzing')}</>
-          : <><Gauge className="h-3.5 w-3.5 mr-2" /> {t('energy.analyze')}</>}
+          : <><Gauge className="h-3.5 w-3.5 mr-2" /> {t('energy.analyze', { horas: formatearHoras(duracionH) })}</>}
       </Button>
 
       {error && (
@@ -359,7 +375,7 @@ export function PanelEnergia({ projectId, redId, hayRed }: Props) {
               </span>
             </div>
             <div className="text-[10px] text-muted-foreground">
-              {t('energy.traceability', { eficiencia: analisis.trazabilidad.eficiencia_global_pct, origen: decirTexto(t, analisis.trazabilidad.origen_eficiencia), intervalos: analisis.trazabilidad.intervalos, paso: analisis.trazabilidad.paso_s })}
+              {t('energy.traceability', { horas: formatearHoras(duracionH), eficiencia: analisis.trazabilidad.eficiencia_global_pct, origen: decirTexto(t, analisis.trazabilidad.origen_eficiencia), intervalos: analisis.trazabilidad.intervalos, paso: analisis.trazabilidad.paso_s })}
             </div>
 
             <div className="space-y-1">

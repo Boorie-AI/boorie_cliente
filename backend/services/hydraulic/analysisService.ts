@@ -55,10 +55,14 @@ export interface ResilienceMetrics {
     score: number;
   };
   hydraulic?: {
-    pressure_satisfaction: number;
-    demand_satisfaction: number;
-    flow_reliability: number;
+    todini_index: number;
     score: number;
+  };
+  serviceability?: {
+    pressure_serviceability: number;
+    junctions_meeting_pressure: number;
+    total_junctions: number;
+    min_pressure_threshold: number;
   };
   economic: {
     estimated_replacement_cost: number;

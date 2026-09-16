@@ -9,6 +9,40 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **El índice de Todini salía con dos valores distintos según la pantalla.** La tarjeta de
+  *Analizar todo* simulaba la duración escrita en el .inp —168 h en Net3— y el panel de
+  indicadores forzaba 24 h, así que la misma red daba 0,4027 en un sitio y 0,3841 en otro
+  sin que nada dijera por qué. El índice se promedia paso a paso y oscila con el patrón de
+  demanda y el nivel de los depósitos, de modo que ninguna cifra era falsa: medían ventanas
+  distintas. Ahora hay una sola ventana de simulación, elegible entre 1 día, 3 días, 1
+  semana y la duración del fichero, y **por defecto es la del fichero**, que es la que el
+  modelo declara: recortar a 24 h una red pensada para una semana mide el transitorio de
+  llenado de los depósitos en vez del régimen normal. Sustituye al campo «Duración
+  simulación (h)», lo comparten la simulación de interrupción y los indicadores, y la
+  tarjeta dice ahora sobre qué ventana está promediado el Todini.
+
+- **El panel de eficiencia energética medía siempre el primer día.** Sus tres llamadas
+  —análisis, verificación y recomendaciones— llevaban 24 h fijas en el código, así que el
+  consumo de una red declarada a una semana se calculaba sobre su primera jornada. Pasa a
+  la misma ventana, y el botón y la línea de trazabilidad dicen cuál se ha usado en vez de
+  anunciar «24 h» pasara lo que pasara.
+
+- **El análisis de criticidad señalaba los embalses como los nudos más críticos.** Recorría
+  todos los nudos de la red aplicando el umbral de presión mínima, y en un embalse la
+  presión es 0 por definición —la carga es el nivel de la lámina—, así que entraban con
+  déficit máximo y encabezaban la lista. En Net3 los dos primeros «críticos» eran River y
+  Lake, y los nudos de consumo con presión insuficiente quedaban detrás. Ahora solo se
+  miran las junctions, y la puntuación se normaliza contra el umbral configurado en lugar
+  de un divisor fijo que dejaba la escala sin sentido al cambiarlo.
+
+- **«Nivel de servicio» salía N/A con cualquier red.** La tarjeta de resiliencia leía un
+  campo que ese cálculo no devolvía, y el encadenamiento opcional convertía la ausencia en
+  un hueco silencioso. Se calcula ya con el mismo criterio que el panel de indicadores
+  —fracción de nudos de consumo que cumplen la presión mínima en todos los pasos— y ambas
+  pantallas reciben el mismo umbral, así que coinciden: 95,7 % en Net3.
+
 ## [1.32.0] - 2026-09-14
 
 El centro de conocimiento aguanta una base grande, y lo que falla deja de fallar en silencio.
