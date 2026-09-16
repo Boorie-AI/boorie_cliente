@@ -193,3 +193,42 @@ describe.skipIf(!canRun)('verificación de ahorro por simulación', () => {
     expect(r.errorKey).toBe('energy.noMeasure')
   })
 })
+
+/**
+ * La ventana de simulación (#148).
+ *
+ * El respaldo eran 24 h fijas en tres sitios encadenados —el componente del
+ * chat, el handler y el servicio—, así que el consumo de una red declarada a
+ * una semana se medía sobre su primer día en cuanto quien llamaba no mandaba
+ * nada. Quien decide es ahora el servicio, que sí tiene la red delante.
+ */
+describe.skipIf(!canRun)('ventana de simulación del análisis energético', () => {
+  it('sin duración usa la que declara el .inp', async () => {
+    const r = await service.analizar(CON_CONTROLES, { tarifa: TARIFA })
+
+    expect(r.success).toBe(true)
+    // Net3-con-controles declara 168 h, no 24.
+    expect(r.data!.duration_hours).toBe(168)
+  }, SIM_TIMEOUT)
+
+  it('respeta la duración que se pida', async () => {
+    const r = await service.analizar(CON_CONTROLES, { duration_hours: 24, tarifa: TARIFA })
+
+    expect(r.success).toBe(true)
+    expect(r.data!.duration_hours).toBe(24)
+  }, SIM_TIMEOUT)
+
+  it('sobre la misma red, una semana consume más que un día', async () => {
+    // Es la comprobación que da sentido al cambio: no es que la cifra cambie de
+    // nombre, es que antes se entregaba la del primer día como si fuera la de
+    // la red entera.
+    const [semana, dia] = await Promise.all([
+      service.analizar(CON_CONTROLES, { tarifa: TARIFA }),
+      service.analizar(CON_CONTROLES, { duration_hours: 24, tarifa: TARIFA }),
+    ])
+
+    expect(semana.success).toBe(true)
+    expect(dia.success).toBe(true)
+    expect(semana.data!.energia_total_kwh).toBeGreaterThan(dia.data!.energia_total_kwh)
+  }, SIM_TIMEOUT * 2)
+})

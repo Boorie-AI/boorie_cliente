@@ -1458,7 +1458,7 @@
     "fuente": "_Fuente: {{origen}}, motor WNTR en modo PDA{{metodo}}._",
     "fuenteRun": "simulación `{{runId}}`",
     "fuenteSinRun": "esta simulación (no se pudo registrar en el historial)",
-    "consumoBombeo": "**Consumo de bombeo**: {{kwh}} kWh y {{coste}} {{moneda}} en 24 h.",
+    "consumoBombeo": "**Consumo de bombeo**: {{kwh}} kWh y {{coste}} {{moneda}} en {{horas}} h.",
     "laQueMasGasta": "La que más gasta es la bomba {{bomba}}: {{kwh}} kWh y {{coste}} {{moneda}}.",
     "sinMedidas": "No he encontrado medidas que merezca la pena verificar.",
     "probadaUna": "He probado una medida, simulándola sobre tu red",

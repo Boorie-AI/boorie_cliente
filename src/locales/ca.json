@@ -1458,7 +1458,7 @@
     "fuente": "_Font: {{origen}}, motor WNTR en mode PDA{{metodo}}._",
     "fuenteRun": "simulació `{{runId}}`",
     "fuenteSinRun": "aquesta simulació (no s’ha pogut registrar a l’historial)",
-    "consumoBombeo": "**Consum de bombament**: {{kwh}} kWh i {{coste}} {{moneda}} en 24 h.",
+    "consumoBombeo": "**Consum de bombament**: {{kwh}} kWh i {{coste}} {{moneda}} en {{horas}} h.",
     "laQueMasGasta": "La que més gasta és la bomba {{bomba}}: {{kwh}} kWh i {{coste}} {{moneda}}.",
     "sinMedidas": "No he trobat mesures que valgui la pena verificar.",
     "probadaUna": "He provat una mesura, simulant-la sobre la teva xarxa",

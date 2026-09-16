@@ -43,10 +43,12 @@ export function PropuestaEnergia({ projectId, redId, onNarracion }: Props) {
     setEstado('trabajando')
     setError(null)
     try {
+      // Sin duración: la pone el servicio a partir del .inp. Aquí no hay forma
+      // de saberla —este componente sólo recibe el proyecto y la red— y fijar
+      // 24 h medía el primer día de una red declarada a una semana (#148).
       const r = await window.electronAPI.wntr.energyRecommend({
         projectId: projectId ?? null,
         redId: redId ?? null,
-        duration_hours: 24,
       })
 
       if (!r?.success) {
