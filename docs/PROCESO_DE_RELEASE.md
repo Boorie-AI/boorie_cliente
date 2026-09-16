@@ -169,6 +169,12 @@ npm run build:vite && npm run build:electron-ts && npx electron-builder --linux 
 `--dir` evita comprimir el AppImage y sirve igual. El modo desarrollo **no** sirve para esto:
 ahí Prisma resuelve el motor por su cuenta y el fallo no aparece.
 
+**Esas dos líneas van al stdout del proceso, no a `~/.config/boorie/logs/main.log`.** Ese
+fichero es el de `electron-log` y en un arranque normal trae sólo lo del autoactualizador —dos
+líneas—, así que buscar ahí la conexión de la base da cero y parece que el paquete no abre la
+suya. Hay que redirigir la salida al lanzarlo (`./boorie --no-sandbox > salida.log 2>&1`) y
+grepear ese fichero. Pasó en la v1.33.0 y costó un susto.
+
 ### Quitar el borrador
 
 Pasando `tag_name` en el **mismo** PATCH que `draft=false`. Si no, GitHub deja `tag_name` como
@@ -226,6 +232,10 @@ completa.
 
 > **Un `net::ERR_NETWORK_CHANGED` no es un fallo de la release.** El registro dice
 > `Checking for update` y a los veinte segundos ese error, sin llegar a `Found version`.
+> También aparece **después** de `Found version`, a mitad de la descarga y con el diferencial
+> ya calculado: `Cannot download differentially, fallback to full download`. Es el mismo
+> aviso de Chromium y se comprueba igual; que el porcentaje del diferencial se haya calculado
+> —`Full: … To download: … (21 %)`— ya dice que el blockmap está bien. Pasó en la v1.33.0.
 > Es Chromium avisando de que la interfaz de red cambió a mitad de la petición, no un
 > `latest-linux.yml` inalcanzable. Se distingue en un segundo:
 > `curl -sI .../latest-linux.yml` — si da 200, era eso, y basta relanzar. Pasó en la v1.31.0.
