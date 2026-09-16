@@ -80,6 +80,24 @@ describe('los resultados de simular desde el mapa suben al armazón', () => {
     expect(propsDelMapa.networkFilePath).toBe('/tmp/red.inp')
   })
 
+  /**
+   * Una red declara su duración y su paso de reporte en el `.inp`, y el eje se
+   * reconstruye con ellos cuando los resultados no traen `timestamps`. Eso hacía
+   * salir el reproductor con sólo abrir la red —168 h y 673 pasos en Net3—, y
+   * recorrerlo no enseñaba nada porque no había ninguna simulación detrás.
+   */
+  it('la red cargada sin simular no trae reproductor, aunque el .inp declare duración', () => {
+    const conTiempo = { ...RED, options: { time: { duration: 604800, report_timestep: 900 } } }
+
+    const { rerender } = render(<WNTRAdvancedMapViewer networkData={conTiempo as never} />)
+    expect(screen.queryByText(/paso 1 de/)).not.toBeInTheDocument()
+
+    rerender(
+      <WNTRAdvancedMapViewer networkData={conTiempo as never} simulationResults={RESULTADOS as never} />
+    )
+    expect(screen.getByText(/paso 1 de 3/)).toBeInTheDocument()
+  })
+
   it('no exige que el contenedor pase el callback', () => {
     render(<WNTRAdvancedMapViewer networkData={RED as never} />)
 

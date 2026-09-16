@@ -9,6 +9,15 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **El visor ofrecía recorrer una simulación que no se había hecho.** Al abrir una red, la barra
+  de tiempo del mapa y del esquema aparecía ya con todos los pasos que declara el fichero —en
+  una red de una semana, 673 pasos y 168 horas— aunque no se hubiera simulado nada. Recorrerlos
+  no cambiaba nada: las tuberías no daban caudal ni velocidad, los nudos no daban presión y
+  repetían la demanda base del fichero en todos los pasos. La barra sólo aparece ahora cuando
+  hay resultados de verdad que recorrer.
+
 ## [1.34.0] - 2026-09-16
 
 Lo que el asistente responde sobre energía se mide en el mismo periodo que el resto, y lo dice.
