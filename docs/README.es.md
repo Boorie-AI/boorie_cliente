@@ -39,15 +39,21 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.33.0
+### 🚀 Última Versión - v1.34.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.33.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.33.0/Boorie-1.33.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.33.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.33.0/Boorie-Setup-1.33.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.33.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.33.0/Boorie-1.33.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.34.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.34.0/Boorie-1.34.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.34.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.34.0/Boorie-Setup-1.34.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.34.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.34.0/Boorie-1.34.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.34.0
+- La propuesta de ahorro energético del asistente seguía midiendo el primer día: aunque la red declarase una semana, y aunque el panel de al lado estuviera puesto en otra cosa, el chat simulaba veinticuatro horas fijas. El mismo bombeo salía con dos cifras distintas según por dónde se preguntara.
+- Ahora, cuando nadie pide un periodo concreto, se usa el que declara el fichero de la red.
+- Y el texto del asistente decía «al día» sobre cifras que no eran de un día —el consumo, el ahorro de cada medida y el motivo por el que se proponía—, así que la frase contradecía al número que tenía al lado. Las tres dicen ahora el periodo que se simuló.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.34.0).
 
 ### 📝 Novedades en v1.33.0
 - El índice de Todini salía con dos valores distintos según dónde se mirara: 0,4027 en la tarjeta de análisis y 0,3841 en el panel de indicadores, para la misma red. Ninguno de los dos estaba mal —el índice se calcula en cada instante de la simulación y sube y baja con el consumo del día y el nivel de los depósitos, así que lo que se ve es un promedio— pero cada pantalla promediaba un periodo distinto.
@@ -371,12 +377,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.33.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.33.0.AppImage`
-3. Ejecuta: `./Boorie-1.33.0.AppImage`
+1. Descarga `Boorie-1.34.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.34.0.AppImage`
+3. Ejecuta: `./Boorie-1.34.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.33.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.34.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
