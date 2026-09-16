@@ -39,15 +39,23 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.32.0
+### 🚀 Última Versió - v1.33.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.32.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.32.0/Boorie-1.32.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.32.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.32.0/Boorie-Setup-1.32.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.32.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.32.0/Boorie-1.32.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.33.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.33.0/Boorie-1.33.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.33.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.33.0/Boorie-Setup-1.33.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.33.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.33.0/Boorie-1.33.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.33.0
+- L'índex de Todini sortia amb dos valors diferents segons on es mirés: 0,4027 a la targeta d'anàlisi i 0,3841 al plafó d'indicadors, per a la mateixa xarxa. Cap dels dos estava malament —l'índex es calcula a cada instant de la simulació i puja i baixa amb el consum del dia i el nivell dels dipòsits, així que el que es veu és una mitjana— però cada pantalla feia la mitjana d'un període diferent.
+- Ara el període es tria una sola vegada i ve dit al costat de la xifra: 1 dia, 3 dies, 1 setmana o la durada del fitxer de la xarxa, que és l'opció de partida. Substitueix el camp «Duració simulació (h)».
+- L'anàlisi energètica mesurava sempre el primer dia, durés el que durés la xarxa. Passa al mateix període que la resta, i diu quin ha fet servir.
+- Els embassaments apareixien com els nusos més crítics de la xarxa: la seva pressió és zero per definició, així que desplaçaven els nusos de consum que sí que tenien un problema real.
+- «Nivell de servei» apareixia sempre buit, amb qualsevol xarxa. Ja es calcula, amb el mateix criteri que el plafó d'indicadors.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.33.0).
 
 ### 📝 Novetats a v1.32.0
 - Obrir el centre de coneixement amb molts documents s'enduia l'aplicació. Per escriure «90 fragments» al costat de cada títol es carregava a memòria el vector de cada fragment —uns 29 KB cadascun— i els comptava allà: en una base d'1,1 GB això és demanar prop d'un gigabyte cada vegada que s'obre el plafó, i un altre cop després de cada càrrega. Ara aquests comptes els fa la base de dades.
@@ -363,12 +371,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.32.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.32.0.AppImage`
-3. Executa: `./Boorie-1.32.0.AppImage`
+1. Descarrega `Boorie-1.33.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.33.0.AppImage`
+3. Executa: `./Boorie-1.33.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.32.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.33.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 

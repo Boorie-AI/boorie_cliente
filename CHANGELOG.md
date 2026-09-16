@@ -9,39 +9,41 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.33.0] - 2026-09-15
 
-- **El índice de Todini salía con dos valores distintos según la pantalla.** La tarjeta de
-  *Analizar todo* simulaba la duración escrita en el .inp —168 h en Net3— y el panel de
-  indicadores forzaba 24 h, así que la misma red daba 0,4027 en un sitio y 0,3841 en otro
-  sin que nada dijera por qué. El índice se promedia paso a paso y oscila con el patrón de
-  demanda y el nivel de los depósitos, de modo que ninguna cifra era falsa: medían ventanas
-  distintas. Ahora hay una sola ventana de simulación, elegible entre 1 día, 3 días, 1
-  semana y la duración del fichero, y **por defecto es la del fichero**, que es la que el
-  modelo declara: recortar a 24 h una red pensada para una semana mide el transitorio de
-  llenado de los depósitos en vez del régimen normal. Sustituye al campo «Duración
-  simulación (h)», lo comparten la simulación de interrupción y los indicadores, y la
-  tarjeta dice ahora sobre qué ventana está promediado el Todini.
+Las cifras de resiliencia dicen ahora sobre qué periodo están calculadas, y dejan de
+contradecirse entre una pantalla y otra.
 
-- **El panel de eficiencia energética medía siempre el primer día.** Sus tres llamadas
-  —análisis, verificación y recomendaciones— llevaban 24 h fijas en el código, así que el
-  consumo de una red declarada a una semana se calculaba sobre su primera jornada. Pasa a
-  la misma ventana, y el botón y la línea de trazabilidad dicen cuál se ha usado en vez de
-  anunciar «24 h» pasara lo que pasara.
+- **El índice de Todini salía con dos valores distintos según dónde se mirara.** En una red de
+  ejemplo valía 0,4027 en la tarjeta de *Analizar todo* y 0,3841 en el panel de indicadores,
+  sin que nada explicara la diferencia. Ninguno de los dos estaba mal: el índice se calcula en
+  cada instante de la simulación y sube y baja con el consumo del día y con el nivel de los
+  depósitos, así que lo que se muestra es un promedio, y cada pantalla promediaba un periodo
+  distinto. Una usaba la duración escrita en el fichero de la red —una semana— y la otra se
+  quedaba con el primer día.
 
-- **El análisis de criticidad señalaba los embalses como los nudos más críticos.** Recorría
-  todos los nudos de la red aplicando el umbral de presión mínima, y en un embalse la
-  presión es 0 por definición —la carga es el nivel de la lámina—, así que entraban con
-  déficit máximo y encabezaban la lista. En Net3 los dos primeros «críticos» eran River y
-  Lake, y los nudos de consumo con presión insuficiente quedaban detrás. Ahora solo se
-  miran las junctions, y la puntuación se normaliza contra el umbral configurado en lugar
-  de un divisor fijo que dejaba la escala sin sentido al cambiarlo.
+- **Ahora el periodo se elige una sola vez, y viene dicho al lado de la cifra.** Hay un
+  desplegable con 1 día, 3 días, 1 semana y la duración del fichero, y **esta última es la
+  opción de partida**, porque es la que el modelo declara: recortar a un día una red pensada
+  para una semana mide cómo se están llenando los depósitos, no cómo funciona la red en su
+  régimen normal. Sustituye al campo «Duración simulación (h)» y lo comparten la simulación de
+  interrupción, los indicadores de resiliencia y el análisis energético.
 
-- **«Nivel de servicio» salía N/A con cualquier red.** La tarjeta de resiliencia leía un
-  campo que ese cálculo no devolvía, y el encadenamiento opcional convertía la ausencia en
-  un hueco silencioso. Se calcula ya con el mismo criterio que el panel de indicadores
-  —fracción de nudos de consumo que cumplen la presión mínima en todos los pasos— y ambas
-  pantallas reciben el mismo umbral, así que coinciden: 95,7 % en Net3.
+- **El análisis energético medía siempre el primer día.** Daba igual lo que durase la red: el
+  consumo, las medidas verificadas y las recomendaciones se calculaban sobre veinticuatro
+  horas. Pasa al mismo periodo que el resto, y tanto el botón como la línea que acompaña a los
+  resultados dicen cuál se ha usado.
+
+- **Los embalses aparecían como los nudos más críticos de la red.** El análisis de criticidad
+  comparaba la presión de todos los nudos con el mínimo exigido, y en un embalse esa presión
+  es cero por definición —lo que tiene es un nivel de agua, no una presión de servicio—, así
+  que encabezaban la lista y desplazaban a los nudos de consumo que sí tenían un problema
+  real. Ahora sólo se miran los nudos de consumo.
+
+- **«Nivel de servicio» aparecía siempre vacío.** La tarjeta de resiliencia pedía un dato que
+  ese cálculo nunca llegaba a enviar, con cualquier red y desde siempre. Se calcula ya, con el
+  mismo criterio y el mismo umbral de presión que el panel de indicadores, de modo que las dos
+  pantallas coinciden.
 
 ## [1.32.0] - 2026-09-14
 

@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.32.0
+### 🚀 Latest Release - v1.33.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.32.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.32.0/Boorie-1.32.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.32.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.32.0/Boorie-Setup-1.32.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.32.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.32.0/Boorie-1.32.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.33.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.33.0/Boorie-1.33.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.33.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.33.0/Boorie-Setup-1.33.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.33.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.33.0/Boorie-1.33.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.33.0**: Resilience figures now say what period they cover, and stop contradicting each other from one screen to the next. The Todini index read 0.4027 on the analysis card and 0.3841 in the indicators panel for the same network: neither was wrong — the index is computed at every instant of the simulation and rises and falls with the daily demand and the tank levels, so what you see is an average, and each screen was averaging a different period. One used the duration written in the network file, the other kept only the first day. The period is now chosen once — 1 day, 3 days, 1 week, or the file's own duration, which is the starting option — and it is stated next to the figure. Energy analysis, which always measured the first twenty-four hours whatever the network declared, follows the same choice. Reservoirs no longer top the list of critical nodes: their pressure is zero by definition, so they displaced the demand nodes that really had a problem. And "Service level", which had always been blank, is now calculated. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.33.0).
 - **v1.32.0**: The knowledge centre now copes with a large library, and what fails stops failing silently. Opening it with a hundred-odd documents used to take the application down: to write "90 fragments" beside each title it loaded every fragment's vector into memory — around 29 KB each — and counted them there; on a 1.1 GB library that meant asking for close to a gigabyte every time the panel opened and again after every upload. Those counts are now done by the database. Documents could also end up indexed on paper and absent from the search index: the vector store was always created for the local model's size, so anything indexed with OpenAI was rejected on every insert without a word, and semantic search never found it. The indexing model list no longer offers options that cannot work — OpenAI without a key, or Ollama models that are not installed — and says what to install when none are available. And the folder upload counter stops showing numbers that do not match. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.32.0).
 - **v1.31.0**: The assistant now does the analyses instead of explaining them, and cites where every figure comes from. It read the network and stopped there, so you ran the panel by hand and then told the chat the numbers you had just seen; it now runs the fragility curve and the calculator itself, and proposes —for you to confirm— the analyses that require simulating the whole network, which on a large one take more than ten minutes. Every claim drawn from the documentation carries its source, and the source resolves: the answer has a mark and below it the numbered list with the document, section and page. If what you ask is not in the indexed documents it says so, instead of filling the gap from memory. The rules that keep it from inventing figures used to depend on a settings screen —on a fresh install they did not exist, and it answered with none of them— and now they always ship, with whatever you write in Settings added to them rather than replacing them. And the calculator rejected a 300 mm diameter while accepting a 20 metre one: the range is now checked after converting the unit and on every engine, the hint under each field states it in the unit you have selected, and the warning appears in the language you are reading. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.31.0).
 - **v1.30.0**: The fragility curve now shows the three soil classes at once. The acceleration curve came out almost identical to the velocity one, and it made you doubt a calculation that was right: with the ceilings each axis carried —100 cm/s and 1 g— and the soil class that comes preset, the two curves matched point by point to within two percentage points, as if only the axis label had changed. Nothing was wrong with the figures, which were and are the same; it was a coincidence between two defaults. The acceleration ceiling is now 1.2 g, which covers the same code range, and the coincidence is gone. And the three soil classes are drawn together when the curve is read against acceleration, which is where the soil changes the answer: at 0.30 g, the chance of a pipe failing is 68 % on rock, 87 % on stiff soil and 93 % on soft — same network, same material. Before, one class was drawn at a time, so comparing meant generating the curve three times and remembering the numbers. The class picked in the selector is drawn thick, because it is the one the per-diameter table and the exported file carry, and that file now has one column per soil class. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.30.0).
@@ -110,12 +111,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.32.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.32.0.AppImage`
-3. Run: `./Boorie-1.32.0.AppImage`
+1. Download `Boorie-1.33.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.33.0.AppImage`
+3. Run: `./Boorie-1.33.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.32.0.exe` from the link above
+1. Download `Boorie-Setup-1.33.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 
