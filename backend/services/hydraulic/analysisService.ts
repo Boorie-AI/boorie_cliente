@@ -4,6 +4,8 @@
  */
 
 import { spawn } from 'child_process';
+import { findPythonPath } from './pythonDetector';
+import { resolvePythonScriptPath } from './pythonScriptPath';
 import fs from 'fs/promises';
 import { createLogger } from '../../utils/logger';
 
@@ -103,14 +105,10 @@ export class WNTRAnalysisService {
 
   /** Ver nota en wntrWrapper: se resuelve en cada ejecución, no al construir. */
   private get pythonPath(): string {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { findPythonPath } = require('./pythonDetector');
     return findPythonPath();
   }
 
   constructor() {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { resolvePythonScriptPath } = require('./pythonScriptPath');
     this.servicePath = resolvePythonScriptPath('wntr_analysis_service.py');
   }
 
