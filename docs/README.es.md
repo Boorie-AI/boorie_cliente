@@ -39,15 +39,21 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.34.0
+### 🚀 Última Versión - v1.35.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.34.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.34.0/Boorie-1.34.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.34.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.34.0/Boorie-Setup-1.34.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.34.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.34.0/Boorie-1.34.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.35.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.35.0/Boorie-1.35.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.35.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.35.0/Boorie-Setup-1.35.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.35.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.35.0/Boorie-1.35.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.35.0
+- El visor ofrecía recorrer una simulación que no se había hecho: con sólo abrir una red, la barra de tiempo aparecía ya con todos los pasos que declara el fichero —en una red de una semana, 673 pasos y 168 horas—.
+- Recorrerlos no cambiaba nada: las tuberías no daban caudal ni velocidad, los nudos no daban presión y repetían la demanda base del fichero en todos los pasos, porque detrás no había ninguna simulación.
+- La barra sólo aparece ahora cuando hay resultados de verdad que recorrer.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.35.0).
 
 ### 📝 Novedades en v1.34.0
 - La propuesta de ahorro energético del asistente seguía midiendo el primer día: aunque la red declarase una semana, y aunque el panel de al lado estuviera puesto en otra cosa, el chat simulaba veinticuatro horas fijas. El mismo bombeo salía con dos cifras distintas según por dónde se preguntara.
@@ -377,12 +383,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.34.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.34.0.AppImage`
-3. Ejecuta: `./Boorie-1.34.0.AppImage`
+1. Descarga `Boorie-1.35.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.35.0.AppImage`
+3. Ejecuta: `./Boorie-1.35.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.34.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.35.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 

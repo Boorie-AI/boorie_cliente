@@ -9,7 +9,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.35.0] - 2026-09-16
+
+La barra de tiempo del visor deja de ofrecer una simulación que no se ha hecho.
 
 - **El visor ofrecía recorrer una simulación que no se había hecho.** Al abrir una red, la barra
   de tiempo del mapa y del esquema aparecía ya con todos los pasos que declara el fichero —en
