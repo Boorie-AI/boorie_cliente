@@ -123,9 +123,24 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
     onPaso: irAPaso,
   });
 
-  // Un modelo de un solo paso no tiene nada que reproducir: la barra desaparece
-  // en lugar de ofrecer un reproductor inútil.
-  const hayLineaTiempo = !timeline.linea.estacionaria;
+  /**
+   * Resultados de verdad, no un fichero cargado. El eje se reconstruye a partir
+   * de la duración y el paso de reporte que declara el `.inp` cuando los
+   * resultados no traen `timestamps` (#45), y eso hacía aparecer el reproductor
+   * con sólo abrir una red: en Net3 ofrecía sus 168 h en 673 pasos sin que se
+   * hubiera simulado nada. Recorrerlos no cambiaba nada —ni presión, ni caudal,
+   * ni velocidad, y la demanda base del fichero repetida en todos los pasos—,
+   * porque detrás no había ninguna simulación.
+   */
+  const hayResultados = Boolean(
+    simulationResults &&
+    (Object.keys(simulationResults.node_results ?? {}).length > 0 ||
+      Object.keys(simulationResults.link_results ?? {}).length > 0)
+  );
+
+  // Un modelo de un solo paso tampoco tiene nada que reproducir: la barra
+  // desaparece en lugar de ofrecer un reproductor inútil.
+  const hayLineaTiempo = hayResultados && !timeline.linea.estacionaria;
 
   // Un paso que ya no existe —cambio de red, o simulación más corta— se recorta
   // en lugar de dejar la barra apuntando fuera de los resultados.
