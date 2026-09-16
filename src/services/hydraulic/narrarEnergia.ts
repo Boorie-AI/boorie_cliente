@@ -134,6 +134,7 @@ export function narrarEnergia(
         coste: numero(r.ahorro.coste, 2),
         moneda: m,
         porcentaje: numero(Math.abs(r.ahorro.porcentaje_energia)),
+        horas: horasLegibles(analisis.duration_hours),
       }))
     }
 

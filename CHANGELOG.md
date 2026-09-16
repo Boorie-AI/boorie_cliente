@@ -16,9 +16,12 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   si usted le preguntaba al asistente cómo ahorrar luz, lo que se simulaba eran veinticuatro
   horas fijas, aunque la red declarase una semana y aunque el panel de al lado estuviera puesto
   en otra cosa. El mismo bombeo salía con dos consumos distintos según por dónde se preguntara.
-  Ahora, cuando nadie pide un periodo concreto, se usa el que declara el fichero de la red, y
-  el texto que escribe el asistente dice cuál ha sido en vez de afirmar «en 24 h» pasara lo que
-  pasara.
+  Ahora, cuando nadie pide un periodo concreto, se usa el que declara el fichero de la red.
+
+- **Y el texto del asistente decía «al día» sobre cifras que no eran de un día.** Tanto el
+  consumo como el ahorro de cada medida y el motivo por el que se proponía afirmaban un día
+  entero: con una red de una semana, la frase contradecía a la cifra que tenía al lado. Las
+  tres dicen ahora el periodo que se simuló de verdad.
 
 ## [1.33.0] - 2026-09-15
 

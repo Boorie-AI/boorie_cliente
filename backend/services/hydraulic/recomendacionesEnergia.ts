@@ -46,6 +46,8 @@ export interface AnalisisParaRecomendar {
   moneda: string
   bombas: BombaAnalizada[]
   tarifa_aplicada: { moneda: string; precio_kwh: number; bloques: Array<{ nombre: string; desde_h: number; hasta_h: number; precio_kwh: number }> }
+  /** Horas simuladas: el texto decía «al día» y ya no tienen por qué ser 24 (#148). */
+  duration_hours?: number
 }
 
 export interface Candidata {
@@ -81,10 +83,17 @@ const numero = (n: number, decimales = 1) => n.toFixed(decimales).replace('.', '
  *   periodo extendido, así que el tope no es cosmético: en una máquina sin GPU,
  *   cinco candidatas son diez simulaciones y varios minutos de espera.
  */
+/** Igual que en la narración: sin horas se asume el respaldo de 24 h (#148). */
+const horasLegibles = (h?: number) => {
+  const n = typeof h === 'number' && Number.isFinite(h) && h > 0 ? h : 24
+  return Number.isInteger(n) ? String(n) : n.toFixed(1)
+}
+
 export function generarCandidatas(analisis: AnalisisParaRecomendar, maximo = 3): Candidata[] {
   const candidatas: Candidata[] = []
   const moneda = analisis.moneda
   const precioBase = analisis.tarifa_aplicada?.precio_kwh ?? 0
+  const horas = horasLegibles(analisis.duration_hours)
 
   // 1. Bombeo en horas caras. La señal es que la bomba consuma en un bloque más
   //    caro que el precio base: ahí el mismo kWh cuesta más, y moverlo es la
@@ -110,6 +119,7 @@ export function generarCandidatas(analisis: AnalisisParaRecomendar, maximo = 3):
             base: numero(precioBase, 3),
             coste: numero(bloque.coste, 2),
             total: numero(bomba.coste, 2),
+            horas,
           },
         },
         medida: {

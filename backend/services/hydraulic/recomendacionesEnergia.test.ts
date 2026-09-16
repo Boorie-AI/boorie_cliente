@@ -129,3 +129,27 @@ describe('candidatas de eficiencia energética', () => {
     expect(generarCandidatas(plana)).toEqual([])
   })
 })
+
+/**
+ * El motivo del traslado horario decía «de las X que cuesta al día» (#148).
+ * Desde que la ventana sale del .inp, un día es sólo uno de los casos: con una
+ * red declarada a una semana el texto afirmaba algo falso sobre su propia cifra.
+ * Salió leyendo la narración en la aplicación, no en los tests.
+ */
+describe('la ventana en el motivo de la candidata', () => {
+  const traslado = (a: Parameters<typeof generarCandidatas>[0]) =>
+    generarCandidatas(a).find(c => c.clase === 'traslado_horario')!
+
+  it('dice las horas que se simularon', () => {
+    const c = traslado(analisis({ duration_hours: 168 }))
+
+    expect(dicho(c.motivo)).toContain('en 168 h')
+    expect(dicho(c.motivo)).not.toContain('al día')
+  })
+
+  it('sin horas asume el respaldo de 24', () => {
+    const c = traslado(analisis())
+
+    expect(dicho(c.motivo)).toContain('en 24 h')
+  })
+})

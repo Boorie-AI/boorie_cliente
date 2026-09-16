@@ -1471,7 +1471,7 @@
     "simulacionFallo": "la simulació ha fallat",
     "noCambia": "Simulada, **no canvia el consum**: la xarxa l’absorbeix.",
     "consumeMas": "Simulada, **consumeix {{kwh}} kWh més** ({{coste}} {{moneda}}): no la recomano.",
-    "ahorra": "Estalvia **{{kwh}} kWh** i **{{coste}} {{moneda}}** al dia, un {{porcentaje}} % del consum.",
+    "ahorra": "Estalvia **{{kwh}} kWh** i **{{coste}} {{moneda}}** en {{horas}} h, un {{porcentaje}} % del consum.",
     "costeServicio": "Cost en servei: deixa sense aigua {{habitantes}} habitants i {{m3}} m³ sense servir.",
     "nadieSinAgua": "No deixa ningú sense aigua.",
     "verificadaEn": "_Verificat en la simulació `{{runId}}`, a l’historial del projecte._",
@@ -1480,7 +1480,7 @@
   },
   "recomendacion": {
     "trasladoTitulo": "Treure la bomba {{bomba}} del bloc «{{bloque}}»",
-    "trasladoMotivo": "Avui consumeix {{kwh}} kWh en aquest bloc, a {{precio}} {{moneda}}/kWh davant els {{base}} del preu base: {{coste}} {{moneda}} dels {{total}} que costa al dia.",
+    "trasladoMotivo": "Avui consumeix {{kwh}} kWh en aquest bloc, a {{precio}} {{moneda}}/kWh davant els {{base}} del preu base: {{coste}} {{moneda}} dels {{total}} que costa en {{horas}} h.",
     "optimoTituloUna": "Redimensionar o substituir la bomba {{bomba}}",
     "optimoTituloVarias": "Redimensionar o substituir {{count}} bombes fora del seu punt òptim",
     "optimoMotivo": "{{detalle}}. La xifra que es verifica és la bretxa: el que costaria el mateix servei amb aquestes bombes al millor punt de la seva corba.",
