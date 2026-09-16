@@ -1471,7 +1471,7 @@
     "simulacionFallo": "la simulación falló",
     "noCambia": "Simulada, **no cambia el consumo**: la red la absorbe.",
     "consumeMas": "Simulada, **consume {{kwh}} kWh más** ({{coste}} {{moneda}}): no la recomiendo.",
-    "ahorra": "Ahorra **{{kwh}} kWh** y **{{coste}} {{moneda}}** al día, un {{porcentaje}} % del consumo.",
+    "ahorra": "Ahorra **{{kwh}} kWh** y **{{coste}} {{moneda}}** en {{horas}} h, un {{porcentaje}} % del consumo.",
     "costeServicio": "Coste en servicio: deja sin agua a {{habitantes}} habitantes y {{m3}} m³ sin servir.",
     "nadieSinAgua": "No deja a nadie sin agua.",
     "verificadaEn": "_Verificado en la simulación `{{runId}}`, en el historial del proyecto._",
@@ -1480,7 +1480,7 @@
   },
   "recomendacion": {
     "trasladoTitulo": "Sacar la bomba {{bomba}} del bloque «{{bloque}}»",
-    "trasladoMotivo": "Hoy consume {{kwh}} kWh en ese bloque, a {{precio}} {{moneda}}/kWh frente a los {{base}} del precio base: {{coste}} {{moneda}} de las {{total}} que cuesta al día.",
+    "trasladoMotivo": "Hoy consume {{kwh}} kWh en ese bloque, a {{precio}} {{moneda}}/kWh frente a los {{base}} del precio base: {{coste}} {{moneda}} de las {{total}} que cuesta en {{horas}} h.",
     "optimoTituloUna": "Redimensionar o sustituir la bomba {{bomba}}",
     "optimoTituloVarias": "Redimensionar o sustituir {{count}} bombas fuera de su punto óptimo",
     "optimoMotivo": "{{detalle}}. La cifra que se verifica es la brecha: lo que costaría el mismo servicio con esas bombas en el mejor punto de su curva.",

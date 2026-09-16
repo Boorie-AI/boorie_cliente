@@ -1471,7 +1471,7 @@
     "simulacionFallo": "the simulation failed",
     "noCambia": "Simulated, it **does not change consumption**: the network absorbs it.",
     "consumeMas": "Simulated, it **uses {{kwh}} kWh more** ({{coste}} {{moneda}}): I do not recommend it.",
-    "ahorra": "It saves **{{kwh}} kWh** and **{{coste}} {{moneda}}** a day, {{porcentaje}}% of the consumption.",
+    "ahorra": "It saves **{{kwh}} kWh** and **{{coste}} {{moneda}}** over {{horas}} h, {{porcentaje}}% of the consumption.",
     "costeServicio": "Cost in service: it leaves {{habitantes}} people without water and {{m3}} m³ not delivered.",
     "nadieSinAgua": "It leaves nobody without water.",
     "verificadaEn": "_Checked in simulation `{{runId}}`, in the project history._",
@@ -1480,7 +1480,7 @@
   },
   "recomendacion": {
     "trasladoTitulo": "Move pump {{bomba}} out of the “{{bloque}}” block",
-    "trasladoMotivo": "It currently uses {{kwh}} kWh in that block, at {{precio}} {{moneda}}/kWh against the base price of {{base}}: {{coste}} {{moneda}} of the {{total}} it costs a day.",
+    "trasladoMotivo": "It currently uses {{kwh}} kWh in that block, at {{precio}} {{moneda}}/kWh against the base price of {{base}}: {{coste}} {{moneda}} of the {{total}} it costs over {{horas}} h.",
     "optimoTituloUna": "Resize or replace pump {{bomba}}",
     "optimoTituloVarias": "Resize or replace {{count}} pumps away from their best efficiency point",
     "optimoMotivo": "{{detalle}}. The figure being checked is the gap: what the same service would cost with those pumps at the best point of their curve.",
