@@ -9,7 +9,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.34.0] - 2026-09-16
+
+Lo que el asistente responde sobre energía se mide en el mismo periodo que el resto, y lo dice.
 
 - **La propuesta de ahorro energético del asistente seguía midiendo el primer día.** La versión
   anterior dejó que el periodo de simulación se eligiera una sola vez, pero sólo en el panel:
