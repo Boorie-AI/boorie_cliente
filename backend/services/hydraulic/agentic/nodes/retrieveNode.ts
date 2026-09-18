@@ -209,8 +209,9 @@ export class RetrieveNode {
         doc => corpusDe(doc.metadata?.category)
       )
 
-      // Remove temporary scoring fields
-      return fusedResults.map(({ scores: _scores, finalScore: _finalScore, ...doc }) => doc as Document)
+      // El parecido fusionado se queda como `score`, que es lo que ordena luego.
+      return fusedResults.map(({ scores: _scores, finalScore, ...doc }) =>
+        ({ ...doc, score: finalScore } as Document))
     } catch (error) {
       console.error('[RetrieveNode] Multi-query retrieval error:', error)
       throw error
@@ -326,7 +327,9 @@ export class RetrieveNode {
           standard: result.metadata?.standard,
           lastUpdated: result.metadata?.lastUpdated || (result as any).updated_at
         },
-        embedding: [] // Embedding not returned by hybrid search
+        embedding: [], // Embedding not returned by hybrid search
+        // El parecido sobrevive al mapeo: es con lo que se ordena después (#161).
+        score: typeof result.score === 'number' ? result.score : undefined
       }))
   }
 }

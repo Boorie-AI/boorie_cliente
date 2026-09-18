@@ -15,6 +15,12 @@ export interface Document {
     lastUpdated?: string
   }
   embedding?: number[]
+  /**
+   * El parecido con la pregunta que devolvió la búsqueda (#161). Se tiraba al
+   * mapear, y es lo único del camino que ordena de verdad: el juez da 0,95 a
+   * todo lo que acepta.
+   */
+  score?: number
 }
 
 export interface GradedDocument extends Document {

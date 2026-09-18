@@ -58,6 +58,14 @@ El asistente encuentra la documentación aunque esté en otro idioma, y responde
 - **Y cuando una cita viene de un documento en otro idioma, se dice.** Una cifra sacada de un
   texto en inglés y servida en castellano sin avisar es una cita que usted no puede contrastar:
   va al documento a buscar esas palabras y no están.
+- **El asistente clasificaba mal la pregunta y descartaba la fuente que la respondía.** Al
+  preguntar por la evapotranspiración **potencial**, el sistema entendía que la pregunta iba de
+  la **potencia** de una bomba, y con esa idea descartaba el capítulo del manual que respondía.
+  Después se quedaba con lo que hubiera, que eran informes de simulación. La palabra tenía que
+  aparecer entera para contar; ahora lo hace.
+- **Y la relevancia que se enseña junto a cada fuente vuelve a significar algo.** Salían las
+  tres con el mismo porcentaje porque el número no venía de comparar el documento con la
+  pregunta. Ahora es el parecido de verdad, así que ordena.
 - **Al actualizar hay que reindexar la documentación, una sola vez.** El cambio de modelo deja
   sin valor los vectores guardados, y mientras no coincidan las búsquedas no devuelven nada. El
   Wisdom Center lo avisa al entrar y trae el botón que lo lanza. Avisa también si los vectores

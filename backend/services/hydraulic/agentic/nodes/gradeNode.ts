@@ -144,16 +144,28 @@ export class GradeNode {
       // Parse LLM response
       const result = this.parseGradingResponse(respuesta)
 
-      // Apply additional technical checks
       const technicalScore = this.evaluateTechnicalRelevance(doc, state)
 
-      // Combine LLM and technical scores
-      const finalScore = (result.score * 0.7) + (technicalScore * 0.3)
-      const isRelevant = finalScore >= this.config.relevanceThreshold
+      /**
+       * El juez decide si pasa; el orden lo pone el parecido (#161).
+       *
+       * Antes la puntuación era `0,7 × juez + 0,3 × técnica`, y con el modelo
+       * local eso no ordena nada: medido sobre fragmentos reales, el juez da
+       * **0,95 a todo lo que acepta** —incluida una tabla de cifras sueltas ante
+       * una pregunta de normativa— y 0 a lo que rechaza. Su salida es binaria,
+       * así que la fórmula colapsaba en dos valores y las tres fuentes salían
+       * con la misma relevancia en la interfaz.
+       *
+       * Lo que sí sabe hacer es de portero, y para eso se usa. Para ordenar se
+       * usa el parecido que devolvió la búsqueda, que es lo único del camino
+       * que varía con el documento. Sin él —una búsqueda que no lo traiga— se
+       * cae en la valoración técnica, como antes.
+       */
+      const isRelevant = result.relevant && result.score >= this.config.relevanceThreshold
 
       return {
         ...doc,
-        relevanceScore: finalScore,
+        relevanceScore: doc.score ?? technicalScore,
         relevant: isRelevant,
         reason: result.reason || 'Technical evaluation'
       }
@@ -172,7 +184,7 @@ export class GradeNode {
        */
       return {
         ...doc,
-        relevanceScore: this.evaluateTechnicalRelevance(doc, state),
+        relevanceScore: doc.score ?? this.evaluateTechnicalRelevance(doc, state),
         relevant: true,
         reason: 'Juez no disponible: se conserva lo que encontró la búsqueda'
       }
