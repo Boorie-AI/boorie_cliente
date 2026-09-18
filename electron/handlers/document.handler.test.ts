@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 /**
  * Pintar el grafo del RAG se llevaba por delante la ventana con más de cien
@@ -18,6 +18,16 @@ vi.mock('electron', () => ({
   dialog: { showOpenDialog: vi.fn() },
   app: { getPath: () => '/tmp' },
   BrowserWindow: class {},
+}))
+// Sin esto, wisdom:getRAGHealth intenta conectar con Milvus de verdad y se va a
+// los cinco segundos de reintentos contra un puerto cerrado.
+vi.mock('../../backend/services/milvus.service', () => ({
+  MilvusService: {
+    getInstance: () => ({
+      ensureConnection: async () => {},
+      isAvailable: () => true,
+    }),
+  },
 }))
 vi.mock('pdf-parse', () => ({ default: vi.fn() }))
 vi.mock('mammoth', () => ({ default: { extractRawText: vi.fn() } }))
@@ -49,12 +59,16 @@ function prismaFalso() {
     trozos: null as any,
     rawLanzado: false,
     proveedorOpenAI: null as any,
+    /** Cuántos números tiene cada vector ya guardado, para wisdom:getRAGHealth. */
+    dimensionGuardada: 768 as number | null,
   }
 
   return {
     registro,
     prisma: {
       hydraulicKnowledge: {
+        count: vi.fn(async () => DOCS.length),
+        groupBy: vi.fn(async () => DOCS.map(d => ({ category: d.category, _count: { category: 1 } }))),
         findMany: vi.fn(async (args: any) => {
           registro.documentos = args
           return DOCS.map((d) => {
@@ -72,6 +86,10 @@ function prismaFalso() {
             { id: 'c2', knowledgeId: 'd1', chunkIndex: 1, content: 'dos' },
           ]
         }),
+        count: vi.fn(async () => 40),
+        findFirst: vi.fn(async () => (registro.dimensionGuardada === null
+          ? null
+          : { embedding: JSON.stringify(new Array(registro.dimensionGuardada).fill(0.1)) })),
       },
       aIProvider: {
         findFirst: vi.fn(async () => registro.proveedorOpenAI),
@@ -268,5 +286,53 @@ describe('wisdom:bulkUploadDocuments', () => {
     expect(inicios.every((p) => p.total === 3)).toBe(true)
 
     fs.rmSync(dir, { recursive: true, force: true })
+  })
+})
+
+describe('wisdom:getRAGHealth', () => {
+  /**
+   * Buscar con un vector del tamaño equivocado no da error: Milvus contesta
+   * «Success» y una lista vacía, así que cambiar de modelo de embeddings sin
+   * reindexar deja el RAG mudo con toda la base indexada delante (#155). El
+   * panel decía que todo estaba bien mientras no encontraba nada.
+   */
+  const salud = async (dimensionGuardada: number | null) => {
+    const falso = prismaFalso()
+    falso.registro.dimensionGuardada = dimensionGuardada
+    // getRAGHealth se registra aquí, no en registerWisdomHandlers: con el
+    // registrador equivocado se llama al doble del test anterior y la prueba
+    // pasa en verde sin haber ejercitado nada.
+    registerVectorGraphHandlers(falso.prisma)
+    return handlersRegistrados['wisdom:getRAGHealth']({})
+  }
+
+  const avisoDeDimension = (res: any) =>
+    res.health.issues.find((p: string) => p.includes('reindexar'))
+
+  afterEach(() => { delete process.env.BOORIE_MODELO_EMBEDDINGS })
+
+  it('avisa, y en crítico, si los vectores guardados son de otro tamaño', async () => {
+    process.env.BOORIE_MODELO_EMBEDDINGS = 'bge-m3' // 1024, contra los 768 guardados
+    const res = await salud(768)
+
+    expect(res.success).toBe(true)
+    expect(avisoDeDimension(res)).toBeDefined()
+    expect(avisoDeDimension(res)).toContain('768')
+    expect(avisoDeDimension(res)).toContain('1024')
+    expect(res.health.status).toBe('critical')
+  })
+
+  it('no avisa cuando el tamaño es el del modelo en uso', async () => {
+    process.env.BOORIE_MODELO_EMBEDDINGS = 'nomic-embed-text' // 768, como lo guardado
+    const res = await salud(768)
+
+    expect(avisoDeDimension(res)).toBeUndefined()
+  })
+
+  it('una base sin un solo embedding no se acusa de descuadrada', async () => {
+    process.env.BOORIE_MODELO_EMBEDDINGS = 'bge-m3'
+    const res = await salud(null)
+
+    expect(avisoDeDimension(res)).toBeUndefined()
   })
 })

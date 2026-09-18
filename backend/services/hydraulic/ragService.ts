@@ -1,13 +1,14 @@
 import { PrismaClient } from '@prisma/client'
 import { HydraulicDocument } from '../../../src/types/hydraulic'
 import { EmbeddingService } from '../embedding.service'
-import { duenosPermitidos, filtroPrisma, filtroVectorial, origenDe, type Ambito, type Origen } from './ambitos'
+import { duenoVectorial, duenosPermitidos, filtroPrisma, filtroVectorial, origenDe, type Ambito, type Origen } from './ambitos'
 
 export interface RAGSearchOptions {
   category?: 'hydraulics' | 'regulations' | 'best-practices'
   region?: string
   language?: string
   limit?: number
+  /** Puntuación mínima. Por defecto ninguna; ver `search`. */
   minScore?: number
   /** Dónde buscar (#39). Por defecto, sólo lo general. */
   ambito?: Ambito
@@ -38,9 +39,26 @@ export class HydraulicRAGService {
     query: string,
     options: RAGSearchOptions = {}
   ): Promise<RAGSearchResult[]> {
+    /**
+     * Sin puntuación mínima.
+     *
+     * El 0,6 de antes venía de `nomic-embed-text`. Con `bge-m3` no lo alcanza
+     * ningún acierto bueno: los fragmentos que responden de verdad a «¿cómo se
+     * estima la evapotranspiración potencial?» —métodos de PET, páginas 71 y
+     * 78— puntúan entre 0,385 y 0,426, así que el filtro dejaba la búsqueda
+     * muda con la documentación indexada delante.
+     *
+     * Y no se sustituye por otro número: el valor absoluto no ordena por
+     * pertinencia. Medido sobre esta misma base, «receta de tortilla de
+     * patatas» saca 0,64 contra el libro y «hipótesis del hidrograma unitario»
+     * —cuya mejor respuesta es literalmente «List the assumptions involved in
+     * the unit hydrograph theory»— saca 0,361. Lo que sí ordena es el puesto
+     * dentro de una misma consulta, que es con lo que nos quedamos. El umbral
+     * sigue disponible para quien lo pida a sabiendas.
+     */
     const {
       limit = 5,
-      minScore = 0.6,
+      minScore = 0,
       ambito = 'general',
       projectId = null,
     } = options
@@ -319,7 +337,7 @@ export class HydraulicRAGService {
             docId: doc.id,
             title: doc.title,
             category: doc.category,
-            projectId: doc.projectId ?? null,
+            projectId: duenoVectorial(doc.projectId),
           },
           timestamp: Date.now()
         }))
@@ -415,7 +433,7 @@ export class HydraulicRAGService {
             // El ámbito viaja con el fragmento (#39): el filtro vectorial no es
             // la garantía —esa la da la base— pero sin el dato no se puede ni
             // intentar, y era lo único que faltaba para poder aplicarlo.
-            projectId: created.projectId ?? null,
+            projectId: duenoVectorial(created.projectId),
             simulationRunId: origen?.simulationRunId ?? null,
             networkVersionId: origen?.networkVersionId ?? null
           },

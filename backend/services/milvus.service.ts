@@ -1,6 +1,7 @@
 import { MilvusClient, DataType, ConsistencyLevelEnum } from '@zilliz/milvus2-sdk-node';
 import path from 'path';
 import fs from 'fs';
+import { dimensionEsperada } from './modeloEmbeddings';
 
 export class MilvusService {
     private static instance: MilvusService;
@@ -177,12 +178,12 @@ export class MilvusService {
     private async initCollections() {
         // Al arrancar todavía no se sabe qué modelo de embeddings se va a usar,
         // así que esto es sólo una suposición para las colecciones que aún no
-        // existan (768 = nomic-embed-text, el modelo local por defecto). La
-        // dimensión de verdad la fija el primer insert, que sí conoce el vector:
-        // por eso aquí NO se reconcilia la dimensión de una colección existente.
-        // Hacerlo la borraría en cada reconexión y devolvería el almacén a 768
-        // detrás de quien indexa con OpenAI.
-        const dimension = process.env.EMBEDDING_DIMENSION ? parseInt(process.env.EMBEDDING_DIMENSION) : 768;
+        // existan, tomada del modelo configurado (#155). La dimensión de verdad
+        // la fija el primer insert, que sí conoce el vector: por eso aquí NO se
+        // reconcilia la dimensión de una colección existente. Hacerlo la
+        // borraría en cada reconexión y devolvería el almacén a la suposición de
+        // arranque detrás de quien indexa con otro modelo.
+        const dimension = dimensionEsperada();
 
         // 1. Knowledge Collection (RAG)
         await this.ensureCollection(MilvusService.COLLECTIONS.KNOWLEDGE, dimension);
@@ -195,6 +196,35 @@ export class MilvusService {
 
         // 4. Guardrail violations (búsqueda por similitud sobre violaciones pasadas)
         await this.ensureCollection(MilvusService.COLLECTIONS.GUARDRAIL_VIOLATIONS, dimension);
+    }
+
+    /**
+     * Deja la colección lista para vectores de otro tamaño, tirando los de antes
+     * (#155).
+     *
+     * Es lo único que hace posible cambiar de modelo de embeddings. `insert` se
+     * niega, y con razón, a rehacer una colección que tiene documentos dentro:
+     * hacerlo por su cuenta dejaría al usuario sin base indexada y en silencio.
+     * Pero entonces el reindexado masivo —que es justo la operación que va a
+     * regenerar todos los vectores— fallaba en cada documento, tardaba sus
+     * cuarenta minutos y terminaba con la búsqueda igual de muda que antes,
+     * porque los vectores viejos seguían en el almacén.
+     *
+     * Aquí sí se pueden tirar: quien llama viene a reescribirlos todos. Devuelve
+     * si hizo falta rehacerla, para poder decirlo en el log y en el resultado.
+     */
+    public async prepararParaDimension(collection: string, dimension: number): Promise<boolean> {
+        await this.ensureConnection();
+        await this.ensureCollection(collection, dimension);
+
+        const actual = this.dimensiones.get(collection);
+        if (actual === dimension) return false;
+
+        console.warn(
+            `[MilvusService] ${collection} guarda vectores de ${actual} números y se va a reindexar con ${dimension}: se rehace la colección.`
+        );
+        await this.ensureCollection(collection, dimension, true);
+        return true;
     }
 
     /**

@@ -691,9 +691,10 @@
     "autoDetected": "Models d’embeddings detectats i disponibles",
     "runningLocally": "Els models corren en local: privadesa i rapidesa",
     "recommended": "Models d’embeddings recomanats:",
-    "modelNomic": "nomic-embed-text (768d) — d’ús general",
-    "modelMxbai": "mxbai-embed-large (1024d) — de més qualitat",
-    "modelMinilm": "all-minilm (384d) — ràpid i lleuger",
+    "modelBge": "bge-m3 (1024d) — multilingüe; el que Boorie fa servir per defecte",
+    "modelNomic": "nomic-embed-text (768d) — lleuger, però només troba en anglès",
+    "modelMxbai": "mxbai-embed-large (1024d) — de més qualitat, però només en anglès",
+    "modelMinilm": "all-minilm (384d) — ràpid i lleuger, només en anglès",
     "chatModelsNote": "Els models de xat (gemma, llama, mistral) serveixen, però rendeixen pitjor com a embeddings",
     "installOllama": "Instal·la Ollama des de:",
     "startOllama": "Arrenca el servei d’Ollama per fer servir models d’embeddings locals",
@@ -726,9 +727,28 @@
     "thisProject": "aquest projecte",
     "generalKnowledge": "Coneixement general, compartit per tots els projectes",
     "sinProveedorTitulo": "No hi ha res amb què indexar documents",
-    "sinProveedorCuerpo": "Afegir documents a la base de coneixement necessita un model d’embeddings. Instal·la Ollama i descarrega «nomic-embed-text» (ollama pull nomic-embed-text), o afegeix una clau d’OpenAI a Configuració → Configuració d’IA.",
+    "sinProveedorCuerpo": "Afegir documents a la base de coneixement necessita un model d’embeddings. Instal·la Ollama i descarrega «bge-m3» (ollama pull bge-m3), o afegeix una clau d’OpenAI a Configuració → Configuració d’IA.",
     "proveedorNoDisponible": "no disponible",
-    "sinClaveOpenAI": "sense clau d’OpenAI"
+    "sinClaveOpenAI": "sense clau d’OpenAI",
+    "reindexado": {
+      "titulo": "Cal reindexar la base de coneixement",
+      "porque": "Aquesta versió fa servir un model d’embeddings multilingüe ({{modelo}}) perquè les cerques en una llengua també trobin els documents escrits en una altra. Els vectors que tens desats són del model anterior ({{guardada}} números contra {{esperada}}), i mentre no coincideixin les cerques no retornen res.",
+      "porqueAmbito": "Aquesta versió filtra per àmbit dins de la base vectorial perquè els informes de simulació no tapin la documentació. Els vectors que tens desats no porten aquesta dada, i sense ella la cerca general no retorna res.",
+      "como": "Prem el botó per reindexar els {{fragmentos}} fragments. Es fa un sol cop, pot trigar força en equips sense targeta gràfica i pots continuar fent servir l’aplicació mentrestant. No es fa sol: fins que no ho demanis, no es toca res.",
+      "boton": "Reindexa ara",
+      "enMarcha": "Reindexant…",
+      "progreso": "Document {{hechos}} de {{total}}: {{titulo}}",
+      "hecho": "Reindexació acabada: {{documentos}} de {{total}} documents, {{fragmentos}} fragments. Les cerques tornen a funcionar.",
+      "fallo": "No s’ha pogut completar la reindexació: {{motivo}}"
+    },
+    "resultadosSemanticos": {
+      "titulo": "Trobat per significat ({{count}})",
+      "cerrar": "Tanca",
+      "sinNada": "No hi ha res semblant al que has preguntat a la documentació indexada.",
+      "general": "General",
+      "delProyecto": "Del projecte",
+      "parecido": "semblança {{valor}} %"
+    }
   },
   "wisdomCatalog": {
     "title": "Catàleg de la base de coneixement",
@@ -1290,7 +1310,7 @@
     "scenarioFailed": "L’escenari no s’ha pogut simular",
     "energyFailed": "No s’ha pogut analitzar el consum energètic",
     "measureFailed": "No s’ha pogut verificar la mesura",
-    "sinProveedorDeEmbeddings": "No s’ha pogut indexar: no hi ha cap model d’embeddings disponible. Instal·la Ollama amb «nomic-embed-text», o afegeix una clau d’OpenAI a Configuració → Configuració d’IA."
+    "sinProveedorDeEmbeddings": "No s’ha pogut indexar: no hi ha cap model d’embeddings disponible. Instal·la Ollama amb «bge-m3», o afegeix una clau d’OpenAI a Configuració → Configuració d’IA."
   },
   "layers": {
     "junction": "Nusos de consum",

@@ -691,9 +691,10 @@
     "autoDetected": "Embedding models auto-detected and available",
     "runningLocally": "Models are running locally for privacy and speed",
     "recommended": "Recommended embedding models:",
-    "modelNomic": "nomic-embed-text (768d) - General purpose",
-    "modelMxbai": "mxbai-embed-large (1024d) - High quality",
-    "modelMinilm": "all-minilm (384d) - Fast & lightweight",
+    "modelBge": "bge-m3 (1024d) - Multilingual; the one Boorie uses by default",
+    "modelNomic": "nomic-embed-text (768d) - Lightweight, but only retrieves in English",
+    "modelMxbai": "mxbai-embed-large (1024d) - High quality, English only",
+    "modelMinilm": "all-minilm (384d) - Fast & lightweight, English only",
     "chatModelsNote": "Chat models (gemma, llama, mistral) can be used but are less efficient for embeddings",
     "installOllama": "Install Ollama from:",
     "startOllama": "Start Ollama service to enable local embedding models",
@@ -726,9 +727,28 @@
     "thisProject": "this project",
     "generalKnowledge": "General knowledge, shared by every project",
     "sinProveedorTitulo": "Nothing available to index documents with",
-    "sinProveedorCuerpo": "Adding documents to the knowledge base needs an embedding model. Install Ollama and pull “nomic-embed-text” (ollama pull nomic-embed-text), or add an OpenAI key under Settings → AI configuration.",
+    "sinProveedorCuerpo": "Adding documents to the knowledge base needs an embedding model. Install Ollama and pull “bge-m3” (ollama pull bge-m3), or add an OpenAI key under Settings → AI configuration.",
     "proveedorNoDisponible": "unavailable",
-    "sinClaveOpenAI": "no OpenAI key"
+    "sinClaveOpenAI": "no OpenAI key",
+    "reindexado": {
+      "titulo": "The knowledge base needs reindexing",
+      "porque": "This version uses a multilingual embedding model ({{modelo}}) so that searches in one language also find documents written in another. The vectors you have stored come from the previous model ({{guardada}} numbers against {{esperada}}), and while they do not match, searches return nothing.",
+      "porqueAmbito": "This version filters by scope inside the vector store so that simulation reports no longer crowd out the documentation. Your stored vectors don't carry that field, and without it the general search returns nothing.",
+      "como": "Press the button to reindex the {{fragmentos}} fragments. It is a one-off, it can take a while on machines without a graphics card, and you can keep using the app meanwhile. It never runs on its own: nothing is touched until you ask for it.",
+      "boton": "Reindex now",
+      "enMarcha": "Reindexing…",
+      "progreso": "Document {{hechos}} of {{total}}: {{titulo}}",
+      "hecho": "Reindexing finished: {{documentos}} of {{total}} documents, {{fragmentos}} fragments. Searches work again.",
+      "fallo": "Reindexing could not be completed: {{motivo}}"
+    },
+    "resultadosSemanticos": {
+      "titulo": "Found by meaning ({{count}})",
+      "cerrar": "Close",
+      "sinNada": "Nothing in the indexed documentation resembles what you asked.",
+      "general": "General",
+      "delProyecto": "Project",
+      "parecido": "{{valor}}% similar"
+    }
   },
   "wisdomCatalog": {
     "title": "Boorie Wisdom Catalog",
@@ -1290,7 +1310,7 @@
     "scenarioFailed": "The scenario could not be simulated",
     "energyFailed": "The energy use could not be analysed",
     "measureFailed": "The measure could not be checked",
-    "sinProveedorDeEmbeddings": "Could not index: no embedding model is available. Install Ollama with “nomic-embed-text”, or add an OpenAI key under Settings → AI configuration."
+    "sinProveedorDeEmbeddings": "Could not index: no embedding model is available. Install Ollama with “bge-m3”, or add an OpenAI key under Settings → AI configuration."
   },
   "layers": {
     "junction": "Demand junctions",

@@ -1,10 +1,12 @@
 import { logger } from '@/utils/logger'
-import { contextoDeConocimiento } from '@/services/contextoConocimiento'
+import { contextoDeConocimiento, cierreDeIdioma, hayQueTraducir } from '@/services/contextoConocimiento'
+import { limpiarCitasSinRespaldo } from '@/../backend/services/hydraulic/citasSinRespaldo'
 import i18n from '@/i18n'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { type ChatMessage } from '@/services/chat'
 import { useAIConfigStore } from './aiConfigStore'
+import { usePreferencesStore } from './preferencesStore'
 import { databaseService } from '@/services/database'
 import { getOllamaBaseUrl } from '@/config/ollama'
 import { cargarModelosRAG, modeloFijadoRAG, modelosRAGEnCache } from '@/config/modelosRAG'
@@ -492,7 +494,23 @@ export const useChatStore = create<ChatState>()(
                   throw err
                 }
 
-                const response = result.data?.response || ''
+                /**
+                 * Las páginas que el modelo se invente no salen de aquí.
+                 *
+                 * El chat no usa la respuesta que escribe el RAG —pide sólo las
+                 * fuentes, con `soloRecuperacion`— así que la limpieza que hace
+                 * el nodo de generación no le llega: la respuesta se escribe en
+                 * esta misma ruta y hay que comprobarla aquí, contra las
+                 * fuentes que de verdad se recuperaron.
+                 */
+                const escrita = result.data?.response || ''
+                const { texto: response, quitadas } = limpiarCitasSinRespaldo(
+                  escrita,
+                  ragSources.map((f: any) => ({ page: f?.page }))
+                )
+                if (quitadas.length > 0) {
+                  logger.warn('Se han quitado referencias a páginas sin respaldo en las fuentes:', quitadas)
+                }
                 const metadata = result.data?.metadata || {
                   model: modelo,
                   provider: proveedor,
@@ -874,8 +892,18 @@ export const useChatStore = create<ChatState>()(
            * negaba tener acceso a ningún RAG, contradiciendo a la propia
            * insignia de la interfaz (#19/#20).
            */
-          enhancedPrompt += contextoDeConocimiento(sources)
+          /**
+           * El idioma de la respuesta lo pone el usuario en la aplicación, no
+           * el de las fuentes recuperadas (#160). `i18n.language` puede venir
+           * como «es-ES»; `contextoDeConocimiento` se queda con la raíz.
+           */
+          const idiomaDelUsuario = usePreferencesStore.getState().language
+          enhancedPrompt += contextoDeConocimiento(sources, idiomaDelUsuario)
           enhancedPrompt += originalPrompt
+          // Y el idioma otra vez, al final del todo: es lo último que el modelo
+          // lee antes de escribir, y con el modelo local es lo único que le hace
+          // caso (#160).
+          enhancedPrompt += cierreDeIdioma(idiomaDelUsuario, hayQueTraducir(sources, idiomaDelUsuario))
 
           return { enhancedPrompt: enhancedPrompt, sources }
 

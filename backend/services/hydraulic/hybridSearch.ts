@@ -1,7 +1,8 @@
 import { PrismaClient } from '@prisma/client'
 import { MilvusService } from '../milvus.service'
 import { EmbeddingService } from '../embedding.service'
-import { duenosPermitidos, filtroPrisma, filtroVectorial, type Ambito } from './ambitos'
+import { duenoVectorial, duenosPermitidos, filtroPrisma, filtroVectorial, type Ambito } from './ambitos'
+import { dimensionEsperada } from '../modeloEmbeddings'
 
 export interface SearchResult {
   id: string
@@ -51,7 +52,10 @@ export class HybridSearchService {
       const milvusCount = rowCountStats ? parseInt(String(rowCountStats.value)) : 0
       const prismaCount = await this.prisma.knowledgeChunk.count()
 
-      const targetDimension = 768; // Hardcoded to Ollama defaults for now
+      // La del modelo en uso, no un 768 fijo (#155): con el valor a mano, un
+      // modelo de otro tamaño hacía que TODOS los fragmentos parecieran
+      // desajustados y se regeneraran en cada arranque, para siempre.
+      const targetDimension = dimensionEsperada();
 
       console.log(`[HybridSearchService] Checking sync status... Milvus: ${milvusCount}, Prisma: ${prismaCount}`);
 
@@ -142,7 +146,10 @@ export class HybridSearchService {
                   chunkId: chunk.id,
                   docId: chunk.knowledgeId,
                   title: chunk.knowledge.title,
-                  category: chunk.knowledge.category
+                  category: chunk.knowledge.category,
+                  // Igual que en el resto de rutas de indexado: el fragmento que
+                  // entra sin dueño no lo encuentra ninguna búsqueda (#158).
+                  projectId: duenoVectorial(chunk.knowledge.projectId)
                 },
                 timestamp: chunk.createdAt.getTime()
               })

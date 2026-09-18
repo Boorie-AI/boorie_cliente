@@ -691,9 +691,10 @@
     "autoDetected": "Modelos de embeddings detectados y disponibles",
     "runningLocally": "Los modelos corren en local: privacidad y rapidez",
     "recommended": "Modelos de embeddings recomendados:",
-    "modelNomic": "nomic-embed-text (768d) — de uso general",
-    "modelMxbai": "mxbai-embed-large (1024d) — de más calidad",
-    "modelMinilm": "all-minilm (384d) — rápido y ligero",
+    "modelBge": "bge-m3 (1024d) — multilingüe; el que Boorie usa por defecto",
+    "modelNomic": "nomic-embed-text (768d) — ligero, pero sólo encuentra en inglés",
+    "modelMxbai": "mxbai-embed-large (1024d) — de más calidad, pero sólo en inglés",
+    "modelMinilm": "all-minilm (384d) — rápido y ligero, sólo en inglés",
     "chatModelsNote": "Los modelos de chat (gemma, llama, mistral) sirven, pero rinden peor como embeddings",
     "installOllama": "Instala Ollama desde:",
     "startOllama": "Arranca el servicio de Ollama para usar modelos de embeddings locales",
@@ -726,9 +727,28 @@
     "thisProject": "este proyecto",
     "generalKnowledge": "Conocimiento general, compartido por todos los proyectos",
     "sinProveedorTitulo": "No hay con qué indexar documentos",
-    "sinProveedorCuerpo": "Añadir documentos a la base de conocimiento necesita un modelo de embeddings. Instala Ollama y descarga «nomic-embed-text» (ollama pull nomic-embed-text), o añade una clave de OpenAI en Configuración → Configuración de IA.",
+    "sinProveedorCuerpo": "Añadir documentos a la base de conocimiento necesita un modelo de embeddings. Instala Ollama y descarga «bge-m3» (ollama pull bge-m3), o añade una clave de OpenAI en Configuración → Configuración de IA.",
     "proveedorNoDisponible": "no disponible",
-    "sinClaveOpenAI": "sin clave de OpenAI"
+    "sinClaveOpenAI": "sin clave de OpenAI",
+    "reindexado": {
+      "titulo": "Hay que reindexar la base de conocimiento",
+      "porque": "Esta versión usa un modelo de embeddings multilingüe ({{modelo}}) para que las búsquedas en castellano encuentren también los documentos en otros idiomas. Los vectores que tienes guardados son del modelo anterior ({{guardada}} números frente a {{esperada}}), y mientras no coincidan las búsquedas no devuelven nada.",
+      "porqueAmbito": "Esta versión filtra por ámbito dentro de la base vectorial para que los informes de simulación no tapen la documentación. Los vectores que tienes guardados no llevan ese dato, y sin él la búsqueda general no devuelve nada.",
+      "como": "Pulsa el botón para reindexar los {{fragmentos}} fragmentos. Se hace una sola vez, puede tardar bastante en equipos sin tarjeta gráfica y puedes seguir usando la aplicación mientras tanto. No se hace solo: hasta que lo pidas, no se toca nada.",
+      "boton": "Reindexar ahora",
+      "enMarcha": "Reindexando…",
+      "progreso": "Documento {{hechos}} de {{total}}: {{titulo}}",
+      "hecho": "Reindexado terminado: {{documentos}} de {{total}} documentos, {{fragmentos}} fragmentos. Las búsquedas vuelven a funcionar.",
+      "fallo": "No se pudo completar el reindexado: {{motivo}}"
+    },
+    "resultadosSemanticos": {
+      "titulo": "Encontrado por significado ({{count}})",
+      "cerrar": "Cerrar",
+      "sinNada": "No hay nada parecido a lo que has preguntado en la documentación indexada.",
+      "general": "General",
+      "delProyecto": "Del proyecto",
+      "parecido": "parecido {{valor}} %"
+    }
   },
   "wisdomCatalog": {
     "title": "Catálogo de la base de conocimiento",
@@ -1290,7 +1310,7 @@
     "scenarioFailed": "El escenario no se pudo simular",
     "energyFailed": "No se pudo analizar el consumo energético",
     "measureFailed": "No se pudo verificar la medida",
-    "sinProveedorDeEmbeddings": "No se pudo indexar: no hay ningún modelo de embeddings disponible. Instala Ollama con «nomic-embed-text», o añade una clave de OpenAI en Configuración → Configuración de IA."
+    "sinProveedorDeEmbeddings": "No se pudo indexar: no hay ningún modelo de embeddings disponible. Instala Ollama con «bge-m3», o añade una clave de OpenAI en Configuración → Configuración de IA."
   },
   "layers": {
     "junction": "Nudos de consumo",

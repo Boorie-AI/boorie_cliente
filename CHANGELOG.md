@@ -9,6 +9,52 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+El asistente encuentra la documentación aunque esté en otro idioma, y responde en el suyo.
+
+- **Las preguntas en castellano no encontraban la documentación en inglés.** El modelo que
+  convierte el texto en vectores era monolingüe inglés, así que una pregunta en castellano no se
+  parecía a un documento técnico en inglés por mucho que hablaran de lo mismo. Medido sobre una
+  base real con diez preguntas de hidrología que el corpus responde, el libro aparecía entre los
+  tres primeros resultados 1 de 30 veces; ahora, 30 de 30. Lo que sí salía antes eran los
+  informes de simulación que Boorie escribe en castellano, que no tenían nada que ver con lo
+  preguntado.
+- **Al asistente le llegaba un solo fragmento de cada documento.** Las fuentes se agrupaban por
+  título antes de dársela al modelo, y como todos los fragmentos de un documento comparten
+  título, de un libro de cuatrocientos fragmentos llegaba uno. Con el contexto completo, la
+  respuesta pasa de inventarse el procedimiento a citar el del texto.
+- **La respuesta salía en el idioma de los documentos, no en el suyo.** El asistente responde
+  ahora en el idioma que usted tiene puesto en la aplicación, y cuando cita un documento escrito
+  en otro idioma lo dice en la propia cita, para que pueda contrastarla con el original.
+- **Los informes de simulación tapaban la documentación.** La búsqueda no filtraba por ámbito
+  dentro de la base vectorial: pedía sus candidatos a ciegas y descartaba después los que eran
+  de otro proyecto. Como Boorie escribe sus informes de simulación en castellano y ya son 362 de
+  los 817 fragmentos de una base real, una pregunta en castellano se los llevaba todos: de los
+  dieciocho candidatos que se piden, cero eran del manual, y el primero aparecía en el puesto
+  sesenta y cinco. La búsqueda contestaba «no hay documentos» con el manual indexado delante.
+  Ahora el ámbito se filtra dentro de la base vectorial.
+- **Y la puntuación mínima era la del modelo anterior.** Se descartaba todo lo que no llegara a
+  0,6, un listón de `nomic-embed-text`. Con el modelo nuevo, los fragmentos que responden de
+  verdad a una pregunta puntúan entre 0,36 y 0,52, así que el listón los tiraba todos. No se ha
+  sustituido por otro número: el valor absoluto no ordena por pertinencia —una pregunta
+  disparatada saca 0,64 y una buena 0,36—, y lo que sí ordena es el puesto dentro de una misma
+  consulta.
+- **La búsqueda por significado no enseñaba lo que encontraba.** El Wisdom Center pedía los
+  resultados, decía cuántos eran en un aviso y los tiraba: la lista de debajo, que es el filtro
+  por texto, se quedaba vacía y parecía la respuesta. Ahora los resultados salen en pantalla,
+  cada uno con de dónde sale, cuánto se parece y los fragmentos que casaron.
+- **El asistente se inventaba la página de una cita.** Cuando el documento recuperado no decía
+  de qué página salía, la respuesta se sacaba una de la manga —«página X»—, y una página
+  inventada es peor que ninguna: quien va a comprobarla no encuentra el dato justo donde la
+  respuesta parecía más comprobable. Las páginas se contrastan ahora contra lo que las fuentes
+  declaran, y la que no esté respaldada se cae de la cita.
+- **Al actualizar hay que reindexar la documentación, una sola vez.** El cambio de modelo deja
+  sin valor los vectores guardados, y mientras no coincidan las búsquedas no devuelven nada. El
+  Wisdom Center lo avisa al entrar y trae el botón que lo lanza. Avisa también si los vectores
+  no llevan el ámbito con el que se filtra ahora, que es el caso de quien ya había reindexado.
+  No se hace solo: hasta que usted lo pida, no se toca nada.
+
 ## [1.35.0] - 2026-09-16
 
 La barra de tiempo del visor deja de ofrecer una simulación que no se ha hecho.
