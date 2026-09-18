@@ -83,7 +83,8 @@ describe('el aviso de informes repetidos', () => {
   })
 
   it('sin la API no revienta, simplemente no enseña nada', async () => {
-    ;(window as unknown as { electronAPI: unknown }).electronAPI = { simulacionRAG: {} }
+    const w = window as unknown as { electronAPI: unknown }
+    w.electronAPI = { simulacionRAG: {} }
 
     const { container } = render(<AvisoDeInformesRepetidos />)
 
