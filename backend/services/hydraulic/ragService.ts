@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client'
 import { HydraulicDocument } from '../../../src/types/hydraulic'
 import { EmbeddingService } from '../embedding.service'
 import { duenoVectorial, duenosPermitidos, filtroPrisma, filtroVectorial, origenDe, type Ambito, type Origen } from './ambitos'
+import { corpusDe, filtroDeCorpus, repartirPorCorpus, sinRepetidos, unirFiltros, type Corpus } from './repartoDeCorpus'
 
 export interface RAGSearchOptions {
   category?: 'hydraulics' | 'regulations' | 'best-practices'
@@ -71,19 +72,36 @@ export class HydraulicRAGService {
       // Generate embedding for query
       const queryEmbedding = await this.embeddingService.generateEmbedding(query)
 
-      // Perform Milvus Search
-      const searchRes = await milvusService.search(
-        'hydraulic_knowledge', // Hardcoded for now or use MilvusService.COLLECTIONS.KNOWLEDGE
-        queryEmbedding,
-        // Se piden más candidatos cuando hay ámbito de proyecto: parte de lo que
-        // devuelva el almacén se va a descartar al comprobar de quién es.
-        permitidos.length > 1 ? limit * 6 : limit * 3,
-        filtroVectorial(permitidos)
+      /**
+       * Se pregunta a cada corpus por separado y luego se reparten las plazas
+       * (#158). Con una sola búsqueda, los informes de simulación —362 de 817
+       * fragmentos, y en castellano— se llevaban todos los candidatos de una
+       * pregunta en castellano y la documentación no llegaba a aparecer.
+       *
+       * El ámbito sigue filtrándose aquí, y sigue sin ser la garantía: la
+       * última palabra la tiene la consulta a la base, más abajo.
+       */
+      const ambitoVectorial = filtroVectorial(permitidos)
+      const porCorpus = await Promise.all(
+        (['documental', 'simulacion'] as Corpus[]).map(corpus =>
+          milvusService.search(
+            'hydraulic_knowledge',
+            queryEmbedding,
+            limit * 3,
+            unirFiltros(ambitoVectorial, filtroDeCorpus(corpus))
+          )
+        )
       )
 
-      if (!searchRes.results || searchRes.results.length === 0) {
+      const candidatos = sinRepetidos(
+        porCorpus.flatMap(res => res?.results ?? [])
+      ).sort((a: any, b: any) => b.score - a.score)
+
+      if (candidatos.length === 0) {
         return []
       }
+
+      const searchRes = { results: candidatos }
 
       // Group chunks by Document ID
       const docMap = new Map<string, { docId: string, chunks: any[], maxScore: number }>()
@@ -163,7 +181,18 @@ export class HydraulicRAGService {
 
       // Sort
       results.sort((a, b) => b.score - a.score)
-      return results.slice(0, limit)
+
+      /**
+       * El reparto se hace aquí, sobre documentos y con el límite de verdad
+       * (#158): es lo que se devuelve, y hacerlo antes sobre los candidatos no
+       * servía de nada porque caben todos y la cuota no llegaba a aplicarse.
+       *
+       * Sin esto, una pregunta documental dentro de un proyecto se llevaba seis
+       * informes de simulación y cero documentación: los informes puntúan más
+       * alto —0,576 frente a 0,361 del manual para «hipótesis del hidrograma
+       * unitario»— porque están escritos en el idioma de la pregunta.
+       */
+      return repartirPorCorpus(results, limit, r => corpusDe(r.document.category))
 
     } catch (error) {
       console.error('RAG search error:', error)

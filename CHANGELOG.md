@@ -49,6 +49,15 @@ El asistente encuentra la documentación aunque esté en otro idioma, y responde
   inventada es peor que ninguna: quien va a comprobarla no encuentra el dato justo donde la
   respuesta parecía más comprobable. Las páginas se contrastan ahora contra lo que las fuentes
   declaran, y la que no esté respaldada se cae de la cita.
+- **Los informes de simulación tapaban la documentación también dentro de un proyecto.** Con un
+  proyecto abierto, el asistente busca a la vez en la normativa general y en lo del proyecto, y
+  ahí los informes que Boorie se escribe a sí mismo volvían a ganar: preguntando cómo se estima
+  la evapotranspiración, las tres fuentes que le llegaban al asistente eran estadísticas de
+  simulación y el manual no aparecía, así que la respuesta se inventaba el procedimiento. Ahora
+  cada uno tiene su sitio reservado y el manual llega.
+- **Y cuando una cita viene de un documento en otro idioma, se dice.** Una cifra sacada de un
+  texto en inglés y servida en castellano sin avisar es una cita que usted no puede contrastar:
+  va al documento a buscar esas palabras y no están.
 - **Al actualizar hay que reindexar la documentación, una sola vez.** El cambio de modelo deja
   sin valor los vectores guardados, y mientras no coincidan las búsquedas no devuelven nada. El
   Wisdom Center lo avisa al entrar y trae el botón que lo lanza. Avisa también si los vectores

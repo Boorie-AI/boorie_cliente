@@ -8,6 +8,7 @@ import {
 } from './types'
 import { StateManager, createStateManager } from './stateManager'
 import { idiomaDelTexto } from '../idiomaDelTexto'
+import { corpusDe } from '../repartoDeCorpus'
 import { createRetrieveNode } from './nodes/retrieveNode'
 import { createGradeNode } from './nodes/gradeNode'
 import { createGenerateNode } from './nodes/generateNode'
@@ -205,7 +206,8 @@ export class AgenticRAGService {
           nodesVisited: finalState.nodesVisited,
           documentsRetrieved: finalState.retrievedDocuments.length,
           webSearchUsed: finalState.webSearchResults.length > 0,
-          reformulationUsed: finalState.reformulatedQueries.length > 0
+          reformulationUsed: finalState.reformulatedQueries.length > 0,
+          recuperacion: this.diagnosticoDeRecuperacion(finalState)
         }
       }
     } catch (error) {
@@ -428,6 +430,37 @@ export class AgenticRAGService {
       if (!a.cited && b.cited) return 1
       return (b.relevance || 0) - (a.relevance || 0)
     })
+  }
+
+  /**
+   * Cuántos fragmentos sobreviven a cada etapa, y de qué corpus (#158, #161).
+   *
+   * Sin esto, que la documentación no llegue al modelo se ve sólo en la
+   * respuesta —que habla de otra cosa— y hay que ir etapa por etapa a ciegas.
+   * Y el veredicto del juez se guardaba en `doc.reason` sin salir a ningún
+   * sitio, así que no había forma de saber si graduó de verdad o si entró por
+   * una de las dos redes de seguridad, que es justo lo que decide si el
+   * graduado aporta algo o sólo cuesta latencia.
+   */
+  private diagnosticoDeRecuperacion(state: AgenticRAGState) {
+    const porCorpus = (docs: any[]) => ({
+      documental: docs.filter(d => corpusDe(d?.metadata?.category) === 'documental').length,
+      simulacion: docs.filter(d => corpusDe(d?.metadata?.category) === 'simulacion').length,
+    })
+
+    const graduados = state.gradedDocuments ?? []
+    const relevantes = graduados.filter((d: any) => d.relevant)
+    const motivo = (d: any) => String(d?.reason ?? '')
+
+    return {
+      recuperados: porCorpus(state.retrievedDocuments ?? []),
+      graduados: porCorpus(graduados),
+      relevantes: porCorpus(relevantes),
+      /** Los que entraron sin que el juez llegara a opinar. */
+      sinJuez: graduados.filter((d: any) => motivo(d).startsWith('Juez no disponible')).length,
+      /** Y los que entraron porque el juez los descartó todos. */
+      porRescate: graduados.filter((d: any) => motivo(d).startsWith('Ninguno pasó el filtro')).length,
+    }
   }
 
   getMetrics(): RAGMetrics {

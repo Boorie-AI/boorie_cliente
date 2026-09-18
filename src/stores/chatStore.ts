@@ -1,6 +1,7 @@
 import { logger } from '@/utils/logger'
 import { contextoDeConocimiento, cierreDeIdioma, hayQueTraducir } from '@/services/contextoConocimiento'
 import { limpiarCitasSinRespaldo } from '@/../backend/services/hydraulic/citasSinRespaldo'
+import { marcarLoTraducido } from '@/services/avisoDeTraduccion'
 import i18n from '@/i18n'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
@@ -511,6 +512,16 @@ export const useChatStore = create<ChatState>()(
                 if (quitadas.length > 0) {
                   logger.warn('Se han quitado referencias a páginas sin respaldo en las fuentes:', quitadas)
                 }
+                /**
+                 * Y si lo citado venía de otro idioma, se dice (#160). La regla
+                 * está en el prompt y nemotron-mini la ignora, así que se
+                 * resuelve aquí en vez de pidiéndoselo otra vez.
+                 */
+                const respuesta = marcarLoTraducido(
+                  response,
+                  ragSources,
+                  usePreferencesStore.getState().language
+                )
                 const metadata = result.data?.metadata || {
                   model: modelo,
                   provider: proveedor,
@@ -544,7 +555,7 @@ export const useChatStore = create<ChatState>()(
                 // Add assistant message
                 await get().addMessageToConversation(conversationId, {
                   role: 'assistant',
-                  content: response,
+                  content: respuesta,
                   metadata
                 })
 
