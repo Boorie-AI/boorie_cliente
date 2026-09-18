@@ -1,6 +1,7 @@
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { OllamaEmbeddings } from "@langchain/ollama";
 import { PrismaClient } from "@prisma/client";
+import { modeloEmbeddingsOllama, dimensionEsperada } from "./modeloEmbeddings";
 
 export class EmbeddingService {
     private prisma: PrismaClient;
@@ -146,7 +147,7 @@ export class EmbeddingService {
 
         // BUG FIX #9: OpenAI embeddings (1536 dims) son INCOMPATIBLES con Ollama embeddings (768 dims)
         // Si se mezclan en la BD, la búsqueda semántica falla silenciosamente
-        // Solución: Usar SIEMPRE el mismo modelo. Ollama/nomic-embed-text es el default.
+        // Solución: Usar SIEMPRE el mismo modelo. El de Ollama lo fija `modeloEmbeddings`.
         // Si ya hay embeddings en la BD con otras dims, se deben reindexar.
         
         // B. Check Database for Ollama
@@ -161,7 +162,7 @@ export class EmbeddingService {
             try {
                 console.log("[EmbeddingService] Auto-discovered Ollama from DB");
                 const config = ollamaProvider.config ? JSON.parse(ollamaProvider.config) : {};
-                const model = "nomic-embed-text";
+                const model = modeloEmbeddingsOllama();
                 const baseUrl = config.baseUrl || process.env.OLLAMA_BASE_URL || "http://localhost:11434";
                 const embeddings = this.getOrCreateEmbeddingsInstance('ollama-db', () => new OllamaEmbeddings({
                     baseUrl: baseUrl,
@@ -182,7 +183,7 @@ export class EmbeddingService {
                     id: 'ollama-db',
                     name: 'Ollama (Database)',
                     model: model,
-                    dimension: 768
+                    dimension: dimensionEsperada()
                 };
             } catch (e) {
                 console.error("Error generating Ollama embedding:", e);
@@ -214,18 +215,19 @@ export class EmbeddingService {
         // D. Last Resort: Try default Ollama
         try {
             const defaultOllamaUrl = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
-            console.log(`[EmbeddingService] Attempting default Ollama at ${defaultOllamaUrl} (nomic-embed-text)`);
+            const modeloLocal = modeloEmbeddingsOllama();
+            console.log(`[EmbeddingService] Attempting default Ollama at ${defaultOllamaUrl} (${modeloLocal})`);
             const embeddings = this.getOrCreateEmbeddingsInstance('ollama-local', () => new OllamaEmbeddings({
                 baseUrl: defaultOllamaUrl,
-                model: "nomic-embed-text"
+                model: modeloLocal
             }));
             const result = await embedWithTimeout(embeddings, text, 180000);
 
             this._activeProvider = {
                 id: 'ollama-local',
                 name: 'Ollama (Local)',
-                model: 'nomic-embed-text',
-                dimension: 768
+                model: modeloLocal,
+                dimension: dimensionEsperada()
             };
             return result;
         } catch (e: any) {
@@ -236,6 +238,6 @@ export class EmbeddingService {
             }
         }
 
-        throw new Error("No active embedding provider found. Please configure OpenAI or ensure Ollama is running with 'nomic-embed-text'.");
+        throw new Error(`No active embedding provider found. Please configure OpenAI or ensure Ollama is running with '${modeloEmbeddingsOllama()}'.`);
     }
 }

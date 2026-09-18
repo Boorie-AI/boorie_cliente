@@ -11,6 +11,8 @@ import {
 } from 'lucide-react'
 import { VectorGraphViewer } from './VectorGraphViewer'
 import { BulkUploadDialog } from './BulkUploadDialog'
+import { AvisoDeReindexado } from './AvisoDeReindexado'
+import { AvisoDeInformesRepetidos } from './AvisoDeInformesRepetidos'
 
 // Interfaces
 interface IndexingStatus {
@@ -75,6 +77,16 @@ interface EmbeddingProvider {
 
 type ViewMode = 'grid' | 'list'
 
+/** Un documento traído por la búsqueda semántica, con lo que casó (#164). */
+interface ResultadoSemantico {
+  id: string
+  title: string
+  /** Si sale de la normativa general o de los documentos del proyecto. */
+  origen?: 'general' | 'proyecto'
+  score: number
+  fragmentos: string[]
+}
+
 export function UnifiedWisdomPanel() {
   const { t } = useTranslation()
 
@@ -119,6 +131,21 @@ export function UnifiedWisdomPanel() {
   }, [])
 
   // Search and filters
+  /**
+   * Lo que devuelve la búsqueda semántica (#164).
+   *
+   * Va aparte de `allDocuments` y no lo sustituye: son cosas distintas. La
+   * lista es el catálogo filtrado por texto; esto son los fragmentos que el
+   * significado de la consulta ha traído, con su puntuación y el trozo que
+   * casó. Hasta ahora el resultado se pedía, se contaba en un aviso y se
+   * tiraba —el `setSearchResults` estaba comentado—, así que buscar por
+   * significado no enseñaba nada y la lista vacía de debajo, que era el filtro
+   * de texto, parecía la respuesta.
+   *
+   * `null` es «no se ha buscado»; la lista vacía es «se buscó y no hay nada»,
+   * que son dos mensajes distintos para quien mira.
+   */
+  const [resultadosSemanticos, setResultadosSemanticos] = useState<ResultadoSemantico[] | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [selectedRegion, setSelectedRegion] = useState<string>('')
@@ -617,8 +644,15 @@ export function UnifiedWisdomPanel() {
 
       const result = await window.electronAPI.wisdom.search(searchQuery, options)
       if (result.success) {
-        // setSearchResults(result.results || [])
-        // Show search results in a modal or overlay instead of switching tabs
+        setResultadosSemanticos((result.results || []).map((r: any) => ({
+          id: r.document?.id ?? '',
+          title: r.document?.title ?? '',
+          origen: r.origen,
+          score: r.score ?? 0,
+          // Tres trozos por documento bastan para juzgar si la cita sirve; el
+          // resto alarga la página sin decidir nada.
+          fragmentos: (r.relevantChunks ?? []).slice(0, 3),
+        })))
         showNotification(t('messages.searchFound', { count: result.results?.length || 0 }), 'success')
       }
     } catch (error) {
@@ -871,6 +905,11 @@ export function UnifiedWisdomPanel() {
         </div>
       )}
       <div className="max-w-7xl mx-auto">
+        {/* Lo primero que se ve: si los vectores no son del modelo en uso, las
+            búsquedas devuelven vacío y nada más en la pantalla lo delata (#162). */}
+        <AvisoDeReindexado alTerminar={loadAllData} />
+        <AvisoDeInformesRepetidos alTerminar={loadAllData} />
+
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-foreground">💡 {t('wisdom.header')}</h1>
@@ -1301,6 +1340,9 @@ export function UnifiedWisdomPanel() {
                             <div>💡 {t('wisdom.recommended')}</div>
                             <div className="space-y-1 mt-1">
                               <div className="bg-background px-2 py-1 rounded font-mono text-xs">
+                                ollama pull bge-m3
+                              </div>
+                              <div className="bg-background px-2 py-1 rounded font-mono text-xs">
                                 ollama pull nomic-embed-text
                               </div>
                               <div className="bg-background px-2 py-1 rounded font-mono text-xs">
@@ -1312,6 +1354,7 @@ export function UnifiedWisdomPanel() {
                             </div>
 
                             <div className="mt-2 text-muted-foreground/80">
+                              • {t('wisdom.modelBge')}<br />
                               • {t('wisdom.modelNomic')}<br />
                               • {t('wisdom.modelMxbai')}<br />
                               • {t('wisdom.modelMinilm')}
@@ -1403,6 +1446,51 @@ export function UnifiedWisdomPanel() {
           ) : (
             /* Documents View (All) */
             <div>
+              {/* Lo que ha traído la búsqueda por significado, encima del catálogo (#164). */}
+              {resultadosSemanticos !== null && (
+                <div className="mb-6 rounded-lg border border-border bg-card p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-semibold text-foreground">
+                      🔎 {t('wisdom.resultadosSemanticos.titulo', { count: resultadosSemanticos.length })}
+                    </h2>
+                    <button
+                      onClick={() => setResultadosSemanticos(null)}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {t('wisdom.resultadosSemanticos.cerrar')}
+                    </button>
+                  </div>
+
+                  {resultadosSemanticos.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      {t('wisdom.resultadosSemanticos.sinNada')}
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {resultadosSemanticos.map((r) => (
+                        <div key={r.id} className="rounded-md border border-border/60 p-3">
+                          <div className="flex items-baseline justify-between gap-3">
+                            <span className="font-medium text-foreground">{r.title}</span>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              {r.origen === 'proyecto'
+                                ? t('wisdom.resultadosSemanticos.delProyecto')
+                                : t('wisdom.resultadosSemanticos.general')}
+                              {' · '}
+                              {t('wisdom.resultadosSemanticos.parecido', { valor: Math.round(r.score * 100) })}
+                            </span>
+                          </div>
+                          {r.fragmentos.map((f, i) => (
+                            <p key={i} className="mt-2 text-sm text-muted-foreground line-clamp-3">
+                              {f}
+                            </p>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <h2 className="text-xl font-semibold text-foreground mb-4">
                 📚 {t('wisdom.myDocuments', { count: allDocuments.length })}
               </h2>

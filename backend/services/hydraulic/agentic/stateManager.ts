@@ -148,14 +148,28 @@ export class StateManager {
     return 'general'
   }
 
+  /**
+   * De qué cálculo trata la pregunta, si es que trata de alguno (#161).
+   *
+   * Los patrones van anclados a palabra completa, y no es un detalle: sin
+   * anclar, `potencia` casaba dentro de «evapotranspiración **potencial**» y la
+   * pregunta se clasificaba como selección de bombas. Eso llega hasta el prompt
+   * del juez —«Ten en cuenta que la pregunta trata sobre selección de bombas»—,
+   * que entonces rechaza, con razón, un capítulo sobre evapotranspiración.
+   * Medido en la aplicación: rechazaba las tres fuentes recuperadas, incluida la
+   * que respondía, y lo que le llegaba al modelo era la red de rescate.
+   *
+   * `hf` era el otro peligroso: dos letras sin anclar dentro de cualquier
+   * palabra.
+   */
   private detectCalculationType(question: string): string | undefined {
     const calculationPatterns = {
-      'head_loss': /pérdida de carga|head loss|hf/i,
-      'pipe_sizing': /dimensionar|sizing|diámetro/i,
-      'pump_selection': /selección.*bomba|pump selection|potencia/i,
-      'flow_rate': /caudal|flow rate|gasto/i,
-      'velocity': /velocidad|velocity/i,
-      'pressure': /presión|pressure/i
+      'head_loss': /\bpérdida de carga\b|\bhead loss\b|\bhf\b/i,
+      'pipe_sizing': /\bdimensionar\b|\bsizing\b|\bdiámetros?\b/i,
+      'pump_selection': /\bselección\b.*\bbombas?\b|\bpump selection\b|\bpotencia\b/i,
+      'flow_rate': /\bcaudal(es)?\b|\bflow rate\b|\bgasto\b/i,
+      'velocity': /\bvelocidad(es)?\b|\bvelocity\b/i,
+      'pressure': /\bpresi(ón|ones)\b|\bpressure\b/i
     }
 
     for (const [type, pattern] of Object.entries(calculationPatterns)) {

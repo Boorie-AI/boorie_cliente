@@ -76,3 +76,62 @@ describe('consulta del RAG agéntico', () => {
     expect(nodos.generate.execute).toHaveBeenCalled()
   })
 })
+
+/**
+ * Lo que se le acaba dando al modelo (#156). Deduplicar por título dejaba un
+ * fragmento por documento, así que el documento que el usuario acababa de subir
+ * aportaba mil caracteres por muy bien que hubiera ido la búsqueda.
+ */
+describe('las fuentes que salen de una consulta', () => {
+  const graduados = (docs: unknown[]) => {
+    nodos.retrieve.execute.mockResolvedValue({ success: true, data: {}, nextNode: 'grade' })
+    nodos.grade.execute.mockImplementation(async (_estado: unknown, gestor: { updateState: (p: unknown) => void }) => {
+      gestor.updateState({ gradedDocuments: docs })
+      return { success: true, data: {}, nextNode: 'generate' }
+    })
+  }
+
+  const fragmento = (id: string, contenido: string, titulo = 'Engineering Hydrology', score = 0.7) => ({
+    id,
+    content: contenido,
+    relevant: true,
+    relevanceScore: score,
+    metadata: { source: titulo },
+  })
+
+  it('varios fragmentos del mismo documento llegan todos', async () => {
+    graduados([
+      fragmento('c1', 'las hipótesis del hidrograma unitario son'),
+      fragmento('c2', 'la duración de la lluvia debe ser de 1/5 a 1/3 del desfase'),
+      fragmento('c3', 'se dividen las ordenadas por sus valores de ER'),
+    ])
+
+    const r = await servicio().query('hidrograma unitario', { soloRecuperacion: true })
+
+    expect(r.sources).toHaveLength(3)
+    expect(r.sources.map(f => f.content)).toContain('se dividen las ordenadas por sus valores de ER')
+  })
+
+  it('el contenido repetido carácter a carácter no ocupa dos huecos', async () => {
+    graduados([
+      fragmento('c1', 'Red: Net3 2.inp — sin anomalías', 'Estadísticas de la simulación'),
+      fragmento('c2', 'Red: Net3 2.inp — sin anomalías', 'Estadísticas de la simulación'),
+      fragmento('c3', 'otra cosa distinta', 'Estadísticas de la simulación'),
+    ])
+
+    const r = await servicio().query('anomalías', { soloRecuperacion: true })
+
+    expect(r.sources).toHaveLength(2)
+  })
+
+  it('sin id, dos fragmentos distintos siguen siendo dos', async () => {
+    graduados([
+      { ...fragmento('', 'primer trozo'), id: undefined },
+      { ...fragmento('', 'segundo trozo'), id: undefined },
+    ])
+
+    const r = await servicio().query('lo que sea', { soloRecuperacion: true })
+
+    expect(r.sources).toHaveLength(2)
+  })
+})

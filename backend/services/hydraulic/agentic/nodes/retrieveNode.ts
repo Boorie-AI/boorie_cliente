@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { AgenticRAGState, Document, RetrievalResult, RetrievalConfig } from '../types'
 import { StateManager } from '../stateManager'
+import { corpusDe, repartirPorCorpus } from '../../repartoDeCorpus'
 
 import { EmbeddingService } from '../../../embedding.service'
 // VectorService needs to be located or mocked if it doesn't exist yet, but assuming it exists somewhere or needs to be replaced.
@@ -185,16 +186,32 @@ export class RetrieveNode {
       })
 
       // Calculate final scores and sort
-      const fusedResults = Array.from(allResults.values())
+      const ordenados = Array.from(allResults.values())
         .map(doc => ({
           ...doc,
           finalScore: doc.scores.reduce((sum, score) => sum + score, 0) / allQueries.length
         }))
         .sort((a, b) => b.finalScore - a.finalScore)
-        .slice(0, this.config.topK)
 
-      // Remove temporary scoring fields
-      return fusedResults.map(({ scores: _scores, finalScore: _finalScore, ...doc }) => doc as Document)
+      /**
+       * El recorte final reserva sitio a cada corpus (#158).
+       *
+       * Va aquí y no antes porque éste es el corte que decide qué ve el modelo.
+       * Los informes de simulación puntúan más alto que la documentación
+       * —están escritos en el idioma de la pregunta—, así que con `topK` en
+       * tres se llevaban las tres plazas y el manual no llegaba: la respuesta
+       * salía explicando la evapotranspiración con una fórmula de pérdida de
+       * carga, que es lo que había en el contexto.
+       */
+      const fusedResults = repartirPorCorpus(
+        ordenados,
+        this.config.topK,
+        doc => corpusDe(doc.metadata?.category)
+      )
+
+      // El parecido fusionado se queda como `score`, que es lo que ordena luego.
+      return fusedResults.map(({ scores: _scores, finalScore, ...doc }) =>
+        ({ ...doc, score: finalScore } as Document))
     } catch (error) {
       console.error('[RetrieveNode] Multi-query retrieval error:', error)
       throw error
@@ -243,7 +260,7 @@ export class RetrieveNode {
   }
 
   private processSearchResults(results: any[], state: AgenticRAGState): Document[] {
-    return results
+    const filtrados = results
       .filter(result => {
         /**
          * Los derivados de simulación no pasan por los filtros temáticos (#41).
@@ -289,8 +306,15 @@ export class RetrieveNode {
 
         return true
       })
-      .slice(0, this.config.topK)
-      .map(result => ({
+
+    /**
+     * Y este recorte también reserva sitio a cada corpus (#158). Es el primero
+     * que corta —la consulta múltiple llama aquí una vez por reformulación—,
+     * así que sin esto lo que llega a fusionarse ya viene copado por los
+     * informes de simulación y repartir después no tiene con qué.
+     */
+    return repartirPorCorpus(filtrados, this.config.topK, (r: any) => corpusDe(r?.metadata?.category))
+      .map((result: any) => ({
         id: result.id,
         content: result.content,
         metadata: {
@@ -303,7 +327,9 @@ export class RetrieveNode {
           standard: result.metadata?.standard,
           lastUpdated: result.metadata?.lastUpdated || (result as any).updated_at
         },
-        embedding: [] // Embedding not returned by hybrid search
+        embedding: [], // Embedding not returned by hybrid search
+        // El parecido sobrevive al mapeo: es con lo que se ordena después (#161).
+        score: typeof result.score === 'number' ? result.score : undefined
       }))
   }
 }

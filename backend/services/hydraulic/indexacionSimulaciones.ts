@@ -184,6 +184,9 @@ export class IndexacionSimulacionesService {
 
       await this.marcar(runId, 'indexando')
       await this.borrarDocumentosDe(runId)
+      // Y los de las ejecuciones anteriores de esta misma versión de red: se
+      // sustituye el informe, no se apila otro (#167).
+      await this.borrarInformesPreviosDe(ejecucion.networkVersionId, runId)
 
       const documentos = documentosDeSimulacion(ejecucion)
       for (const doc of documentos) {
@@ -263,6 +266,92 @@ export class IndexacionSimulacionesService {
     const borrados = await this.borrarVectoresDe({ simulationRunId: runId })
     await this.prisma.hydraulicKnowledge.deleteMany({ where: { simulationRunId: runId } })
     return borrados
+  }
+
+  /**
+   * Deja un solo juego de informes por versión de red: el de la última
+   * ejecución (#167).
+   *
+   * `borrarDocumentosDe` limpia lo de *esta* ejecución, que sirve para
+   * reintentar. Lo que nadie quitaba eran los de las anteriores, así que cada
+   * simulación añadía un juego entero más: en una base real, 298 de 301
+   * documentos eran informes, con «Comparación con la simulación anterior —
+   * Net3 2.inp v4» repetido más de veinte veces. Y no repetido a medias: el
+   * título se compone de la red y la versión, sin nada de la ejecución, así que
+   * son indistinguibles en la lista.
+   *
+   * Se pueden tirar sin miedo: son datos derivados que se regeneran desde los
+   * resultados de la simulación, que sí se conservan. Lo que se pierde es una
+   * copia vieja de algo que el informe nuevo cuenta mejor.
+   *
+   * Se excluye la ejecución en curso porque sus documentos se acaban de crear o
+   * están a punto de crearse.
+   */
+  async borrarInformesPreviosDe(networkVersionId: string, exceptoRunId: string): Promise<number> {
+    const where = {
+      simulationRun: { networkVersionId, id: { not: exceptoRunId } },
+    }
+    const borrados = await this.borrarVectoresDe(where)
+    if (borrados > 0) {
+      await this.prisma.hydraulicKnowledge.deleteMany({ where: where as any })
+      console.log(`[Indexación #167] Sustituidos ${borrados} informes de ejecuciones anteriores de la versión ${networkVersionId}.`)
+    }
+    return borrados
+  }
+
+  /**
+   * Los informes que sobran de antes de que esto se sustituyera (#167).
+   *
+   * De cada versión de red se queda el juego de la ejecución más reciente y se
+   * cuentan los demás. Se separa del borrado porque hay que poder decir cuántos
+   * son **antes** de tocar nada: es la base del usuario y la decisión es suya.
+   */
+  async contarInformesRepetidos(): Promise<{ documentos: number; versiones: number }> {
+    const sobrantes = await this.informesSobrantes()
+    const versiones = new Set(sobrantes.map(d => d.simulationRun?.networkVersionId)).size
+    return { documentos: sobrantes.length, versiones }
+  }
+
+  /** Deja un solo juego de informes por versión de red, el de la última ejecución (#167). */
+  async podarInformesRepetidos(): Promise<number> {
+    const sobrantes = await this.informesSobrantes()
+    if (sobrantes.length === 0) return 0
+
+    const ids = sobrantes.map(d => d.id)
+    await this.borrarVectoresDe({ id: { in: ids } })
+    await this.prisma.hydraulicKnowledge.deleteMany({ where: { id: { in: ids } } })
+    console.log(`[Indexación #167] Podados ${ids.length} informes de ejecuciones anteriores.`)
+    return ids.length
+  }
+
+  /**
+   * Los documentos de simulación que no son de la última ejecución de su
+   * versión de red.
+   *
+   * El criterio es la fecha de la ejecución, no la del documento: reindexar una
+   * ejecución vieja le pone fecha de hoy a sus documentos y la convertiría en la
+   * superviviente.
+   */
+  private async informesSobrantes() {
+    const documentos = await this.prisma.hydraulicKnowledge.findMany({
+      where: { simulationRunId: { not: null } },
+      select: {
+        id: true,
+        simulationRun: { select: { id: true, networkVersionId: true, createdAt: true } },
+      },
+    })
+
+    const ultimaDe = new Map<string, { id: string; cuando: number }>()
+    for (const doc of documentos) {
+      const run = doc.simulationRun
+      if (!run) continue
+      const cuando = run.createdAt.getTime()
+      const actual = ultimaDe.get(run.networkVersionId)
+      if (!actual || cuando > actual.cuando) ultimaDe.set(run.networkVersionId, { id: run.id, cuando })
+    }
+
+    return documentos.filter(d =>
+      d.simulationRun && ultimaDe.get(d.simulationRun.networkVersionId)?.id !== d.simulationRun.id)
   }
 
   /**

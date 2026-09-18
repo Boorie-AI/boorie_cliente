@@ -60,24 +60,42 @@ export function origenDe(duenoDelDocumento: DuenoDocumento): Origen {
 }
 
 /**
+ * Cómo se escribe el dueño en la metainformación del almacén vectorial (#158).
+ *
+ * El ámbito general se guarda como cadena vacía y no como `null` porque el motor
+ * de expresiones de Milvus Lite **no alcanza los campos JSON a null**:
+ * `metadata["projectId"] == null` no compila, `is null` tampoco, y la negación
+ * los deja fuera igual que la afirmación —sobre una base de 817 fragmentos,
+ * negar un proyecto de 50 devolvía 312, no 767—. Guardado como `null`, lo
+ * general es inseleccionable y el filtro de ámbito no se puede ni escribir.
+ */
+export function duenoVectorial(dueno: DuenoDocumento): string {
+  return dueno ?? ''
+}
+
+/**
  * Filtro para el almacén vectorial.
  *
- * Es una **optimización**, no la garantía: el almacén puede fallar en silencio,
- * devolver de más o ignorar el filtro, y por eso la última palabra la tiene la
- * consulta a la base de datos, que es la autoridad sobre de quién es cada
- * documento. Devuelve `undefined` cuando no hay nada que restringir.
+ * No es la garantía de confidencialidad —la última palabra la tiene la consulta
+ * a la base de datos, que es la autoridad sobre de quién es cada documento—,
+ * pero sí decide si la búsqueda sirve para algo (#158).
+ *
+ * Antes no se filtraba en el ámbito general, y el ámbito se resolvía entero en
+ * la base. Con 362 de 817 fragmentos pertenecientes a proyectos, una pregunta en
+ * castellano se llevaba de calle los informes de simulación —que Boorie escribe
+ * en castellano— y los tiraba después: de los 18 candidatos que se piden, cero
+ * eran generales y el primero aparecía en el puesto 65. La búsqueda contestaba
+ * con la lista vacía y toda la documentación indexada delante.
+ *
+ * Devuelve `undefined` sólo si no hay nada que restringir, que hoy no pasa:
+ * `duenosPermitidos` nunca devuelve la lista vacía.
  */
 export function filtroVectorial(permitidos: DuenoDocumento[]): string | undefined {
-  const proyectos = permitidos.filter((p): p is string => p !== null)
+  if (permitidos.length === 0) return undefined
 
-  // El general incluye documentos indexados antes de que existiera el ámbito,
-  // cuya metainformación no trae `projectId`. Una expresión que exija que el
-  // campo exista los dejaría fuera, así que en ese caso no se filtra aquí y se
-  // resuelve en la base de datos.
-  if (permitidos.includes(null)) return undefined
-  if (proyectos.length === 0) return undefined
-
-  return proyectos.map(p => `metadata["projectId"] == "${p}"`).join(' or ')
+  return permitidos
+    .map(p => `metadata["projectId"] == "${duenoVectorial(p)}"`)
+    .join(' or ')
 }
 
 /**

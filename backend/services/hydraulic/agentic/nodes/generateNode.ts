@@ -1,6 +1,7 @@
 import { AgenticRAGState, GenerationResult, GenerationConfig, Citation, GradedDocument } from '../types'
 import { StateManager } from '../stateManager'
 import { llamarModeloRAG } from '../modelosRAG'
+import { limpiarCitasSinRespaldo } from '../../citasSinRespaldo'
 
 export class GenerateNode {
   /** Cuánto de cada documento entra en el prompt de generación (#63). */
@@ -32,7 +33,7 @@ export class GenerateNode {
 
       // La respuesta la escribe el modelo principal de la ruta del RAG (#49):
       // es la única llamada por pregunta, así que aquí sí cabe el grande.
-      const generation = await llamarModeloRAG({
+      const escrita = await llamarModeloRAG({
         rol: 'principal',
         prompt,
         temperatura: this.config.temperature,
@@ -42,6 +43,23 @@ export class GenerateNode {
         timeoutMs: 240000,
         penalizacionRepeticion: 1.1,
       })
+
+      /**
+       * Las páginas que el modelo se haya inventado se quitan antes de que la
+       * respuesta salga de aquí (#165). La regla de no citar lo que no está
+       * entre las fuentes lleva escrita en el prompt desde el #160 y el modelo
+       * local se la salta; esto lo comprueba contra las fuentes de verdad en
+       * lugar de volver a pedírselo.
+       */
+      const { texto: generation, quitadas } = limpiarCitasSinRespaldo(
+        escrita,
+        relevantDocs.map((d: any) => ({ page: d?.metadata?.page }))
+      )
+      if (quitadas.length > 0) {
+        console.warn(
+          `[GenerateNode] Se han quitado ${quitadas.length} referencias a páginas que ninguna fuente respalda: ${quitadas.join(' | ')}`
+        )
+      }
 
       // Extract answer and citations
       const citations = this.extractCitations(generation, relevantDocs)

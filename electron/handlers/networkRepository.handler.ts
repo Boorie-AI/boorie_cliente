@@ -412,6 +412,30 @@ export class NetworkRepositoryHandler {
       }
     })
 
+    /**
+     * Cuántos informes sobran de antes de que se sustituyeran, y la poda (#167).
+     *
+     * Van separados a propósito: contar no toca nada y sirve para avisar; podar
+     * borra en la base del usuario y sólo ocurre si lo pide.
+     */
+    ipcMain.handle('simulacion-rag:informes-repetidos', async () => {
+      try {
+        return { success: true, data: await this.indexacion.contarInformesRepetidos() }
+      } catch (error) {
+        appLogger.error('Failed to count duplicated simulation reports', error as Error)
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
+    ipcMain.handle('simulacion-rag:podar-informes', async () => {
+      try {
+        return { success: true, data: { podados: await this.indexacion.podarInformesRepetidos() } }
+      } catch (error) {
+        appLogger.error('Failed to prune duplicated simulation reports', error as Error)
+        return { success: false, error: (error as Error).message }
+      }
+    })
+
     ipcMain.handle('simulacion-rag:ajustes', async (_, projectId: string | null) => {
       try {
         // `propios` distingue heredar de haberse desenganchado, que es lo que la

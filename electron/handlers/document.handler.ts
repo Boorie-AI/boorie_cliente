@@ -4,10 +4,11 @@ import * as path from 'path'
 import pdf from 'pdf-parse'
 import mammoth from 'mammoth'
 import { HydraulicRAGService } from '../../backend/services/hydraulic/ragService'
-import { duenosPermitidos, filtroPrisma, type Ambito } from '../../backend/services/hydraulic/ambitos'
+import { duenoVectorial, duenosPermitidos, filtroPrisma, type Ambito } from '../../backend/services/hydraulic/ambitos'
 import { Prisma, PrismaClient } from '@prisma/client'
 
 import { EmbeddingService } from '../../backend/services/embedding.service'
+import { dimensionDeModelo, dimensionEsperada, modeloEmbeddingsOllama, DIMENSION_DESCONOCIDA } from '../../backend/services/modeloEmbeddings'
 
 /**
  * Extract plain text from a document on disk. Shared by wisdom:upload
@@ -727,7 +728,31 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
         indexedChunks: 0,
         /** Documentos reindexados en la BD pero no sincronizados con Milvus. */
         milvusFailures: 0,
+        /** Si hubo que rehacer la colección por venir de otro modelo (#155). */
+        coleccionRehecha: false,
         errors: [] as string[]
+      }
+
+      /**
+       * Si los vectores guardados son de otro tamaño —lo que pasa al cambiar de
+       * modelo de embeddings—, hay que rehacer la colección antes de empezar
+       * (#155). Sin esto, cada documento se reindexaba bien en la base
+       * relacional y fallaba al llegar al almacén vectorial, que rechaza
+       * mezclar tamaños: cuarenta minutos para terminar con la búsqueda tan
+       * muda como antes. Va aquí y sólo con `reindexAll` porque es la única
+       * operación que promete regenerarlos todos.
+       */
+      if (options.reindexAll) {
+        try {
+          const milvusService = (await import('../../backend/services/milvus.service')).MilvusService.getInstance()
+          results.coleccionRehecha = await milvusService.prepararParaDimension(
+            'hydraulic_knowledge',
+            dimensionEsperada()
+          )
+        } catch (error: any) {
+          console.error('[Document Handler] No se pudo preparar la colección vectorial:', error)
+          results.errors.push(`Base vectorial: ${error.message}`)
+        }
       }
 
       let docIndex = 0
@@ -925,7 +950,10 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
               chunkId: c.id,
               docId: doc.id,
               title: doc.title,
-              category: doc.category
+              category: doc.category,
+              // Sin esto, lo que repara este botón queda fuera de todas las
+              // búsquedas: el filtro de ámbito exige el campo (#158).
+              projectId: duenoVectorial(doc.projectId)
             },
             timestamp: doc.createdAt.getTime()
           }))
@@ -1014,19 +1042,7 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
 
           // Create provider objects
           dynamicProviders = embeddingModels.map((model: any) => {
-            const name = model.name.toLowerCase()
-            let dimension = 768 // default
-
-            if (name.includes('mxbai')) dimension = 1024
-            if (name.includes('nomic')) dimension = 768
-            if (name.includes('minilm')) dimension = 384
-            if (name.includes('bge-large')) dimension = 1024
-            if (name.includes('bge-base')) dimension = 768
-            if (name.includes('e5-large')) dimension = 1024
-            if (name.includes('e5-base')) dimension = 768
-            if (name.includes('gemma')) dimension = 3072
-            if (name.includes('llama')) dimension = 4096
-            if (name.includes('mistral')) dimension = 4096
+            const dimension = dimensionDeModelo(model.name) ?? DIMENSION_DESCONOCIDA
 
             return {
               id: `ollama-${model.name}`,
@@ -1120,19 +1136,7 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
           })
 
           dynamicProviders = embeddingModels.map((model: any) => {
-            const name = model.name.toLowerCase()
-            let dimension = 768 // default
-
-            if (name.includes('mxbai')) dimension = 1024
-            if (name.includes('nomic')) dimension = 768
-            if (name.includes('minilm')) dimension = 384
-            if (name.includes('bge-large')) dimension = 1024
-            if (name.includes('bge-base')) dimension = 768
-            if (name.includes('e5-large')) dimension = 1024
-            if (name.includes('e5-base')) dimension = 768
-            if (name.includes('gemma')) dimension = 3072
-            if (name.includes('llama')) dimension = 4096
-            if (name.includes('mistral')) dimension = 4096
+            const dimension = dimensionDeModelo(model.name) ?? DIMENSION_DESCONOCIDA
 
             return {
               id: `ollama-${model.name}`,
@@ -1493,20 +1497,7 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
             name.includes('mistral')
           )
         }).map((model: any) => {
-          // Determine dimension based on model name
-          const name = model.name.toLowerCase()
-          let dimension = 768 // default
-
-          if (name.includes('mxbai')) dimension = 1024
-          if (name.includes('nomic')) dimension = 768
-          if (name.includes('minilm')) dimension = 384
-          if (name.includes('bge-large')) dimension = 1024
-          if (name.includes('bge-base')) dimension = 768
-          if (name.includes('e5-large')) dimension = 1024
-          if (name.includes('e5-base')) dimension = 768
-          if (name.includes('gemma')) dimension = 3072
-          if (name.includes('llama')) dimension = 4096
-          if (name.includes('mistral')) dimension = 4096
+          const dimension = dimensionDeModelo(model.name) ?? DIMENSION_DESCONOCIDA
 
           return {
             name: model.name,
@@ -1785,6 +1776,66 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
       if (indexedPercentage < 100 && totalDocs > 0) issues.push(`${Math.round(100 - indexedPercentage)}% documents not indexed`)
       if (totalDocs === 0) issues.push('No documents in knowledge base')
 
+      /**
+       * Los vectores guardados tienen que ser del tamaño que produce el modelo
+       * de ahora (#155). Si no lo son, buscar no da error: Milvus contesta
+       * «Success» con la lista vacía y el RAG se queda mudo con toda la base
+       * indexada delante. Es lo que pasa al cambiar de modelo sin reindexar, y
+       * sin esta comprobación el panel seguía diciendo que todo estaba bien.
+       */
+      const dimensionActual = dimensionEsperada()
+      const muestra = await prismaClient.knowledgeChunk.findFirst({
+        where: { embedding: { notIn: ['', '[]', 'null'] } },
+        select: { embedding: true }
+      })
+      let dimensionGuardada: number | undefined
+      if (muestra?.embedding) {
+        try {
+          const v = JSON.parse(muestra.embedding)
+          if (Array.isArray(v) && v.length > 0) dimensionGuardada = v.length
+        } catch {
+          // Un embedding ilegible ya lo cuenta la cobertura de arriba.
+        }
+      }
+      const dimensionDescuadrada = dimensionGuardada !== undefined && dimensionGuardada !== dimensionActual
+
+      /**
+       * Y los vectores tienen que llevar el dueño escrito como lo espera el
+       * filtro de ámbito (#158).
+       *
+       * Desde que la búsqueda general filtra en el almacén, un fragmento
+       * indexado con `projectId: null` —como se guardaba antes— es
+       * inseleccionable: Milvus no alcanza los campos JSON a null ni
+       * afirmándolos ni negándolos. El efecto es el mismo que el de la
+       * dimensión descuadrada, la búsqueda muda, y no lo detecta la
+       * comprobación de arriba: quien ya reindexó para el modelo nuevo tiene la
+       * dimensión bien y el dueño mal.
+       *
+       * Se mira un fragmento general cualquiera, que es donde se nota: los de
+       * proyecto siempre trajeron su identificador.
+       */
+      let ambitoSinCodificar = false
+      const fragmentoGeneral = await prismaClient.knowledgeChunk.findFirst({
+        where: { knowledge: { projectId: null }, embedding: { notIn: ['', '[]', 'null'] } },
+        select: { id: true }
+      })
+      if (fragmentoGeneral) {
+        try {
+          const milvusService = (await import('../../backend/services/milvus.service')).MilvusService.getInstance()
+          const filas = await milvusService.query(
+            'hydraulic_knowledge',
+            `id == "${fragmentoGeneral.id}"`,
+            ['metadata'],
+            1
+          )
+          const guardado = filas?.data?.[0]?.metadata
+          if (guardado) ambitoSinCodificar = typeof guardado.projectId !== 'string'
+        } catch {
+          // Sin almacén vectorial no hay nada que comprobar: la falta de Milvus
+          // ya se avisa más abajo.
+        }
+      }
+
       // Determine overall status
       let status = 'excellent'
       if (issues.length > 0) status = 'healthy'
@@ -1806,6 +1857,21 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
         issues.push('Milvus (base vectorial) no está disponible: no se puede indexar ni buscar por similitud')
         status = 'critical'
       }
+      if (dimensionDescuadrada) {
+        issues.push(
+          `Los vectores guardados son de ${dimensionGuardada} números y el modelo de embeddings actual ` +
+          `(${modeloEmbeddingsOllama()}) produce ${dimensionActual}: la búsqueda no devuelve nada. ` +
+          `Hay que reindexar la base de conocimiento.`
+        )
+        status = 'critical'
+      }
+      if (ambitoSinCodificar) {
+        issues.push(
+          'Los vectores guardados no llevan el ámbito con el que se filtra ahora: la búsqueda general ' +
+          'no devuelve nada. Hay que reindexar la base de conocimiento.'
+        )
+        status = 'critical'
+      }
 
       const health = {
         status,
@@ -1819,7 +1885,18 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
           },
           embeddings: {
             coverage: Math.round(embeddingCoverage),
-            total: chunksWithEmbeddings
+            total: chunksWithEmbeddings,
+            /**
+             * Los dos tamaños, para que la interfaz pueda avisar sin tener que
+             * leer el texto de `issues` (#162). `descuadrada` es lo que decide
+             * si al usuario le hace falta reindexar.
+             */
+            dimensionGuardada,
+            dimensionEsperada: dimensionActual,
+            descuadrada: dimensionDescuadrada,
+            /** El otro motivo por el que hay que reindexar (#158). */
+            ambitoSinCodificar,
+            modelo: modeloEmbeddingsOllama()
           },
           chunks: {
             total: totalChunks,

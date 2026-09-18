@@ -4,6 +4,7 @@ import {
   duenosPermitidos,
   filtroPrisma,
   filtroVectorial,
+  duenoVectorial,
   origenDe,
   type Ambito,
 } from './ambitos'
@@ -66,17 +67,32 @@ describe('origen del resultado', () => {
   })
 })
 
+describe('cómo se escribe el dueño en el almacén vectorial', () => {
+  it('lo general es la cadena vacía, nunca el nulo', () => {
+    // Milvus no alcanza los campos JSON a null: guardado así, lo general no se
+    // puede seleccionar con ninguna expresión, ni afirmándolo ni negándolo.
+    expect(duenoVectorial(null)).toBe('')
+    expect(duenoVectorial(A)).toBe('proyecto-A')
+  })
+})
+
 describe('filtro del almacén vectorial', () => {
   it('restringe cuando sólo se piden proyectos', () => {
     expect(filtroVectorial([A])).toBe('metadata["projectId"] == "proyecto-A"')
   })
 
-  it('no filtra cuando lo general entra en juego', () => {
-    // Los documentos indexados antes de que existiera el ámbito no traen
-    // `projectId` en su metainformación; una expresión que lo exigiera los
-    // dejaría fuera. Ese caso lo resuelve la base de datos, que es la autoridad.
-    expect(filtroVectorial([null])).toBeUndefined()
-    expect(filtroVectorial([null, A])).toBeUndefined()
+  it('el ámbito general también filtra, y filtra por la cadena vacía', () => {
+    // Antes devolvía `undefined` y la búsqueda general iba sin filtrar: los
+    // fragmentos de proyecto se llevaban todos los candidatos y se descartaban
+    // después, así que la búsqueda contestaba vacía con la base indexada.
+    expect(filtroVectorial([null])).toBe('metadata["projectId"] == ""')
+  })
+
+  it('ámbito «ambos»: lo general y el proyecto, no todo lo que haya', () => {
+    expect(filtroVectorial([null, A])).toBe(
+      'metadata["projectId"] == "" or metadata["projectId"] == "proyecto-A"'
+    )
+    expect(filtroVectorial([null, A])).not.toContain(B)
   })
 
   it('sin nada permitido no inventa un filtro', () => {

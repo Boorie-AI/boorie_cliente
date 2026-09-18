@@ -7,6 +7,8 @@ import {
   NodeResult
 } from './types'
 import { StateManager, createStateManager } from './stateManager'
+import { idiomaDelTexto } from '../idiomaDelTexto'
+import { corpusDe } from '../repartoDeCorpus'
 import { createRetrieveNode } from './nodes/retrieveNode'
 import { createGradeNode } from './nodes/gradeNode'
 import { createGenerateNode } from './nodes/generateNode'
@@ -204,7 +206,8 @@ export class AgenticRAGService {
           nodesVisited: finalState.nodesVisited,
           documentsRetrieved: finalState.retrievedDocuments.length,
           webSearchUsed: finalState.webSearchResults.length > 0,
-          reformulationUsed: finalState.reformulatedQueries.length > 0
+          reformulationUsed: finalState.reformulatedQueries.length > 0,
+          recuperacion: this.diagnosticoDeRecuperacion(finalState)
         }
       }
     } catch (error) {
@@ -335,26 +338,63 @@ export class AgenticRAGService {
     this.metrics.confidenceDistribution.push(state.confidence)
   }
 
+  /**
+   * Una entrada por fragmento, no por documento (#156).
+   *
+   * Esto deduplicaba por título, y todos los fragmentos de un documento comparten
+   * título: al modelo le llegaba uno solo, así que un libro de 432 fragmentos
+   * aportaba mil caracteres a la respuesta. Y con `topK` en tres, el caso normal
+   * —los tres mejores fragmentos salen del documento que el usuario acaba de
+   * subir— dejaba el contexto en un único trozo elegido por su parecido con la
+   * pregunta, que no es lo mismo que el trozo que la responde.
+   *
+   * Medido con la misma pregunta, el mismo modelo y el mismo prompt: con un
+   * fragmento el modelo se inventaba la respuesta; con tres del mismo libro daba
+   * los criterios reales del texto. La lista de la interfaz numera lo que hay,
+   * así que dos entradas del mismo documento se ven como [F1] y [F2] de ese
+   * documento, que es lo que de verdad se le ha dado al modelo.
+   *
+   * Lo que sí se descarta es el contenido repetido carácter a carácter: la base
+   * guarda informes de simulación duplicados, y gastar en ellos dos de los tres
+   * huecos del contexto es tirarlos.
+   */
   private formatSources(state: AgenticRAGState): any[] {
-    // Format and deduplicate sources
-
     const uniqueSources = new Map<string, any>()
+    const contenidosVistos = new Set<string>()
 
     state.gradedDocuments
       .filter(doc => doc.relevant)
       .forEach(doc => {
-        // Use title as key to deduplicate effectively for the UI
-        const key = doc.metadata.source || doc.metadata.title || 'Unknown'
+        const titulo = doc.metadata.source || doc.metadata.title || 'Unknown'
+        // Sin id no hay forma de distinguir un fragmento de otro, y meterlos
+        // todos bajo la misma clave es justo el fallo que esto arregla.
+        const key = doc.id || `${titulo}#${contenidosVistos.size}`
+
+        const contenido = (doc.content ?? '').trim()
+        if (contenido && contenidosVistos.has(contenido)) return
+        if (contenido) contenidosVistos.add(contenido)
 
         if (!uniqueSources.has(key) || (doc.relevanceScore > uniqueSources.get(key).relevance)) {
           uniqueSources.set(key, {
             id: doc.id,
             type: 'document',
-            title: key,
+            title: titulo,
             relevance: doc.relevanceScore,
             page: doc.metadata.page,
             section: doc.metadata.section,
             category: doc.metadata.category,
+            /**
+             * El idioma del fragmento llega hasta el prompt: es lo que permite
+             * pedirle al modelo que marque como traducida la cita que lo esté
+             * (#160). Se recuperaba y se tiraba aquí.
+             *
+             * Y se mira el texto antes que la metainformación, porque la
+             * metainformación miente: la subida guarda «es» sin comprobar nada
+             * y el nodo de recuperación completa los huecos con el idioma de la
+             * pregunta. Si el texto no da para decidir, se deja sin idioma y no
+             * se marca nada.
+             */
+            language: idiomaDelTexto(doc.content) ?? doc.metadata.language,
             content: doc.content // CRITICAL: Include content for chatStore to use
           })
         }
@@ -390,6 +430,37 @@ export class AgenticRAGService {
       if (!a.cited && b.cited) return 1
       return (b.relevance || 0) - (a.relevance || 0)
     })
+  }
+
+  /**
+   * Cuántos fragmentos sobreviven a cada etapa, y de qué corpus (#158, #161).
+   *
+   * Sin esto, que la documentación no llegue al modelo se ve sólo en la
+   * respuesta —que habla de otra cosa— y hay que ir etapa por etapa a ciegas.
+   * Y el veredicto del juez se guardaba en `doc.reason` sin salir a ningún
+   * sitio, así que no había forma de saber si graduó de verdad o si entró por
+   * una de las dos redes de seguridad, que es justo lo que decide si el
+   * graduado aporta algo o sólo cuesta latencia.
+   */
+  private diagnosticoDeRecuperacion(state: AgenticRAGState) {
+    const porCorpus = (docs: any[]) => ({
+      documental: docs.filter(d => corpusDe(d?.metadata?.category) === 'documental').length,
+      simulacion: docs.filter(d => corpusDe(d?.metadata?.category) === 'simulacion').length,
+    })
+
+    const graduados = state.gradedDocuments ?? []
+    const relevantes = graduados.filter((d: any) => d.relevant)
+    const motivo = (d: any) => String(d?.reason ?? '')
+
+    return {
+      recuperados: porCorpus(state.retrievedDocuments ?? []),
+      graduados: porCorpus(graduados),
+      relevantes: porCorpus(relevantes),
+      /** Los que entraron sin que el juez llegara a opinar. */
+      sinJuez: graduados.filter((d: any) => motivo(d).startsWith('Juez no disponible')).length,
+      /** Y los que entraron porque el juez los descartó todos. */
+      porRescate: graduados.filter((d: any) => motivo(d).startsWith('Ninguno pasó el filtro')).length,
+    }
   }
 
   getMetrics(): RAGMetrics {

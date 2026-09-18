@@ -1,7 +1,9 @@
 import { PrismaClient } from '@prisma/client'
 import { MilvusService } from '../milvus.service'
 import { EmbeddingService } from '../embedding.service'
-import { duenosPermitidos, filtroPrisma, filtroVectorial, type Ambito } from './ambitos'
+import { duenoVectorial, duenosPermitidos, filtroPrisma, filtroVectorial, type Ambito } from './ambitos'
+import { corpusDe, filtroDeCorpus, repartirPorCorpus, sinRepetidos, unirFiltros, type Corpus } from './repartoDeCorpus'
+import { dimensionEsperada } from '../modeloEmbeddings'
 
 export interface SearchResult {
   id: string
@@ -51,7 +53,10 @@ export class HybridSearchService {
       const milvusCount = rowCountStats ? parseInt(String(rowCountStats.value)) : 0
       const prismaCount = await this.prisma.knowledgeChunk.count()
 
-      const targetDimension = 768; // Hardcoded to Ollama defaults for now
+      // La del modelo en uso, no un 768 fijo (#155): con el valor a mano, un
+      // modelo de otro tamaño hacía que TODOS los fragmentos parecieran
+      // desajustados y se regeneraran en cada arranque, para siempre.
+      const targetDimension = dimensionEsperada();
 
       console.log(`[HybridSearchService] Checking sync status... Milvus: ${milvusCount}, Prisma: ${prismaCount}`);
 
@@ -142,7 +147,10 @@ export class HybridSearchService {
                   chunkId: chunk.id,
                   docId: chunk.knowledgeId,
                   title: chunk.knowledge.title,
-                  category: chunk.knowledge.category
+                  category: chunk.knowledge.category,
+                  // Igual que en el resto de rutas de indexado: el fragmento que
+                  // entra sin dueño no lo encuentra ninguna búsqueda (#158).
+                  projectId: duenoVectorial(chunk.knowledge.projectId)
                 },
                 timestamp: chunk.createdAt.getTime()
               })
@@ -199,20 +207,52 @@ export class HybridSearchService {
       const filterExpr = filters.length > 0 ? filters.join(' and ') : undefined
       console.log(`[HybridSearchService] executing Milvus search. Filter: "${filterExpr || 'NONE'}"`);
 
-      const searchRes = await this.milvusService.search(
-        MilvusService.COLLECTIONS.KNOWLEDGE,
-        vector,
-        // Con ámbito de proyecto se piden más candidatos: parte de lo que
-        // devuelva el almacén se descarta al comprobar de quién es.
-        permitidos.length > 1 ? topK * 6 : topK * 3,
-        filterExpr
+      /**
+       * Una búsqueda por corpus y luego el reparto (#158). Es el camino del
+       * chat, y es donde más se notaba: con proyecto activo se busca en los dos
+       * ámbitos, así que los trescientos informes de simulación compiten con la
+       * documentación en cada pregunta.
+       */
+      const porCorpus = await Promise.all(
+        (['documental', 'simulacion'] as Corpus[]).map(corpus =>
+          this.milvusService.search(
+            MilvusService.COLLECTIONS.KNOWLEDGE,
+            vector,
+            // Con ámbito de proyecto se piden más candidatos: parte de lo que
+            // devuelva el almacén se descarta al comprobar de quién es.
+            permitidos.length > 1 ? topK * 6 : topK * 3,
+            unirFiltros(filterExpr, filtroDeCorpus(corpus))
+          )
+        )
       )
 
-      console.log(`[HybridSearchService] Milvus returned ${searchRes.results?.length || 0} results.`);
+      const candidatos = sinRepetidos(
+        porCorpus.flatMap(res => res?.results ?? [])
+      ).sort((a: any, b: any) => b.score - a.score)
 
-      if (!searchRes.results) return []
+      console.log(`[HybridSearchService] Milvus returned ${candidatos.length} results across both corpora.`);
 
-      return (await this.filtrarPorAmbito(searchRes.results, permitidos)).slice(0, topK)
+      if (candidatos.length === 0) return []
+
+      /**
+       * Y el recorte respeta la cuota de cada corpus (#158).
+       *
+       * **Todos** los recortes del camino tienen que respetarla, no sólo el
+       * último. Se intentó dejarlo para el final y el manual no llegaba: este
+       * `slice` por puntuación se lo comía antes, porque los informes de
+       * simulación puntúan más alto al estar escritos en el idioma de la
+       * pregunta. Una plaza reservada que otro corte reparte por puntuación no
+       * está reservada.
+       *
+       * El ámbito se comprueba antes: no tiene sentido guardarle sitio a un
+       * fragmento que la base va a descartar por no ser suyo.
+       */
+      const permitidosPorAmbito = await this.filtrarPorAmbito(candidatos, permitidos)
+      return repartirPorCorpus(
+        permitidosPorAmbito,
+        topK,
+        (hit: any) => corpusDe(hit?.metadata?.category)
+      )
 
     } catch (error) {
       console.error('Search error:', error)
