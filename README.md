@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.35.0
+### 🚀 Latest Release - v1.36.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.35.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.35.0/Boorie-1.35.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.35.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.35.0/Boorie-Setup-1.35.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.35.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.35.0/Boorie-1.35.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.36.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.36.0/Boorie-1.36.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.36.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.36.0/Boorie-Setup-1.36.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.36.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.36.0/Boorie-1.36.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.36.0**: The assistant now finds English technical documentation when you ask in Spanish. The embedding model was English-only, so a question in Spanish did not resemble an English technical document however much they shared a subject: measured with ten hydrology questions the corpus answers, the book made the top three 1 time out of 30; now, 30 out of 30. It also answers in the language you have set in the application rather than the language of the sources, and says so when it translates a citation. The reports Boorie writes when it simulates no longer crowd out your documentation in search, and one is no longer piled on top of the last with the same name. Updating requires reindexing the documentation once: the knowledge centre says so and offers the button, and does nothing on its own. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.36.0).
 - **v1.35.0**: The viewer no longer offers to play back a simulation that was never run. Opening a network was enough for the time bar to appear with every step the file declares — 673 steps and 168 hours on a week-long network — even though nothing had been simulated. Stepping through it changed nothing: pipes showed no flow and no velocity, nodes showed no pressure and repeated the file’s base demand at every step, because there were no results behind the bar. It now appears only when there is something real to play back. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.35.0).
 - **v1.34.0**: What the assistant answers about energy is now measured over the same period as everything else, and it says so. The previous version let you choose the simulation period once, but only in the panel: if you asked the assistant how to save on electricity, it simulated a fixed twenty-four hours, even when the network declared a week and even when the panel beside it was set to something else — the same pumping came out with two different figures depending on where you asked. It now uses the period declared by the network file when nobody asks for a specific one. The assistant's text also claimed "a day" over figures that were not a day's: with a week-long network, the sentence contradicted the number right next to it. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.34.0).
 - **v1.33.0**: Resilience figures now say what period they cover, and stop contradicting each other from one screen to the next. The Todini index read 0.4027 on the analysis card and 0.3841 in the indicators panel for the same network: neither was wrong — the index is computed at every instant of the simulation and rises and falls with the daily demand and the tank levels, so what you see is an average, and each screen was averaging a different period. One used the duration written in the network file, the other kept only the first day. The period is now chosen once — 1 day, 3 days, 1 week, or the file's own duration, which is the starting option — and it is stated next to the figure. Energy analysis, which always measured the first twenty-four hours whatever the network declared, follows the same choice. Reservoirs no longer top the list of critical nodes: their pressure is zero by definition, so they displaced the demand nodes that really had a problem. And "Service level", which had always been blank, is now calculated. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.33.0).
@@ -113,12 +114,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.35.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.35.0.AppImage`
-3. Run: `./Boorie-1.35.0.AppImage`
+1. Download `Boorie-1.36.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.36.0.AppImage`
+3. Run: `./Boorie-1.36.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.35.0.exe` from the link above
+1. Download `Boorie-Setup-1.36.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 

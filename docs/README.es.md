@@ -39,15 +39,23 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.35.0
+### 🚀 Última Versión - v1.36.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.35.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.35.0/Boorie-1.35.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.35.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.35.0/Boorie-Setup-1.35.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.35.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.35.0/Boorie-1.35.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.36.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.36.0/Boorie-1.36.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.36.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.36.0/Boorie-Setup-1.36.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.36.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.36.0/Boorie-1.36.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.36.0
+- El asistente no encontraba la documentación técnica en inglés cuando se le preguntaba en castellano: el modelo que convierte el texto en vectores era monolingüe. Medido con diez preguntas de hidrología, el libro aparecía entre los tres primeros 1 de 30 veces; ahora, 30 de 30.
+- Y responde en el idioma que usted tiene puesto en la aplicación, no en el de los documentos. Cuando cita un texto en otro idioma, lo dice.
+- Los informes que Boorie escribe al simular tapaban la documentación en las búsquedas, y se acumulaba uno nuevo por cada ejecución con el mismo nombre que el anterior. Ahora cada cosa tiene su sitio y el informe se sustituye en lugar de apilarse.
+- El centro de conocimiento enseña ya los resultados de la búsqueda por significado, que antes se pedían y se tiraban.
+- Al actualizar hay que reindexar la documentación una sola vez: el centro de conocimiento lo avisa y trae el botón. No se hace solo.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.36.0).
 
 ### 📝 Novedades en v1.35.0
 - El visor ofrecía recorrer una simulación que no se había hecho: con sólo abrir una red, la barra de tiempo aparecía ya con todos los pasos que declara el fichero —en una red de una semana, 673 pasos y 168 horas—.
@@ -383,12 +391,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.35.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.35.0.AppImage`
-3. Ejecuta: `./Boorie-1.35.0.AppImage`
+1. Descarga `Boorie-1.36.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.36.0.AppImage`
+3. Ejecuta: `./Boorie-1.36.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.35.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.36.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
