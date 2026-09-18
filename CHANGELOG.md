@@ -66,6 +66,14 @@ El asistente encuentra la documentación aunque esté en otro idioma, y responde
 - **Y la relevancia que se enseña junto a cada fuente vuelve a significar algo.** Salían las
   tres con el mismo porcentaje porque el número no venía de comparar el documento con la
   pregunta. Ahora es el parecido de verdad, así que ordena.
+- **Cada simulación dejaba un informe nuevo encima del anterior, con el mismo nombre.** La
+  aplicación se escribe sus propios informes al simular —resumen, estadísticas, anomalías y
+  comparación— y no quitaba los de la ejecución previa, pese a que el título no distingue una
+  ejecución de otra: en una base de trabajo, 298 de 301 documentos eran informes y «Comparación
+  con la simulación anterior — Net3 2.inp v4» aparecía más de veinte veces. Ahora se sustituye
+  el informe de esa red y versión en lugar de apilar otro. Para lo ya acumulado, el Wisdom
+  Center dice cuántos sobran y trae el botón que los poda; tampoco eso se hace solo. No se
+  pierde nada: se regeneran desde los resultados de la simulación, que se conservan.
 - **Al actualizar hay que reindexar la documentación, una sola vez.** El cambio de modelo deja
   sin valor los vectores guardados, y mientras no coincidan las búsquedas no devuelven nada. El
   Wisdom Center lo avisa al entrar y trae el botón que lo lanza. Avisa también si los vectores

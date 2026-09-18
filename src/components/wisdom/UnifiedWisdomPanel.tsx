@@ -12,6 +12,7 @@ import {
 import { VectorGraphViewer } from './VectorGraphViewer'
 import { BulkUploadDialog } from './BulkUploadDialog'
 import { AvisoDeReindexado } from './AvisoDeReindexado'
+import { AvisoDeInformesRepetidos } from './AvisoDeInformesRepetidos'
 
 // Interfaces
 interface IndexingStatus {
@@ -907,6 +908,7 @@ export function UnifiedWisdomPanel() {
         {/* Lo primero que se ve: si los vectores no son del modelo en uso, las
             búsquedas devuelven vacío y nada más en la pantalla lo delata (#162). */}
         <AvisoDeReindexado alTerminar={loadAllData} />
+        <AvisoDeInformesRepetidos alTerminar={loadAllData} />
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

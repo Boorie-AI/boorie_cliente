@@ -748,6 +748,14 @@
       "general": "General",
       "delProyecto": "Del projecte",
       "parecido": "semblança {{valor}} %"
+    },
+    "informesRepetidos": {
+      "titulo": "Hi ha {{documentos}} informes de simulació repetits",
+      "porque": "Cada execució deixava un informe nou sense treure el de l'anterior, i el títol no distingeix una execució d'una altra. Sobren {{documentos}} documents de {{versiones}} versions de xarxa. Es poden esborrar sense perdre res: es regeneren des dels resultats de la simulació, que es conserven.",
+      "boton": "Deixa només el darrer de cada xarxa",
+      "enMarcha": "Podant…",
+      "hecho": "Podats {{documentos}} informes repetits. La base de coneixement queda amb un per versió de xarxa.",
+      "fallo": "No s'han pogut podar els informes: {{motivo}}"
     }
   },
   "wisdomCatalog": {

@@ -748,6 +748,14 @@
       "general": "General",
       "delProyecto": "Project",
       "parecido": "{{valor}}% similar"
+    },
+    "informesRepetidos": {
+      "titulo": "There are {{documentos}} duplicated simulation reports",
+      "porque": "Each run left a new report without removing the previous one, and the title doesn't tell one run from another. {{documentos}} documents from {{versiones}} network versions are redundant. Deleting them loses nothing: they are regenerated from the simulation results, which are kept.",
+      "boton": "Keep only the latest per network",
+      "enMarcha": "Pruning…",
+      "hecho": "Pruned {{documentos}} duplicated reports. The knowledge base now keeps one per network version.",
+      "fallo": "The reports could not be pruned: {{motivo}}"
     }
   },
   "wisdomCatalog": {

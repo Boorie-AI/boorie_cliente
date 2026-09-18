@@ -254,6 +254,9 @@ const electronAPI = {
     }) => ipcRenderer.invoke('simulacion-rag:guardar-ajustes', data),
     /** Devuelve el proyecto a heredar de los ajustes generales. */
     olvidarAjustes: (projectId: string) => ipcRenderer.invoke('simulacion-rag:olvidar-ajustes', projectId),
+    /** Informes que sobran de antes de que se sustituyeran, y su poda (#167). */
+    informesRepetidos: () => ipcRenderer.invoke('simulacion-rag:informes-repetidos'),
+    podarInformes: () => ipcRenderer.invoke('simulacion-rag:podar-informes'),
   },
 
   /** Instantáneas de proyecto: qué versión de cada red estaba vigente (#38) */

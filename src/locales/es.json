@@ -748,6 +748,14 @@
       "general": "General",
       "delProyecto": "Del proyecto",
       "parecido": "parecido {{valor}} %"
+    },
+    "informesRepetidos": {
+      "titulo": "Hay {{documentos}} informes de simulación repetidos",
+      "porque": "Cada ejecución dejaba un informe nuevo sin quitar el de la anterior, y el título no distingue una ejecución de otra. Sobran {{documentos}} documentos de {{versiones}} versiones de red. Se pueden borrar sin perder nada: se regeneran desde los resultados de la simulación, que se conservan.",
+      "boton": "Dejar solo el último de cada red",
+      "enMarcha": "Podando…",
+      "hecho": "Podados {{documentos}} informes repetidos. La base de conocimiento queda con uno por versión de red.",
+      "fallo": "No se pudieron podar los informes: {{motivo}}"
     }
   },
   "wisdomCatalog": {
