@@ -495,7 +495,7 @@ export const useChatStore = create<ChatState>()(
                 }
 
                 /**
-                 * Las páginas que el modelo se invente no salen de aquí.
+                 * Las páginas que el modelo se invente no salen de aquí (#165).
                  *
                  * El chat no usa la respuesta que escribe el RAG —pide sólo las
                  * fuentes, con `soloRecuperacion`— así que la limpieza que hace

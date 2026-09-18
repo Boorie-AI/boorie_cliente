@@ -76,7 +76,7 @@ interface EmbeddingProvider {
 
 type ViewMode = 'grid' | 'list'
 
-/** Un documento traído por la búsqueda semántica, con lo que casó. */
+/** Un documento traído por la búsqueda semántica, con lo que casó (#164). */
 interface ResultadoSemantico {
   id: string
   title: string
@@ -131,7 +131,7 @@ export function UnifiedWisdomPanel() {
 
   // Search and filters
   /**
-   * Lo que devuelve la búsqueda semántica.
+   * Lo que devuelve la búsqueda semántica (#164).
    *
    * Va aparte de `allDocuments` y no lo sustituye: son cosas distintas. La
    * lista es el catálogo filtrado por texto; esto son los fragmentos que el
@@ -1444,7 +1444,7 @@ export function UnifiedWisdomPanel() {
           ) : (
             /* Documents View (All) */
             <div>
-              {/* Lo que ha traído la búsqueda por significado, encima del catálogo. */}
+              {/* Lo que ha traído la búsqueda por significado, encima del catálogo (#164). */}
               {resultadosSemanticos !== null && (
                 <div className="mb-6 rounded-lg border border-border bg-card p-4">
                   <div className="flex items-center justify-between mb-3">

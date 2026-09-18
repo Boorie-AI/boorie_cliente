@@ -8,7 +8,7 @@ export interface RAGSearchOptions {
   region?: string
   language?: string
   limit?: number
-  /** Puntuación mínima. Por defecto ninguna; ver `search`. */
+  /** Puntuación mínima. Por defecto ninguna; ver `search` (#163). */
   minScore?: number
   /** Dónde buscar (#39). Por defecto, sólo lo general. */
   ambito?: Ambito
@@ -40,7 +40,7 @@ export class HydraulicRAGService {
     options: RAGSearchOptions = {}
   ): Promise<RAGSearchResult[]> {
     /**
-     * Sin puntuación mínima.
+     * Sin puntuación mínima (#163).
      *
      * El 0,6 de antes venía de `nomic-embed-text`. Con `bge-m3` no lo alcanza
      * ningún acierto bueno: los fragmentos que responden de verdad a «¿cómo se

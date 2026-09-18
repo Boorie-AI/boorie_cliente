@@ -1,7 +1,7 @@
 /**
  * Lo que se fija aquí, por orden: que la página inventada no sobrevive, que la
  * buena no se toca, y que la prosa que sólo menciona la palabra «página» sale
- * intacta.
+ * intacta (#165).
  */
 
 import { describe, it, expect } from 'vitest'

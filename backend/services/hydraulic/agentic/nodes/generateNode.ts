@@ -46,7 +46,7 @@ export class GenerateNode {
 
       /**
        * Las páginas que el modelo se haya inventado se quitan antes de que la
-       * respuesta salga de aquí. La regla de no citar lo que no está
+       * respuesta salga de aquí (#165). La regla de no citar lo que no está
        * entre las fuentes lleva escrita en el prompt desde el #160 y el modelo
        * local se la salta; esto lo comprueba contra las fuentes de verdad en
        * lugar de volver a pedírselo.
