@@ -758,6 +758,12 @@
       "enMarcha": "Podant…",
       "hecho": "Podats {{documentos}} informes repetits. La base de coneixement queda amb un per versió de xarxa.",
       "fallo": "No s'han pogut podar els informes: {{motivo}}"
+    },
+    "sinTexto": {
+      "vacio": "No s'ha pogut extreure text de «{{fichero}}». Si és un PDF escanejat, cal passar-li OCR abans de pujar-lo: sense text no hi ha res a indexar.",
+      "ilegible": "No s'ha pogut llegir «{{fichero}}». El fitxer pot estar malmès o protegit.",
+      "formato-no-soportado": "El format de «{{fichero}}» no es pot obrir. Converteix-lo a PDF o DOCX.",
+      "omitidos": "{{count}} fitxer(s) no s'han indexat perquè no se'n va poder extreure text."
     }
   },
   "wisdomCatalog": {

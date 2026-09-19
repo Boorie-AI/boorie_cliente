@@ -758,6 +758,12 @@
       "enMarcha": "Pruning…",
       "hecho": "Pruned {{documentos}} duplicated reports. The knowledge base now keeps one per network version.",
       "fallo": "The reports could not be pruned: {{motivo}}"
+    },
+    "sinTexto": {
+      "vacio": "No text could be extracted from “{{fichero}}”. If it is a scanned PDF, run OCR on it before uploading: with no text there is nothing to index.",
+      "ilegible": "“{{fichero}}” could not be read. The file may be damaged or protected.",
+      "formato-no-soportado": "The format of “{{fichero}}” cannot be opened. Convert it to PDF or DOCX.",
+      "omitidos": "{{count}} file(s) were not indexed because no text could be extracted from them."
     }
   },
   "wisdomCatalog": {

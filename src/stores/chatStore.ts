@@ -3,6 +3,11 @@ import { contextoDeConocimiento, cierreDeIdioma, hayQueTraducir } from '@/servic
 import { limpiarCitasSinRespaldo } from '@/../backend/services/hydraulic/citasSinRespaldo'
 import { marcarLoTraducido } from '@/services/avisoDeTraduccion'
 import { compruebaLaEntrada } from '@/services/guardianDeEntrada'
+import {
+  configuracionInicialDeConocimiento,
+  guardarEleccion,
+  leerEleccion,
+} from '@/services/baseDeConocimientoInicial'
 import i18n from '@/i18n'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
@@ -100,6 +105,7 @@ interface ChatState {
 
   // Wisdom/RAG actions
   setWisdomConfig: (config: WisdomConfiguration | undefined) => void
+  asegurarBaseDeConocimiento: () => Promise<void>
   enhancePromptWithRAG: (originalPrompt: string, projectId?: string | null) => Promise<{ enhancedPrompt: string; sources?: any[] }>
 
   // Hydraulic project context
@@ -885,7 +891,40 @@ export const useChatStore = create<ChatState>()(
 
       // Wisdom/RAG methods
       setWisdomConfig: (config: WisdomConfiguration | undefined) => {
+        // Encender o apagar es una elección, y se recuerda (#159): si no, al
+        // reiniciar volvía al valor por defecto y había que apagarla otra vez.
+        if (config) guardarEleccion(window.localStorage, config.enabled)
         set({ wisdomConfig: config })
+      },
+
+      /**
+       * Deja la base de conocimiento como debe arrancar (#159).
+       *
+       * Arrancaba siempre apagada, y para usarla había que descubrir un
+       * interruptor dentro de un desplegable del chat. Quien subía documentos
+       * preguntaba por ellos y recibía la respuesta del conocimiento general
+       * del modelo, sin que nada dijera que sus documentos no se habían mirado.
+       *
+       * Sólo actúa si el usuario no ha tocado el interruptor: su elección manda
+       * siempre, también cuando eligió apagarla.
+       */
+      asegurarBaseDeConocimiento: async () => {
+        if (get().wisdomConfig) return
+
+        const eleccion = leerEleccion(window.localStorage)
+        let hayDocumentos = false
+        if (eleccion === null) {
+          try {
+            const salud = await window.electronAPI?.wisdom?.getRAGHealth?.()
+            hayDocumentos = (salud?.health?.metrics?.documents?.total ?? 0) > 0
+          } catch (error) {
+            // Sin saberlo se queda como estaba: apagada. No se enciende a
+            // ciegas algo que añade minutos a cada pregunta.
+            logger.warn('No se pudo saber si hay documentos indexados:', error)
+          }
+        }
+
+        set({ wisdomConfig: configuracionInicialDeConocimiento(hayDocumentos, eleccion) })
       },
 
       enhancePromptWithRAG: async (

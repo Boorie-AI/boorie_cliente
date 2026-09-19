@@ -758,6 +758,12 @@
       "enMarcha": "Podando…",
       "hecho": "Podados {{documentos}} informes repetidos. La base de conocimiento queda con uno por versión de red.",
       "fallo": "No se pudieron podar los informes: {{motivo}}"
+    },
+    "sinTexto": {
+      "vacio": "No se ha podido sacar texto de «{{fichero}}». Si es un PDF escaneado, hay que pasarle OCR antes de subirlo: sin texto no hay nada que indexar.",
+      "ilegible": "No se ha podido leer «{{fichero}}». El fichero puede estar dañado o protegido.",
+      "formato-no-soportado": "El formato de «{{fichero}}» no se puede abrir. Conviértelo a PDF o DOCX.",
+      "omitidos": "{{count}} fichero(s) no se han indexado porque no se pudo sacar texto de ellos."
     }
   },
   "wisdomCatalog": {

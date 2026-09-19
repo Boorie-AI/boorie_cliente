@@ -8,13 +8,21 @@ import { duenoVectorial, duenosPermitidos, filtroPrisma, type Ambito } from '../
 import { Prisma, PrismaClient } from '@prisma/client'
 
 import { EmbeddingService } from '../../backend/services/embedding.service'
+import {
+  claveDelProblema,
+  formatoNoSoportado,
+  textoIlegible,
+  indexadoSinContenido,
+  textoLeido,
+  type TextoDeDocumento,
+} from '../../backend/services/textoDeDocumento'
 import { dimensionDeModelo, dimensionEsperada, modeloEmbeddingsOllama, DIMENSION_DESCONOCIDA } from '../../backend/services/modeloEmbeddings'
 
 /**
  * Extract plain text from a document on disk. Shared by wisdom:upload
  * (persistent RAG indexing) and chat:pickAttachment (one-off chat context).
  */
-export async function extractTextFromFile(filePath: string): Promise<string> {
+export async function extraerTextoDeFichero(filePath: string): Promise<TextoDeDocumento> {
   const fileName = path.basename(filePath)
   const fileExtension = path.extname(fileName).toLowerCase()
 
@@ -22,10 +30,10 @@ export async function extractTextFromFile(filePath: string): Promise<string> {
     try {
       const pdfBuffer = await fs.readFile(filePath)
       const pdfData = await pdf(pdfBuffer)
-      return pdfData.text.replace(/\n\s*\n/g, '\n\n').trim()
+      return textoLeido(pdfData.text.replace(/\n\s*\n/g, '\n\n'))
     } catch (error) {
       console.warn(`Could not process PDF ${fileName}:`, error)
-      return `PDF Document: ${fileName}\nUnable to extract text content. Error: ${error}`
+      return textoIlegible(error)
     }
   }
 
@@ -33,18 +41,23 @@ export async function extractTextFromFile(filePath: string): Promise<string> {
     try {
       const buffer = await fs.readFile(filePath)
       const result = await mammoth.extractRawText({ buffer })
-      return result.value
+      return textoLeido(result.value)
     } catch (error) {
       console.warn(`Could not process DOCX ${fileName}:`, error)
-      return `DOCX Document: ${fileName}\nUnable to extract text content. Error: ${error}`
+      return textoIlegible(error)
     }
   }
 
   if (fileExtension === '.doc') {
-    return `DOC Document: ${fileName}\nLegacy binary Word formats are not supported. Please convert to DOCX or PDF.`
+    return formatoNoSoportado('.doc binario: hay que convertirlo a DOCX o PDF')
   }
 
-  return fs.readFile(filePath, 'utf-8')
+  try {
+    return textoLeido(await fs.readFile(filePath, 'utf-8'))
+  } catch (error) {
+    console.warn(`Could not read ${fileName}:`, error)
+    return textoIlegible(error)
+  }
 }
 
 /**
@@ -69,9 +82,16 @@ export function registerChatAttachmentHandler() {
 
       const filePath = result.filePaths[0]
       const fileName = path.basename(filePath)
-      const content = await extractTextFromFile(filePath)
+      const leido = await extraerTextoDeFichero(filePath)
 
-      return { success: true, fileName, content }
+      // Sin texto no hay adjunto: darle al modelo «Unable to extract text
+      // content» como si fuera el documento es peor que no adjuntar nada,
+      // porque responde sobre ese relleno sin saber que lo es (#157).
+      if (leido.problema) {
+        return { success: false, fileName, clave: claveDelProblema(leido.problema), detalle: leido.detalle }
+      }
+
+      return { success: true, fileName, content: leido.texto }
     } catch (error) {
       console.error('[Document Handler] chat:pickAttachment failed:', error)
       return { success: false, message: error instanceof Error ? error.message : 'Failed to read attachment' }
@@ -225,52 +245,29 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
         const fileName = path.basename(filePath)
         const fileExtension = path.extname(fileName).toLowerCase()
 
-        let fileContent: string
 
-        // Handle different file types
-        if (fileExtension === '.pdf') {
-          // For PDF files, we need special processing
-          try {
-            const pdfBuffer = await fs.readFile(filePath)
-            const pdfData = await pdf(pdfBuffer)
-            fileContent = pdfData.text
-
-            // Clean up content (remove excessive newlines, etc.)
-            fileContent = fileContent.replace(/\n\s*\n/g, '\n\n').trim()
-
-            console.log(`[Document Handler] Successfully extracted text from PDF: ${fileName} (${fileContent.length} chars)`)
-          } catch (error) {
-            console.warn(`Could not process PDF ${fileName}:`, error)
-            fileContent = `PDF Document: ${fileName}\nUnable to extract text content. Error: ${error}`
+        /**
+         * Una sola ruta de extracción para las tres formas de subir (#157).
+         *
+         * Había tres copias de esto —aquí, en el ayudante compartido y en la
+         * subida de carpeta—, cada una con su propia frase inventada para
+         * cuando fallaba. El aviso de «< 50 caracteres» que había aquí debajo
+         * se limitaba a pegarle al contenido un texto en inglés y lo indexaba
+         * igual, así que el documento entraba en la base con un fragmento que
+         * no dice nada y compite en las búsquedas.
+         */
+        const leido = await extraerTextoDeFichero(filePath)
+        if (leido.problema) {
+          console.warn(`[Document Handler] ${fileName}: sin texto aprovechable (${leido.problema})`, leido.detalle ?? '')
+          return {
+            success: false,
+            fileName,
+            clave: claveDelProblema(leido.problema),
+            detalle: leido.detalle,
           }
-        } else if (fileExtension === '.docx') {
-          // For DOCX files
-          try {
-            const buffer = await fs.readFile(filePath)
-            const result = await mammoth.extractRawText({ buffer })
-            fileContent = result.value
-            console.log(`[Document Handler] Successfully extracted text from DOCX: ${fileName} (${fileContent.length} chars)`)
-            if (result.messages && result.messages.length > 0) {
-              console.log('[Document Handler] Mammoth messages:', result.messages)
-            }
-          } catch (error) {
-            console.warn(`Could not process DOCX ${fileName}:`, error)
-            fileContent = `DOCX Document: ${fileName}\nUnable to extract text content. Error: ${error}`
-          }
-        } else if (fileExtension === '.doc') {
-          fileContent = `DOC Document: ${fileName}\nLegacy binary Word formats are not supported. Please convert to DOCX or PDF.`
-        } else {
-          // For text-based files
-          fileContent = await fs.readFile(filePath, 'utf-8')
         }
-
-        // Validate content extraction
-        if (!fileContent || fileContent.trim().length < 50) {
-          console.warn(`[Document Handler] Document ${fileName} has very little content (< 50 chars). It might be an image-only PDF or empty file.`)
-          // We can optionally reject it or just append a warning
-          // For now, let's append a warning to the content itself so it's indexed (maybe metadata is there) but also visible
-          fileContent += "\n\n[SYSTEM WARNING: This document appears to have little to no text content. If this is a scanned PDF, please perform OCR before uploading.]"
-        }
+        const fileContent = leido.texto
+        console.log(`[Document Handler] Texto extraído de ${fileName}: ${fileContent.length} caracteres`)
 
         // Extract metadata from filename or content
         const metadata = {
@@ -1287,6 +1284,12 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
       const uploadedDocs = []
       let errors = 0
       /**
+       * Los ficheros de los que no se pudo sacar texto (#157). Van aparte del
+       * recuento de errores porque al usuario le sirve de poco saber que «hubo
+       * 2 errores»: lo que necesita es cuáles, para volver a pasarles el OCR.
+       */
+      const sinTexto: { fileName: string; clave: string }[] = []
+      /**
        * Por qué documento va, no cuántos han salido bien. El contador mostraba
        * `uploadedDocs.length + 1`, así que en cuanto un documento fallaba se
        * quedaba atrás y repetía número: con una carpeta donde fallaban varios
@@ -1302,39 +1305,17 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
 
           console.log(`[Bulk Upload] Processing file: ${fileName}`)
 
-          let fileContent: string
-
-          // Handle different file types
-          // Handle different file types
-          if (fileExtension === '.pdf') {
-            try {
-              const pdfBuffer = await fs.readFile(filePath)
-              // eslint-disable-next-line @typescript-eslint/no-require-imports
-              const pdfParse = require('pdf-parse')
-              const data = await pdfParse(pdfBuffer)
-              fileContent = data.text
-
-              if (!fileContent || fileContent.trim().length === 0) {
-                console.warn(`[Bulk Upload] Warning: Empty content extracted from PDF ${fileName}`)
-                fileContent = `PDF Document: ${fileName}\n(Empty content extracted)`
-              }
-            } catch (error: any) {
-              console.warn(`Could not process PDF ${fileName}:`, error)
-              fileContent = `PDF Document: ${fileName}\nError extracting content: ${error.message}`
-            }
-          } else if (fileExtension === '.docx') {
-            try {
-              // eslint-disable-next-line @typescript-eslint/no-require-imports
-              const mammoth = require('mammoth')
-              const result = await mammoth.extractRawText({ path: filePath })
-              fileContent = result.value
-            } catch (error: any) {
-              console.warn(`Could not process DOCX ${fileName}:`, error)
-              fileContent = `DOCX Document: ${fileName}\nError extracting content: ${error.message}`
-            }
-          } else {
-            fileContent = await fs.readFile(filePath, 'utf-8')
+          // La misma extracción que las otras dos rutas (#157): un fichero
+          // del que no se saca texto se cuenta como fallido y no se indexa,
+          // en lugar de entrar en la base con una frase inventada dentro.
+          const leido = await extraerTextoDeFichero(filePath)
+          if (leido.problema) {
+            console.warn(`[Bulk Upload] ${fileName}: sin texto aprovechable (${leido.problema})`, leido.detalle ?? '')
+            sinTexto.push({ fileName, clave: claveDelProblema(leido.problema) })
+            errors++
+            continue
           }
+          const fileContent: string = leido.texto
 
           // Extract folder-based category if not specified
           let categoryToUse = options.category || 'hydraulics'
@@ -1439,16 +1420,22 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
 
       console.log(`[Bulk Upload] Complete: ${uploadedDocs.length} successful, ${errors} errors`)
 
+      if (sinTexto.length > 0) {
+        console.warn(`[Bulk Upload] ${sinTexto.length} ficheros sin texto aprovechable:`, sinTexto.map(f => f.fileName).join(', '))
+      }
+
       return {
         success: true,
         documents: uploadedDocs,
         processed: uploadedDocs.length,
         errors,
         omitidos,
+        sinTexto,
         stats: {
           total: uploadedDocs.length,
           errors,
           omitidos,
+          sinTexto: sinTexto.length,
           successful: uploadedDocs.length
         },
         message: `Successfully uploaded ${uploadedDocs.length} documents${errors > 0 ? ` (${errors} errors)` : ''}`
@@ -1783,6 +1770,20 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
        * indexada delante. Es lo que pasa al cambiar de modelo sin reindexar, y
        * sin esta comprobación el panel seguía diciendo que todo estaba bien.
        */
+      /**
+       * Documentos indexados de los que nunca se sacó texto (#157).
+       *
+       * El arreglo impide crear nuevos, pero los que ya entraron siguen ahí:
+       * un fragmento de sesenta y nueve caracteres con su vector, compitiendo
+       * en cada búsqueda y contando como documento indexado en la lista. Se
+       * detectan y se dicen; borrarlos lo decide el usuario, que para eso
+       * tiene el botón de cada ficha.
+       */
+      const sinTextoUtil = await prismaClient.hydraulicKnowledge.findMany({
+        where: { status: 'active' },
+        select: { id: true, title: true, content: true },
+      }).then(docs => docs.filter(d => indexadoSinContenido(d.content)))
+
       const dimensionActual = dimensionEsperada()
       const muestra = await prismaClient.knowledgeChunk.findFirst({
         where: { embedding: { notIn: ['', '[]', 'null'] } },
@@ -1865,6 +1866,13 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
         )
         status = 'critical'
       }
+      if (sinTextoUtil.length > 0) {
+        issues.push(
+          `${sinTextoUtil.length} documento(s) están indexados sin texto aprovechable —probablemente PDF escaneados ` +
+          `sin OCR—: ${sinTextoUtil.slice(0, 3).map(d => d.title).join(', ')}` +
+          `${sinTextoUtil.length > 3 ? '…' : ''}. Ocupan sitio en las búsquedas y no pueden responder nada.`
+        )
+      }
       if (ambitoSinCodificar) {
         issues.push(
           'Los vectores guardados no llevan el ámbito con el que se filtra ahora: la búsqueda general ' +
@@ -1898,6 +1906,8 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
             ambitoSinCodificar,
             modelo: modeloEmbeddingsOllama()
           },
+          /** Los que se indexaron sin texto que valga (#157). */
+          sinTextoUtil: sinTextoUtil.map(d => ({ id: d.id, title: d.title })),
           chunks: {
             total: totalChunks,
             avgPerDocument: avgChunksPerDoc

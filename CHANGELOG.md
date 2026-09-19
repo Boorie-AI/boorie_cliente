@@ -17,6 +17,18 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   que sabe, al instante y sin gastar minutos pensándolo. El aviso obedece a los interruptores de
   Configuración → Guardrails: si apaga el rail de entrada no se bloquea nada, y en modo aviso se
   registra sin bloquear, que es lo que esa pantalla promete. Funciona en los tres idiomas.
+- **Un PDF del que no se podía sacar texto se indexaba igual, con una frase inventada dentro.**
+  Cuando la extracción fallaba o salía vacía, Boorie guardaba «(Empty content extracted)» como si
+  fuera el contenido del documento: lo troceaba, lo vectorizaba y lo daba por indexado. La ficha
+  aparecía en la lista igual que las demás. En una base real, de tres documentos subidos **dos
+  eran esto**, y competían en cada búsqueda sin poder responder nada. Ahora el fichero que no se
+  puede leer no se indexa, y se dice por qué: si es un PDF escaneado, hay que pasarle OCR antes.
+  Los que ya estaban indexados así se detectan y se nombran, para que usted decida si los borra.
+- **La base de conocimiento venía apagada y nada lo advertía.** Había que descubrir un
+  interruptor dentro de un desplegable del chat. Hasta encontrarlo, usted subía sus documentos,
+  preguntaba por ellos y recibía una respuesta del conocimiento general del modelo, sin que nada
+  dijera que sus documentos no se habían mirado. Ahora arranca encendida cuando hay documentos
+  indexados, y si usted la apaga se queda apagada, también al reiniciar.
 - **Y la descripción de esa pantalla volvía a ser cierta.** Decía que el rail de entrada bloquea
   «temas fuera de ingeniería hidráulica» y hacía tiempo que no lo hacía.
 
