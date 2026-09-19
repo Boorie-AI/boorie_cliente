@@ -39,15 +39,21 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.36.0
+### 🚀 Última Versió - v1.37.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.36.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.36.0/Boorie-1.36.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.36.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.36.0/Boorie-Setup-1.36.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.36.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.36.0/Boorie-1.36.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.37.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.37.0/Boorie-1.37.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.37.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.37.0/Boorie-Setup-1.37.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.37.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.37.0/Boorie-1.37.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.37.0
+- L'assistent responia preguntes que no són seves inventant-se la resposta: preguntat quantes hamburgueses surten d'un quilo de carn, contestava «40». Ara avisa que això queda fora del que sap, a l'instant, i obeeix els interruptors de Configuració → Guardrails.
+- Un PDF del qual no es podia extreure text s'indexava igual, amb una frase inventada a dins. Ara no s'indexa i es diu per què; si és escanejat, cal passar-li OCR. Els que ja hi eren es detecten i s'anomenen.
+- La base de coneixement venia apagada sense advertir-ho, així que vostè pujava documents i l'assistent responia sense mirar-los. Ara arrenca encesa quan hi ha documents indexats, i si vostè l'apaga es queda apagada.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.37.0).
 
 ### 📝 Novetats a v1.36.0
 - L'assistent no trobava la documentació tècnica en anglès quan se li preguntava en castellà: el model que converteix el text en vectors era monolingüe. Mesurat amb deu preguntes d'hidrologia, el llibre apareixia entre els tres primers 1 de 30 vegades; ara, 30 de 30.
@@ -391,12 +397,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.36.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.36.0.AppImage`
-3. Executa: `./Boorie-1.36.0.AppImage`
+1. Descarrega `Boorie-1.37.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.37.0.AppImage`
+3. Executa: `./Boorie-1.37.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.36.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.37.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
