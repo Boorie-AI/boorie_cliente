@@ -25,8 +25,17 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false)
-  const { updateConversationTitle, deleteConversation, createNewConversation, updateConversation, wisdomConfig, setWisdomConfig } = useChatStore()
-  
+  const { updateConversationTitle, deleteConversation, createNewConversation, updateConversation, wisdomConfig, setWisdomConfig, asegurarBaseDeConocimiento } = useChatStore()
+
+  /**
+   * Con documentos indexados, la base arranca encendida (#159). Antes había que
+   * descubrir el interruptor dentro de este mismo desplegable, y hasta
+   * entonces el asistente contestaba sin mirar los documentos del usuario.
+   */
+  useEffect(() => {
+    void asegurarBaseDeConocimiento()
+  }, [asegurarBaseDeConocimiento])
+
   const menuRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
