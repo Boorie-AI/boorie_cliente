@@ -22,9 +22,14 @@ Cada punto de aquí está por algo que ya pasó, y el motivo va anotado.
       error` con un `503 Service Unavailable` es el registro de npm caído, no una
       vulnerabilidad. Se distingue en un segundo corriendo `npm audit` en local —si da cero,
       era eso— y se arregla con `gh run rerun <id> --failed`. Pasó en el PR #124.
-- [ ] `npm run lint` **completo, sin filtrar por fichero**. Lintar sólo lo que has tocado deja
-      pasar errores en ficheros nuevos: eso tumbó el CI de la v1.21.0 por un `catch (e)` sin usar
-      en un test recién añadido.
+- [ ] `npm run lint` **completo, sin filtrar por fichero, y después del último commit**.
+      Lintar sólo lo que has tocado deja pasar errores en ficheros nuevos: eso tumbó el CI de la
+      v1.21.0 por un `catch (e)` sin usar en un test recién añadido. Y correrlo a mitad del
+      trabajo no cuenta como haberlo corrido: en el PR #166 dio cero errores, se escribió un
+      test más y el `;(window as …)` que abría una de sus líneas —`no-extra-semi`, que es error
+      y no aviso— tumbó el job con el lint ya «comprobado». La suite y el `typecheck` pasaban:
+      de los tres, el lint es el único que distingue un error de un aviso, y hay 1.318 avisos
+      permanentes entre los que un error se pierde si no se mira la última línea.
 - [ ] El cambio comprobado **en la aplicación real**, no sólo en los tests. Ver
       `.claude/skills/run-app`. Los tests no ven lo que ve una persona: el cuadro congelado del
       #74, el botón que simulaba sin que se notara, el redondeo que mostraba «80 %» bajo un
@@ -76,13 +81,28 @@ actualiza después, el tag apunta a descargas de la versión anterior.
       instrucciones de instalación**. Es lo que se olvidaba: quedaron citando la `1.15.0`
       durante media docena de releases porque el ciclo sólo tocaba el bloque de cabecera.
 
+**No vale un `sed` de la versión entera sobre estos ficheros.** Cada README guarda el
+historial de novedades de las versiones anteriores, y cada entrada enlaza a su propia
+`releases/tag/vX.Y.Z`. Un reemplazo global de la versión anterior se los lleva por delante: la
+novedad de la v1.35.0 pasa a decir «v1.36.0» y su enlace apunta a una release que cuenta otra
+cosa, con lo que el historial queda falseado y el lector que busca qué traía la versión que
+tiene instalada encuentra las notas de otra. Pasó al preparar la v1.36.0 y hubo que revertir
+los tres ficheros.
+
+Hay que tocar sólo cuatro sitios por fichero, y ninguno más: la cabecera, las tres filas de la
+tabla de descargas —las que contienen `releases/download/vX.Y.Z/`—, el bloque de novedades
+**nuevo, insertado delante del anterior**, y los nombres de fichero de las instrucciones de
+instalación.
+
 Comprobación rápida de que no queda nada atrás, con la versión anterior:
 
 ```bash
 grep -rn "1\.20\.2" README.md docs/README.es.md docs/README.ca.md
 ```
 
-Sólo deben salir las entradas históricas de novedades y los enlaces a `releases/tag/`.
+Sólo deben salir las entradas históricas de novedades y los enlaces a `releases/tag/`. **Y
+tienen que salir**: cero resultados no es que esté todo bien, es que el historial se ha
+sobrescrito. Con tres versiones de historial en cada README, lo normal son cinco líneas.
 
 ## 4. Publicar
 
