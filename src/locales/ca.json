@@ -40,7 +40,9 @@
       "ninguna": "L’agent no veu cap xarxa",
       "ningunaAyuda": "Carrega un fitxer .inp al projecte perquè el xat pugui respondre sobre la teva xarxa.",
       "detalle": "{{nudos}} nusos · {{tuberias}} canonades · {{km}} km de canonada"
-    }
+    },
+    "fueraDeDominio": "Això queda fora del que Boorie sap: és un assistent d'enginyeria hidràulica. Pregunta'm per xarxes d'aigua, pressions, cabals, bombes, normativa o resultats de simulació.",
+    "fueraDeDominioConMotivo": "Això queda fora del que Boorie sap ({{motivo}}). És un assistent d'enginyeria hidràulica: pregunta'm per xarxes d'aigua, pressions, cabals, bombes, normativa o resultats de simulació."
   },
   "settings": {
     "title": "Configuració",
@@ -899,7 +901,10 @@
     "wisdomEnabled": "La base de coneixement està activada",
     "wisdomDisabled": "Fes clic per activar la base de coneixement",
     "loadingSources": "S’està carregant…",
-    "refreshSources": "Actualitza"
+    "refreshSources": "Actualitza",
+    "maxResults": "Resultats com a màxim: {{count}}",
+    "categoriesSelected": "Categories ({{count}} triades)",
+    "availableSources": "Fonts disponibles ({{count}})"
   },
   "milvus": {
     "preview": "Vista prèvia de les dades (50 com a màxim)",

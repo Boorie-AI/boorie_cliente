@@ -2,6 +2,7 @@ import { logger } from '@/utils/logger'
 import { contextoDeConocimiento, cierreDeIdioma, hayQueTraducir } from '@/services/contextoConocimiento'
 import { limpiarCitasSinRespaldo } from '@/../backend/services/hydraulic/citasSinRespaldo'
 import { marcarLoTraducido } from '@/services/avisoDeTraduccion'
+import { compruebaLaEntrada } from '@/services/guardianDeEntrada'
 import i18n from '@/i18n'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
@@ -281,6 +282,33 @@ export const useChatStore = create<ChatState>()(
 
         set({ isLoading: true })
 
+        /**
+         * El rail de entrada, antes de gastar un solo token (#170).
+         *
+         * Estaba escrito, activado por defecto y con su handler IPC, y nadie lo
+         * llamaba: por eso el asistente contestaba «40» a cuántas hamburguesas
+         * salen de un kilo de carne. Va aquí, antes del RAG y del modelo, para
+         * que una pregunta que no es del dominio no cueste minutos de espera
+         * además de una respuesta inventada.
+         *
+         * `compruebaLaEntrada` falla abierto por diseño: si el guardián no está
+         * o tarda, se sigue. Ver el módulo.
+         */
+        const guardian = await compruebaLaEntrada(
+          () => window.electronAPI?.guardrails?.validateInput?.({ text: content, conversationId })
+        )
+        if (!guardian.pasa) {
+          await get().addMessageToConversation(conversationId, {
+            role: 'assistant',
+            content: guardian.motivo
+              ? i18n.t('chat.fueraDeDominioConMotivo', { motivo: guardian.motivo })
+              : i18n.t('chat.fueraDeDominio'),
+            metadata: { guardrailBloqueo: true } as any,
+          })
+          set({ isLoading: false })
+          return
+        }
+
         // Global timeout for the entire flow (RAG + AI response): 8 minutes.
         // Generous because small local models (nemotron-mini, llama3.2) can do
         // chain-of-thought reasoning before the first visible token. The user
@@ -344,6 +372,24 @@ export const useChatStore = create<ChatState>()(
             } catch (error) {
               logger.warn('Failed to enhance prompt with RAG, using original:', error)
             }
+
+              /**
+             * El idioma se le dice siempre, haya RAG o no (#160).
+             *
+             * Estaba dentro de `enhancePromptWithRAG`, que sale por la puerta de
+             * atrás cuando la base de conocimiento está desactivada: con el RAG
+             * apagado no le llegaba ninguna instrucción y el modelo respondía en
+             * inglés a una pregunta en castellano con la aplicación en castellano.
+             * El requisito era responder en el idioma del usuario, no hacerlo
+             * cuando además hay documentación.
+           *
+             * Va al final del todo porque es lo último que el modelo lee antes de
+             * escribir, que con el modelo local es lo único que le hace caso. Y
+             * cubre también los dos caminos que se olvidaban: el del tiempo
+             * agotado y el del fallo, que devuelven la pregunta sin tocar.
+             */
+            const idioma = usePreferencesStore.getState().language
+            enhancedPrompt += cierreDeIdioma(idioma, hayQueTraducir(ragSources, idioma))
 
             const conversation = get().conversations.find(c => c.id === conversationId)
             if (!conversation) throw new Error('Conversation not found')
@@ -911,11 +957,9 @@ export const useChatStore = create<ChatState>()(
           const idiomaDelUsuario = usePreferencesStore.getState().language
           enhancedPrompt += contextoDeConocimiento(sources, idiomaDelUsuario)
           enhancedPrompt += originalPrompt
-          // Y el idioma otra vez, al final del todo: es lo último que el modelo
-          // lee antes de escribir, y con el modelo local es lo único que le hace
-          // caso (#160).
-          enhancedPrompt += cierreDeIdioma(idiomaDelUsuario, hayQueTraducir(sources, idiomaDelUsuario))
 
+          // El cierre de idioma no se pone aquí: va al final de *todos* los
+          // caminos, y por esta función sólo pasa uno (#160).
           return { enhancedPrompt: enhancedPrompt, sources }
 
         } catch (error) {

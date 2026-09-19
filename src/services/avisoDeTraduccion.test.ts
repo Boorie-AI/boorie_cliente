@@ -68,4 +68,22 @@ describe('cuándo no hay que decir nada', () => {
   it('el texto vacío no revienta', () => {
     expect(marcarLoTraducido('', [EN], 'es')).toBe('')
   })
+
+  it('una pregunta de vuelta no lleva aviso: no hay nada traducido que avisar', () => {
+    // Visto en la aplicación: el modelo contestó pidiendo una aclaración, sin
+    // citar nada, y debajo aparecía «lo anterior es traducción». Era falso.
+    const original = 'Claro, ¿qué necesitas saber sobre el índice Todini?'
+    expect(marcarLoTraducido(original, [EN], 'es')).toBe(original)
+  })
+
+  it('ni un saludo de dos palabras', () => {
+    expect(marcarLoTraducido('Hola.', [EN], 'es')).toBe('Hola.')
+  })
+
+  it('pero una respuesta que afirma y además pregunta sí lo lleva', () => {
+    const salida = marcarLoTraducido(
+      'El índice de Todini mide la holgura de energía de la red. ¿Quieres el detalle del cálculo?',
+      [EN], 'es')
+    expect(salida).toContain('están en inglés')
+  })
 })

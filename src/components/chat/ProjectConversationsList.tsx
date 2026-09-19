@@ -121,7 +121,11 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
                   isActive && "bg-transparent hover:bg-accent/50"
                 )}
               >
-                <div className="flex items-start justify-between gap-2">
+                {/* El menú ya no va aquí dentro: se reserva su hueco y vive
+                    fuera, como hermano del botón de la fila. Un botón dentro de
+                    otro es HTML inválido, y React lo avisaba en cada render con
+                    un «validateDOMNesting». */}
+                <div className="flex items-start justify-between gap-2 pr-6">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <MessageSquare size={14} className="text-muted-foreground flex-shrink-0" />
@@ -136,8 +140,11 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
                       <span>{t('projectConversations.nMessages', { count: conversation.messages.length })}</span>
                     </div>
                   </div>
-                  
-                  {/* Actions Menu */}
+                </div>
+              </button>
+
+              {/* Actions Menu */}
+              <div className="absolute right-2 top-2">
                   <DropdownMenu.Root>
                     <DropdownMenu.Trigger asChild>
                       <button
@@ -174,8 +181,7 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
                       </DropdownMenu.Content>
                     </DropdownMenu.Portal>
                   </DropdownMenu.Root>
-                </div>
-              </button>
+              </div>
             </div>
           )
         })}

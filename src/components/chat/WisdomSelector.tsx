@@ -182,7 +182,7 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
               {/* Top K Results */}
               <div className="px-4 py-3 border-b border-border">
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Max Results: {selectedConfig.searchTopK}
+                  {t('chatInput.maxResults', { count: selectedConfig.searchTopK })}
                 </label>
                 <input
                   type="range"
@@ -201,7 +201,7 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
               {/* Categories */}
               <div className="px-4 py-3 border-b border-border">
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Categories ({selectedConfig.categories.length} selected)
+                  {t('chatInput.categoriesSelected', { count: selectedConfig.categories.length })}
                 </label>
                 <div className="max-h-32 overflow-y-auto space-y-1">
                   {getAvailableCategories().map((category) => (
@@ -235,7 +235,7 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
               <div className="px-4 py-3">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium text-foreground">
-                    Available Sources ({filteredSources.length})
+                    {t('chatInput.availableSources', { count: filteredSources.length })}
                   </label>
                   <button
                     onClick={loadWisdomSources}
