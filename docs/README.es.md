@@ -39,15 +39,20 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.37.0
+### 🚀 Última Versión - v1.37.1
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.37.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.37.0/Boorie-1.37.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.37.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.37.0/Boorie-Setup-1.37.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.37.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.37.0/Boorie-1.37.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.37.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.37.1/Boorie-1.37.1-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.37.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.37.1/Boorie-Setup-1.37.1.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.37.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.37.1/Boorie-1.37.1.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.37.1
+- Un solo documento ilegible impedía reindexar, buscar y revisar la base entera. Si quedaba un documento cuyo texto no es UTF-8 válido —algo que dejaban las extracciones de PDF de versiones anteriores—, el reindexado moría antes de empezar y el error ni decía de qué documento hablaba.
+- Ahora lo legible funciona con normalidad y lo ilegible se nombra, para que usted sepa cuál borrar.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.37.1).
 
 ### 📝 Novedades en v1.37.0
 - El asistente respondía preguntas que no son suyas inventándose la respuesta: preguntado cuántas hamburguesas salen de un kilo de carne, contestaba «40». Ahora avisa de que eso queda fuera de lo que sabe, al instante, y obedece a los interruptores de Configuración → Guardrails.
@@ -397,12 +402,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.37.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.37.0.AppImage`
-3. Ejecuta: `./Boorie-1.37.0.AppImage`
+1. Descarga `Boorie-1.37.1.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.37.1.AppImage`
+3. Ejecuta: `./Boorie-1.37.1.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.37.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.37.1.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 

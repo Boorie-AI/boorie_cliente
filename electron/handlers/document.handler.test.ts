@@ -61,6 +61,9 @@ function prismaFalso() {
     proveedorOpenAI: null as any,
     /** Cuántos números tiene cada vector ya guardado, para wisdom:getRAGHealth. */
     dimensionGuardada: 768 as number | null,
+    /** Lo que devuelve la consulta SQL de documentos sin contenido (#174). */
+    sinContenido: [] as { id: string; title: string }[],
+    sqlSinContenido: '' as string,
   }
 
   return {
@@ -94,6 +97,14 @@ function prismaFalso() {
       aIProvider: {
         findFirst: vi.fn(async () => registro.proveedorOpenAI),
       },
+      /**
+       * La detección de documentos indexados sin texto se hace en SQL (#174):
+       * traerse el contenido para medirlo costaba 935 MB en una base real.
+       */
+      $queryRawUnsafe: vi.fn(async (sql: string) => {
+        registro.sqlSinContenido = sql
+        return registro.sinContenido
+      }),
       $queryRaw: vi.fn(async () => {
         registro.rawLanzado = true
         // COUNT/SUM llegan como BigInt desde SQLite.
@@ -296,9 +307,17 @@ describe('wisdom:getRAGHealth', () => {
    * reindexar deja el RAG mudo con toda la base indexada delante (#155). El
    * panel decía que todo estaba bien mientras no encontraba nada.
    */
-  const salud = async (dimensionGuardada: number | null) => {
+  /** El registro del último doble, para poder mirar qué SQL se lanzó. */
+  let ultimoRegistro: any
+
+  const salud = async (
+    dimensionGuardada: number | null,
+    sinContenido: { id: string; title: string }[] = [],
+  ) => {
     const falso = prismaFalso()
     falso.registro.dimensionGuardada = dimensionGuardada
+    falso.registro.sinContenido = sinContenido
+    ultimoRegistro = falso.registro
     // getRAGHealth se registra aquí, no en registerWisdomHandlers: con el
     // registrador equivocado se llama al doble del test anterior y la prueba
     // pasa en verde sin haber ejercitado nada.
@@ -334,5 +353,23 @@ describe('wisdom:getRAGHealth', () => {
     const res = await salud(null)
 
     expect(avisoDeDimension(res)).toBeUndefined()
+  })
+
+  it('los documentos sin texto se preguntan en SQL, sin traerse el contenido', async () => {
+    // Filtrarlo en JavaScript obligaba a pedir el contenido de todos: en una
+    // base real, 241 MB y 935 MB de memoria en cada apertura del panel (#174).
+    const res = await salud(1024, [{ id: 'd9', title: 'Escaneado sin OCR' }])
+
+    expect(ultimoRegistro.sqlSinContenido).toContain('SELECT id, title FROM hydraulic_knowledge')
+    expect(ultimoRegistro.sqlSinContenido).not.toContain('SELECT content')
+    expect(res.health.metrics.sinTextoUtil).toEqual([{ id: 'd9', title: 'Escaneado sin OCR' }])
+    expect(res.health.issues.join(' ')).toContain('Escaneado sin OCR')
+  })
+
+  it('sin documentos vacíos no se avisa de nada', async () => {
+    const res = await salud(1024, [])
+
+    expect(res.health.metrics.sinTextoUtil).toEqual([])
+    expect(res.health.issues.join(' ')).not.toContain('sin texto aprovechable')
   })
 })

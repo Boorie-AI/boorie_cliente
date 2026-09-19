@@ -9,6 +9,24 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.37.1] - 2026-09-19
+
+Las bases grandes vuelven a poder reindexarse, y revisarlas deja de costar memoria.
+
+- **Con una base grande no se podía reindexar.** El reindexado empezaba pidiendo de una sola vez
+  todos los documentos con todos sus fragmentos, y en una base de trabajo real —317 documentos y
+  102.062 fragmentos— eso son más de 1,4 GB de texto que el motor de la base de datos no puede
+  entregar de golpe: moría antes de empezar con un error que no decía nada («Failed to convert
+  rust String into napi string»). No se perdía ningún documento; simplemente no se podía
+  reindexar **ninguno**. Ahora se lee de uno en uno cuando hace falta: esa misma base reindexa
+  sus 317 documentos sin despeinarse.
+- **Y revisar el estado de la base consumía casi un giga de memoria.** La comprobación que avisa
+  de los documentos indexados sin texto se traía el contenido de todos para medirlo. Ahora lo
+  pregunta directamente a la base de datos: la misma comprobación pasa de 935 a 7 MB.
+- **De paso, un documento que no se pueda leer deja de tumbar a los demás.** Si alguna vez
+  apareciera uno con el texto dañado, lo legible sigue funcionando y lo dañado se nombra, en
+  lugar de dejar la búsqueda y el reindexado inservibles.
+
 ## [1.37.0] - 2026-09-19
 
 El asistente se ciñe a lo suyo, y deja de dar por indexado lo que no lo está.

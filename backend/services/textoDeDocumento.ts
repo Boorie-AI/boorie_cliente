@@ -91,7 +91,7 @@ export function claveDelProblema(problema: MotivoSinTexto): string {
  * rutas de extracción antes de unificarse. No se generan ya; sirven para
  * reconocer lo que quedó indexado en las bases de quien viene de antes.
  */
-const RELLENOS_DE_ANTES = [
+export const RELLENOS_DE_ANTES = [
   '(Empty content extracted)',
   'Unable to extract text content',
   'Error extracting content:',
@@ -112,4 +112,21 @@ export function esRellenoFabricado(texto: string | null | undefined): boolean {
  */
 export function indexadoSinContenido(texto: string | null | undefined): boolean {
   return !hayTextoAprovechable(texto) || esRellenoFabricado(texto)
+}
+
+/**
+ * La condición SQL que encuentra los indexados sin contenido, sin traérselos.
+ *
+ * Hace falta en SQL y no en JavaScript porque la comprobación de estado corre
+ * a menudo y la base de un usuario real tiene 241 MB de contenido: pedirlo
+ * entero para mirar su longitud costaba **935 MB de memoria** cada vez (#174).
+ * Con esto se transfieren identificadores y títulos, y el trabajo lo hace
+ * SQLite.
+ */
+export function condicionSinContenido(columna = 'content'): string {
+  const cortos = `length(trim(${columna})) < ${MINIMO_CARACTERES}`
+  const rellenos = RELLENOS_DE_ANTES
+    .map(r => `${columna} LIKE '%${r.replace(/'/g, "''")}%'`)
+    .join(' OR ')
+  return `(${cortos} OR ${rellenos})`
 }
