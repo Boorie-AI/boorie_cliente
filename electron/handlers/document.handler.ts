@@ -8,6 +8,7 @@ import { duenoVectorial, duenosPermitidos, filtroPrisma, type Ambito } from '../
 import { Prisma, PrismaClient } from '@prisma/client'
 
 import { EmbeddingService } from '../../backend/services/embedding.service'
+import { avisoDeIlegibles, leerTolerando } from '../../backend/services/lecturaTolerante'
 import {
   claveDelProblema,
   formatoNoSoportado,
@@ -652,24 +653,58 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
     try {
       console.log('[Document Handler] Starting massive reindexing with options:', options)
 
+      /**
+       * La lista se pide con los identificadores, no con los documentos (#174).
+       *
+       * Traerse todo de golpe —`include: { chunks: true }`— hacía que un solo
+       * documento ilegible matara el reindexado entero antes de empezar:
+       *
+       *     Invalid `prismaClient.hydraulicKnowledge.findMany()` invocation
+       *     Failed to convert rust `String` into napi `string`
+       *
+       * Pasa cuando en la base hay una cadena que no es UTF-8 válido, cosa que
+       * dejaban las extracciones de PDF de antes del #157. El motor de Prisma no
+       * puede convertirla y aborta la consulta completa, así que el usuario se
+       * queda sin poder reindexar **nada**, y el mensaje no dice ni cuál es el
+       * documento culpable.
+       *
+       * Reproducido y medido sobre una base real con un sustituto suelto
+       * metido a mano: `findMany` con `include` falla, pedir sólo `id` y
+       * `title` funciona, y yendo documento a documento salen 18 legibles y 1
+       * ilegible, identificado por su id. Eso es exactamente lo que hace ahora.
+       */
+      const listaDeDocumentos = await prismaClient.hydraulicKnowledge.findMany({
+        select: { id: true, title: true },
+        where: options.categories ? { category: { in: options.categories } } : undefined
+      })
+
+      /** Los que ni siquiera se pudieron leer, para decirlo al final. */
+      const ilegibles: { id: string; title: string; motivo: string }[] = []
+
+      /** Lee un documento sin que su fallo tumbe a los demás. */
+      const leerDocumento = async (id: string, title: string) => {
+        try {
+          return await prismaClient.hydraulicKnowledge.findUnique({
+            where: { id },
+            include: { chunks: true },
+          })
+        } catch (error: any) {
+          console.error(`[Document Handler] No se pudo leer "${title}" (${id}):`, error?.message ?? error)
+          ilegibles.push({ id, title, motivo: error?.message ?? String(error) })
+          return null
+        }
+      }
+
       let documentsToReindex: any[] = []
 
       if (options.reindexAll) {
-        // Get all documents
-        documentsToReindex = await prismaClient.hydraulicKnowledge.findMany({
-          include: { chunks: true },
-          where: options.categories ? {
-            category: { in: options.categories }
-          } : undefined
-        })
+        documentsToReindex = listaDeDocumentos
       } else {
-        // Get documents based on criteria
-        const documents = await prismaClient.hydraulicKnowledge.findMany({
-          include: { chunks: true },
-          where: options.categories ? {
-            category: { in: options.categories }
-          } : undefined
-        })
+        // Los criterios necesitan mirar los fragmentos, así que aquí sí hay que
+        // traer cada documento; uno a uno, por lo mismo de arriba.
+        const documents = (await Promise.all(
+          listaDeDocumentos.map(d => leerDocumento(d.id, d.title))
+        )).filter((d): d is NonNullable<typeof d> => d !== null)
 
         documentsToReindex = documents.filter(doc => {
           const totalChunks = doc.chunks.length
@@ -753,8 +788,18 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
       }
 
       let docIndex = 0
-      for (const doc of documentsToReindex) {
+      for (const entrada of documentsToReindex) {
         docIndex += 1
+
+        // Con `reindexAll` la lista son sólo ids: el documento se lee aquí, y
+        // si es ilegible se cuenta y se sigue con el siguiente (#174).
+        const doc = entrada.chunks ? entrada : await leerDocumento(entrada.id, entrada.title)
+        if (!doc) {
+          results.failed++
+          results.totalProcessed++
+          continue
+        }
+
         try {
           console.log(`[Document Handler] Reindexing: "${doc.title}"`)
 
@@ -788,11 +833,25 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
         results.totalProcessed++
       }
 
+      /**
+       * Los ilegibles se nombran (#174). Antes el reindexado moría entero con
+       * un mensaje del motor de Prisma que no decía de qué documento hablaba,
+       * así que no había forma de saber cuál quitar.
+       */
+      if (ilegibles.length > 0) {
+        console.warn(`[Document Handler] ${ilegibles.length} documento(s) ilegibles:`, ilegibles.map(d => d.title).join(', '))
+        results.errors.push(
+          `${ilegibles.length} documento(s) no se pudieron leer de la base —su texto no es UTF-8 válido, ` +
+          `probablemente de una extracción de PDF antigua—: ${ilegibles.map(d => d.title).join(', ')}. ` +
+          `El resto se ha reindexado; bórrelos desde la lista para que dejen de estorbar.`
+        )
+      }
+
       console.log(`[Document Handler] Massive reindexing complete: ${results.successful}/${results.totalProcessed} successful`)
 
       return {
         success: true,
-        results
+        results: { ...results, ilegibles }
       }
 
     } catch (error: any) {
@@ -1779,10 +1838,21 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
        * detectan y se dicen; borrarlos lo decide el usuario, que para eso
        * tiene el botón de cada ficha.
        */
-      const sinTextoUtil = await prismaClient.hydraulicKnowledge.findMany({
-        where: { status: 'active' },
-        select: { id: true, title: true, content: true },
-      }).then(docs => docs.filter(d => indexadoSinContenido(d.content)))
+      const lectura = await leerTolerando<{ id: string; title: string; content: string }>(
+        () => prismaClient.hydraulicKnowledge.findMany({
+          where: { status: 'active' },
+          select: { id: true, title: true, content: true },
+        }),
+        () => prismaClient.hydraulicKnowledge.findMany({
+          where: { status: 'active' },
+          select: { id: true, title: true },
+        }),
+        (id) => prismaClient.hydraulicKnowledge.findUnique({
+          where: { id },
+          select: { id: true, title: true, content: true },
+        }),
+      )
+      const sinTextoUtil = lectura.documentos.filter(d => indexadoSinContenido(d.content))
 
       const dimensionActual = dimensionEsperada()
       const muestra = await prismaClient.knowledgeChunk.findFirst({
@@ -1866,6 +1936,13 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
         )
         status = 'critical'
       }
+      // Los que ni se pudieron leer se dicen aparte de los que están vacíos: no
+      // es lo mismo «no tiene texto» que «no se puede leer» (#174).
+      const avisoIlegibles = avisoDeIlegibles(lectura.ilegibles)
+      if (avisoIlegibles) {
+        issues.push(avisoIlegibles)
+        status = 'degraded'
+      }
       if (sinTextoUtil.length > 0) {
         issues.push(
           `${sinTextoUtil.length} documento(s) están indexados sin texto aprovechable —probablemente PDF escaneados ` +
@@ -1908,6 +1985,8 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
           },
           /** Los que se indexaron sin texto que valga (#157). */
           sinTextoUtil: sinTextoUtil.map(d => ({ id: d.id, title: d.title })),
+          /** Y los que ni se pueden leer de la base (#174). */
+          ilegibles: lectura.ilegibles.map(d => ({ id: d.id, title: d.title })),
           chunks: {
             total: totalChunks,
             avgPerDocument: avgChunksPerDoc

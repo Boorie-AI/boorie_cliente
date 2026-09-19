@@ -3,6 +3,7 @@ import { HydraulicDocument } from '../../../src/types/hydraulic'
 import { EmbeddingService } from '../embedding.service'
 import { duenoVectorial, duenosPermitidos, filtroPrisma, filtroVectorial, origenDe, type Ambito, type Origen } from './ambitos'
 import { corpusDe, filtroDeCorpus, repartirPorCorpus, sinRepetidos, unirFiltros, type Corpus } from './repartoDeCorpus'
+import { leerTolerando } from '../lecturaTolerante'
 
 export interface RAGSearchOptions {
   category?: 'hydraulics' | 'regulations' | 'best-practices'
@@ -135,9 +136,26 @@ export class HydraulicRAGService {
        * búsqueda, su documento no llega a materializarse y no hay nada que
        * enseñar.
        */
-      const documents = await this.prisma.hydraulicKnowledge.findMany({
-        where: { id: { in: docIds }, ...filtroPrisma(permitidos) }
-      })
+      /**
+       * Tolerante a un documento ilegible (#174). Sin esto, un solo documento
+       * con texto que no es UTF-8 válido tumba la búsqueda entera: el usuario
+       * no recibe ningún resultado, ni siquiera de los documentos sanos que sí
+       * habían salido del almacén vectorial.
+       */
+      const { documentos: documents, ilegibles } = await leerTolerando<any>(
+        () => this.prisma.hydraulicKnowledge.findMany({
+          where: { id: { in: docIds }, ...filtroPrisma(permitidos) }
+        }),
+        () => this.prisma.hydraulicKnowledge.findMany({
+          where: { id: { in: docIds }, ...filtroPrisma(permitidos) },
+          select: { id: true, title: true },
+        }),
+        (id) => this.prisma.hydraulicKnowledge.findUnique({ where: { id } }),
+      )
+      if (ilegibles.length > 0) {
+        console.warn(`[RAG Service] ${ilegibles.length} documento(s) ilegibles quedaron fuera de la búsqueda:`,
+          ilegibles.map(d => d.title).join(', '))
+      }
 
       const results: RAGSearchResult[] = []
 

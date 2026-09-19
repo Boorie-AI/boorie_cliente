@@ -9,6 +9,18 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.37.1] - 2026-09-19
+
+Un documento que no se puede leer deja de tumbar la base de conocimiento entera.
+
+- **Un solo documento ilegible impedía reindexar, buscar y revisar la base entera.** Si en la
+  base quedaba un documento cuyo texto no es UTF-8 válido —algo que dejaban las extracciones de
+  PDF anteriores a la versión pasada—, el reindexado moría antes de empezar con un error del
+  motor de la base de datos que ni siquiera decía de qué documento hablaba. No se perdía ese
+  documento: no se podía reindexar **ninguno**. Lo mismo le pasaba a la búsqueda y a la
+  comprobación del estado. Ahora se lee documento a documento cuando hace falta: lo legible
+  funciona con normalidad y lo ilegible se nombra, para que usted sepa cuál borrar.
+
 ## [1.37.0] - 2026-09-19
 
 El asistente se ciñe a lo suyo, y deja de dar por indexado lo que no lo está.
