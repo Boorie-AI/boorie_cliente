@@ -318,6 +318,9 @@ Al arrancar la versión ya actualizada, el actualizador debe responder
 corre se identifica con la versión nueva. Sólo cubre el camino de Linux; Windows y macOS usan
 los mismos ficheros del autoactualizador, pero no se ejecutan desde aquí.
 
+- [ ] **El registro de actividades del mes, al día.** Ver el apartado 6: no es opcional ni «si
+      da tiempo», es parte de publicar. Se quedaba atrás justamente por estar al final y sin
+      casilla.
 - [ ] Si el PR llevaba `Closes #N`, el issue ha quedado cerrado. La palabra clave **tiene que
       ir en inglés** aunque el PR esté en español: «Cierra #N» no cierra nada, y el #32 quedó
       abierto después de publicar por eso.
@@ -328,5 +331,26 @@ gh pr view <n> --json closingIssuesReferences
 
 ## 6. Registro de actividades
 
-El control de actividades personal (fuera del repositorio) lleva **dos filas por ciclo**: una
-del trabajo y otra de la publicación. No es el `CHANGELOG.md`.
+El control de actividades personal, que vive **fuera del repositorio**, se actualiza **en cada
+despliegue**. No es el `CHANGELOG.md` y no es opcional: una versión no está publicada del todo
+hasta que tiene sus filas.
+
+**El fichero es el del mes en curso**, y el mes va en el nombre:
+
+```
+~/Documentos/BOORIE/Control_Actividades_Boorie_Rayne Flores_AAAA-MM.xlsx
+```
+
+Hay que componerlo con la fecha de hoy y no arrastrar el de la sesión anterior: en septiembre de
+2026 es `…_2026-09.xlsx`; el 1 de octubre deja de serlo. **Si el del mes todavía no existe, no
+se escribe en el del mes pasado ni se crea por cuenta propia**: el corte mensual lo decide su
+dueño, que es quien dice qué filas se llevan y si los IDs continúan.
+
+**Dos filas por ciclo**: una del trabajo —rama, `Estado: Integrado`, la categoría que toque— y
+otra de la publicación —`Rama: main`, categoría `Proceso`, título «Publicar la release vX.Y.Z
+con …»—. Si el ciclo tuvo varias tandas de trabajo, una fila por tanda y una sola de
+publicación.
+
+Y el contenido va en el mismo registro que el resto del fichero: qué pasaba, qué se hizo, **cómo
+se validó** —pruebas y comprobación en la aplicación real— y qué queda pendiente. Los tropiezos
+del camino también: son lo que hace útil el registro un mes después.
