@@ -8,12 +8,11 @@ import { duenoVectorial, duenosPermitidos, filtroPrisma, type Ambito } from '../
 import { Prisma, PrismaClient } from '@prisma/client'
 
 import { EmbeddingService } from '../../backend/services/embedding.service'
-import { avisoDeIlegibles, leerTolerando } from '../../backend/services/lecturaTolerante'
 import {
   claveDelProblema,
+  condicionSinContenido,
   formatoNoSoportado,
   textoIlegible,
-  indexadoSinContenido,
   textoLeido,
   type TextoDeDocumento,
 } from '../../backend/services/textoDeDocumento'
@@ -1838,21 +1837,18 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
        * detectan y se dicen; borrarlos lo decide el usuario, que para eso
        * tiene el botón de cada ficha.
        */
-      const lectura = await leerTolerando<{ id: string; title: string; content: string }>(
-        () => prismaClient.hydraulicKnowledge.findMany({
-          where: { status: 'active' },
-          select: { id: true, title: true, content: true },
-        }),
-        () => prismaClient.hydraulicKnowledge.findMany({
-          where: { status: 'active' },
-          select: { id: true, title: true },
-        }),
-        (id) => prismaClient.hydraulicKnowledge.findUnique({
-          where: { id },
-          select: { id: true, title: true, content: true },
-        }),
+      /**
+       * Se pregunta en SQL en vez de traerse los documentos (#174).
+       *
+       * Filtrarlo en JavaScript obligaba a pedir el contenido de todos: en la
+       * base de un usuario real, 241 MB y **935 MB de memoria** en cada
+       * comprobación de estado, que se hace al abrir el panel. Ahora viajan
+       * identificadores y títulos, y la condición la resuelve SQLite.
+       */
+      const sinTextoUtil = await prismaClient.$queryRawUnsafe<{ id: string; title: string }[]>(
+        `SELECT id, title FROM hydraulic_knowledge
+         WHERE status = 'active' AND ${condicionSinContenido()}`
       )
-      const sinTextoUtil = lectura.documentos.filter(d => indexadoSinContenido(d.content))
 
       const dimensionActual = dimensionEsperada()
       const muestra = await prismaClient.knowledgeChunk.findFirst({
@@ -1936,13 +1932,6 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
         )
         status = 'critical'
       }
-      // Los que ni se pudieron leer se dicen aparte de los que están vacíos: no
-      // es lo mismo «no tiene texto» que «no se puede leer» (#174).
-      const avisoIlegibles = avisoDeIlegibles(lectura.ilegibles)
-      if (avisoIlegibles) {
-        issues.push(avisoIlegibles)
-        status = 'degraded'
-      }
       if (sinTextoUtil.length > 0) {
         issues.push(
           `${sinTextoUtil.length} documento(s) están indexados sin texto aprovechable —probablemente PDF escaneados ` +
@@ -1985,8 +1974,6 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
           },
           /** Los que se indexaron sin texto que valga (#157). */
           sinTextoUtil: sinTextoUtil.map(d => ({ id: d.id, title: d.title })),
-          /** Y los que ni se pueden leer de la base (#174). */
-          ilegibles: lectura.ilegibles.map(d => ({ id: d.id, title: d.title })),
           chunks: {
             total: totalChunks,
             avgPerDocument: avgChunksPerDoc
