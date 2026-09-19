@@ -40,7 +40,9 @@
       "ninguna": "The agent sees no network",
       "ningunaAyuda": "Load an .inp file into the project so the chat can answer about your network.",
       "detalle": "{{nudos}} junctions · {{tuberias}} pipes · {{km}} km of pipe"
-    }
+    },
+    "fueraDeDominio": "That is outside what Boorie knows: it is a hydraulic engineering assistant. Ask me about water networks, pressures, flows, pumps, regulations or simulation results.",
+    "fueraDeDominioConMotivo": "That is outside what Boorie knows ({{motivo}}). It is a hydraulic engineering assistant: ask me about water networks, pressures, flows, pumps, regulations or simulation results."
   },
   "settings": {
     "title": "Settings",
@@ -899,7 +901,10 @@
     "wisdomEnabled": "Wisdom RAG is enabled",
     "wisdomDisabled": "Click to enable Wisdom RAG",
     "loadingSources": "Loading…",
-    "refreshSources": "Refresh"
+    "refreshSources": "Refresh",
+    "maxResults": "Max results: {{count}}",
+    "categoriesSelected": "Categories ({{count}} selected)",
+    "availableSources": "Available sources ({{count}})"
   },
   "milvus": {
     "preview": "Data preview (max 50)",

@@ -9,6 +9,17 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **El asistente respondía preguntas que no son suyas, y se inventaba la respuesta.** Preguntado
+  cuántas hamburguesas salen de un kilo de carne, contestó «40»: una cifra inventada, dicha con
+  el mismo aplomo con el que daría una presión. Boorie avisa ahora de que eso queda fuera de lo
+  que sabe, al instante y sin gastar minutos pensándolo. El aviso obedece a los interruptores de
+  Configuración → Guardrails: si apaga el rail de entrada no se bloquea nada, y en modo aviso se
+  registra sin bloquear, que es lo que esa pantalla promete. Funciona en los tres idiomas.
+- **Y la descripción de esa pantalla volvía a ser cierta.** Decía que el rail de entrada bloquea
+  «temas fuera de ingeniería hidráulica» y hacía tiempo que no lo hacía.
+
 ## [1.36.0] - 2026-09-18
 
 El asistente encuentra la documentación aunque esté en otro idioma, y responde en el suyo.

@@ -40,7 +40,9 @@
       "ninguna": "El agente no ve ninguna red",
       "ningunaAyuda": "Carga un archivo .inp en el proyecto para que el chat pueda responder sobre tu red.",
       "detalle": "{{nudos}} nudos · {{tuberias}} tuberías · {{km}} km de tubería"
-    }
+    },
+    "fueraDeDominio": "Eso queda fuera de lo que Boorie sabe: es un asistente de ingeniería hidráulica. Pregúntame por redes de agua, presiones, caudales, bombas, normativa o resultados de simulación.",
+    "fueraDeDominioConMotivo": "Eso queda fuera de lo que Boorie sabe ({{motivo}}). Es un asistente de ingeniería hidráulica: pregúntame por redes de agua, presiones, caudales, bombas, normativa o resultados de simulación."
   },
   "settings": {
     "title": "Configuración",
@@ -899,7 +901,10 @@
     "wisdomEnabled": "La base de conocimiento está activada",
     "wisdomDisabled": "Haz clic para activar la base de conocimiento",
     "loadingSources": "Cargando…",
-    "refreshSources": "Actualizar"
+    "refreshSources": "Actualizar",
+    "maxResults": "Resultados como máximo: {{count}}",
+    "categoriesSelected": "Categorías ({{count}} elegidas)",
+    "availableSources": "Fuentes disponibles ({{count}})"
   },
   "milvus": {
     "preview": "Vista previa de los datos (50 como máximo)",

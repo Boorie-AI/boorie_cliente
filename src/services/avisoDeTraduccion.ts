@@ -41,6 +41,30 @@ function yaAvisa(texto: string): boolean {
   return /\btraduci/i.test(texto)
 }
 
+/**
+ * ¿Afirma algo la respuesta, o sólo pregunta?
+ *
+ * El aviso dice «lo anterior es traducción», y eso sólo es verdad si hay algo
+ * traducido delante. Pegado a una respuesta que no afirma nada queda absurdo y
+ * además es falso: visto en la aplicación, el modelo contestó «Claro, ¿qué
+ * necesitas saber sobre el índice Todini?» y debajo apareció el aviso, sin
+ * haber citado una sola fuente.
+ *
+ * El criterio es si hay alguna frase que no sea una pregunta. Una petición de
+ * aclaración no trae ninguna cifra que contrastar, así que no hay nada de qué
+ * avisar.
+ */
+function afirmaAlgo(texto: string): boolean {
+  return texto
+    .split(/(?<=[.!?])\s+/)
+    .some(frase => {
+      const limpia = frase.trim()
+      if (!limpia || limpia.endsWith('?')) return false
+      // Dos palabras no son una afirmación: son un saludo o un encabezado.
+      return limpia.split(/\s+/).length >= 3
+    })
+}
+
 export function marcarLoTraducido(
   texto: string,
   fuentes: FuenteConocimiento[],
@@ -79,6 +103,10 @@ export function marcarLoTraducido(
 
   // Nadie usó las marcas: se dice una vez al final, nombrando los idiomas que
   // haya —lo normal es uno— para que el aviso sea concreto y no un genérico.
+  // Y sólo si la respuesta afirma algo: avisar de una traducción sobre una
+  // pregunta de vuelta es decirle al usuario una falsedad.
+  if (!afirmaAlgo(salida)) return salida
+
   const lenguas = [...new Set(ajenas.map(a => nombreDeIdioma(a.lengua)))]
   return `${salida.trimEnd()}\n\nLas fuentes consultadas están en ${lenguas.join(' y ')}: lo anterior es traducción.`
 }

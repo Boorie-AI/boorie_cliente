@@ -1,4 +1,5 @@
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process'
+import { juzgarDominio } from './dominioDeLaPregunta'
 import * as path from 'path'
 
 export type RailName = 'input' | 'retrieval' | 'output' | 'execution'
@@ -203,6 +204,32 @@ class GuardrailsWrapper {
 
   async validateInput(text: string): Promise<GuardrailVerdict> {
     if (!this.isEnabled('input')) return ALLOW
+
+    /**
+     * La pertinencia temática la decide una regla, no el modelo (#170).
+     *
+     * Va aquí dentro y no antes de llamar al rail, y el sitio importa: aquí
+     * pasa por el interruptor de arriba —si el usuario apaga el rail de
+     * entrada, no se bloquea nada—, por `applyAdvisory` —en modo aviso se
+     * registra y se deja pasar, que es lo que promete la pantalla de ajustes—
+     * y por la auditoría del handler, que lo deja en la lista de violaciones.
+     * Puesta en el renderer, como estaba primero, no cumplía ninguna de las
+     * tres y los interruptores de la pantalla habrían mentido.
+     *
+     * Se resuelve antes de hablar con Python porque es instantánea: una
+     * pregunta de cocina no tiene por qué costar además la llamada al juez.
+     */
+    const dominio = juzgarDominio(text)
+    if (!dominio.pasa) {
+      return this.applyAdvisory({
+        allow: false,
+        reason: `fuera del dominio: «${dominio.motivo}»`,
+        severity: 'medium',
+        judge_model: 'regla-de-dominio',
+        judge_provider: 'determinista',
+      })
+    }
+
     try {
       const v = await this.send('validate_input', { text })
       return this.applyAdvisory(v)
