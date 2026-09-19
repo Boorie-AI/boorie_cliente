@@ -9,7 +9,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.37.0] - 2026-09-19
+
+El asistente se ciñe a lo suyo, y deja de dar por indexado lo que no lo está.
 
 - **El asistente respondía preguntas que no son suyas, y se inventaba la respuesta.** Preguntado
   cuántas hamburguesas salen de un kilo de carne, contestó «40»: una cifra inventada, dicha con
