@@ -741,7 +741,13 @@
       "progreso": "Document {{hechos}} of {{total}}: {{titulo}}",
       "hecho": "Reindexing finished: {{documentos}} of {{total}} documents, {{fragmentos}} fragments. Searches work again.",
       "fallo": "Reindexing could not be completed: {{motivo}}",
-      "porqueModelo": "The knowledge base was indexed with \"{{guardado}}\" and searches now run with \"{{modelo}}\". Even when the vectors have the same size they are different spaces, so searching returns documents unrelated to the question."
+      "porqueModelo": "The knowledge base was indexed with \"{{guardado}}\" and searches now run with \"{{modelo}}\". Even when the vectors have the same size they are different spaces, so searching returns documents unrelated to the question.",
+      "tituloModelo": "The embedding model is missing",
+      "porqueFaltaModelo": "Boorie turns documents into vectors with \"{{modelo}}\", and it is not installed in Ollama. Without it nothing can be indexed or searched, so reindexing would only fail document by document. It downloads once.",
+      "botonModelo": "Download the model",
+      "descargandoBoton": "Downloading…",
+      "descargando": "Downloading the model: {{porcentaje}}%",
+      "falloModelo": "The model could not be downloaded: {{motivo}}. You can also install it from a terminal."
     },
     "resultadosSemanticos": {
       "titulo": "Found by meaning ({{count}})",

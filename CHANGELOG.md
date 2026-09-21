@@ -47,6 +47,11 @@ costar el doble.
   número de fragmentos que hay que rehacer; hasta que se haga, las búsquedas no devuelven nada.
   Hace falta tenerlo en Ollama: `ollama pull granite-embedding:278m`. Quien prefiera quedarse en
   el anterior puede fijarlo con `BOORIE_MODELO_EMBEDDINGS=bge-m3` y no reindexar.
+- **Si falta el modelo de embeddings, la aplicación lo pide y lo descarga.** Antes había que
+  saberlo: sin el modelo en Ollama no se puede vectorizar nada, y lo que se veía era un reindexado
+  fallando documento a documento durante horas, o una búsqueda que no devolvía nada. Ahora la Base
+  de Conocimiento lo comprueba, lo dice con su nombre y trae un botón que lo descarga con su
+  barra de progreso. Hasta que esté, no se ofrece reindexar: sería tiempo tirado.
 - **Y ahora se sabe con qué modelo está indexada la base, no sólo de qué tamaño son los vectores.**
   Hacía falta para poder cambiar de modelo con seguridad: `granite-embedding:278m` produce 768
   números y `nomic-embed-text`, el de hace cinco versiones, también. Una base indexada con aquél

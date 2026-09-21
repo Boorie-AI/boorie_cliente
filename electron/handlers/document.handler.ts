@@ -1553,7 +1553,10 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
             name.includes('e5') ||
             name.includes('gemma') ||
             name.includes('llama') ||
-            name.includes('mistral')
+            name.includes('mistral') ||
+            // El que la aplicación usa de verdad entra siempre, se llame como
+            // se llame: la lista de nombres no puede decidir si aparece.
+            name.split(':')[0] === modeloEmbeddingsOllama().split(':')[0]
           )
         }).map((model: any) => {
           const dimension = dimensionDeModelo(model.name) ?? DIMENSION_DESCONOCIDA
@@ -1914,6 +1917,26 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
        * nada lo delata—. Sin marca y con fragmentos indexados se asume que
        * vienen de antes, que es lo conservador: sobra un aviso, no falta.
        */
+      /**
+       * Y si el modelo que se va a usar está siquiera instalado. Sin él no se
+       * puede vectorizar nada: ni indexar, ni buscar, ni reindexar —y el
+       * reindexado tardaría horas en fallar documento a documento—. `null` es
+       * «no se pudo preguntar», que no es lo mismo que «no está».
+       */
+      let modeloInstalado: boolean | null = null
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const axios = require('axios')
+        const r = await axios.get(`${process.env.OLLAMA_BASE_URL || 'http://localhost:11434'}/api/tags`, { timeout: 5000 })
+        const instalados: string[] = (r.data?.models ?? []).map((m: { name: string }) => m.name)
+        const pedido = modeloEmbeddingsOllama()
+        // `granite-embedding:278m` y `granite-embedding:278m` con otra etiqueta
+        // son el mismo modelo a estos efectos, igual que en `modelosRAG`.
+        modeloInstalado = instalados.some(n => n === pedido || n.split(':')[0] === pedido.split(':')[0])
+      } catch {
+        // Ollama apagado o inalcanzable: ya se avisa por otra vía.
+      }
+
       const marca = await prismaClient.appSetting.findUnique({ where: { key: CLAVE_MODELO_INDEXADO } })
       const modeloGuardado = marca?.value ?? null
       const modeloDistinto = chunksWithEmbeddings > 0 && modeloGuardado !== modeloEmbeddingsOllama()
@@ -2008,6 +2031,14 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
           `${sinTextoUtil.length > 3 ? '…' : ''}. Ocupan sitio en las búsquedas y no pueden responder nada.`
         )
       }
+      if (modeloInstalado === false) {
+        issues.push(
+          `El modelo de embeddings «${modeloEmbeddingsOllama()}» no está instalado en Ollama. Sin él no se ` +
+          `puede indexar ni buscar nada: instálalo con «ollama pull ${modeloEmbeddingsOllama()}» o desde el ` +
+          `aviso de la Base de Conocimiento.`
+        )
+        status = 'critical'
+      }
       if (modeloDistinto && !dimensionDescuadrada) {
         issues.push(
           `La base se indexó con ${modeloGuardado ? `«${modeloGuardado}»` : 'otro modelo de embeddings'} ` +
@@ -2051,6 +2082,8 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
             /** Indexado con otro modelo, aunque el tamaño cuadre. */
             modeloDistinto,
             modeloGuardado,
+            /** Si el modelo configurado está instalado en Ollama; null si no se pudo preguntar. */
+            modeloInstalado,
             /** El otro motivo por el que hay que reindexar (#158). */
             ambitoSinCodificar,
             modelo: modeloEmbeddingsOllama()

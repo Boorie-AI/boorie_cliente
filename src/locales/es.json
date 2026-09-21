@@ -741,7 +741,13 @@
       "progreso": "Documento {{hechos}} de {{total}}: {{titulo}}",
       "hecho": "Reindexado terminado: {{documentos}} de {{total}} documentos, {{fragmentos}} fragmentos. Las búsquedas vuelven a funcionar.",
       "fallo": "No se pudo completar el reindexado: {{motivo}}",
-      "porqueModelo": "La base se indexó con «{{guardado}}» y ahora se busca con «{{modelo}}». Aunque los vectores tengan el mismo tamaño son espacios distintos, así que la búsqueda devuelve documentos sin relación con lo que se pregunta."
+      "porqueModelo": "La base se indexó con «{{guardado}}» y ahora se busca con «{{modelo}}». Aunque los vectores tengan el mismo tamaño son espacios distintos, así que la búsqueda devuelve documentos sin relación con lo que se pregunta.",
+      "tituloModelo": "Falta el modelo de embeddings",
+      "porqueFaltaModelo": "Boorie convierte los documentos en vectores con «{{modelo}}», y no está instalado en Ollama. Sin él no se puede indexar ni buscar nada, así que reindexar sólo fallaría documento a documento. Se descarga una vez.",
+      "botonModelo": "Descargar el modelo",
+      "descargandoBoton": "Descargando…",
+      "descargando": "Descargando el modelo: {{porcentaje}} %",
+      "falloModelo": "No se pudo descargar el modelo: {{motivo}}. También puedes instalarlo desde una terminal."
     },
     "resultadosSemanticos": {
       "titulo": "Encontrado por significado ({{count}})",

@@ -741,7 +741,13 @@
       "progreso": "Document {{hechos}} de {{total}}: {{titulo}}",
       "hecho": "Reindexació acabada: {{documentos}} de {{total}} documents, {{fragmentos}} fragments. Les cerques tornen a funcionar.",
       "fallo": "No s’ha pogut completar la reindexació: {{motivo}}",
-      "porqueModelo": "La base es va indexar amb «{{guardado}}» i ara se cerca amb «{{modelo}}». Encara que els vectors tinguin la mateixa mida són espais diferents, així que la cerca retorna documents sense relació amb la pregunta."
+      "porqueModelo": "La base es va indexar amb «{{guardado}}» i ara se cerca amb «{{modelo}}». Encara que els vectors tinguin la mateixa mida són espais diferents, així que la cerca retorna documents sense relació amb la pregunta.",
+      "tituloModelo": "Falta el model d’embeddings",
+      "porqueFaltaModelo": "Boorie converteix els documents en vectors amb «{{modelo}}», i no està instal·lat a Ollama. Sense ell no es pot indexar ni cercar res, així que reindexar només fallaria document a document. Es descarrega un sol cop.",
+      "botonModelo": "Descarregar el model",
+      "descargandoBoton": "Descarregant…",
+      "descargando": "Descarregant el model: {{porcentaje}} %",
+      "falloModelo": "No s’ha pogut descarregar el model: {{motivo}}. També el pots instal·lar des d’un terminal."
     },
     "resultadosSemanticos": {
       "titulo": "Trobat per significat ({{count}})",
