@@ -38,6 +38,22 @@ costar el doble.
 - **Vectorizar va al doble.** Se mandaba un fragmento por petición HTTP. Agrupándolos, medido con
   bge-m3 sobre fragmentos reales en una GTX 960M, se pasa de 96 a 199 fragmentos por minuto. En
   una base de cien mil fragmentos son horas de diferencia.
+- **Cambia el modelo de embeddings a `granite-embedding:278m`, y hay que reindexar una vez.** Se
+  midió contra el corpus de un usuario real —317 libros técnicos, 102.062 fragmentos— con 32
+  preguntas en castellano repartidas entre 14 de esos libros y los mismos textos para todos los
+  modelos: el que estaba puesto, `bge-m3`, acierta 22 de 32 en los tres primeros puestos y procesa
+  184 fragmentos por minuto; `granite-embedding:278m` acierta 24 y procesa 551. Recupera mejor y
+  reindexar cuesta un tercio. Al actualizar, el aviso de la Base de Conocimiento lo pide con el
+  número de fragmentos que hay que rehacer; hasta que se haga, las búsquedas no devuelven nada.
+  Hace falta tenerlo en Ollama: `ollama pull granite-embedding:278m`. Quien prefiera quedarse en
+  el anterior puede fijarlo con `BOORIE_MODELO_EMBEDDINGS=bge-m3` y no reindexar.
+- **Y ahora se sabe con qué modelo está indexada la base, no sólo de qué tamaño son los vectores.**
+  Hacía falta para poder cambiar de modelo con seguridad: `granite-embedding:278m` produce 768
+  números y `nomic-embed-text`, el de hace cinco versiones, también. Una base indexada con aquél
+  habría pasado la comprobación de tamaño sin ser del mismo espacio vectorial, y entonces la
+  búsqueda no devuelve vacío sino documentos sin relación con lo que se pregunta, que es peor
+  porque nada lo delata. La marca la escribe un reindexado completo, y el primer documento de una
+  base vacía; si no está, se asume que la base viene de antes y se pide reindexar.
 - **La lista de proyectos decía que no había ninguno mientras los cargaba.** El catálogo vacío del
   primer dibujado era indistinguible de una base sin proyectos, así que quien tenía siete veía
   «0 proyectos / no hay proyectos todavía» hasta que la consulta respondía. Ahora se distingue

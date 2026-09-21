@@ -16,7 +16,7 @@ import {
   textoLeido,
   type TextoDeDocumento,
 } from '../../backend/services/textoDeDocumento'
-import { dimensionDeModelo, dimensionEsperada, modeloEmbeddingsOllama, DIMENSION_DESCONOCIDA } from '../../backend/services/modeloEmbeddings'
+import { dimensionDeModelo, dimensionEsperada, modeloEmbeddingsOllama, DIMENSION_DESCONOCIDA, CLAVE_MODELO_INDEXADO } from '../../backend/services/modeloEmbeddings'
 
 /**
  * Extract plain text from a document on disk. Shared by wisdom:upload
@@ -844,6 +844,20 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
           `probablemente de una extracción de PDF antigua—: ${ilegibles.map(d => d.title).join(', ')}. ` +
           `El resto se ha reindexado; bórrelos desde la lista para que dejen de estorbar.`
         )
+      }
+
+      /**
+       * Queda anotado con qué modelo está indexada la base, y sólo si se ha
+       * rehecho entera y sin fallos: una base a medias no puede decir que ya
+       * está toda en el modelo nuevo, porque entonces el aviso desaparecería
+       * con la mitad de los fragmentos todavía del anterior.
+       */
+      if (options.reindexAll && results.failed === 0 && ilegibles.length === 0) {
+        await prismaClient.appSetting.upsert({
+          where: { key: CLAVE_MODELO_INDEXADO },
+          update: { value: modeloEmbeddingsOllama() },
+          create: { key: CLAVE_MODELO_INDEXADO, value: modeloEmbeddingsOllama() },
+        })
       }
 
       console.log(`[Document Handler] Massive reindexing complete: ${results.successful}/${results.totalProcessed} successful`)
@@ -1892,10 +1906,24 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
         }
       }
 
-      const descuadrados = dimensiones
+      /**
+       * Con qué modelo se indexó, que no es lo mismo que de qué tamaño son los
+       * vectores: `granite-embedding:278m` da 768 y `nomic-embed-text` también.
+       * Una base indexada con el viejo pasaría la comprobación de tamaño y la
+       * búsqueda devolvería documentos al azar —peor que devolver vacío, porque
+       * nada lo delata—. Sin marca y con fragmentos indexados se asume que
+       * vienen de antes, que es lo conservador: sobra un aviso, no falta.
+       */
+      const marca = await prismaClient.appSetting.findUnique({ where: { key: CLAVE_MODELO_INDEXADO } })
+      const modeloGuardado = marca?.value ?? null
+      const modeloDistinto = chunksWithEmbeddings > 0 && modeloGuardado !== modeloEmbeddingsOllama()
+
+      const porTamano = dimensiones
         .filter(d => d.dim !== dimensionActual)
         .reduce((total, d) => total + d.n, 0)
-      const dimensionDescuadrada = descuadrados > 0
+      // Si el modelo no es el mismo, no vale ninguno aunque el tamaño cuadre.
+      const descuadrados = modeloDistinto ? chunksWithEmbeddings : porTamano
+      const dimensionDescuadrada = porTamano > 0
       /**
        * El tamaño que se le enseña al usuario es el del grupo que hay que
        * reindexar, no el del primer fragmento que salga: con la base a medio
@@ -1980,6 +2008,15 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
           `${sinTextoUtil.length > 3 ? '…' : ''}. Ocupan sitio en las búsquedas y no pueden responder nada.`
         )
       }
+      if (modeloDistinto && !dimensionDescuadrada) {
+        issues.push(
+          `La base se indexó con ${modeloGuardado ? `«${modeloGuardado}»` : 'otro modelo de embeddings'} ` +
+          `y ahora se busca con «${modeloEmbeddingsOllama()}». Coincida o no el tamaño de los vectores, ` +
+          `son espacios distintos: la búsqueda devuelve resultados sin sentido. Hay que reindexar la ` +
+          `base de conocimiento.`
+        )
+        status = 'critical'
+      }
       if (ambitoSinCodificar) {
         issues.push(
           'Los vectores guardados no llevan el ámbito con el que se filtra ahora: la búsqueda general ' +
@@ -2011,6 +2048,9 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
             descuadrada: dimensionDescuadrada,
             /** Cuántos fragmentos hay que rehacer, no cuántos hay (#162). */
             descuadrados,
+            /** Indexado con otro modelo, aunque el tamaño cuadre. */
+            modeloDistinto,
+            modeloGuardado,
             /** El otro motivo por el que hay que reindexar (#158). */
             ambitoSinCodificar,
             modelo: modeloEmbeddingsOllama()

@@ -63,6 +63,8 @@ function prismaFalso() {
     dimensionGuardada: 768 as number | null,
     /** La distribución de tamaños que devuelve SQLite, cuando el test la fija. */
     distribucion: null as { dim: number | null; n: number | bigint }[] | null,
+    /** Con qué modelo dice la base que se indexó, si lo dice. */
+    modeloIndexado: null as string | null,
     /** Lo que devuelve la consulta SQL de documentos sin contenido (#174). */
     sinContenido: [] as { id: string; title: string }[],
     sqlSinContenido: '' as string,
@@ -98,6 +100,12 @@ function prismaFalso() {
       },
       aIProvider: {
         findFirst: vi.fn(async () => registro.proveedorOpenAI),
+      },
+      appSetting: {
+        findUnique: vi.fn(async () => (registro.modeloIndexado === null
+          ? null
+          : { key: 'embeddings.modelo', value: registro.modeloIndexado })),
+        upsert: vi.fn(async () => ({})),
       },
       /**
        * La detección de documentos indexados sin texto se hace en SQL (#174):
@@ -324,10 +332,14 @@ describe('wisdom:getRAGHealth', () => {
     dimensionGuardada: number | null,
     sinContenido: { id: string; title: string }[] = [],
     distribucion: { dim: number | null; n: number | bigint }[] | null = null,
+    // Por defecto, la marca coincide con el modelo configurado: así estas
+    // pruebas siguen mirando sólo el tamaño, que es lo suyo.
+    modeloIndexado: string | null = process.env.BOORIE_MODELO_EMBEDDINGS ?? 'bge-m3',
   ) => {
     const falso = prismaFalso()
     falso.registro.dimensionGuardada = dimensionGuardada
     falso.registro.distribucion = distribucion
+    falso.registro.modeloIndexado = modeloIndexado
     falso.registro.sinContenido = sinContenido
     ultimoRegistro = falso.registro
     // getRAGHealth se registra aquí, no en registerWisdomHandlers: con el
@@ -416,5 +428,49 @@ describe('wisdom:getRAGHealth', () => {
 
     expect(res.health.metrics.sinTextoUtil).toEqual([])
     expect(res.health.issues.join(' ')).not.toContain('sin texto aprovechable')
+  })
+})
+
+
+/**
+ * El tamaño del vector no identifica al modelo: `granite-embedding:278m` da 768
+ * números y `nomic-embed-text` también. Una base indexada con el viejo pasaba la
+ * comprobación de tamaño, y entonces la búsqueda no devuelve vacío sino
+ * documentos al azar, que es peor porque nada lo delata.
+ */
+describe('wisdom:getRAGHealth — con qué modelo se indexó', () => {
+  afterEach(() => { delete process.env.BOORIE_MODELO_EMBEDDINGS })
+
+  const saludConModelo = async (modeloIndexado: string | null) => {
+    process.env.BOORIE_MODELO_EMBEDDINGS = 'granite-embedding:278m' // 768
+    const falso = prismaFalso()
+    falso.registro.dimensionGuardada = 768
+    falso.registro.distribucion = [{ dim: 768, n: 40n }]
+    falso.registro.modeloIndexado = modeloIndexado
+    registerVectorGraphHandlers(falso.prisma)
+    return handlersRegistrados['wisdom:getRAGHealth']({})
+  }
+
+  it('avisa aunque el tamaño cuadre, si lo indexó otro modelo', async () => {
+    const res = await saludConModelo('nomic-embed-text')
+
+    expect(res.health.metrics.embeddings.descuadrada).toBe(false) // el tamaño sí cuadra
+    expect(res.health.metrics.embeddings.modeloDistinto).toBe(true)
+    expect(res.health.metrics.embeddings.descuadrados).toBe(40)
+    expect(res.health.status).toBe('critical')
+    expect(res.health.issues.join(' ')).toContain('nomic-embed-text')
+  })
+
+  it('una base sin marca se da por antigua, que es lo conservador', async () => {
+    const res = await saludConModelo(null)
+
+    expect(res.health.metrics.embeddings.modeloDistinto).toBe(true)
+  })
+
+  it('con la marca del modelo en uso no avisa de nada', async () => {
+    const res = await saludConModelo('granite-embedding:278m')
+
+    expect(res.health.metrics.embeddings.modeloDistinto).toBe(false)
+    expect(res.health.issues.join(' ')).not.toContain('reindexar')
   })
 })

@@ -34,7 +34,9 @@ interface Descuadre {
    * Por qué hay que reindexar. Cambia el motivo que se le enseña al usuario,
    * no lo que hace el botón: en los dos casos hay que regenerarlo todo (#158).
    */
-  motivo: 'dimension' | 'ambito'
+  motivo: 'dimension' | 'modelo' | 'ambito'
+  /** Con qué modelo se indexó, cuando se sabe. */
+  guardado?: string | null
 }
 
 export function AvisoDeReindexado({ alTerminar }: Props) {
@@ -61,7 +63,7 @@ export function AvisoDeReindexado({ alTerminar }: Props) {
     try {
       const res = await window.electronAPI.wisdom.getRAGHealth()
       const emb = res?.health?.metrics?.embeddings
-      if (res?.success && (emb?.descuadrada || emb?.ambitoSinCodificar)) {
+      if (res?.success && (emb?.descuadrada || emb?.modeloDistinto || emb?.ambitoSinCodificar)) {
         setDescuadre({
           guardada: emb.dimensionGuardada,
           esperada: emb.dimensionEsperada,
@@ -69,7 +71,8 @@ export function AvisoDeReindexado({ alTerminar }: Props) {
           // Los que hay que rehacer, no los que hay: con la base a medio
           // migrar no son el mismo número.
           fragmentos: emb.descuadrados ?? emb.total ?? 0,
-          motivo: emb.descuadrada ? 'dimension' : 'ambito',
+          motivo: emb.descuadrada ? 'dimension' : emb.modeloDistinto ? 'modelo' : 'ambito',
+          guardado: emb.modeloGuardado ?? null,
         })
       } else {
         setDescuadre(null)
@@ -129,7 +132,12 @@ export function AvisoDeReindexado({ alTerminar }: Props) {
                   guardada: descuadre!.guardada,
                   esperada: descuadre!.esperada,
                 })
-              : t('wisdom.reindexado.porqueAmbito')}
+              : descuadre!.motivo === 'modelo'
+                ? t('wisdom.reindexado.porqueModelo', {
+                    modelo: descuadre!.modelo,
+                    guardado: descuadre!.guardado || '—',
+                  })
+                : t('wisdom.reindexado.porqueAmbito')}
           </p>
           <p className="mt-2 text-sm text-amber-800 dark:text-amber-200">
             {t('wisdom.reindexado.como', { fragmentos: descuadre!.fragmentos })}

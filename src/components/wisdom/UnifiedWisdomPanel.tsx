@@ -12,6 +12,7 @@ import {
 import { VectorGraphViewer } from './VectorGraphViewer'
 import { BulkUploadDialog } from './BulkUploadDialog'
 import { AvisoDeReindexado } from './AvisoDeReindexado'
+import { MODELO_OLLAMA_POR_DEFECTO } from '@/../backend/services/modeloEmbeddings'
 import { AvisoDeInformesRepetidos } from './AvisoDeInformesRepetidos'
 
 // Interfaces
@@ -1339,11 +1340,14 @@ export function UnifiedWisdomPanel() {
                           <div className="mt-2 pt-2 border-t border-border">
                             <div>💡 {t('wisdom.recommended')}</div>
                             <div className="space-y-1 mt-1">
+                              {/* El primero sale de la constante, no escrito a mano: es el
+                                  que la aplicación usa de verdad, y así no puede quedarse
+                                  recomendando el de la versión anterior. */}
                               <div className="bg-background px-2 py-1 rounded font-mono text-xs">
-                                ollama pull bge-m3
+                                ollama pull {MODELO_OLLAMA_POR_DEFECTO}
                               </div>
                               <div className="bg-background px-2 py-1 rounded font-mono text-xs">
-                                ollama pull nomic-embed-text
+                                ollama pull bge-m3
                               </div>
                               <div className="bg-background px-2 py-1 rounded font-mono text-xs">
                                 ollama pull mxbai-embed-large
@@ -1354,8 +1358,8 @@ export function UnifiedWisdomPanel() {
                             </div>
 
                             <div className="mt-2 text-muted-foreground/80">
+                              • {t('wisdom.modelPorDefecto')}<br />
                               • {t('wisdom.modelBge')}<br />
-                              • {t('wisdom.modelNomic')}<br />
                               • {t('wisdom.modelMxbai')}<br />
                               • {t('wisdom.modelMinilm')}
                             </div>

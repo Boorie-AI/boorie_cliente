@@ -6,8 +6,9 @@
  * `nomic-embed-text` repetido en cada rama de `EmbeddingService`—, así que
  * cambiar de modelo no era cambiar un valor sino encontrarlos todos.
  *
- * El modelo por defecto pasa a ser `bge-m3`, que es multilingüe. El anterior,
- * `nomic-embed-text`, es monolingüe inglés, y eso no es un matiz de calidad: una
+ * El modelo por defecto fue `bge-m3` y ahora es `granite-embedding:278m` (ver
+ * más abajo). Los dos son multilingües, que es lo que no era `nomic-embed-text`,
+ * monolingüe inglés, y eso no es un matiz de calidad: una
  * pregunta en castellano no recuperaba un documento técnico en inglés en
  * absoluto. Medido sobre 796 fragmentos reales con diez preguntas de hidrología
  * que el corpus responde, el libro aparecía en 1 de 30 puestos del top-3 (MRR
@@ -33,9 +34,11 @@
  * que aquí no se ponen; sin ellos bajan a 0,010. `granite-embedding:278m`
  * recupera mejor que el que está puesto y va 3 veces más rápido, con la
  * salvedad de que su ventana son 512 tokens contra los 8.192 de bge-m3, lo que
- * condiciona cualquier cambio futuro del troceado. Cambiar el de por defecto
- * obliga a reindexar a todo el mundo, así que se deja disponible por
- * `BOORIE_MODELO_EMBEDDINGS` hasta que esa decisión se tome.
+ * condiciona cualquier cambio futuro del troceado. Con esos números, el de por
+ * defecto pasa a ser `granite-embedding:278m`: recupera mejor y reindexar una
+ * base grande cuesta un tercio. Obliga a reindexar a quien actualice, y por eso
+ * va en la misma versión que arregla el aviso que lo pide, que hasta ahora no
+ * llegaba a aparecer.
  */
 
 /**
@@ -69,7 +72,7 @@ const CATALOGO: { patron: string; dimension: number }[] = [
 /** El de por defecto si el nombre no está en el catálogo. */
 export const DIMENSION_DESCONOCIDA = 768
 
-export const MODELO_OLLAMA_POR_DEFECTO = 'bge-m3'
+export const MODELO_OLLAMA_POR_DEFECTO = 'granite-embedding:278m'
 
 /** El modelo de Ollama con el que se indexa y se consulta. */
 export function modeloEmbeddingsOllama(): string {
@@ -97,3 +100,14 @@ export function dimensionEsperada(): number {
   }
   return dimensionDeModelo(modeloEmbeddingsOllama()) ?? DIMENSION_DESCONOCIDA
 }
+
+/**
+ * Dónde se anota con qué modelo se indexó la base.
+ *
+ * Hace falta porque el tamaño del vector no identifica al modelo: `granite-embedding:278m`
+ * produce 768 números y `nomic-embed-text` también. Sin esta marca, una base indexada con el
+ * viejo pasaría la comprobación de tamaño y la búsqueda devolvería resultados al azar en vez de
+ * vacío, que es peor: no hay forma de notarlo. La escribe un reindexado completo, y el primer
+ * documento de una base vacía.
+ */
+export const CLAVE_MODELO_INDEXADO = 'embeddings.modelo'

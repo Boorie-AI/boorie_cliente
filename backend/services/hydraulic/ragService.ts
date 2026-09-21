@@ -4,6 +4,7 @@ import { EmbeddingService } from '../embedding.service'
 import { duenoVectorial, duenosPermitidos, filtroPrisma, filtroVectorial, origenDe, type Ambito, type Origen } from './ambitos'
 import { corpusDe, filtroDeCorpus, repartirPorCorpus, sinRepetidos, unirFiltros, type Corpus } from './repartoDeCorpus'
 import { leerTolerando } from '../lecturaTolerante'
+import { CLAVE_MODELO_INDEXADO, modeloEmbeddingsOllama } from '../modeloEmbeddings'
 
 export interface RAGSearchOptions {
   category?: 'hydraulics' | 'regulations' | 'best-practices'
@@ -479,6 +480,25 @@ export class HydraulicRAGService {
           chunks: true
         }
       })
+
+      /**
+       * El primer documento de una base vacía deja anotado con qué modelo se
+       * está indexando. Sólo el primero: en una base que ya tiene fragmentos de
+       * otro modelo, subir uno nuevo no convierte a los viejos, y decir lo
+       * contrario apagaría el aviso que pide reindexar.
+       */
+      try {
+        const habia = await this.prisma.knowledgeChunk.count()
+        if (habia === created.chunks.length) {
+          await this.prisma.appSetting.upsert({
+            where: { key: CLAVE_MODELO_INDEXADO },
+            update: { value: modeloEmbeddingsOllama() },
+            create: { key: CLAVE_MODELO_INDEXADO, value: modeloEmbeddingsOllama() },
+          })
+        }
+      } catch (e) {
+        console.warn('[RAG Service] No se pudo anotar el modelo de indexado:', (e as Error).message)
+      }
 
       // Sync to Milvus immediately
       try {
