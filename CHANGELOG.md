@@ -9,6 +9,40 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+El RAG no encontraba nada y no lo decía. Se arregla lo que lo tapaba, y reindexar deja de
+costar el doble.
+
+- **Al modelo local no le llegaba ningún prompt de sistema.** Con Ollama y sin red cargada, el
+  chat no pasa por el manejador IPC —va directo desde la interfaz para poder pintar la respuesta
+  palabra a palabra— y esa ruta se saltaba justo a quien añade el prompt. Así que ni las
+  indicaciones escritas en Ajustes ni la disciplina que impide inventar cifras llegaban al
+  modelo: respondía a su aire. Ahora las dos rutas componen el mismo prompt.
+- **La comprobación de salud del RAG deducía el tamaño de los vectores de un solo fragmento.**
+  Con una base a medio migrar eso miente: en una base real de 102.062 fragmentos, el fragmento
+  muestreado era de los 8.412 ya convertidos, así que la aplicación daba la base por correcta
+  mientras los 93.650 restantes —el 92 %— seguían siendo invisibles para cualquier búsqueda. El
+  aviso de reindexar no llegaba a aparecer. Ahora se cuentan todos los tamaños y el aviso dice
+  cuántos fragmentos hay que rehacer, no cuántos hay.
+- **Un fallo al guardar un fragmento tumbaba la migración entera.** La escritura del vector
+  quedaba fuera del `try`, así que un `P1008` —un tiempo de espera agotado de la base— salía del
+  bucle y abandonaba. En esa misma base paró en 8.397 de 102.062 y no volvió a arrancar. Ahora se
+  anota, se sigue, y lo que no se guardó se reintenta en el siguiente arranque.
+- **Y el arranque revectorizaba la base sin que nadie se lo pidiera.** La aplicación promete lo
+  contrario —«No se hace solo: hasta que lo pidas, no se toca nada»—, pero la sincronización de
+  arranque regeneraba vectores durante horas y competía por la tarjeta gráfica con el reindexado
+  que el usuario sí había lanzado: medido, el suyo no avanzaba ni un fragmento mientras la otra
+  tarea tenía la GPU. Ahora el arranque sólo rellena huecos; convertir lo que es de otro modelo
+  es cosa del botón, y se avisa por el registro de cuántos quedan.
+- **Vectorizar va al doble.** Se mandaba un fragmento por petición HTTP. Agrupándolos, medido con
+  bge-m3 sobre fragmentos reales en una GTX 960M, se pasa de 96 a 199 fragmentos por minuto. En
+  una base de cien mil fragmentos son horas de diferencia.
+- **La lista de proyectos decía que no había ninguno mientras los cargaba.** El catálogo vacío del
+  primer dibujado era indistinguible de una base sin proyectos, así que quien tenía siete veía
+  «0 proyectos / no hay proyectos todavía» hasta que la consulta respondía. Ahora se distingue
+  cargar de no tener.
+
 ## [1.37.1] - 2026-09-19
 
 Las bases grandes vuelven a poder reindexarse, y revisarlas deja de costar memoria.
