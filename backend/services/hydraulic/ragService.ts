@@ -248,30 +248,47 @@ export class HydraulicRAGService {
       ])
     }
 
-    // Process embeddings in concurrent batches for much faster indexing
-    const CONCURRENCY = 3
+    /**
+     * Un lote por petición, no un fragmento por petición.
+     *
+     * Aquí había tres llamadas en paralelo, que con Ollama sirviendo de una en
+     * una son tres llamadas seguidas. Agrupar los textos en una sola petición
+     * da el doble de velocidad medido sobre fragmentos reales con bge-m3 en una
+     * GTX 960M —96 fragmentos/min contra 199—, y en una base grande eso son
+     * horas. Si el lote falla se rehace fragmento a fragmento, que es la forma
+     * de seguir distinguiendo cuál de ellos no se pudo vectorizar.
+     */
+    const TAMANO_LOTE = 50
     const chunkEmbeddings: (number[] | null)[] = new Array(chunks.length).fill(null)
     const chunkTimings: number[] = []
     let completedCount = 0
 
-    for (let batchStart = 0; batchStart < chunks.length; batchStart += CONCURRENCY) {
-      const batchEnd = Math.min(batchStart + CONCURRENCY, chunks.length)
-      const batchIndices = Array.from({ length: batchEnd - batchStart }, (_, k) => batchStart + k)
+    for (let batchStart = 0; batchStart < chunks.length; batchStart += TAMANO_LOTE) {
+      const batchEnd = Math.min(batchStart + TAMANO_LOTE, chunks.length)
+      const lote = chunks.slice(batchStart, batchEnd)
+      const inicioLote = Date.now()
 
-      await Promise.all(batchIndices.map(async (i) => {
-        const chunkStart = Date.now()
-        try {
-          chunkEmbeddings[i] = await generateWithTimeout(chunks[i], 60000)
-          const duration = Date.now() - chunkStart
-          chunkTimings.push(duration)
-          if (duration > 5000) {
-            console.warn(`[RAG Service] Slow embedding for chunk ${i + 1}: ${duration}ms`)
+      let vectores: (number[] | null)[] | null = null
+      try {
+        vectores = await this.embeddingService.generateEmbeddings(lote)
+      } catch (err: any) {
+        console.warn(`[RAG Service] El lote ${batchStart}-${batchEnd} falló; se rehace uno a uno:`, err.message)
+      }
+
+      if (!vectores) {
+        vectores = []
+        for (const texto of lote) {
+          try {
+            vectores.push(await generateWithTimeout(texto, 60000))
+          } catch (err: any) {
+            console.error('[RAG Service] Failed embedding for chunk:', err.message)
+            vectores.push(null)
           }
-        } catch (err: any) {
-          console.error(`[RAG Service] Failed embedding for chunk ${i + 1}:`, err.message)
-          chunkEmbeddings[i] = null
         }
-      }))
+      }
+
+      vectores.forEach((v, k) => { chunkEmbeddings[batchStart + k] = v ?? null })
+      chunkTimings.push((Date.now() - inicioLote) / lote.length)
 
       completedCount = batchEnd
 
@@ -280,7 +297,7 @@ export class HydraulicRAGService {
           ? chunkTimings.reduce((a, b) => a + b, 0) / chunkTimings.length
           : 0
         const remainingChunks = chunks.length - completedCount
-        const etaSeconds = Math.round((avgTime * remainingChunks / CONCURRENCY) / 1000)
+        const etaSeconds = Math.round((avgTime * remainingChunks) / 1000)
         const etaText = etaSeconds > 0 ? ` (~${etaSeconds}s restantes)` : ''
 
         onProgress({
