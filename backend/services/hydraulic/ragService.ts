@@ -269,6 +269,14 @@ export class HydraulicRAGService {
       const lote = chunks.slice(batchStart, batchEnd)
       const inicioLote = Date.now()
 
+      // Y otro al empezar el lote, no sólo al acabarlo: con lotes de 50 el
+      // primer aviso tardaba 50 fragmentos en salir.
+      onProgress?.({
+        current: batchStart,
+        total: chunks.length,
+        message: `Chunk ${batchStart + 1}/${chunks.length}: Generando embeddings...`
+      })
+
       let vectores: (number[] | null)[] | null = null
       try {
         vectores = await this.embeddingService.generateEmbeddings(lote)
@@ -701,89 +709,82 @@ export class HydraulicRAGService {
   }
 
   // Chunk document into smaller pieces
+  /**
+   * Trocea un documento en piezas que **nunca** pasan de `maxChunkSize`.
+   *
+   * El "nunca" es el arreglo: antes, un párrafo largo que llegaba con algo ya
+   * acumulado se asignaba entero sin partirlo —sólo se partía si no había nada
+   * acumulado—, así que un párrafo de 8.000 caracteres salía como un fragmento
+   * de 8.000. En la base de un usuario real eso dejó fragmentos de 2.381
+   * caracteres de media y hasta 12.106, con dos consecuencias: al vectorizar se
+   * truncaban a 1.000, o sea que el 85 % del corpus estaba indexado sólo por su
+   * primer cuarto; y con un modelo de ventana corta —`granite-embedding:278m`
+   * son 512 tokens— el indexado directamente falla con «the input length
+   * exceeds the context length».
+   */
   private chunkDocument(
     content: string,
     options: { maxChunkSize: number; overlap: number }
   ): string[] {
     const { maxChunkSize, overlap } = options
-    const chunks: string[] = []
 
-    // Split by paragraphs first
-    const paragraphs = content.split(/\n\n+/)
+    /** Las últimas palabras, para que el corte no parta una idea en dos. */
+    const solapeDe = (texto: string) =>
+      texto.split(' ').slice(-Math.floor(overlap / 10)).join(' ')
 
-    let currentChunk = ''
+    /**
+     * Parte un texto en piezas que caben, por palabras. La última se devuelve
+     * igual que las demás: quien llama decide si la arrastra o la cierra.
+     */
+    const partir = (texto: string): string[] => {
+      const piezas: string[] = []
+      let pieza = ''
 
-    for (const paragraph of paragraphs) {
-      if (currentChunk.length + paragraph.length > maxChunkSize) {
-        if (currentChunk) {
-          chunks.push(currentChunk.trim())
-
-          // Add overlap from end of current chunk
-          const overlapText = currentChunk
-            .split(' ')
-            .slice(-Math.floor(overlap / 10))
-            .join(' ')
-
-          currentChunk = overlapText + ' ' + paragraph
-        } else {
-          // Paragraph is too long, split it
-          const words = paragraph.split(' ')
-          let tempChunk = ''
-
-          for (const word of words) {
-            // Handle words that are longer than maxChunkSize themselves
-            if (word.length > maxChunkSize) {
-              // Write out anything currently in tempChunk
-              if (tempChunk) {
-                chunks.push(tempChunk.trim())
-                tempChunk = ''
-              }
-
-              // Split the long word into chunks
-              let remainingWord = word
-              while (remainingWord.length > 0) {
-                const subChunk = remainingWord.slice(0, maxChunkSize)
-                remainingWord = remainingWord.slice(maxChunkSize)
-
-                if (remainingWord.length > 0) {
-                  // If we still have more, push this chunk
-                  chunks.push(subChunk)
-                } else {
-                  // If this is the last piece, it becomes the new tempChunk
-                  tempChunk = subChunk
-                }
-              }
-            } else if (tempChunk.length + word.length + 1 > maxChunkSize) {
-              // Word doesn't fit in current chunk
-              chunks.push(tempChunk.trim())
-              tempChunk = word
-            } else {
-              // Word fits
-              tempChunk += (tempChunk ? ' ' : '') + word
-            }
+      for (const palabra of texto.split(' ')) {
+        if (palabra.length > maxChunkSize) {
+          // Una "palabra" más larga que el tope no existe en prosa; sí en los
+          // PDF mal extraídos, con tablas pegadas sin espacios.
+          if (pieza) { piezas.push(pieza.trim()); pieza = '' }
+          let resto = palabra
+          while (resto.length > maxChunkSize) {
+            piezas.push(resto.slice(0, maxChunkSize))
+            resto = resto.slice(maxChunkSize)
           }
-
-          currentChunk = tempChunk
+          pieza = resto
+        } else if (pieza.length + palabra.length + 1 > maxChunkSize) {
+          piezas.push(pieza.trim())
+          pieza = palabra
+        } else {
+          pieza += (pieza ? ' ' : '') + palabra
         }
+      }
+
+      if (pieza.trim()) piezas.push(pieza.trim())
+      return piezas
+    }
+
+    const chunks: string[] = []
+    let actual = ''
+
+    for (const parrafo of content.split(/\n\n+/)) {
+      if (actual.length + parrafo.length + 2 > maxChunkSize) {
+        let arrastre = ''
+        if (actual.trim()) {
+          chunks.push(actual.trim())
+          arrastre = solapeDe(actual)
+        }
+        // El párrafo se parte SIEMPRE que no quepa, hubiera o no algo acumulado.
+        const piezas = partir((arrastre ? arrastre + ' ' : '') + parrafo)
+        chunks.push(...piezas.slice(0, -1))
+        actual = piezas[piezas.length - 1] ?? ''
       } else {
-        currentChunk += (currentChunk ? '\n\n' : '') + paragraph
+        actual += (actual ? '\n\n' : '') + parrafo
       }
     }
 
-    if (currentChunk) {
-      if (currentChunk.length > maxChunkSize) {
-        // Hard chop if still too long (e.g. single massive word case not caught above)
-        let remaining = currentChunk
-        while (remaining.length > 0) {
-          chunks.push(remaining.slice(0, maxChunkSize).trim())
-          remaining = remaining.slice(maxChunkSize)
-        }
-      } else {
-        chunks.push(currentChunk.trim())
-      }
-    }
+    if (actual.trim()) chunks.push(...partir(actual))
 
-    return chunks
+    return chunks.filter(c => c.length > 0)
   }
 
   // Calculate cosine similarity between embeddings

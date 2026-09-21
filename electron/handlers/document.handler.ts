@@ -802,6 +802,24 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
         try {
           console.log(`[Document Handler] Reindexing: "${doc.title}"`)
 
+          /*
+           * Un aviso al empezar cada documento, antes de vectorizar nada. La
+           * barra sólo se dibuja cuando llega el primer progreso, y los avisos
+           * los manda el troceado: al pasar a lotes de 50 fragmentos, el
+           * primero tarda 50 en llegar —y en un documento de menos de 50, uno
+           * solo al final—, así que la barra no aparecía. Esto no depende del
+           * tamaño del lote: es por documento, que es justo lo que la barra
+           * mide.
+           */
+          event.sender.send('wisdom:reindex-progress', {
+            documentId: doc.id,
+            title: doc.title,
+            document: docIndex,
+            totalDocuments: documentsToReindex.length,
+            current: 0,
+            total: 0,
+          })
+
           // Reindexado real por documento. Un fallo (por ejemplo, el proveedor
           // de embeddings caído) se cuenta como fallo con su motivo, en lugar
           // de reportar éxito habiendo borrado los chunks.

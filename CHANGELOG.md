@@ -47,6 +47,17 @@ costar el doble.
   número de fragmentos que hay que rehacer; hasta que se haga, las búsquedas no devuelven nada.
   Hace falta tenerlo en Ollama: `ollama pull granite-embedding:278m`. Quien prefiera quedarse en
   el anterior puede fijarlo con `BOORIE_MODELO_EMBEDDINGS=bge-m3` y no reindexar.
+- **El troceado de documentos no respetaba su propio tope, y eso dejaba la mitad del corpus sin
+  indexar.** Un párrafo largo que llegaba con algo ya acumulado se guardaba entero: en la base de
+  un usuario real quedaron fragmentos de 2.381 caracteres de media y hasta 12.106, contra un tope
+  de 1.000. Al vectorizar se truncaban a esos 1.000, así que **86.861 de sus 102.062 fragmentos
+  estaban indexados sólo por su primer cuarto** —el resto del texto no lo encontraba ninguna
+  búsqueda— y con un modelo de ventana corta el indexado ni siquiera llegaba a terminar. Ahora
+  ninguna pieza pasa del tope, incluidas las tablas que los PDF dejan pegadas sin espacios.
+- **Vuelve la barra de progreso del reindexado.** Se dibuja con el primer aviso de progreso, y al
+  agrupar los fragmentos de 50 en 50 ese primero tardaba 50 fragmentos en salir —en un documento
+  más corto, uno solo al final—. Ahora se avisa al empezar cada documento, que es lo que la barra
+  mide de verdad.
 - **Si falta el modelo de embeddings, la aplicación lo pide y lo descarga.** Antes había que
   saberlo: sin el modelo en Ollama no se puede vectorizar nada, y lo que se veía era un reindexado
   fallando documento a documento durante horas, o una búsqueda que no devolvía nada. Ahora la Base
