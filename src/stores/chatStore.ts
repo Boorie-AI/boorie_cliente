@@ -1,6 +1,7 @@
 import { logger } from '@/utils/logger'
 import { contextoDeConocimiento, cierreDeIdioma, hayQueTraducir } from '@/services/contextoConocimiento'
 import { limpiarCitasSinRespaldo } from '@/../backend/services/hydraulic/citasSinRespaldo'
+import { componerPromptDeSistema } from '@/../backend/services/hydraulic/promptDelAgente'
 import { marcarLoTraducido } from '@/services/avisoDeTraduccion'
 import { compruebaLaEntrada } from '@/services/guardianDeEntrada'
 import {
@@ -755,6 +756,22 @@ export const useChatStore = create<ChatState>()(
 
           // Add current prompt
           messages.push({ role: 'user', content: prompt })
+
+          /**
+           * El prompt de sistema también por aquí. Esta ruta no pasa por el
+           * handler IPC, que es quien lo añade con `addSystemPrompt`, así que
+           * con Ollama y sin red cargada el modelo recibía la pregunta sola:
+           * ni la disciplina que impide inventar cifras ni lo que el usuario
+           * haya escrito en Ajustes. Se compone igual que allí para que las dos
+           * rutas no puedan decir cosas distintas.
+           */
+          let propio: string | null = null
+          try {
+            propio = await window.electronAPI.database.getSetting('system_prompt')
+          } catch (e) {
+            logger.warn('No se pudo leer el prompt propio; va la disciplina sola', e)
+          }
+          messages.unshift({ role: 'system', content: componerPromptDeSistema(propio) })
 
           const requestBody = {
             model: cleanModelName,
