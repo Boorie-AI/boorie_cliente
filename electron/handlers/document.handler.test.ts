@@ -61,6 +61,8 @@ function prismaFalso() {
     proveedorOpenAI: null as any,
     /** Cuántos números tiene cada vector ya guardado, para wisdom:getRAGHealth. */
     dimensionGuardada: 768 as number | null,
+    /** La distribución de tamaños que devuelve SQLite, cuando el test la fija. */
+    distribucion: null as { dim: number | null; n: number | bigint }[] | null,
     /** Lo que devuelve la consulta SQL de documentos sin contenido (#174). */
     sinContenido: [] as { id: string; title: string }[],
     sqlSinContenido: '' as string,
@@ -102,6 +104,14 @@ function prismaFalso() {
        * traerse el contenido para medirlo costaba 935 MB en una base real.
        */
       $queryRawUnsafe: vi.fn(async (sql: string) => {
+        // Los tamaños de los vectores se cuentan agrupando en SQL (#162); el
+        // resto de consultas crudas siguen siendo la de documentos sin texto.
+        if (sql.includes('json_array_length')) {
+          if (registro.distribucion) return registro.distribucion
+          return registro.dimensionGuardada === null
+            ? []
+            : [{ dim: registro.dimensionGuardada, n: 40n }]
+        }
         registro.sqlSinContenido = sql
         return registro.sinContenido
       }),
@@ -313,9 +323,11 @@ describe('wisdom:getRAGHealth', () => {
   const salud = async (
     dimensionGuardada: number | null,
     sinContenido: { id: string; title: string }[] = [],
+    distribucion: { dim: number | null; n: number | bigint }[] | null = null,
   ) => {
     const falso = prismaFalso()
     falso.registro.dimensionGuardada = dimensionGuardada
+    falso.registro.distribucion = distribucion
     falso.registro.sinContenido = sinContenido
     ultimoRegistro = falso.registro
     // getRAGHealth se registra aquí, no en registerWisdomHandlers: con el
@@ -353,6 +365,39 @@ describe('wisdom:getRAGHealth', () => {
     const res = await salud(null)
 
     expect(avisoDeDimension(res)).toBeUndefined()
+  })
+
+  /**
+   * Una migración a medias es el caso que de verdad se dio: el reindexado del
+   * arranque murió tras pasar 8.397 fragmentos de 102.062, y como el tamaño se
+   * deducía de **un** fragmento —y el muestreado era de los ya migrados— la
+   * salud salía correcta con el 92 % de la base sin poder buscarse.
+   */
+  it('avisa aunque el primer fragmento ya esté migrado, si quedan de los viejos', async () => {
+    process.env.BOORIE_MODELO_EMBEDDINGS = 'bge-m3'
+    const res = await salud(1024, [], [{ dim: 1024, n: 8412n }, { dim: 768, n: 93650n }])
+
+    expect(avisoDeDimension(res)).toBeDefined()
+    expect(res.health.metrics.embeddings.descuadrada).toBe(true)
+    // El tamaño que se enseña es el del grupo que hay que rehacer, no el del
+    // que ya está bien.
+    expect(res.health.metrics.embeddings.dimensionGuardada).toBe(768)
+    expect(res.health.status).toBe('critical')
+  })
+
+  it('cuenta cuántos fragmentos hay que rehacer, no cuántos hay', async () => {
+    process.env.BOORIE_MODELO_EMBEDDINGS = 'bge-m3'
+    const res = await salud(768, [], [{ dim: 1024, n: 8412n }, { dim: 768, n: 93650n }])
+
+    expect(res.health.metrics.embeddings.descuadrados).toBe(93650)
+  })
+
+  it('con todo migrado no queda nada que avisar', async () => {
+    process.env.BOORIE_MODELO_EMBEDDINGS = 'bge-m3'
+    const res = await salud(1024, [], [{ dim: 1024, n: 102062n }])
+
+    expect(avisoDeDimension(res)).toBeUndefined()
+    expect(res.health.metrics.embeddings.descuadrados).toBe(0)
   })
 
   it('los documentos sin texto se preguntan en SQL, sin traerse el contenido', async () => {

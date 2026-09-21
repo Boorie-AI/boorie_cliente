@@ -1851,20 +1851,61 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
       )
 
       const dimensionActual = dimensionEsperada()
-      const muestra = await prismaClient.knowledgeChunk.findFirst({
-        where: { embedding: { notIn: ['', '[]', 'null'] } },
-        select: { embedding: true }
-      })
-      let dimensionGuardada: number | undefined
-      if (muestra?.embedding) {
-        try {
-          const v = JSON.parse(muestra.embedding)
-          if (Array.isArray(v) && v.length > 0) dimensionGuardada = v.length
-        } catch {
-          // Un embedding ilegible ya lo cuenta la cobertura de arriba.
+      /**
+       * La distribución de tamaños, no un fragmento suelto.
+       *
+       * Esto se resolvía con un `findFirst`, y una migración a medias lo deja
+       * mintiendo: en la base de un usuario con 102.062 fragmentos, el
+       * reindexado automático del arranque murió tras pasar 8.397 a 1024 y el
+       * muestreo cayó justo en uno de ésos. Resultado: `descuadrada` a false,
+       * salud «correcta», aviso de reindexado invisible, y los 93.650
+       * fragmentos de 768 que quedaban —el 92 % de la base— mudos en cada
+       * búsqueda, sin que nada lo dijera.
+       */
+      let dimensiones: { dim: number; n: number }[] = []
+      try {
+        const filas = await prismaClient.$queryRawUnsafe<{ dim: number | null; n: number | bigint }[]>(
+          `SELECT json_array_length(embedding) AS dim, COUNT(*) AS n
+           FROM knowledge_chunks
+           WHERE embedding IS NOT NULL AND embedding NOT IN ('', '[]', 'null')
+             AND json_valid(embedding)
+           GROUP BY dim`
+        )
+        dimensiones = filas
+          .filter(f => f.dim !== null && Number(f.dim) > 0)
+          .map(f => ({ dim: Number(f.dim), n: Number(f.n) }))
+      } catch (error) {
+        // Sin json_array_length se vuelve al muestreo: peor, pero mejor que
+        // dejar la comprobación sin responder.
+        console.warn('No se pudo contar los tamaños de los vectores; se mira sólo uno:', error)
+        const muestra = await prismaClient.knowledgeChunk.findFirst({
+          where: { embedding: { notIn: ['', '[]', 'null'] } },
+          select: { embedding: true }
+        })
+        if (muestra?.embedding) {
+          try {
+            const v = JSON.parse(muestra.embedding)
+            if (Array.isArray(v) && v.length > 0) dimensiones = [{ dim: v.length, n: 1 }]
+          } catch {
+            // Un embedding ilegible ya lo cuenta la cobertura de arriba.
+          }
         }
       }
-      const dimensionDescuadrada = dimensionGuardada !== undefined && dimensionGuardada !== dimensionActual
+
+      const descuadrados = dimensiones
+        .filter(d => d.dim !== dimensionActual)
+        .reduce((total, d) => total + d.n, 0)
+      const dimensionDescuadrada = descuadrados > 0
+      /**
+       * El tamaño que se le enseña al usuario es el del grupo que hay que
+       * reindexar, no el del primer fragmento que salga: con la base a medio
+       * migrar conviven los dos y el que importa es el que no sirve.
+       */
+      const mayoritaria = (grupos: { dim: number; n: number }[]) =>
+        grupos.sort((a, b) => b.n - a.n)[0]?.dim
+      const dimensionGuardada = dimensionDescuadrada
+        ? mayoritaria(dimensiones.filter(d => d.dim !== dimensionActual))
+        : mayoritaria(dimensiones)
 
       /**
        * Y los vectores tienen que llevar el dueño escrito como lo espera el
@@ -1968,6 +2009,8 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
             dimensionGuardada,
             dimensionEsperada: dimensionActual,
             descuadrada: dimensionDescuadrada,
+            /** Cuántos fragmentos hay que rehacer, no cuántos hay (#162). */
+            descuadrados,
             /** El otro motivo por el que hay que reindexar (#158). */
             ambitoSinCodificar,
             modelo: modeloEmbeddingsOllama()

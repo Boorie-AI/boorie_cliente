@@ -66,7 +66,9 @@ export function AvisoDeReindexado({ alTerminar }: Props) {
           guardada: emb.dimensionGuardada,
           esperada: emb.dimensionEsperada,
           modelo: emb.modelo,
-          fragmentos: emb.total ?? 0,
+          // Los que hay que rehacer, no los que hay: con la base a medio
+          // migrar no son el mismo número.
+          fragmentos: emb.descuadrados ?? emb.total ?? 0,
           motivo: emb.descuadrada ? 'dimension' : 'ambito',
         })
       } else {
