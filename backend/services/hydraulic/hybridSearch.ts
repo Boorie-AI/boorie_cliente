@@ -66,6 +66,8 @@ export class HybridSearchService {
 
         const BATCH_SIZE = 50;
         let processed = 0;
+        let fallosAlGuardar = 0;
+        let descuadrados = 0;
 
         // We'll process everything to be safe, but in small batches
         // Ideally we would only fetch missing ones, but we don't track that easily yet.
@@ -107,11 +109,31 @@ export class HybridSearchService {
               // ignore JSON parse failures; vector stays empty
             }
 
-            // Check dimension mismatch
+            /*
+             * Un vector del tamaño que no toca NO se regenera aquí.
+             *
+             * Esto reindexaba la base entera al arrancar, fragmento a
+             * fragmento, sin que nadie lo pidiera: en la base de un usuario con
+             * 102.062 fragmentos eso son horas de GPU en cada apertura, y
+             * además compite con el reindexado que el usuario sí haya lanzado
+             * desde el panel —medido: el suyo no avanzó ni un fragmento en 150
+             * segundos mientras esta sincronización tenía la tarjeta—. La
+             * interfaz ya promete lo contrario: «No se hace solo: hasta que lo
+             * pidas, no se toca nada». Se cuentan y se avisa una vez; quien los
+             * regenera es `wisdom:massiveReindex`, con su aviso y su progreso.
+             *
+             * Un fragmento SIN vector es otra cosa: es un hueco, no un cambio
+             * de modelo, y ése sí se rellena aquí.
+             */
+            if (vector.length > 0 && vector.length !== targetDimension) {
+              descuadrados++;
+              continue;
+            }
+
             if (vector.length !== targetDimension) {
               // Only log occasionally to avoid spam
               if (processed % 10 === 0) {
-                console.log(`[HybridSearchService] Embedding dimension mismatch/missing for chunk ${chunk.id}. Re-generating...`);
+                console.log(`[HybridSearchService] Embedding missing for chunk ${chunk.id}. Generating...`);
               }
 
               try {
@@ -133,10 +155,26 @@ export class HybridSearchService {
 
             if (vector.length > 0) {
               if (needsUpdate) {
-                await this.prisma.knowledgeChunk.update({
-                  where: { id: chunk.id },
-                  data: { embedding: JSON.stringify(vector) }
-                });
+                /*
+                 * Este `update` estaba fuera de todo try —el de arriba sólo
+                 * cubre generar el vector—, así que un `P1008` de Prisma al
+                 * reescribir **un** fragmento salía del bucle y se llevaba por
+                 * delante la migración entera. En una base de 102.062
+                 * fragmentos paró en 8.397 y no volvió a arrancar: el resto se
+                 * quedó con vectores del modelo viejo, que es como dejar el RAG
+                 * mudo. Se anota y se sigue; lo que no se guardó se vuelve a
+                 * intentar en el siguiente arranque.
+                 */
+                try {
+                  await this.prisma.knowledgeChunk.update({
+                    where: { id: chunk.id },
+                    data: { embedding: JSON.stringify(vector) }
+                  });
+                } catch (updateError) {
+                  fallosAlGuardar++;
+                  console.error(`[HybridSearchService] No se pudo guardar el embedding de ${chunk.id}:`, updateError);
+                  continue;
+                }
               }
 
               milvusBatch.push({
@@ -158,16 +196,33 @@ export class HybridSearchService {
           }
 
           if (milvusBatch.length > 0) {
-            await this.milvusService.insert(MilvusService.COLLECTIONS.KNOWLEDGE, milvusBatch);
-            processed += milvusBatch.length;
-            console.log(`[HybridSearchService] Synced batch of ${milvusBatch.length} chunks. Total processed: ${processed}`);
+            // Lo mismo con el almacén vectorial: el lote que falle se reintenta
+            // en el próximo arranque, porque `milvusCount < prismaCount` seguirá
+            // siendo cierto. Abortar aquí dejaba la base a medio migrar.
+            try {
+              await this.milvusService.insert(MilvusService.COLLECTIONS.KNOWLEDGE, milvusBatch);
+              processed += milvusBatch.length;
+              console.log(`[HybridSearchService] Synced batch of ${milvusBatch.length} chunks. Total processed: ${processed}`);
+            } catch (insertError) {
+              console.error(`[HybridSearchService] No se pudo insertar un lote de ${milvusBatch.length} fragmentos:`, insertError);
+            }
           }
 
           // Sleep briefly to yield to the event loop
           await new Promise(resolve => setTimeout(resolve, 100));
         }
 
-        console.log(`[HybridSearchService] Sync complete. Processed ${processed} chunks.`);
+        console.log(
+          `[HybridSearchService] Sync complete. Processed ${processed} chunks.` +
+          (fallosAlGuardar > 0 ? ` ${fallosAlGuardar} se quedaron sin guardar y se reintentarán.` : '')
+        );
+        if (descuadrados > 0) {
+          console.warn(
+            `[HybridSearchService] ${descuadrados} fragmentos tienen vectores de otro tamaño y no se han ` +
+            `tocado: son de un modelo de embeddings anterior. Hay que reindexar la base de conocimiento ` +
+            `desde el panel para que vuelvan a poder buscarse.`
+          );
+        }
       }
     } catch (e) {
       console.error('Sync failed', e)
