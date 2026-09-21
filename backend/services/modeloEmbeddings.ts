@@ -17,6 +17,25 @@
  * Cambiar de modelo invalida los vectores ya guardados: tienen otro tamaño y
  * Milvus responde «Success» con cero resultados al buscar con el nuevo. La
  * búsqueda avisa en el log y `wisdom:massiveReindex` es lo que los regenera.
+ *
+ * Medido después contra el corpus de un usuario real —317 libros técnicos,
+ * 102.062 fragmentos— con 32 preguntas en castellano repartidas entre 14 de
+ * esos libros, y los mismos textos para los dos modelos:
+ *
+ *   bge-m3 (566M, 1024)              MRR@10 0,560 · 22 de 32 en el top-3 · 184 frag/min
+ *   granite-embedding:278m (768)     MRR@10 0,643 · 24 de 32 en el top-3 · 551 frag/min
+ *   multilingual-e5-base (278M, 768) MRR@10 0,125 ·  1 de 32 en el top-3 · 563 frag/min
+ *   multilingual-e5-small (117M, 384) MRR@10 0,053 ·  1 de 32 en el top-3 · 1435 frag/min
+ *
+ * O sea que el pequeño multilingüe evidente —e5-small, que es lo que uno
+ * probaría para ir más rápido— no recupera nada: 8 veces más rápido y el RAG
+ * deja de encontrar. Los E5 además necesitan los prefijos `query:`/`passage:`,
+ * que aquí no se ponen; sin ellos bajan a 0,010. `granite-embedding:278m`
+ * recupera mejor que el que está puesto y va 3 veces más rápido, con la
+ * salvedad de que su ventana son 512 tokens contra los 8.192 de bge-m3, lo que
+ * condiciona cualquier cambio futuro del troceado. Cambiar el de por defecto
+ * obliga a reindexar a todo el mundo, así que se deja disponible por
+ * `BOORIE_MODELO_EMBEDDINGS` hasta que esa decisión se tome.
  */
 
 /**
@@ -27,6 +46,7 @@
  */
 const CATALOGO: { patron: string; dimension: number }[] = [
   { patron: 'bge-m3', dimension: 1024 },
+  { patron: 'granite-embedding', dimension: 768 },
   { patron: 'bge-large', dimension: 1024 },
   { patron: 'bge-base', dimension: 768 },
   { patron: 'bge-small', dimension: 384 },
