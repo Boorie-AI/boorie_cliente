@@ -1045,7 +1045,8 @@
     "count_other": "{{count}} proyectos",
     "byDate": "Por fecha",
     "byName": "Por nombre",
-    "modified": "Modificado: {{fecha}}"
+    "modified": "Modificado: {{fecha}}",
+    "loading": "Cargando proyectos…"
   },
   "prompt": {
     "loading": "Cargando configuración…",

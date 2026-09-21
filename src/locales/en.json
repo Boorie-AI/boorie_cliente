@@ -1045,7 +1045,8 @@
     "count_other": "{{count}} projects",
     "byDate": "By date",
     "byName": "By name",
-    "modified": "Modified: {{fecha}}"
+    "modified": "Modified: {{fecha}}",
+    "loading": "Loading projects…"
   },
   "prompt": {
     "loading": "Loading settings…",

@@ -1045,7 +1045,8 @@
     "count_other": "{{count}} projectes",
     "byDate": "Per data",
     "byName": "Per nom",
-    "modified": "Modificat: {{fecha}}"
+    "modified": "Modificat: {{fecha}}",
+    "loading": "Carregant projectes…"
   },
   "prompt": {
     "loading": "S’està carregant la configuració…",
