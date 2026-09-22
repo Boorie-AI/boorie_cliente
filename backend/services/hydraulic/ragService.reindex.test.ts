@@ -48,12 +48,15 @@ describe('reindexDocument', () => {
     prisma.knowledgeChunk.findMany.mockResolvedValue([
       { id: 'nuevo-1', content: 'x', embedding: '[0.1,0.2,0.3]' },
     ])
-    const embeddingService = { generateEmbedding: vi.fn().mockResolvedValue([0.1, 0.2, 0.3]) }
+    const embeddingService = {
+      generateEmbedding: vi.fn().mockResolvedValue([0.1, 0.2, 0.3]),
+      generateEmbeddings: vi.fn(async (t: string[]) => t.map(() => [0.1, 0.2, 0.3])),
+    }
     const rag = new HydraulicRAGService(prisma, embeddingService)
 
     const result = await rag.reindexDocument('doc-1')
 
-    expect(embeddingService.generateEmbedding).toHaveBeenCalled()
+    expect(embeddingService.generateEmbeddings).toHaveBeenCalled()
     expect(result.chunkCount).toBeGreaterThan(0)
     expect(result.failedCount).toBe(0)
     // Un solo $transaction con el borrado y la creación: nunca queda a medias
@@ -69,6 +72,7 @@ describe('reindexDocument', () => {
     const prisma = fakePrisma(DOC)
     const rag = new HydraulicRAGService(prisma, {
       generateEmbedding: vi.fn().mockResolvedValue([0.1, 0.2, 0.3]),
+      generateEmbeddings: vi.fn(async (t: string[]) => t.map(() => [0.1, 0.2, 0.3])),
     })
 
     const result = await rag.reindexDocument('doc-1')
@@ -121,6 +125,7 @@ describe('los avisos de progreso', () => {
     const avisos: { current: number; total: number }[] = []
     const embeddingService = {
       generateEmbedding: vi.fn().mockResolvedValue([0.1]),
+      generateEmbeddings: vi.fn(async (t: string[]) => t.map(() => [0.1])),
       generateEmbeddings: vi.fn(async (t: string[]) => {
         // Para cuando se llame, ya tiene que haber salido el primer aviso.
         expect(avisos.length).toBeGreaterThan(0)
@@ -228,14 +233,19 @@ describe('un fragmento indigesto dentro del lote', () => {
     expect(tamanos.some(n => n > 1)).toBe(true)
   })
 
-  it('al culpable se le recorta en vez de tirarlo', async () => {
+  it('al culpable se le recorta en vez de tirarlo, sin pasar por la autodetección', async () => {
+    const porLaPuertaLenta = vi.fn(async () => [0.1])
     const embeddingService = {
-      generateEmbedding: vi.fn(async (texto: string) => {
+      // Si el reintento pasara por aquí, recorrería la cadena de proveedores con
+      // 60 s por intento: es lo que dejaba el reindexado parado minutos.
+      generateEmbedding: porLaPuertaLenta,
+      generateEmbeddings: vi.fn(async (textos: string[]) => {
         // Sólo lo acepta recortado, que es como se comporta la ventana real.
-        if (texto.length > 400) throw new Error('the input length exceeds the context length')
-        return [0.1]
+        if (textos.some(t => t.length > 400)) {
+          throw new Error('the input length exceeds the context length')
+        }
+        return textos.map(() => [0.1])
       }),
-      generateEmbeddings: vi.fn(async () => { throw new Error('the input length exceeds the context length') }),
     }
     const prisma = prismaConChunks()
     const rag = new HydraulicRAGService(prisma, embeddingService)
@@ -244,5 +254,6 @@ describe('un fragmento indigesto dentro del lote', () => {
 
     expect(res.failedCount).toBe(0)
     expect(res.chunkCount).toBeGreaterThan(0)
+    expect(porLaPuertaLenta).not.toHaveBeenCalled()
   })
 })

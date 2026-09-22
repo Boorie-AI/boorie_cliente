@@ -286,10 +286,24 @@ export class HydraulicRAGService {
           ]
         }
 
-        for (const parte of [0.5, 0.25]) {
+        /*
+         * El recorte va por la misma puerta directa, no por `generateEmbedding`:
+         * ésa recorre la cadena de autodetección de proveedor con 60 s de espera
+         * por intento, y encima LangChain reintenta por dentro. Un solo
+         * fragmento denso dejaba el reindexado parado minutos —medido: seis
+         * documentos en media hora y el contador sin moverse—.
+         *
+         * Y el recorte es a un número fijo de caracteres, no a un porcentaje: lo
+         * que desborda la ventana es texto donde cada cifra son varios tokens,
+         * así que la mitad de 1.000 puede seguir sin caber. 400 caracteres de
+         * dígitos entran de sobra en 512 tokens.
+         */
+        for (const tope of [400, 150]) {
           try {
-            const recortado = textos[0].slice(0, Math.max(1, Math.floor(textos[0].length * parte)))
-            return [await generateWithTimeout(recortado, 60000)]
+            const [vector] = await this.embeddingService.generateEmbeddings(
+              [textos[0].slice(0, tope)], true
+            )
+            return [vector]
           } catch {
             // Se prueba con menos.
           }

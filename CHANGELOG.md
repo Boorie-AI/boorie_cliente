@@ -54,6 +54,12 @@ costar el doble.
   estaban indexados sólo por su primer cuarto** —el resto del texto no lo encontraba ninguna
   búsqueda— y con un modelo de ventana corta el indexado ni siquiera llegaba a terminar. Ahora
   ninguna pieza pasa del tope, incluidas las tablas que los PDF dejan pegadas sin espacios.
+- **Los vectores se piden siempre por el endpoint nuevo de Ollama.** Se usaban los dos: los lotes
+  por `/api/embed` y los textos sueltos por `/api/embeddings`, el antiguo, a través de LangChain.
+  No dan el mismo resultado: con un texto que pasa de la ventana del modelo, el nuevo lo trunca y
+  responde y el viejo devuelve un error 500. Con un modelo de ventana corta eso convertía cada
+  fragmento largo en un fallo —y LangChain, además, reintenta por dentro con espera creciente, así
+  que un solo fragmento dejaba el reindexado parado varios minutos—.
 - **Un fragmento indigesto ya no arrastra a los otros cuarenta y nueve.** Al vectorizar en lotes,
   basta que uno pase de la ventana del modelo —una tabla de cifras cabe de sobra en caracteres y
   no en tokens, porque cada número son varios— para que se caiga la petición entera y el lote se

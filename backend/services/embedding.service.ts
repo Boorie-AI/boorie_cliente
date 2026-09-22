@@ -1,5 +1,4 @@
 import { OpenAIEmbeddings } from "@langchain/openai";
-import { OllamaEmbeddings } from "@langchain/ollama";
 import { PrismaClient } from "@prisma/client";
 import { modeloEmbeddingsOllama, dimensionEsperada } from "./modeloEmbeddings";
 
@@ -69,6 +68,23 @@ export class EmbeddingService {
         return this._cachedEmbeddingsInstance;
     }
 
+    /**
+     * Un texto por `/api/embed`, no por LangChain.
+     *
+     * LangChain habla con `/api/embeddings`, el endpoint antiguo, que devuelve
+     * un 500 —«the input length exceeds the context length»— en cuanto el texto
+     * pasa de la ventana del modelo; el nuevo lo trunca y responde. Con un
+     * modelo de ventana corta eso convertía cada fragmento largo en un fallo, y
+     * encima LangChain reintenta por dentro con espera creciente: medido, el
+     * reindexado se quedaba parado minutos por un solo fragmento. Comprobado
+     * lado a lado con el mismo texto de 3.000 caracteres: `/api/embed` responde,
+     * `/api/embeddings` da 500.
+     */
+    private async unoPorOllama(texto: string, url?: string, modelo?: string): Promise<number[]> {
+        const [vector] = await this.loteOllama([texto], url, modelo);
+        return vector;
+    }
+
     async generateEmbedding(text: string): Promise<number[]> {
         // Helper to wrap embed call with timeout
         const embedWithTimeout = async (embeddings: any, text: string, timeoutMs: number = 30000) => {
@@ -99,11 +115,11 @@ export class EmbeddingService {
 
                 // Ollama
                 else if (pid.includes('ollama')) {
-                    const embeddings = this.getOrCreateEmbeddingsInstance(pid, () => new OllamaEmbeddings({
-                        baseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434", // Configurable via env var
-                        model: this._activeProvider.model
-                    }));
-                    return await embedWithTimeout(embeddings, text, 60000); // 60s for local model
+                    return await this.unoPorOllama(
+                        text,
+                        this._activeProvider.baseUrl || process.env.OLLAMA_BASE_URL,
+                        this._activeProvider.model
+                    );
                 }
             } catch (e) {
                 console.error(`[EmbeddingService] Error using active provider ${this._activeProvider.name}:`, e);
@@ -164,14 +180,10 @@ export class EmbeddingService {
                 const config = ollamaProvider.config ? JSON.parse(ollamaProvider.config) : {};
                 const model = modeloEmbeddingsOllama();
                 const baseUrl = config.baseUrl || process.env.OLLAMA_BASE_URL || "http://localhost:11434";
-                const embeddings = this.getOrCreateEmbeddingsInstance('ollama-db', () => new OllamaEmbeddings({
-                    baseUrl: baseUrl,
-                    model: model
-                }));
 
                 // Validate if Ollama is reachable first
                 try {
-                    return await embedWithTimeout(embeddings, text, 60000); // 60s timeout per embedding
+                    return await this.unoPorOllama(text, baseUrl, model);
                 } catch (ollamaErr: any) {
                     if (ollamaErr.cause && (ollamaErr.cause.code === 'ECONNREFUSED' || ollamaErr.cause.code === 'ETIMEDOUT')) {
                         throw new Error(`Ollama connection failed at ${baseUrl}. Is Ollama running on the server?`);
@@ -218,11 +230,7 @@ export class EmbeddingService {
             const defaultOllamaUrl = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
             const modeloLocal = modeloEmbeddingsOllama();
             console.log(`[EmbeddingService] Attempting default Ollama at ${defaultOllamaUrl} (${modeloLocal})`);
-            const embeddings = this.getOrCreateEmbeddingsInstance('ollama-local', () => new OllamaEmbeddings({
-                baseUrl: defaultOllamaUrl,
-                model: modeloLocal
-            }));
-            const result = await embedWithTimeout(embeddings, text, 180000);
+            const result = await this.unoPorOllama(text, defaultOllamaUrl, modeloLocal);
 
             this._activeProvider = {
                 id: 'ollama-local',
@@ -280,11 +288,12 @@ export class EmbeddingService {
     }
 
     /** Una sola petición a `/api/embed` con todos los textos del lote. */
-    private async loteOllama(textos: string[]): Promise<number[][]> {
-        const baseUrl = this._activeProvider?.baseUrl
+    private async loteOllama(textos: string[], url?: string, modelo?: string): Promise<number[][]> {
+        const baseUrl = url
+            || this._activeProvider?.baseUrl
             || process.env.OLLAMA_BASE_URL
             || 'http://localhost:11434';
-        const model = this._activeProvider?.model || modeloEmbeddingsOllama();
+        const model = modelo || this._activeProvider?.model || modeloEmbeddingsOllama();
 
         const respuesta = await fetch(`${baseUrl}/api/embed`, {
             method: 'POST',
