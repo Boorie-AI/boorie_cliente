@@ -183,3 +183,66 @@ describe('el troceado', () => {
     }
   })
 })
+
+
+/**
+ * Basta un fragmento indigesto para tumbar la petición de los cincuenta —una
+ * tabla de cifras cabe en caracteres y no en tokens—, y rehacerlos uno a uno
+ * devuelve el ritmo a lo que era antes de agrupar: medido en una base real, de
+ * 551 a 235 fragmentos/min.
+ */
+describe('un fragmento indigesto dentro del lote', () => {
+  // Un documento que dé de sobra para más de un lote: con uno de una sola pieza
+  // no hay nada que partir y la prueba no probaría nada.
+  const GRANDE = {
+    ...DOC,
+    content: Array.from({ length: 20000 }, (_, i) => `palabra${i}`).join(' '),
+  }
+  const prismaConChunks = () => {
+    const p = fakePrisma(GRANDE, ['viejo-1'])
+    p.knowledgeChunk.findMany.mockResolvedValue([])
+    return p
+  }
+
+  it('se aísla partiendo el lote, no rehaciéndolo entero', async () => {
+    let indigesto = ''
+    const tamanos: number[] = []
+    const embeddingService = {
+      generateEmbedding: vi.fn(async () => [0.1]),
+      generateEmbeddings: vi.fn(async (textos: string[]) => {
+        tamanos.push(textos.length)
+        if (textos.some(t => t === indigesto)) throw new Error('the input length exceeds the context length')
+        return textos.map(() => [0.1])
+      }),
+    }
+    const rag = new HydraulicRAGService(prismaConChunks(), embeddingService)
+    const piezas: string[] = (rag as any).chunkDocument(GRANDE.content, { maxChunkSize: 1000, overlap: 150 })
+    indigesto = piezas[0]
+
+    await rag.reindexDocument('doc-1')
+
+    // Si se hubiera rehecho uno a uno habría tantas llamadas de tamaño 1 como
+    // fragmentos del lote; partiendo por la mitad son un puñado.
+    const deUnoEnUno = tamanos.filter(n => n === 1).length
+    expect(deUnoEnUno).toBeLessThan(5)
+    expect(tamanos.some(n => n > 1)).toBe(true)
+  })
+
+  it('al culpable se le recorta en vez de tirarlo', async () => {
+    const embeddingService = {
+      generateEmbedding: vi.fn(async (texto: string) => {
+        // Sólo lo acepta recortado, que es como se comporta la ventana real.
+        if (texto.length > 400) throw new Error('the input length exceeds the context length')
+        return [0.1]
+      }),
+      generateEmbeddings: vi.fn(async () => { throw new Error('the input length exceeds the context length') }),
+    }
+    const prisma = prismaConChunks()
+    const rag = new HydraulicRAGService(prisma, embeddingService)
+
+    const res = await rag.reindexDocument('doc-1')
+
+    expect(res.failedCount).toBe(0)
+    expect(res.chunkCount).toBeGreaterThan(0)
+  })
+})

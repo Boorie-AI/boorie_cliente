@@ -54,6 +54,13 @@ costar el doble.
   estaban indexados sólo por su primer cuarto** —el resto del texto no lo encontraba ninguna
   búsqueda— y con un modelo de ventana corta el indexado ni siquiera llegaba a terminar. Ahora
   ninguna pieza pasa del tope, incluidas las tablas que los PDF dejan pegadas sin espacios.
+- **Un fragmento indigesto ya no arrastra a los otros cuarenta y nueve.** Al vectorizar en lotes,
+  basta que uno pase de la ventana del modelo —una tabla de cifras cabe de sobra en caracteres y
+  no en tokens, porque cada número son varios— para que se caiga la petición entera y el lote se
+  rehiciera de uno en uno. Medido sobre una base real, eso bajaba el ritmo de 551 a 235 fragmentos
+  por minuto. Ahora el lote se parte por la mitad hasta aislar al culpable, y al culpable se le
+  recorta en lugar de descartarlo: media página indexada vale más que un fragmento que no existe
+  para ninguna búsqueda.
 - **Vuelve la barra de progreso del reindexado.** Se dibuja con el primer aviso de progreso, y al
   agrupar los fragmentos de 50 en 50 ese primero tardaba 50 fragmentos en salir —en un documento
   más corto, uno solo al final—. Ahora se avisa al empezar cada documento, que es lo que la barra

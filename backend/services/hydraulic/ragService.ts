@@ -259,6 +259,46 @@ export class HydraulicRAGService {
      * horas. Si el lote falla se rehace fragmento a fragmento, que es la forma
      * de seguir distinguiendo cuál de ellos no se pudo vectorizar.
      */
+    /**
+     * Vectoriza un lote, y si falla lo parte en dos en vez de rehacerlo entero
+     * de uno en uno.
+     *
+     * Basta un fragmento indigesto para tumbar la petición de los cincuenta, y
+     * los hay: una tabla de cifras que en caracteres cabe de sobra pasa de la
+     * ventana del modelo en tokens, porque cada número es varios. Rehaciendo
+     * los cincuenta uno a uno se pierde justo lo que se ganaba agrupando —
+     * medido en una base real, el ritmo bajó de 551 a 235 fragmentos/min—;
+     * partiendo por la mitad, el culpable se aísla en seis peticiones y el
+     * resto sigue yendo en lote.
+     *
+     * Y al culpable se le recorta en vez de tirarlo: media página indexada vale
+     * más que un fragmento que no existe para ninguna búsqueda.
+     */
+    const vectorizarLote = async (textos: string[]): Promise<(number[] | null)[]> => {
+      try {
+        return await this.embeddingService.generateEmbeddings(textos, true)
+      } catch (err: any) {
+        if (textos.length > 1) {
+          const mitad = Math.floor(textos.length / 2)
+          return [
+            ...await vectorizarLote(textos.slice(0, mitad)),
+            ...await vectorizarLote(textos.slice(mitad)),
+          ]
+        }
+
+        for (const parte of [0.5, 0.25]) {
+          try {
+            const recortado = textos[0].slice(0, Math.max(1, Math.floor(textos[0].length * parte)))
+            return [await generateWithTimeout(recortado, 60000)]
+          } catch {
+            // Se prueba con menos.
+          }
+        }
+        console.error('[RAG Service] Failed embedding for chunk:', err.message)
+        return [null]
+      }
+    }
+
     const TAMANO_LOTE = 50
     const chunkEmbeddings: (number[] | null)[] = new Array(chunks.length).fill(null)
     const chunkTimings: number[] = []
@@ -277,24 +317,7 @@ export class HydraulicRAGService {
         message: `Chunk ${batchStart + 1}/${chunks.length}: Generando embeddings...`
       })
 
-      let vectores: (number[] | null)[] | null = null
-      try {
-        vectores = await this.embeddingService.generateEmbeddings(lote)
-      } catch (err: any) {
-        console.warn(`[RAG Service] El lote ${batchStart}-${batchEnd} falló; se rehace uno a uno:`, err.message)
-      }
-
-      if (!vectores) {
-        vectores = []
-        for (const texto of lote) {
-          try {
-            vectores.push(await generateWithTimeout(texto, 60000))
-          } catch (err: any) {
-            console.error('[RAG Service] Failed embedding for chunk:', err.message)
-            vectores.push(null)
-          }
-        }
-      }
+      const vectores = await vectorizarLote(lote)
 
       vectores.forEach((v, k) => { chunkEmbeddings[batchStart + k] = v ?? null })
       chunkTimings.push((Date.now() - inicioLote) / lote.length)

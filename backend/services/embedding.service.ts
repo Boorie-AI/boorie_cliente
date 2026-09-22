@@ -256,7 +256,7 @@ export class EmbeddingService {
      * en uno, que es el que había: esto es una optimización, no una ruta nueva
      * con su propia manera de fallar.
      */
-    async generateEmbeddings(textos: string[]): Promise<number[][]> {
+    async generateEmbeddings(textos: string[], estricto = false): Promise<number[][]> {
         if (textos.length === 0) return [];
 
         // La primera llamada resuelve el proveedor con la lógica de siempre.
@@ -266,6 +266,10 @@ export class EmbeddingService {
             try {
                 return await this.loteOllama(textos);
             } catch (e) {
+                // `estricto` deja que el fallo suba: quien llama puede partir el
+                // lote en dos y aislar al culpable en seis peticiones en vez de
+                // rehacer cincuenta de una en una.
+                if (estricto) throw e;
                 console.warn('[EmbeddingService] El lote falló; se sigue uno a uno:', (e as Error).message);
             }
         }
