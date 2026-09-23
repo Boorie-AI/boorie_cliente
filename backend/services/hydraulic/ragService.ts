@@ -4,7 +4,7 @@ import { EmbeddingService } from '../embedding.service'
 import { duenoVectorial, duenosPermitidos, filtroPrisma, filtroVectorial, origenDe, type Ambito, type Origen } from './ambitos'
 import { corpusDe, filtroDeCorpus, repartirPorCorpus, sinRepetidos, unirFiltros, type Corpus } from './repartoDeCorpus'
 import { leerTolerando } from '../lecturaTolerante'
-import { CLAVE_MODELO_INDEXADO, modeloEmbeddingsOllama } from '../modeloEmbeddings'
+import { CLAVE_MODELO_INDEXADO, marcaDeFragmento, modeloEmbeddingsOllama } from '../modeloEmbeddings'
 
 export interface RAGSearchOptions {
   category?: 'hydraulics' | 'regulations' | 'best-practices'
@@ -413,6 +413,7 @@ export class HydraulicRAGService {
           knowledgeId: documentId,
           content: item.content,
           embedding: JSON.stringify(item.embedding),
+          metadata: marcaDeFragmento(),
           chunkIndex: item.chunkIndex
         }))
       }),
@@ -517,6 +518,7 @@ export class HydraulicRAGService {
             create: successfulChunks.map(item => ({
               content: item.content,
               embedding: JSON.stringify(item.embedding),
+              metadata: marcaDeFragmento(),
               chunkIndex: item.chunkIndex
             }))
           }

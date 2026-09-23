@@ -16,7 +16,7 @@ import {
   textoLeido,
   type TextoDeDocumento,
 } from '../../backend/services/textoDeDocumento'
-import { dimensionDeModelo, dimensionEsperada, modeloEmbeddingsOllama, DIMENSION_DESCONOCIDA, CLAVE_MODELO_INDEXADO } from '../../backend/services/modeloEmbeddings'
+import { dimensionDeModelo, dimensionEsperada, marcaDeFragmento, modeloEmbeddingsOllama, DIMENSION_DESCONOCIDA, CLAVE_MODELO_INDEXADO } from '../../backend/services/modeloEmbeddings'
 
 /**
  * Extract plain text from a document on disk. Shared by wisdom:upload
@@ -761,6 +761,8 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
         milvusFailures: 0,
         /** Si hubo que rehacer la colección por venir de otro modelo (#155). */
         coleccionRehecha: false,
+        /** Documentos que ya estaban en el modelo actual y no se han tocado. */
+        saltados: 0,
         errors: [] as string[]
       }
 
@@ -783,6 +785,32 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
         } catch (error: any) {
           console.error('[Document Handler] No se pudo preparar la colección vectorial:', error)
           results.errors.push(`Base vectorial: ${error.message}`)
+        }
+      }
+
+      /**
+       * Se salta lo que ya está entero en el modelo actual, para que un reindexado cortado
+       * siga por donde iba en vez de empezar otra vez. Un documento cuenta como hecho si tiene
+       * fragmentos y todos llevan la marca. Si se ha rehecho la colección, no se salta nada:
+       * sus vectores ya no están en Milvus.
+       */
+      if (options.reindexAll && !results.coleccionRehecha) {
+        const marca = marcaDeFragmento()
+        const conFragmentos = await prismaClient.knowledgeChunk.findMany({
+          select: { knowledgeId: true },
+          distinct: ['knowledgeId'],
+        })
+        const pendientes = await prismaClient.knowledgeChunk.findMany({
+          select: { knowledgeId: true },
+          distinct: ['knowledgeId'],
+          where: { OR: [{ metadata: null }, { NOT: { metadata: marca } }] },
+        })
+        const hechos = new Set(conFragmentos.map(c => c.knowledgeId))
+        for (const p of pendientes) hechos.delete(p.knowledgeId)
+        if (hechos.size > 0) {
+          documentsToReindex = documentsToReindex.filter(d => !hechos.has(d.id))
+          results.saltados = hechos.size
+          console.log(`[Document Handler] ${hechos.size} documentos ya están en ${modeloEmbeddingsOllama()}: se saltan, quedan ${documentsToReindex.length}`)
         }
       }
 

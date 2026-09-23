@@ -26,6 +26,7 @@ vi.mock('../../backend/services/milvus.service', () => ({
     getInstance: () => ({
       ensureConnection: async () => {},
       isAvailable: () => true,
+      prepararParaDimension: async () => coleccionRehecha,
     }),
   },
 }))
@@ -37,9 +38,12 @@ const addDocument = vi.fn(async (doc: any) => {
   if (doc.title === 'b') throw new Error('sin modelo de embeddings')
   return `id-${doc.title}`
 })
+const reindexDocument = vi.fn(async () => ({ chunkCount: 1, failedCount: 0, totalChunks: 1, milvusSynced: true }))
+let coleccionRehecha = false
 vi.mock('../../backend/services/hydraulic/ragService', () => ({
   HydraulicRAGService: class {
     addDocument = (...args: any[]) => addDocument(...args)
+    reindexDocument = (...args: any[]) => reindexDocument(...(args as []))
   },
 }))
 
@@ -472,5 +476,57 @@ describe('wisdom:getRAGHealth — con qué modelo se indexó', () => {
 
     expect(res.health.metrics.embeddings.modeloDistinto).toBe(false)
     expect(res.health.issues.join(' ')).not.toContain('reindexar')
+  })
+})
+
+describe('wisdom:massiveReindex — seguir por donde iba', () => {
+  const MARCA = JSON.stringify({ modelo: 'granite-embedding:278m' })
+
+  beforeEach(() => {
+    process.env.BOORIE_MODELO_EMBEDDINGS = 'granite-embedding:278m'
+    reindexDocument.mockClear()
+    coleccionRehecha = false
+  })
+  afterEach(() => { delete process.env.BOORIE_MODELO_EMBEDDINGS })
+
+  /** d1 entero en el modelo actual, d2 a medias, d3 de otro modelo y d4 sin fragmentos. */
+  const reindexarTodo = async () => {
+    const trozos = [
+      { knowledgeId: 'd1', metadata: MARCA },
+      { knowledgeId: 'd1', metadata: MARCA },
+      { knowledgeId: 'd2', metadata: MARCA },
+      { knowledgeId: 'd2', metadata: null },
+      { knowledgeId: 'd3', metadata: JSON.stringify({ modelo: 'nomic-embed-text' }) },
+    ]
+    const cumple = (t: any, where: any) => !where || where.OR.some((c: any) =>
+      'metadata' in c ? t.metadata === c.metadata : t.metadata !== null && t.metadata !== c.NOT.metadata)
+    const prisma: any = {
+      hydraulicKnowledge: {
+        findMany: vi.fn(async () => ['d1', 'd2', 'd3', 'd4'].map(id => ({ id, title: id }))),
+        findUnique: vi.fn(async ({ where }: any) => ({ id: where.id, title: where.id, chunks: [] })),
+      },
+      knowledgeChunk: {
+        findMany: vi.fn(async ({ where }: any) =>
+          [...new Set(trozos.filter(t => cumple(t, where)).map(t => t.knowledgeId))].map(knowledgeId => ({ knowledgeId }))),
+      },
+      appSetting: { upsert: vi.fn(async () => ({})) },
+    }
+    registerWisdomHandlers(prisma)
+    const res = await handlersRegistrados['wisdom:massiveReindex']({ sender: { send: () => {} } }, { reindexAll: true })
+    return { res, ids: reindexDocument.mock.calls.map((c: any[]) => c[0]) }
+  }
+
+  it('se salta los documentos que ya están enteros en el modelo actual', async () => {
+    const { res, ids } = await reindexarTodo()
+
+    expect(ids).toEqual(['d2', 'd3', 'd4'])
+    expect(res.results.saltados).toBe(1)
+  })
+
+  it('si se ha rehecho la colección no se salta nada: sus vectores ya no están', async () => {
+    coleccionRehecha = true
+    const { ids } = await reindexarTodo()
+
+    expect(ids).toEqual(['d1', 'd2', 'd3', 'd4'])
   })
 })

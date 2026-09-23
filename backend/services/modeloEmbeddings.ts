@@ -111,3 +111,14 @@ export function dimensionEsperada(): number {
  * documento de una base vacía.
  */
 export const CLAVE_MODELO_INDEXADO = 'embeddings.modelo'
+
+/**
+ * La misma marca, pero en cada fragmento (`knowledge_chunks.metadata`). La de la base sólo se
+ * escribe al terminar un reindexado completo, así que no dice por dónde iba uno que se cortó: el
+ * de la base de un usuario murió por falta de memoria en el documento 123 de 313, tras quince
+ * horas, y relanzarlo volvía a empezar por el primero. Con la marca por fragmento, el reindexado
+ * se salta los documentos que ya están enteros en el modelo actual.
+ */
+export function marcaDeFragmento(): string {
+  return JSON.stringify({ modelo: modeloEmbeddingsOllama() })
+}
