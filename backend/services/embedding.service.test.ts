@@ -70,3 +70,32 @@ describe('generateEmbeddings', () => {
     expect(fetchFalso).not.toHaveBeenCalled()
   })
 })
+
+describe('generateEmbeddings — con el proveedor descubierto en la base', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('tras descubrir Ollama, los lotes siguientes van en una sola petición', async () => {
+    const fetchFalso = vi.fn(async (_url: string, opciones: any) => {
+      const n = JSON.parse(opciones.body).input.length
+      return { ok: true, json: async () => ({ embeddings: new Array(n).fill(vector()) }) }
+    })
+    vi.stubGlobal('fetch', fetchFalso)
+    const prisma = {
+      aIProvider: {
+        findFirst: vi.fn(async ({ where }: any) =>
+          where.name.contains === 'Ollama' ? { name: 'Ollama', isActive: true, config: null } : null),
+      },
+    }
+    const s = new EmbeddingService(prisma as any)
+
+    await s.generateEmbeddings(['uno', 'dos', 'tres'])
+    fetchFalso.mockClear()
+    prisma.aIProvider.findFirst.mockClear()
+
+    const salida = await s.generateEmbeddings(['cuatro', 'cinco', 'seis'])
+
+    expect(fetchFalso).toHaveBeenCalledTimes(1)
+    expect(prisma.aIProvider.findFirst).not.toHaveBeenCalled()
+    expect(salida).toHaveLength(3)
+  })
+})

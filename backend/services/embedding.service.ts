@@ -181,9 +181,9 @@ export class EmbeddingService {
                 const model = modeloEmbeddingsOllama();
                 const baseUrl = config.baseUrl || process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 
-                // Validate if Ollama is reachable first
+                let vector: number[];
                 try {
-                    return await this.unoPorOllama(text, baseUrl, model);
+                    vector = await this.unoPorOllama(text, baseUrl, model);
                 } catch (ollamaErr: any) {
                     if (ollamaErr.cause && (ollamaErr.cause.code === 'ECONNREFUSED' || ollamaErr.cause.code === 'ETIMEDOUT')) {
                         throw new Error(`Ollama connection failed at ${baseUrl}. Is Ollama running on the server?`);
@@ -191,6 +191,10 @@ export class EmbeddingService {
                     throw ollamaErr;
                 }
 
+                // El `return` iba antes de esto y el proveedor no se apuntaba nunca: cada
+                // lote de `generateEmbeddings` caía al camino de uno en uno, con su consulta
+                // a la base por fragmento. Medido en una base real: 146 fragmentos/min, uno
+                // por petición, cuando el lote da 551.
                 this._activeProvider = {
                     id: 'ollama-db',
                     name: 'Ollama (Database)',
@@ -198,6 +202,7 @@ export class EmbeddingService {
                     dimension: dimensionEsperada(),
                     baseUrl
                 };
+                return vector;
             } catch (e) {
                 console.error("Error generating Ollama embedding:", e);
             }
