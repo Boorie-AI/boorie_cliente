@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import * as fs from 'fs'
 import * as path from 'path'
 import { DataType } from '@zilliz/milvus2-sdk-node'
@@ -108,5 +108,30 @@ describe.skipIf(!hayMilvus)('MilvusService: la dimensión la ponen los vectores'
     const desbordado = { ...fila('c1', 768), content: 'x'.repeat(9000) }
 
     await expect(servicio.insert(nombre, [desbordado])).rejects.toThrow(/Milvus rechazó/)
+  }, 60_000)
+  it('una colección sin cargar se carga al buscar, en vez de devolver cero fuentes', async () => {
+    // Es como queda tras reiniciar Milvus Lite: no recuerda que estaba cargada.
+    const nombre = await coleccionA(768)
+    const f = fila('c1', 768)
+    await servicio.insert(nombre, [f])
+    await servicio.getClient().releaseCollection({ collection_name: nombre })
+
+    const res: any = await servicio.search(nombre, f.vector, 1)
+
+    expect(res.results).toHaveLength(1)
+  }, 60_000)
+
+  it('un plazo vencido al describir la colección no la tira', async () => {
+    const nombre = await coleccionA(768)
+    await servicio.insert(nombre, [fila('c1', 768)])
+    const cliente = servicio.getClient()
+    const espia = vi.spyOn(cliente, 'describeCollection')
+      .mockRejectedValueOnce(new Error('4 DEADLINE_EXCEEDED: Deadline exceeded after 15.000s'))
+
+    await expect((servicio as any).ensureCollection(nombre, 768)).rejects.toThrow(/DEADLINE_EXCEEDED/)
+    espia.mockRestore()
+
+    expect((await cliente.hasCollection({ collection_name: nombre })).value).toBe(true)
+    expect(await dimensionDe(nombre)).toBe(768)
   }, 60_000)
 })

@@ -16,6 +16,17 @@ export class MilvusService {
     // rest of the session even once the server became reachable (issue #19/#21).
     private static readonly RETRY_INTERVAL_MS = 20_000;
 
+    /**
+     * Plazo para abrir y cargar una colección, en lugar de los 15 s del SDK.
+     *
+     * La primera petición que toca una colección tras arrancar Milvus Lite la abre de disco: con
+     * la base de un usuario real reindexada —298.072 fragmentos, 2,2 GB— son 11 s con la máquina
+     * libre, y con Electron, Vite y Ollama arrancando a la vez pasa de los 15. El `hasCollection`
+     * expiraba, la conexión se daba por fallida antes de cargar nada, y cada búsqueda del resto
+     * de la sesión recibía «state 'released'» y devolvía cero fuentes.
+     */
+    private static readonly PLAZO_COLECCION_MS = 180_000;
+
     // Collection Names — Milvus Lite embebido es la BD vectorial única
     // para RAG, memoria de agentes, conversaciones y guardrails.
     public static COLLECTIONS = {
@@ -268,14 +279,15 @@ export class MilvusService {
      *   recrear con ella destruiría el índice bueno.
      */
     private async ensureCollection(name: string, dimension: number, reconciliarDimension = false) {
-        const has = await this.client.hasCollection({ collection_name: name });
+        const plazo = MilvusService.PLAZO_COLECCION_MS;
+        const has = await this.client.hasCollection({ collection_name: name, timeout: plazo });
         if (has.value) {
             // Defensive describe — milvus-lite sometimes returns schema=null for
             // legacy collections; in that case we drop and recreate cleanly.
             let currentDim = 0;
             let canDescribe = true;
             try {
-                const desc = await this.client.describeCollection({ collection_name: name });
+                const desc = await this.client.describeCollection({ collection_name: name, timeout: plazo });
                 const fields = desc?.schema?.fields ?? null;
                 if (!fields) {
                     canDescribe = false;
@@ -295,8 +307,10 @@ export class MilvusService {
                     }
                 }
             } catch (e) {
-                canDescribe = false;
-                console.warn(`[MilvusService] describeCollection(${name}) failed, will recreate:`, (e as Error).message);
+                // Un fallo al describir no dice nada del esquema —puede ser un plazo vencido— y
+                // tratarlo como esquema ilegible tiraba la colección entera con todos sus vectores.
+                console.warn(`[MilvusService] describeCollection(${name}) failed:`, (e as Error).message);
+                throw e;
             }
 
             const dimensionIncompatible = currentDim !== dimension && currentDim !== 0;
@@ -309,7 +323,7 @@ export class MilvusService {
                     console.warn(`[MilvusService] Collection ${name} has dim=${currentDim}, not the ${dimension} guessed at startup — leaving it alone; the next insert will reconcile it.`);
                 }
                 if (currentDim > 0) this.dimensiones.set(name, currentDim);
-                try { await this.client.loadCollection({ collection_name: name }); } catch { /* ignore */ }
+                await this.cargar(name);
                 return;
             }
         }
@@ -355,7 +369,27 @@ export class MilvusService {
         });
         console.log(`[MilvusService] Collection ${name} created.`);
         this.dimensiones.set(name, dimension);
-        await this.client.loadCollection({ collection_name: name });
+        await this.cargar(name);
+    }
+
+    /**
+     * Carga la colección en memoria. Milvus Lite no recuerda entre arranques que estaba cargada,
+     * así que hay que hacerlo en cada uno. No lanza: si falla aquí, `search` lo vuelve a intentar.
+     */
+    private async cargar(name: string): Promise<boolean> {
+        try {
+            const res = await this.client.loadCollection({ collection_name: name, timeout: MilvusService.PLAZO_COLECCION_MS });
+            MilvusService.exigirExito(res, `la carga de ${name}`);
+            return true;
+        } catch (e) {
+            console.warn(`[MilvusService] No se pudo cargar ${name}:`, (e as Error).message);
+            return false;
+        }
+    }
+
+    private static sinCargar(res: any): boolean {
+        const status = res?.status;
+        return status?.code === 101 || /released|not loaded/i.test(status?.reason ?? '');
     }
 
     public isAvailable(): boolean {
@@ -381,7 +415,7 @@ export class MilvusService {
             return { results: [] } as any;
         }
 
-        return this.client.search({
+        const buscar = () => this.client.search({
             collection_name: collection,
             data: vector,
             limit: limit,
@@ -396,6 +430,15 @@ export class MilvusService {
             params: { metric_type: 'COSINE' },
             consistency_level: consistency ? ConsistencyLevelEnum.Strong : ConsistencyLevelEnum.Eventually
         });
+
+        // Una colección sin cargar tampoco lanza: responde con el error en el estado y la lista
+        // vacía, y el chat contestaba sin fuentes. Se carga y se repite una vez.
+        let res: any = await buscar();
+        if (MilvusService.sinCargar(res) && await this.cargar(collection)) {
+            res = await buscar();
+        }
+        MilvusService.exigirExito(res, `la búsqueda en ${collection}`);
+        return res;
     }
 
     public async insert(collection: string, rows: any[]) {
