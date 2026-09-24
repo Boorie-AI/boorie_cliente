@@ -39,15 +39,22 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.37.1
+### 🚀 Última Versió - v1.38.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.37.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.37.1/Boorie-1.37.1-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.37.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.37.1/Boorie-Setup-1.37.1.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.37.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.37.1/Boorie-1.37.1.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.38.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.0/Boorie-1.38.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.38.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.0/Boorie-Setup-1.38.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.38.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.0/Boorie-1.38.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.38.0
+- Cercar en una base de coneixement gran es menjava la memòria de l'equip. En una base real de 298.072 fragments, cada cerca trigava uns dos minuts i mig, es donava per fallida i deixava el procés en 11 GB: en un equip de 16 GB, això n'hi havia prou perquè el sistema tanqués la sessió sencera. Ara triga uns 2 segons i es queda per sota de 3 GB.
+- La primera vegada que vostè obri aquesta versió, la base vectorial es reorganitza sola, una vegada, copiant els vectors que ja té: en aquesta base són uns 11 minuts. La Base de Coneixement diu quant porta, i si tanca l'aplicació continua per on anava.
+- El model d'embeddings per defecte passa a ser `granite-embedding:278m`: recupera millor i reindexa tres vegades més de pressa. Cal reindexar una vegada, i si falta el model, l'aplicació el demana i el descarrega.
+- I una sèrie d'arranjaments pels quals el RAG no trobava res sense dir-ho: la comprovació de salut mirava un sol fragment, al model local no li arribava el prompt de sistema, i el troceig deixava la major part de cada fragment fora de la cerca.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.38.0).
 
 ### 📝 Novetats a v1.37.1
 - Un sol document illegible impedia reindexar, cercar i revisar la base sencera. Si hi quedava un document amb text que no és UTF-8 vàlid —cosa que deixaven les extraccions de PDF de versions anteriors—, la reindexació moria abans de començar i l'error ni deia de quin document parlava.
@@ -402,12 +409,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.37.1.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.37.1.AppImage`
-3. Executa: `./Boorie-1.37.1.AppImage`
+1. Descarrega `Boorie-1.38.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.38.0.AppImage`
+3. Executa: `./Boorie-1.38.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.37.1.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.38.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 

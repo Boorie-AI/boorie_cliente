@@ -9,10 +9,39 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.38.0] - 2026-09-23
 
-El RAG no encontraba nada y no lo decía. Se arregla lo que lo tapaba, y reindexar deja de
-costar el doble.
+El RAG no encontraba nada y no lo decía. Se arregla lo que lo tapaba, buscar en una base grande
+deja de comerse la memoria del equipo, y reindexar deja de costar el doble.
+
+- **Buscar en una base grande se comía la memoria hasta cerrar la sesión.** Cada pregunta
+  filtraba la base vectorial por proyecto y por tipo de documento, y la base vectorial resolvía
+  ese filtro convirtiendo en memoria todo lo guardado, vectores incluidos. En una base real de
+  298.072 fragmentos, cada búsqueda tardaba unos dos minutos y medio, se daba por fallida antes
+  de acabar y dejaba el proceso en 11 GB; en un equipo de 16 GB eso bastaba para que el sistema
+  cerrara la sesión de escritorio entera. Ahora la misma búsqueda tarda unos 2 segundos y la
+  base vectorial se queda en menos de 3 GB.
+- **La primera vez que se abre esta versión, la base vectorial se reorganiza sola, una vez.** Hace
+  falta para lo anterior, y no vuelve a calcular ningún vector: los copia de la base de datos. En
+  la base de 298.072 fragmentos son unos 11 minutos. Mientras dura, la búsqueda por similitud no
+  devuelve nada y la Base de Conocimiento dice cuánto lleva; si se cierra la aplicación a medias,
+  sigue por donde iba la próxima vez. Si la base estaba indexada con otro modelo de embeddings —el
+  caso de quien viene de la 1.37 con `bge-m3`—, no hay vectores que aprovechar: la reorganización
+  termina vacía y la aplicación pide reindexar, que es lo que exige el cambio de modelo de más
+  abajo.
+- **Una base de datos traída de otro equipo se pone en marcha sola.** Si la base vectorial está
+  vacía y la base de datos ya trae sus vectores, se rellena por la misma vía al arrancar. Antes
+  esperaba a la primera pregunta al chat y avanzaba de cincuenta en cincuenta fragmentos.
+- **Si la base vectorial tardaba en abrirse, el RAG se quedaba sin fuentes toda la sesión.** La
+  primera vez que se toca tras arrancar, la base vectorial se lee del disco: con una base grande
+  son unos 11 segundos, y con el resto de la aplicación arrancando a la vez pasaba de los 15 que
+  se le daban. Se daba por caída y cada búsqueda posterior devolvía cero fuentes. Ahora tiene
+  tres minutos, y un plazo vencido ya no se confunde con una base dañada, que era lo que podía
+  llevar a borrarla.
+- **Un reindexado cortado sigue por donde iba.** El de la base de un usuario se quedó sin memoria
+  en el documento 123 de 313, tras quince horas, y relanzarlo volvía a empezar por el primero.
+  Ahora cada fragmento sabe con qué modelo se vectorizó, y el reindexado se salta los documentos
+  que ya están enteros.
 
 - **Al modelo local no le llegaba ningún prompt de sistema.** Con Ollama y sin red cargada, el
   chat no pasa por el manejador IPC —va directo desde la interfaz para poder pintar la respuesta
@@ -38,6 +67,10 @@ costar el doble.
 - **Vectorizar va al doble.** Se mandaba un fragmento por petición HTTP. Agrupándolos, medido con
   bge-m3 sobre fragmentos reales en una GTX 960M, se pasa de 96 a 199 fragmentos por minuto. En
   una base de cien mil fragmentos son horas de diferencia.
+- **Y los lotes se usan de verdad.** La aplicación descubre en qué dirección está Ollama la
+  primera vez que vectoriza, pero no se lo apuntaba, así que cada lote volvía al camino de un
+  fragmento por petición. Medido en una base real con `granite-embedding:278m`: de 146 a 551
+  fragmentos por minuto.
 - **Cambia el modelo de embeddings a `granite-embedding:278m`, y hay que reindexar una vez.** Se
   midió contra el corpus de un usuario real —317 libros técnicos, 102.062 fragmentos— con 32
   preguntas en castellano repartidas entre 14 de esos libros y los mismos textos para todos los
