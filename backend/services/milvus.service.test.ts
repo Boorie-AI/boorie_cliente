@@ -202,7 +202,7 @@ describe.skipIf(!hayMilvus)('MilvusService: la colección con el esquema viejo s
 
   beforeAll(async () => {
     // Una fuente que lanza se reintenta; aquí sin esperar entre intentos.
-    ;(MilvusService as any).ESPERA_FUENTE_MS = 0
+    (MilvusService as any).ESPERA_FUENTE_MS = 0
     // La colección nueva toma la dimensión del modelo configurado.
     process.env.EMBEDDING_DIMENSION = String(DIM)
     servicio = MilvusService.getInstance()
