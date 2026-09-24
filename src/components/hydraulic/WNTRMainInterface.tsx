@@ -185,6 +185,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   // feature — see network-repo IPC channels), so this keeps existing
   // behavior working without regressing it.
   const [projects, setProjects] = useState<Project[]>([]);
+  const [cargandoProyectos, setCargandoProyectos] = useState(true);
   // El proyecto activo vive en useProjectStore (issue #31): así el chat, el
   // Wisdom Center y esta vista comparten contexto, y sobrevive a desmontar la
   // vista o a cerrar la aplicación. Aquí sólo se guarda el id; el view-model se
@@ -278,11 +279,14 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
   useEffect(() => { refreshActiveNetworks(); }, [refreshActiveNetworks]);
 
   const refreshProjects = useCallback(async () => {
+    setCargandoProyectos(true);
     try {
       const list = await hydraulicService.listProjects();
       setProjects(list.map(toViewModel));
     } catch (e) {
       logger.error('Failed to load projects:', e);
+    } finally {
+      setCargandoProyectos(false);
     }
   }, [toViewModel]);
 
@@ -1126,6 +1130,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
           onImportNetwork={handleImportNetwork}
           onDeleteProject={handleDeleteProject}
           activeProjectId={activeProjectId}
+          isLoading={cargandoProyectos}
         />
       );
     }

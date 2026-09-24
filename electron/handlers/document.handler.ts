@@ -16,7 +16,7 @@ import {
   textoLeido,
   type TextoDeDocumento,
 } from '../../backend/services/textoDeDocumento'
-import { dimensionDeModelo, dimensionEsperada, modeloEmbeddingsOllama, DIMENSION_DESCONOCIDA } from '../../backend/services/modeloEmbeddings'
+import { dimensionDeModelo, dimensionEsperada, marcaDeFragmento, modeloEmbeddingsOllama, DIMENSION_DESCONOCIDA, CLAVE_MODELO_INDEXADO } from '../../backend/services/modeloEmbeddings'
 
 /**
  * Extract plain text from a document on disk. Shared by wisdom:upload
@@ -761,6 +761,8 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
         milvusFailures: 0,
         /** Si hubo que rehacer la colección por venir de otro modelo (#155). */
         coleccionRehecha: false,
+        /** Documentos que ya estaban en el modelo actual y no se han tocado. */
+        saltados: 0,
         errors: [] as string[]
       }
 
@@ -786,6 +788,32 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
         }
       }
 
+      /**
+       * Se salta lo que ya está entero en el modelo actual, para que un reindexado cortado
+       * siga por donde iba en vez de empezar otra vez. Un documento cuenta como hecho si tiene
+       * fragmentos y todos llevan la marca. Si se ha rehecho la colección, no se salta nada:
+       * sus vectores ya no están en Milvus.
+       */
+      if (options.reindexAll && !results.coleccionRehecha) {
+        const marca = marcaDeFragmento()
+        const conFragmentos = await prismaClient.knowledgeChunk.findMany({
+          select: { knowledgeId: true },
+          distinct: ['knowledgeId'],
+        })
+        const pendientes = await prismaClient.knowledgeChunk.findMany({
+          select: { knowledgeId: true },
+          distinct: ['knowledgeId'],
+          where: { OR: [{ metadata: null }, { NOT: { metadata: marca } }] },
+        })
+        const hechos = new Set(conFragmentos.map(c => c.knowledgeId))
+        for (const p of pendientes) hechos.delete(p.knowledgeId)
+        if (hechos.size > 0) {
+          documentsToReindex = documentsToReindex.filter(d => !hechos.has(d.id))
+          results.saltados = hechos.size
+          console.log(`[Document Handler] ${hechos.size} documentos ya están en ${modeloEmbeddingsOllama()}: se saltan, quedan ${documentsToReindex.length}`)
+        }
+      }
+
       let docIndex = 0
       for (const entrada of documentsToReindex) {
         docIndex += 1
@@ -801,6 +829,24 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
 
         try {
           console.log(`[Document Handler] Reindexing: "${doc.title}"`)
+
+          /*
+           * Un aviso al empezar cada documento, antes de vectorizar nada. La
+           * barra sólo se dibuja cuando llega el primer progreso, y los avisos
+           * los manda el troceado: al pasar a lotes de 50 fragmentos, el
+           * primero tarda 50 en llegar —y en un documento de menos de 50, uno
+           * solo al final—, así que la barra no aparecía. Esto no depende del
+           * tamaño del lote: es por documento, que es justo lo que la barra
+           * mide.
+           */
+          event.sender.send('wisdom:reindex-progress', {
+            documentId: doc.id,
+            title: doc.title,
+            document: docIndex,
+            totalDocuments: documentsToReindex.length,
+            current: 0,
+            total: 0,
+          })
 
           // Reindexado real por documento. Un fallo (por ejemplo, el proveedor
           // de embeddings caído) se cuenta como fallo con su motivo, en lugar
@@ -844,6 +890,20 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
           `probablemente de una extracción de PDF antigua—: ${ilegibles.map(d => d.title).join(', ')}. ` +
           `El resto se ha reindexado; bórrelos desde la lista para que dejen de estorbar.`
         )
+      }
+
+      /**
+       * Queda anotado con qué modelo está indexada la base, y sólo si se ha
+       * rehecho entera y sin fallos: una base a medias no puede decir que ya
+       * está toda en el modelo nuevo, porque entonces el aviso desaparecería
+       * con la mitad de los fragmentos todavía del anterior.
+       */
+      if (options.reindexAll && results.failed === 0 && ilegibles.length === 0) {
+        await prismaClient.appSetting.upsert({
+          where: { key: CLAVE_MODELO_INDEXADO },
+          update: { value: modeloEmbeddingsOllama() },
+          create: { key: CLAVE_MODELO_INDEXADO, value: modeloEmbeddingsOllama() },
+        })
       }
 
       console.log(`[Document Handler] Massive reindexing complete: ${results.successful}/${results.totalProcessed} successful`)
@@ -1539,7 +1599,10 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
             name.includes('e5') ||
             name.includes('gemma') ||
             name.includes('llama') ||
-            name.includes('mistral')
+            name.includes('mistral') ||
+            // El que la aplicación usa de verdad entra siempre, se llame como
+            // se llame: la lista de nombres no puede decidir si aparece.
+            name.split(':')[0] === modeloEmbeddingsOllama().split(':')[0]
           )
         }).map((model: any) => {
           const dimension = dimensionDeModelo(model.name) ?? DIMENSION_DESCONOCIDA
@@ -1851,20 +1914,95 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
       )
 
       const dimensionActual = dimensionEsperada()
-      const muestra = await prismaClient.knowledgeChunk.findFirst({
-        where: { embedding: { notIn: ['', '[]', 'null'] } },
-        select: { embedding: true }
-      })
-      let dimensionGuardada: number | undefined
-      if (muestra?.embedding) {
-        try {
-          const v = JSON.parse(muestra.embedding)
-          if (Array.isArray(v) && v.length > 0) dimensionGuardada = v.length
-        } catch {
-          // Un embedding ilegible ya lo cuenta la cobertura de arriba.
+      /**
+       * La distribución de tamaños, no un fragmento suelto.
+       *
+       * Esto se resolvía con un `findFirst`, y una migración a medias lo deja
+       * mintiendo: en la base de un usuario con 102.062 fragmentos, el
+       * reindexado automático del arranque murió tras pasar 8.397 a 1024 y el
+       * muestreo cayó justo en uno de ésos. Resultado: `descuadrada` a false,
+       * salud «correcta», aviso de reindexado invisible, y los 93.650
+       * fragmentos de 768 que quedaban —el 92 % de la base— mudos en cada
+       * búsqueda, sin que nada lo dijera.
+       */
+      let dimensiones: { dim: number; n: number }[] = []
+      try {
+        const filas = await prismaClient.$queryRawUnsafe<{ dim: number | null; n: number | bigint }[]>(
+          `SELECT json_array_length(embedding) AS dim, COUNT(*) AS n
+           FROM knowledge_chunks
+           WHERE embedding IS NOT NULL AND embedding NOT IN ('', '[]', 'null')
+             AND json_valid(embedding)
+           GROUP BY dim`
+        )
+        dimensiones = filas
+          .filter(f => f.dim !== null && Number(f.dim) > 0)
+          .map(f => ({ dim: Number(f.dim), n: Number(f.n) }))
+      } catch (error) {
+        // Sin json_array_length se vuelve al muestreo: peor, pero mejor que
+        // dejar la comprobación sin responder.
+        console.warn('No se pudo contar los tamaños de los vectores; se mira sólo uno:', error)
+        const muestra = await prismaClient.knowledgeChunk.findFirst({
+          where: { embedding: { notIn: ['', '[]', 'null'] } },
+          select: { embedding: true }
+        })
+        if (muestra?.embedding) {
+          try {
+            const v = JSON.parse(muestra.embedding)
+            if (Array.isArray(v) && v.length > 0) dimensiones = [{ dim: v.length, n: 1 }]
+          } catch {
+            // Un embedding ilegible ya lo cuenta la cobertura de arriba.
+          }
         }
       }
-      const dimensionDescuadrada = dimensionGuardada !== undefined && dimensionGuardada !== dimensionActual
+
+      /**
+       * Con qué modelo se indexó, que no es lo mismo que de qué tamaño son los
+       * vectores: `granite-embedding:278m` da 768 y `nomic-embed-text` también.
+       * Una base indexada con el viejo pasaría la comprobación de tamaño y la
+       * búsqueda devolvería documentos al azar —peor que devolver vacío, porque
+       * nada lo delata—. Sin marca y con fragmentos indexados se asume que
+       * vienen de antes, que es lo conservador: sobra un aviso, no falta.
+       */
+      /**
+       * Y si el modelo que se va a usar está siquiera instalado. Sin él no se
+       * puede vectorizar nada: ni indexar, ni buscar, ni reindexar —y el
+       * reindexado tardaría horas en fallar documento a documento—. `null` es
+       * «no se pudo preguntar», que no es lo mismo que «no está».
+       */
+      let modeloInstalado: boolean | null = null
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const axios = require('axios')
+        const r = await axios.get(`${process.env.OLLAMA_BASE_URL || 'http://localhost:11434'}/api/tags`, { timeout: 5000 })
+        const instalados: string[] = (r.data?.models ?? []).map((m: { name: string }) => m.name)
+        const pedido = modeloEmbeddingsOllama()
+        // `granite-embedding:278m` y `granite-embedding:278m` con otra etiqueta
+        // son el mismo modelo a estos efectos, igual que en `modelosRAG`.
+        modeloInstalado = instalados.some(n => n === pedido || n.split(':')[0] === pedido.split(':')[0])
+      } catch {
+        // Ollama apagado o inalcanzable: ya se avisa por otra vía.
+      }
+
+      const marca = await prismaClient.appSetting.findUnique({ where: { key: CLAVE_MODELO_INDEXADO } })
+      const modeloGuardado = marca?.value ?? null
+      const modeloDistinto = chunksWithEmbeddings > 0 && modeloGuardado !== modeloEmbeddingsOllama()
+
+      const porTamano = dimensiones
+        .filter(d => d.dim !== dimensionActual)
+        .reduce((total, d) => total + d.n, 0)
+      // Si el modelo no es el mismo, no vale ninguno aunque el tamaño cuadre.
+      const descuadrados = modeloDistinto ? chunksWithEmbeddings : porTamano
+      const dimensionDescuadrada = porTamano > 0
+      /**
+       * El tamaño que se le enseña al usuario es el del grupo que hay que
+       * reindexar, no el del primer fragmento que salga: con la base a medio
+       * migrar conviven los dos y el que importa es el que no sirve.
+       */
+      const mayoritaria = (grupos: { dim: number; n: number }[]) =>
+        grupos.sort((a, b) => b.n - a.n)[0]?.dim
+      const dimensionGuardada = dimensionDescuadrada
+        ? mayoritaria(dimensiones.filter(d => d.dim !== dimensionActual))
+        : mayoritaria(dimensiones)
 
       /**
        * Y los vectores tienen que llevar el dueño escrito como lo espera el
@@ -1913,15 +2051,26 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
       // que el panel decía "Database: connected" con el servidor vectorial caído
       // y 0% indexado, que es lo que despistó al diagnosticar un caso real.
       let vectorStatus = 'disconnected'
+      let reconstruccion: { hechas: number; total: number } | null = null
       try {
-        const milvusService = (await import('../../backend/services/milvus.service')).MilvusService.getInstance()
+        const { MilvusService } = await import('../../backend/services/milvus.service')
+        const milvusService = MilvusService.getInstance()
         await milvusService.ensureConnection()
         vectorStatus = milvusService.isAvailable() ? 'connected' : 'disconnected'
+        reconstruccion = milvusService.estadoReconstruccion(MilvusService.COLLECTIONS.KNOWLEDGE)
       } catch {
         vectorStatus = 'disconnected'
       }
       if (vectorStatus !== 'connected') {
         issues.push('Milvus (base vectorial) no está disponible: no se puede indexar ni buscar por similitud')
+        status = 'critical'
+      }
+      if (reconstruccion) {
+        issues.push(
+          `Se está reconstruyendo la base vectorial (${reconstruccion.hechas.toLocaleString('es')} de ` +
+          `${reconstruccion.total.toLocaleString('es')} fragmentos): hasta que termine, la búsqueda por ` +
+          `similitud no devuelve nada. Se hace una sola vez y sigue por donde iba si se cierra la app.`
+        )
         status = 'critical'
       }
       if (dimensionDescuadrada) {
@@ -1938,6 +2087,23 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
           `sin OCR—: ${sinTextoUtil.slice(0, 3).map(d => d.title).join(', ')}` +
           `${sinTextoUtil.length > 3 ? '…' : ''}. Ocupan sitio en las búsquedas y no pueden responder nada.`
         )
+      }
+      if (modeloInstalado === false) {
+        issues.push(
+          `El modelo de embeddings «${modeloEmbeddingsOllama()}» no está instalado en Ollama. Sin él no se ` +
+          `puede indexar ni buscar nada: instálalo con «ollama pull ${modeloEmbeddingsOllama()}» o desde el ` +
+          `aviso de la Base de Conocimiento.`
+        )
+        status = 'critical'
+      }
+      if (modeloDistinto && !dimensionDescuadrada) {
+        issues.push(
+          `La base se indexó con ${modeloGuardado ? `«${modeloGuardado}»` : 'otro modelo de embeddings'} ` +
+          `y ahora se busca con «${modeloEmbeddingsOllama()}». Coincida o no el tamaño de los vectores, ` +
+          `son espacios distintos: la búsqueda devuelve resultados sin sentido. Hay que reindexar la ` +
+          `base de conocimiento.`
+        )
+        status = 'critical'
       }
       if (ambitoSinCodificar) {
         issues.push(
@@ -1968,6 +2134,13 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
             dimensionGuardada,
             dimensionEsperada: dimensionActual,
             descuadrada: dimensionDescuadrada,
+            /** Cuántos fragmentos hay que rehacer, no cuántos hay (#162). */
+            descuadrados,
+            /** Indexado con otro modelo, aunque el tamaño cuadre. */
+            modeloDistinto,
+            modeloGuardado,
+            /** Si el modelo configurado está instalado en Ollama; null si no se pudo preguntar. */
+            modeloInstalado,
             /** El otro motivo por el que hay que reindexar (#158). */
             ambitoSinCodificar,
             modelo: modeloEmbeddingsOllama()

@@ -693,8 +693,7 @@
     "autoDetected": "Embedding models auto-detected and available",
     "runningLocally": "Models are running locally for privacy and speed",
     "recommended": "Recommended embedding models:",
-    "modelBge": "bge-m3 (1024d) - Multilingual; the one Boorie uses by default",
-    "modelNomic": "nomic-embed-text (768d) - Lightweight, but only retrieves in English",
+    "modelBge": "bge-m3 (1024d) - Multilingual, longer window; retrieves slightly worse and runs three times slower",
     "modelMxbai": "mxbai-embed-large (1024d) - High quality, English only",
     "modelMinilm": "all-minilm (384d) - Fast & lightweight, English only",
     "chatModelsNote": "Chat models (gemma, llama, mistral) can be used but are less efficient for embeddings",
@@ -741,7 +740,14 @@
       "enMarcha": "Reindexing…",
       "progreso": "Document {{hechos}} of {{total}}: {{titulo}}",
       "hecho": "Reindexing finished: {{documentos}} of {{total}} documents, {{fragmentos}} fragments. Searches work again.",
-      "fallo": "Reindexing could not be completed: {{motivo}}"
+      "fallo": "Reindexing could not be completed: {{motivo}}",
+      "porqueModelo": "The knowledge base was indexed with \"{{guardado}}\" and searches now run with \"{{modelo}}\". Even when the vectors have the same size they are different spaces, so searching returns documents unrelated to the question.",
+      "tituloModelo": "The embedding model is missing",
+      "porqueFaltaModelo": "Boorie turns documents into vectors with \"{{modelo}}\", and it is not installed in Ollama. Without it nothing can be indexed or searched, so reindexing would only fail document by document. It downloads once.",
+      "botonModelo": "Download the model",
+      "descargandoBoton": "Downloading…",
+      "descargando": "Downloading the model: {{porcentaje}}%",
+      "falloModelo": "The model could not be downloaded: {{motivo}}. You can also install it from a terminal."
     },
     "resultadosSemanticos": {
       "titulo": "Found by meaning ({{count}})",
@@ -764,7 +770,8 @@
       "ilegible": "“{{fichero}}” could not be read. The file may be damaged or protected.",
       "formato-no-soportado": "The format of “{{fichero}}” cannot be opened. Convert it to PDF or DOCX.",
       "omitidos": "{{count}} file(s) were not indexed because no text could be extracted from them."
-    }
+    },
+    "modelPorDefecto": "granite-embedding:278m (768d) - Multilingual; the one Boorie uses by default"
   },
   "wisdomCatalog": {
     "title": "Boorie Wisdom Catalog",
@@ -1045,7 +1052,8 @@
     "count_other": "{{count}} projects",
     "byDate": "By date",
     "byName": "By name",
-    "modified": "Modified: {{fecha}}"
+    "modified": "Modified: {{fecha}}",
+    "loading": "Loading projects…"
   },
   "prompt": {
     "loading": "Loading settings…",

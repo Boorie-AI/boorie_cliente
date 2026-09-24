@@ -31,11 +31,14 @@ export function corpusDe(categoria: string | null | undefined): Corpus {
   return categoria === 'simulations' ? 'simulacion' : 'documental'
 }
 
-/** La expresión para pedirle al almacén un corpus u otro. */
+/**
+ * La expresión para pedirle al almacén un corpus u otro. Sobre el campo escalar, no sobre el
+ * JSON, por lo mismo que `filtroVectorial`.
+ */
 export function filtroDeCorpus(corpus: Corpus): string {
   return corpus === 'simulacion'
-    ? 'metadata["category"] == "simulations"'
-    : 'not (metadata["category"] == "simulations")'
+    ? 'category == "simulations"'
+    : 'not (category == "simulations")'
 }
 
 /** Une dos filtros del almacén, saltándose los que no restringen nada. */

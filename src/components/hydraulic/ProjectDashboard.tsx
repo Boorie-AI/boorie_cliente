@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Project } from '../../types/project';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FolderPlus, FolderOpen, Trash2, Calendar, Database, MessageSquare, Activity, Download, Upload, ArrowUpDown } from 'lucide-react';
+import { FolderPlus, FolderOpen, Trash2, Calendar, Database, MessageSquare, Activity, Download, Upload, ArrowUpDown, RefreshCw } from 'lucide-react';
 
 interface ProjectDashboardProps {
     projects: Project[];
@@ -24,6 +24,12 @@ interface ProjectDashboardProps {
     onDeleteProject: (projectId: string) => void;
     /** Marca cuál es el proyecto activo cuando la lista se ve desde la raíz (#35). */
     activeProjectId?: string | null;
+    /**
+     * La lista todavía se está leyendo de la base. Sin esto, el catálogo vacío
+     * del primer render es indistinguible de no tener proyectos, y la raíz
+     * anunciaba «0 proyectos / no hay proyectos todavía» a quien sí los tiene.
+     */
+    isLoading?: boolean;
 }
 
 export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
@@ -33,7 +39,8 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
     onCreateProject,
     onImportNetwork,
     onDeleteProject,
-    activeProjectId
+    activeProjectId,
+    isLoading = false
 }) => {
     const { t } = useTranslation()
     const [isCreating, setIsCreating] = useState(false);
@@ -110,7 +117,9 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                         <h1 className="text-3xl font-bold text-white mb-2">{t('projects.myProjects')}</h1>
                         <p className="text-slate-400">
                             {t('projects.manageHint')}
-                            <span className="ml-2 text-blue-400 font-semibold">{t('projects.count', { count: projects.length })}</span>
+                            {!isLoading && (
+                                <span className="ml-2 text-blue-400 font-semibold">{t('projects.count', { count: projects.length })}</span>
+                            )}
                         </p>
                     </div>
                     <div className="flex gap-2">
@@ -190,7 +199,12 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
 
                 {/* Projects Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sortedProjects.length === 0 && !isCreating ? (
+                    {isLoading ? (
+                        <div className="col-span-full text-center py-20 text-slate-500 border-2 border-dashed border-slate-800 rounded-xl">
+                            <RefreshCw className="h-16 w-16 mx-auto mb-4 opacity-50 animate-spin" />
+                            <p className="text-xl font-medium">{t('projects.loading')}</p>
+                        </div>
+                    ) : sortedProjects.length === 0 && !isCreating ? (
                         <div className="col-span-full text-center py-20 text-slate-500 border-2 border-dashed border-slate-800 rounded-xl">
                             <FolderOpen className="h-16 w-16 mx-auto mb-4 opacity-50" />
                             <p className="text-xl font-medium">{t('projects.noProjects')}</p>

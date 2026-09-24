@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { MilvusService } from '../milvus.service'
+import { MilvusService, type FilaVectorial, type FuenteDeReconstruccion } from '../milvus.service'
 import { EmbeddingService } from '../embedding.service'
 import { duenoVectorial, duenosPermitidos, filtroPrisma, filtroVectorial, type Ambito } from './ambitos'
 import { corpusDe, filtroDeCorpus, repartirPorCorpus, sinRepetidos, unirFiltros, type Corpus } from './repartoDeCorpus'
@@ -28,6 +28,58 @@ export interface HybridSearchOptions {
   projectId?: string | null
 }
 
+/**
+ * La colección con el esquema viejo se rehace desde SQLite, con los vectores que ya están
+ * guardados: no pasa por Ollama. Medido con 298.072 fragmentos: unos 11 minutos.
+ */
+export function fuenteDeReconstruccion(prisma: PrismaClient): FuenteDeReconstruccion {
+  const conVector = { embedding: { not: null } }
+  return {
+    total: () => prisma.knowledgeChunk.count({ where: conVector }),
+    lote: async (despuesDe, cuantas) => {
+      const chunks = await prisma.knowledgeChunk.findMany({
+        where: despuesDe ? { ...conVector, id: { gt: despuesDe } } : conVector,
+        orderBy: { id: 'asc' },
+        take: cuantas,
+        include: { knowledge: { select: { title: true, category: true, projectId: true } } }
+      })
+      return chunks.map((chunk): FilaVectorial => {
+        let vector: number[] = []
+        try {
+          vector = JSON.parse(chunk.embedding as string)
+        } catch {
+          // se queda sin vector y la reconstrucción la salta
+        }
+        return {
+          id: chunk.id,
+          vector,
+          content: chunk.content,
+          metadata: {
+            chunkId: chunk.id,
+            docId: chunk.knowledgeId,
+            title: chunk.knowledge.title,
+            category: chunk.knowledge.category,
+            projectId: duenoVectorial(chunk.knowledge.projectId)
+          },
+          timestamp: chunk.createdAt.getTime()
+        }
+      })
+    }
+  }
+}
+
+/** Lo lanza el arranque de la app: sin esto no empezaba hasta la primera pregunta al chat. */
+export async function reconstruirSiHaceFalta(prisma: PrismaClient) {
+  const milvus = MilvusService.getInstance()
+  const knowledge = MilvusService.COLLECTIONS.KNOWLEDGE
+  await milvus.ensureConnection()
+  if (!milvus.necesitaReconstruir(knowledge)) {
+    const hayVectores = await prisma.knowledgeChunk.findFirst({ where: { embedding: { not: null } }, select: { id: true } })
+    if (!hayVectores || !(await milvus.prepararSiVacia(knowledge))) return
+  }
+  await milvus.reconstruir(knowledge, fuenteDeReconstruccion(prisma))
+}
+
 export class HybridSearchService {
   private prisma: PrismaClient
   private embeddingService: any
@@ -44,8 +96,22 @@ export class HybridSearchService {
     })
   }
 
-  private async syncPrismaToMilvus() {
+  // Cada servicio que se construye lanza la sincronización: sin esto, dos a la vez mandaban los
+  // mismos fragmentos dos veces.
+  private static sincronizando: Promise<void> | null = null
+
+  private syncPrismaToMilvus(): Promise<void> {
+    if (!HybridSearchService.sincronizando) {
+      HybridSearchService.sincronizando = this.sincronizar()
+        .finally(() => { HybridSearchService.sincronizando = null })
+    }
+    return HybridSearchService.sincronizando
+  }
+
+  private async sincronizar() {
     try {
+      await reconstruirSiHaceFalta(this.prisma)
+
       const stats = await this.milvusService.getClient().getCollectionStatistics({
         collection_name: MilvusService.COLLECTIONS.KNOWLEDGE
       })
@@ -66,6 +132,8 @@ export class HybridSearchService {
 
         const BATCH_SIZE = 50;
         let processed = 0;
+        let fallosAlGuardar = 0;
+        let descuadrados = 0;
 
         // We'll process everything to be safe, but in small batches
         // Ideally we would only fetch missing ones, but we don't track that easily yet.
@@ -107,11 +175,31 @@ export class HybridSearchService {
               // ignore JSON parse failures; vector stays empty
             }
 
-            // Check dimension mismatch
+            /*
+             * Un vector del tamaño que no toca NO se regenera aquí.
+             *
+             * Esto reindexaba la base entera al arrancar, fragmento a
+             * fragmento, sin que nadie lo pidiera: en la base de un usuario con
+             * 102.062 fragmentos eso son horas de GPU en cada apertura, y
+             * además compite con el reindexado que el usuario sí haya lanzado
+             * desde el panel —medido: el suyo no avanzó ni un fragmento en 150
+             * segundos mientras esta sincronización tenía la tarjeta—. La
+             * interfaz ya promete lo contrario: «No se hace solo: hasta que lo
+             * pidas, no se toca nada». Se cuentan y se avisa una vez; quien los
+             * regenera es `wisdom:massiveReindex`, con su aviso y su progreso.
+             *
+             * Un fragmento SIN vector es otra cosa: es un hueco, no un cambio
+             * de modelo, y ése sí se rellena aquí.
+             */
+            if (vector.length > 0 && vector.length !== targetDimension) {
+              descuadrados++;
+              continue;
+            }
+
             if (vector.length !== targetDimension) {
               // Only log occasionally to avoid spam
               if (processed % 10 === 0) {
-                console.log(`[HybridSearchService] Embedding dimension mismatch/missing for chunk ${chunk.id}. Re-generating...`);
+                console.log(`[HybridSearchService] Embedding missing for chunk ${chunk.id}. Generating...`);
               }
 
               try {
@@ -133,10 +221,26 @@ export class HybridSearchService {
 
             if (vector.length > 0) {
               if (needsUpdate) {
-                await this.prisma.knowledgeChunk.update({
-                  where: { id: chunk.id },
-                  data: { embedding: JSON.stringify(vector) }
-                });
+                /*
+                 * Este `update` estaba fuera de todo try —el de arriba sólo
+                 * cubre generar el vector—, así que un `P1008` de Prisma al
+                 * reescribir **un** fragmento salía del bucle y se llevaba por
+                 * delante la migración entera. En una base de 102.062
+                 * fragmentos paró en 8.397 y no volvió a arrancar: el resto se
+                 * quedó con vectores del modelo viejo, que es como dejar el RAG
+                 * mudo. Se anota y se sigue; lo que no se guardó se vuelve a
+                 * intentar en el siguiente arranque.
+                 */
+                try {
+                  await this.prisma.knowledgeChunk.update({
+                    where: { id: chunk.id },
+                    data: { embedding: JSON.stringify(vector) }
+                  });
+                } catch (updateError) {
+                  fallosAlGuardar++;
+                  console.error(`[HybridSearchService] No se pudo guardar el embedding de ${chunk.id}:`, updateError);
+                  continue;
+                }
               }
 
               milvusBatch.push({
@@ -158,16 +262,33 @@ export class HybridSearchService {
           }
 
           if (milvusBatch.length > 0) {
-            await this.milvusService.insert(MilvusService.COLLECTIONS.KNOWLEDGE, milvusBatch);
-            processed += milvusBatch.length;
-            console.log(`[HybridSearchService] Synced batch of ${milvusBatch.length} chunks. Total processed: ${processed}`);
+            // Lo mismo con el almacén vectorial: el lote que falle se reintenta
+            // en el próximo arranque, porque `milvusCount < prismaCount` seguirá
+            // siendo cierto. Abortar aquí dejaba la base a medio migrar.
+            try {
+              await this.milvusService.insert(MilvusService.COLLECTIONS.KNOWLEDGE, milvusBatch);
+              processed += milvusBatch.length;
+              console.log(`[HybridSearchService] Synced batch of ${milvusBatch.length} chunks. Total processed: ${processed}`);
+            } catch (insertError) {
+              console.error(`[HybridSearchService] No se pudo insertar un lote de ${milvusBatch.length} fragmentos:`, insertError);
+            }
           }
 
           // Sleep briefly to yield to the event loop
           await new Promise(resolve => setTimeout(resolve, 100));
         }
 
-        console.log(`[HybridSearchService] Sync complete. Processed ${processed} chunks.`);
+        console.log(
+          `[HybridSearchService] Sync complete. Processed ${processed} chunks.` +
+          (fallosAlGuardar > 0 ? ` ${fallosAlGuardar} se quedaron sin guardar y se reintentarán.` : '')
+        );
+        if (descuadrados > 0) {
+          console.warn(
+            `[HybridSearchService] ${descuadrados} fragmentos tienen vectores de otro tamaño y no se han ` +
+            `tocado: son de un modelo de embeddings anterior. Hay que reindexar la base de conocimiento ` +
+            `desde el panel para que vuelvan a poder buscarse.`
+          );
+        }
       }
     } catch (e) {
       console.error('Sync failed', e)
@@ -192,13 +313,13 @@ export class HybridSearchService {
       // Construct filter expression
       const filters: string[] = []
       if (options.category) {
-        filters.push(`metadata["category"] == "${options.category}"`)
+        filters.push(`category == "${options.category}"`)
       }
       if (options.region) {
-        filters.push(`metadata["region"] == "${options.region}"`)
+        filters.push(`region == "${options.region}"`)
       }
       if (options.language) {
-        filters.push(`metadata["language"] == "${options.language}"`)
+        filters.push(`language == "${options.language}"`)
       }
 
       const filtroAmbito = filtroVectorial(permitidos)

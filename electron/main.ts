@@ -398,6 +398,7 @@ import { ServiceContainer } from '../backend/services'
 import { HandlersManager } from './handlers'
 import { appLogger } from '../backend/utils/logger'
 import { findPythonForMilvus } from '../backend/services/hydraulic/pythonDetector'
+import { reconstruirSiHaceFalta } from '../backend/services/hydraulic/hybridSearch'
 import { startMilvusServer, stopMilvusServer } from './services/milvusProcess'
 import { ensureProductionSchema } from './esquemaProduccion'
 
@@ -683,6 +684,11 @@ async function initializeApplication(): Promise<void> {
     } catch (error) {
       appLogger.warn('Failed to start embedded Milvus Lite server', error as Error)
     }
+
+    // En segundo plano: con una base grande son minutos, y la ventana no tiene por qué esperar.
+    reconstruirSiHaceFalta(prisma).catch(error =>
+      appLogger.warn('No se pudo reconstruir la base vectorial', error as Error)
+    )
 
     // Agentic RAG handlers are now registered via HandlersManager
     // See electron/handlers/agenticRAG.handler.ts and electron/handlers/index.ts

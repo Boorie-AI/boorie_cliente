@@ -693,8 +693,7 @@
     "autoDetected": "Modelos de embeddings detectados y disponibles",
     "runningLocally": "Los modelos corren en local: privacidad y rapidez",
     "recommended": "Modelos de embeddings recomendados:",
-    "modelBge": "bge-m3 (1024d) — multilingüe; el que Boorie usa por defecto",
-    "modelNomic": "nomic-embed-text (768d) — ligero, pero sólo encuentra en inglés",
+    "modelBge": "bge-m3 (1024d) — multilingüe, ventana más larga; recupera algo peor y va tres veces más lento",
     "modelMxbai": "mxbai-embed-large (1024d) — de más calidad, pero sólo en inglés",
     "modelMinilm": "all-minilm (384d) — rápido y ligero, sólo en inglés",
     "chatModelsNote": "Los modelos de chat (gemma, llama, mistral) sirven, pero rinden peor como embeddings",
@@ -741,7 +740,14 @@
       "enMarcha": "Reindexando…",
       "progreso": "Documento {{hechos}} de {{total}}: {{titulo}}",
       "hecho": "Reindexado terminado: {{documentos}} de {{total}} documentos, {{fragmentos}} fragmentos. Las búsquedas vuelven a funcionar.",
-      "fallo": "No se pudo completar el reindexado: {{motivo}}"
+      "fallo": "No se pudo completar el reindexado: {{motivo}}",
+      "porqueModelo": "La base se indexó con «{{guardado}}» y ahora se busca con «{{modelo}}». Aunque los vectores tengan el mismo tamaño son espacios distintos, así que la búsqueda devuelve documentos sin relación con lo que se pregunta.",
+      "tituloModelo": "Falta el modelo de embeddings",
+      "porqueFaltaModelo": "Boorie convierte los documentos en vectores con «{{modelo}}», y no está instalado en Ollama. Sin él no se puede indexar ni buscar nada, así que reindexar sólo fallaría documento a documento. Se descarga una vez.",
+      "botonModelo": "Descargar el modelo",
+      "descargandoBoton": "Descargando…",
+      "descargando": "Descargando el modelo: {{porcentaje}} %",
+      "falloModelo": "No se pudo descargar el modelo: {{motivo}}. También puedes instalarlo desde una terminal."
     },
     "resultadosSemanticos": {
       "titulo": "Encontrado por significado ({{count}})",
@@ -764,7 +770,8 @@
       "ilegible": "No se ha podido leer «{{fichero}}». El fichero puede estar dañado o protegido.",
       "formato-no-soportado": "El formato de «{{fichero}}» no se puede abrir. Conviértelo a PDF o DOCX.",
       "omitidos": "{{count}} fichero(s) no se han indexado porque no se pudo sacar texto de ellos."
-    }
+    },
+    "modelPorDefecto": "granite-embedding:278m (768d) — multilingüe; el que Boorie usa por defecto"
   },
   "wisdomCatalog": {
     "title": "Catálogo de la base de conocimiento",
@@ -1045,7 +1052,8 @@
     "count_other": "{{count}} proyectos",
     "byDate": "Por fecha",
     "byName": "Por nombre",
-    "modified": "Modificado: {{fecha}}"
+    "modified": "Modificado: {{fecha}}",
+    "loading": "Cargando proyectos…"
   },
   "prompt": {
     "loading": "Cargando configuración…",

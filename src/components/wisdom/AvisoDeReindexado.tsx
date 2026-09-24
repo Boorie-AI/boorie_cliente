@@ -17,8 +17,9 @@
 
 import { useTranslation } from 'react-i18next'
 import { useState, useEffect } from 'react'
-import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { AlertTriangle, RefreshCw, Download } from 'lucide-react'
 import { logger } from '@/utils/logger'
+import { getOllamaBaseUrl } from '@/config/ollama'
 
 interface Props {
   /** Para que el panel recargue la lista cuando el reindexado termina. */
@@ -34,7 +35,9 @@ interface Descuadre {
    * Por qué hay que reindexar. Cambia el motivo que se le enseña al usuario,
    * no lo que hace el botón: en los dos casos hay que regenerarlo todo (#158).
    */
-  motivo: 'dimension' | 'ambito'
+  motivo: 'dimension' | 'modelo' | 'ambito'
+  /** Con qué modelo se indexó, cuando se sabe. */
+  guardado?: string | null
 }
 
 export function AvisoDeReindexado({ alTerminar }: Props) {
@@ -43,6 +46,13 @@ export function AvisoDeReindexado({ alTerminar }: Props) {
   const [enMarcha, setEnMarcha] = useState(false)
   const [progreso, setProgreso] = useState<{ hechos: number; total: number; titulo?: string } | null>(null)
   const [resultado, setResultado] = useState<string | null>(null)
+  /**
+   * Sin el modelo instalado no se puede vectorizar nada, así que reindexar sólo
+   * conseguiría fallar documento a documento durante horas. Se pide antes, y el
+   * botón de reindexar no aparece hasta que está.
+   */
+  const [faltaModelo, setFaltaModelo] = useState<string | null>(null)
+  const [descargando, setDescargando] = useState<number | null>(null)
 
   useEffect(() => {
     comprobar()
@@ -61,19 +71,63 @@ export function AvisoDeReindexado({ alTerminar }: Props) {
     try {
       const res = await window.electronAPI.wisdom.getRAGHealth()
       const emb = res?.health?.metrics?.embeddings
-      if (res?.success && (emb?.descuadrada || emb?.ambitoSinCodificar)) {
+      setFaltaModelo(emb?.modeloInstalado === false ? emb.modelo : null)
+      if (res?.success && (emb?.descuadrada || emb?.modeloDistinto || emb?.ambitoSinCodificar)) {
         setDescuadre({
           guardada: emb.dimensionGuardada,
           esperada: emb.dimensionEsperada,
           modelo: emb.modelo,
-          fragmentos: emb.total ?? 0,
-          motivo: emb.descuadrada ? 'dimension' : 'ambito',
+          // Los que hay que rehacer, no los que hay: con la base a medio
+          // migrar no son el mismo número.
+          fragmentos: emb.descuadrados ?? emb.total ?? 0,
+          motivo: emb.descuadrada ? 'dimension' : emb.modeloDistinto ? 'modelo' : 'ambito',
+          guardado: emb.modeloGuardado ?? null,
         })
       } else {
         setDescuadre(null)
       }
     } catch (error) {
       logger.warn('No se pudo comprobar si hace falta reindexar:', error)
+    }
+  }
+
+  const descargarModelo = async () => {
+    if (!faltaModelo) return
+    setDescargando(0)
+    try {
+      const r = await fetch(`${getOllamaBaseUrl()}/api/pull`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: faltaModelo, stream: true }),
+      })
+      if (!r.ok) throw new Error(`Ollama respondió ${r.status}`)
+
+      const lector = r.body?.getReader()
+      const decodificador = new TextDecoder()
+      // El resto de línea se guarda entre trozos: un JSON partido por la mitad
+      // no es un error, es que todavía no ha llegado entero.
+      let resto = ''
+      while (lector) {
+        const { done, value } = await lector.read()
+        if (done) break
+        resto += decodificador.decode(value, { stream: true })
+        const lineas = resto.split('\n')
+        resto = lineas.pop() ?? ''
+        for (const linea of lineas) {
+          if (!linea.trim()) continue
+          try {
+            const d = JSON.parse(linea)
+            if (d.total) setDescargando(Math.round(((d.completed ?? 0) / d.total) * 100))
+          } catch {
+            // Una línea que no es JSON no interrumpe la descarga.
+          }
+        }
+      }
+      await comprobar()
+    } catch (error) {
+      setResultado(t('wisdom.reindexado.falloModelo', { motivo: String(error) }))
+    } finally {
+      setDescargando(null)
     }
   }
 
@@ -102,6 +156,43 @@ export function AvisoDeReindexado({ alTerminar }: Props) {
     }
   }
 
+  if (faltaModelo) {
+    return (
+      <div className="mb-4 rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-4">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <h4 className="font-medium text-amber-900 dark:text-amber-100">
+              {t('wisdom.reindexado.tituloModelo')}
+            </h4>
+            <p className="mt-1 text-sm text-amber-800 dark:text-amber-200">
+              {t('wisdom.reindexado.porqueFaltaModelo', { modelo: faltaModelo })}
+            </p>
+            {descargando !== null && (
+              <div className="mt-3">
+                <div className="h-1.5 w-full rounded bg-amber-200 dark:bg-amber-900">
+                  <div className="h-1.5 rounded bg-amber-600 transition-all" style={{ width: `${descargando}%` }} />
+                </div>
+                <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                  {t('wisdom.reindexado.descargando', { porcentaje: descargando })}
+                </p>
+              </div>
+            )}
+            {resultado && <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">{resultado}</p>}
+            <button
+              onClick={descargarModelo}
+              disabled={descargando !== null}
+              className="mt-3 inline-flex items-center gap-2 rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60"
+            >
+              <Download className={`w-4 h-4 ${descargando !== null ? 'animate-pulse' : ''}`} />
+              {descargando !== null ? t('wisdom.reindexado.descargandoBoton') : t('wisdom.reindexado.botonModelo')}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (!descuadre && !resultado) return null
 
   if (!descuadre && resultado) {
@@ -127,7 +218,12 @@ export function AvisoDeReindexado({ alTerminar }: Props) {
                   guardada: descuadre!.guardada,
                   esperada: descuadre!.esperada,
                 })
-              : t('wisdom.reindexado.porqueAmbito')}
+              : descuadre!.motivo === 'modelo'
+                ? t('wisdom.reindexado.porqueModelo', {
+                    modelo: descuadre!.modelo,
+                    guardado: descuadre!.guardado || '—',
+                  })
+                : t('wisdom.reindexado.porqueAmbito')}
           </p>
           <p className="mt-2 text-sm text-amber-800 dark:text-amber-200">
             {t('wisdom.reindexado.como', { fragmentos: descuadre!.fragmentos })}

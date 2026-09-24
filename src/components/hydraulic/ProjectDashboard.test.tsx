@@ -25,6 +25,24 @@ describe('la raíz de proyectos', () => {
     expect(screen.getByRole('button', { name: /Importar proyecto \(\.json\)/ })).toBeInTheDocument()
   })
 
+  /**
+   * La lista tarda lo que tarde la base en responder, y hasta entonces llega
+   * vacía. Contra la base de un usuario con siete proyectos la raíz anunciaba
+   * «0 proyectos / no hay proyectos todavía» hasta que resolvía listProjects.
+   */
+  it('mientras carga no dice que no hay proyectos', () => {
+    render(<ProjectDashboard {...props({ isLoading: true })} />)
+
+    expect(screen.queryByText(/No hay proyectos todavía/)).not.toBeInTheDocument()
+    expect(screen.getByText(/Cargando proyectos/)).toBeInTheDocument()
+  })
+
+  it('al terminar de cargar sin ninguno sí lo dice', () => {
+    render(<ProjectDashboard {...props({ isLoading: false })} />)
+
+    expect(screen.getByText(/No hay proyectos todavía/)).toBeInTheDocument()
+  })
+
   it('importar una red se lo pide a quien sabe cargarla, en vez de crear un proyecto vacío', () => {
     const p = props()
     render(<ProjectDashboard {...p} />)

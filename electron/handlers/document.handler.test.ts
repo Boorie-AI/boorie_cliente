@@ -26,6 +26,7 @@ vi.mock('../../backend/services/milvus.service', () => ({
     getInstance: () => ({
       ensureConnection: async () => {},
       isAvailable: () => true,
+      prepararParaDimension: async () => coleccionRehecha,
     }),
   },
 }))
@@ -37,9 +38,12 @@ const addDocument = vi.fn(async (doc: any) => {
   if (doc.title === 'b') throw new Error('sin modelo de embeddings')
   return `id-${doc.title}`
 })
+const reindexDocument = vi.fn(async () => ({ chunkCount: 1, failedCount: 0, totalChunks: 1, milvusSynced: true }))
+let coleccionRehecha = false
 vi.mock('../../backend/services/hydraulic/ragService', () => ({
   HydraulicRAGService: class {
     addDocument = (...args: any[]) => addDocument(...args)
+    reindexDocument = (...args: any[]) => reindexDocument(...(args as []))
   },
 }))
 
@@ -61,6 +65,10 @@ function prismaFalso() {
     proveedorOpenAI: null as any,
     /** Cuántos números tiene cada vector ya guardado, para wisdom:getRAGHealth. */
     dimensionGuardada: 768 as number | null,
+    /** La distribución de tamaños que devuelve SQLite, cuando el test la fija. */
+    distribucion: null as { dim: number | null; n: number | bigint }[] | null,
+    /** Con qué modelo dice la base que se indexó, si lo dice. */
+    modeloIndexado: null as string | null,
     /** Lo que devuelve la consulta SQL de documentos sin contenido (#174). */
     sinContenido: [] as { id: string; title: string }[],
     sqlSinContenido: '' as string,
@@ -97,11 +105,25 @@ function prismaFalso() {
       aIProvider: {
         findFirst: vi.fn(async () => registro.proveedorOpenAI),
       },
+      appSetting: {
+        findUnique: vi.fn(async () => (registro.modeloIndexado === null
+          ? null
+          : { key: 'embeddings.modelo', value: registro.modeloIndexado })),
+        upsert: vi.fn(async () => ({})),
+      },
       /**
        * La detección de documentos indexados sin texto se hace en SQL (#174):
        * traerse el contenido para medirlo costaba 935 MB en una base real.
        */
       $queryRawUnsafe: vi.fn(async (sql: string) => {
+        // Los tamaños de los vectores se cuentan agrupando en SQL (#162); el
+        // resto de consultas crudas siguen siendo la de documentos sin texto.
+        if (sql.includes('json_array_length')) {
+          if (registro.distribucion) return registro.distribucion
+          return registro.dimensionGuardada === null
+            ? []
+            : [{ dim: registro.dimensionGuardada, n: 40n }]
+        }
         registro.sqlSinContenido = sql
         return registro.sinContenido
       }),
@@ -313,9 +335,15 @@ describe('wisdom:getRAGHealth', () => {
   const salud = async (
     dimensionGuardada: number | null,
     sinContenido: { id: string; title: string }[] = [],
+    distribucion: { dim: number | null; n: number | bigint }[] | null = null,
+    // Por defecto, la marca coincide con el modelo configurado: así estas
+    // pruebas siguen mirando sólo el tamaño, que es lo suyo.
+    modeloIndexado: string | null = process.env.BOORIE_MODELO_EMBEDDINGS ?? 'bge-m3',
   ) => {
     const falso = prismaFalso()
     falso.registro.dimensionGuardada = dimensionGuardada
+    falso.registro.distribucion = distribucion
+    falso.registro.modeloIndexado = modeloIndexado
     falso.registro.sinContenido = sinContenido
     ultimoRegistro = falso.registro
     // getRAGHealth se registra aquí, no en registerWisdomHandlers: con el
@@ -355,6 +383,39 @@ describe('wisdom:getRAGHealth', () => {
     expect(avisoDeDimension(res)).toBeUndefined()
   })
 
+  /**
+   * Una migración a medias es el caso que de verdad se dio: el reindexado del
+   * arranque murió tras pasar 8.397 fragmentos de 102.062, y como el tamaño se
+   * deducía de **un** fragmento —y el muestreado era de los ya migrados— la
+   * salud salía correcta con el 92 % de la base sin poder buscarse.
+   */
+  it('avisa aunque el primer fragmento ya esté migrado, si quedan de los viejos', async () => {
+    process.env.BOORIE_MODELO_EMBEDDINGS = 'bge-m3'
+    const res = await salud(1024, [], [{ dim: 1024, n: 8412n }, { dim: 768, n: 93650n }])
+
+    expect(avisoDeDimension(res)).toBeDefined()
+    expect(res.health.metrics.embeddings.descuadrada).toBe(true)
+    // El tamaño que se enseña es el del grupo que hay que rehacer, no el del
+    // que ya está bien.
+    expect(res.health.metrics.embeddings.dimensionGuardada).toBe(768)
+    expect(res.health.status).toBe('critical')
+  })
+
+  it('cuenta cuántos fragmentos hay que rehacer, no cuántos hay', async () => {
+    process.env.BOORIE_MODELO_EMBEDDINGS = 'bge-m3'
+    const res = await salud(768, [], [{ dim: 1024, n: 8412n }, { dim: 768, n: 93650n }])
+
+    expect(res.health.metrics.embeddings.descuadrados).toBe(93650)
+  })
+
+  it('con todo migrado no queda nada que avisar', async () => {
+    process.env.BOORIE_MODELO_EMBEDDINGS = 'bge-m3'
+    const res = await salud(1024, [], [{ dim: 1024, n: 102062n }])
+
+    expect(avisoDeDimension(res)).toBeUndefined()
+    expect(res.health.metrics.embeddings.descuadrados).toBe(0)
+  })
+
   it('los documentos sin texto se preguntan en SQL, sin traerse el contenido', async () => {
     // Filtrarlo en JavaScript obligaba a pedir el contenido de todos: en una
     // base real, 241 MB y 935 MB de memoria en cada apertura del panel (#174).
@@ -371,5 +432,101 @@ describe('wisdom:getRAGHealth', () => {
 
     expect(res.health.metrics.sinTextoUtil).toEqual([])
     expect(res.health.issues.join(' ')).not.toContain('sin texto aprovechable')
+  })
+})
+
+
+/**
+ * El tamaño del vector no identifica al modelo: `granite-embedding:278m` da 768
+ * números y `nomic-embed-text` también. Una base indexada con el viejo pasaba la
+ * comprobación de tamaño, y entonces la búsqueda no devuelve vacío sino
+ * documentos al azar, que es peor porque nada lo delata.
+ */
+describe('wisdom:getRAGHealth — con qué modelo se indexó', () => {
+  afterEach(() => { delete process.env.BOORIE_MODELO_EMBEDDINGS })
+
+  const saludConModelo = async (modeloIndexado: string | null) => {
+    process.env.BOORIE_MODELO_EMBEDDINGS = 'granite-embedding:278m' // 768
+    const falso = prismaFalso()
+    falso.registro.dimensionGuardada = 768
+    falso.registro.distribucion = [{ dim: 768, n: 40n }]
+    falso.registro.modeloIndexado = modeloIndexado
+    registerVectorGraphHandlers(falso.prisma)
+    return handlersRegistrados['wisdom:getRAGHealth']({})
+  }
+
+  it('avisa aunque el tamaño cuadre, si lo indexó otro modelo', async () => {
+    const res = await saludConModelo('nomic-embed-text')
+
+    expect(res.health.metrics.embeddings.descuadrada).toBe(false) // el tamaño sí cuadra
+    expect(res.health.metrics.embeddings.modeloDistinto).toBe(true)
+    expect(res.health.metrics.embeddings.descuadrados).toBe(40)
+    expect(res.health.status).toBe('critical')
+    expect(res.health.issues.join(' ')).toContain('nomic-embed-text')
+  })
+
+  it('una base sin marca se da por antigua, que es lo conservador', async () => {
+    const res = await saludConModelo(null)
+
+    expect(res.health.metrics.embeddings.modeloDistinto).toBe(true)
+  })
+
+  it('con la marca del modelo en uso no avisa de nada', async () => {
+    const res = await saludConModelo('granite-embedding:278m')
+
+    expect(res.health.metrics.embeddings.modeloDistinto).toBe(false)
+    expect(res.health.issues.join(' ')).not.toContain('reindexar')
+  })
+})
+
+describe('wisdom:massiveReindex — seguir por donde iba', () => {
+  const MARCA = JSON.stringify({ modelo: 'granite-embedding:278m' })
+
+  beforeEach(() => {
+    process.env.BOORIE_MODELO_EMBEDDINGS = 'granite-embedding:278m'
+    reindexDocument.mockClear()
+    coleccionRehecha = false
+  })
+  afterEach(() => { delete process.env.BOORIE_MODELO_EMBEDDINGS })
+
+  /** d1 entero en el modelo actual, d2 a medias, d3 de otro modelo y d4 sin fragmentos. */
+  const reindexarTodo = async () => {
+    const trozos = [
+      { knowledgeId: 'd1', metadata: MARCA },
+      { knowledgeId: 'd1', metadata: MARCA },
+      { knowledgeId: 'd2', metadata: MARCA },
+      { knowledgeId: 'd2', metadata: null },
+      { knowledgeId: 'd3', metadata: JSON.stringify({ modelo: 'nomic-embed-text' }) },
+    ]
+    const cumple = (t: any, where: any) => !where || where.OR.some((c: any) =>
+      'metadata' in c ? t.metadata === c.metadata : t.metadata !== null && t.metadata !== c.NOT.metadata)
+    const prisma: any = {
+      hydraulicKnowledge: {
+        findMany: vi.fn(async () => ['d1', 'd2', 'd3', 'd4'].map(id => ({ id, title: id }))),
+        findUnique: vi.fn(async ({ where }: any) => ({ id: where.id, title: where.id, chunks: [] })),
+      },
+      knowledgeChunk: {
+        findMany: vi.fn(async ({ where }: any) =>
+          [...new Set(trozos.filter(t => cumple(t, where)).map(t => t.knowledgeId))].map(knowledgeId => ({ knowledgeId }))),
+      },
+      appSetting: { upsert: vi.fn(async () => ({})) },
+    }
+    registerWisdomHandlers(prisma)
+    const res = await handlersRegistrados['wisdom:massiveReindex']({ sender: { send: () => {} } }, { reindexAll: true })
+    return { res, ids: reindexDocument.mock.calls.map((c: any[]) => c[0]) }
+  }
+
+  it('se salta los documentos que ya están enteros en el modelo actual', async () => {
+    const { res, ids } = await reindexarTodo()
+
+    expect(ids).toEqual(['d2', 'd3', 'd4'])
+    expect(res.results.saltados).toBe(1)
+  })
+
+  it('si se ha rehecho la colección no se salta nada: sus vectores ya no están', async () => {
+    coleccionRehecha = true
+    const { ids } = await reindexarTodo()
+
+    expect(ids).toEqual(['d1', 'd2', 'd3', 'd4'])
   })
 })

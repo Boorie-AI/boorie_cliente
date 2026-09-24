@@ -4,6 +4,7 @@ import { EmbeddingService } from '../embedding.service'
 import { duenoVectorial, duenosPermitidos, filtroPrisma, filtroVectorial, origenDe, type Ambito, type Origen } from './ambitos'
 import { corpusDe, filtroDeCorpus, repartirPorCorpus, sinRepetidos, unirFiltros, type Corpus } from './repartoDeCorpus'
 import { leerTolerando } from '../lecturaTolerante'
+import { CLAVE_MODELO_INDEXADO, marcaDeFragmento, modeloEmbeddingsOllama } from '../modeloEmbeddings'
 
 export interface RAGSearchOptions {
   category?: 'hydraulics' | 'regulations' | 'best-practices'
@@ -239,39 +240,92 @@ export class HydraulicRAGService {
 
     console.log(`[RAG Service] Chunked document into ${chunks.length} parts`)
 
-    const generateWithTimeout = async (text: string, timeoutMs: number = 60000) => {
-      return Promise.race([
-        this.embeddingService.generateEmbedding(text),
-        new Promise<number[]>((_, reject) =>
-          setTimeout(() => reject(new Error('Embedding generation timed out')), timeoutMs)
-        )
-      ])
+    /**
+     * Un lote por petición, no un fragmento por petición.
+     *
+     * Aquí había tres llamadas en paralelo, que con Ollama sirviendo de una en
+     * una son tres llamadas seguidas. Agrupar los textos en una sola petición
+     * da el doble de velocidad medido sobre fragmentos reales con bge-m3 en una
+     * GTX 960M —96 fragmentos/min contra 199—, y en una base grande eso son
+     * horas. Si el lote falla se rehace fragmento a fragmento, que es la forma
+     * de seguir distinguiendo cuál de ellos no se pudo vectorizar.
+     */
+    /**
+     * Vectoriza un lote, y si falla lo parte en dos en vez de rehacerlo entero
+     * de uno en uno.
+     *
+     * Basta un fragmento indigesto para tumbar la petición de los cincuenta, y
+     * los hay: una tabla de cifras que en caracteres cabe de sobra pasa de la
+     * ventana del modelo en tokens, porque cada número es varios. Rehaciendo
+     * los cincuenta uno a uno se pierde justo lo que se ganaba agrupando —
+     * medido en una base real, el ritmo bajó de 551 a 235 fragmentos/min—;
+     * partiendo por la mitad, el culpable se aísla en seis peticiones y el
+     * resto sigue yendo en lote.
+     *
+     * Y al culpable se le recorta en vez de tirarlo: media página indexada vale
+     * más que un fragmento que no existe para ninguna búsqueda.
+     */
+    const vectorizarLote = async (textos: string[]): Promise<(number[] | null)[]> => {
+      try {
+        return await this.embeddingService.generateEmbeddings(textos, true)
+      } catch (err: any) {
+        if (textos.length > 1) {
+          const mitad = Math.floor(textos.length / 2)
+          return [
+            ...await vectorizarLote(textos.slice(0, mitad)),
+            ...await vectorizarLote(textos.slice(mitad)),
+          ]
+        }
+
+        /*
+         * El recorte va por la misma puerta directa, no por `generateEmbedding`:
+         * ésa recorre la cadena de autodetección de proveedor con 60 s de espera
+         * por intento, y encima LangChain reintenta por dentro. Un solo
+         * fragmento denso dejaba el reindexado parado minutos —medido: seis
+         * documentos en media hora y el contador sin moverse—.
+         *
+         * Y el recorte es a un número fijo de caracteres, no a un porcentaje: lo
+         * que desborda la ventana es texto donde cada cifra son varios tokens,
+         * así que la mitad de 1.000 puede seguir sin caber. 400 caracteres de
+         * dígitos entran de sobra en 512 tokens.
+         */
+        for (const tope of [400, 150]) {
+          try {
+            const [vector] = await this.embeddingService.generateEmbeddings(
+              [textos[0].slice(0, tope)], true
+            )
+            return [vector]
+          } catch {
+            // Se prueba con menos.
+          }
+        }
+        console.error('[RAG Service] Failed embedding for chunk:', err.message)
+        return [null]
+      }
     }
 
-    // Process embeddings in concurrent batches for much faster indexing
-    const CONCURRENCY = 3
+    const TAMANO_LOTE = 50
     const chunkEmbeddings: (number[] | null)[] = new Array(chunks.length).fill(null)
     const chunkTimings: number[] = []
     let completedCount = 0
 
-    for (let batchStart = 0; batchStart < chunks.length; batchStart += CONCURRENCY) {
-      const batchEnd = Math.min(batchStart + CONCURRENCY, chunks.length)
-      const batchIndices = Array.from({ length: batchEnd - batchStart }, (_, k) => batchStart + k)
+    for (let batchStart = 0; batchStart < chunks.length; batchStart += TAMANO_LOTE) {
+      const batchEnd = Math.min(batchStart + TAMANO_LOTE, chunks.length)
+      const lote = chunks.slice(batchStart, batchEnd)
+      const inicioLote = Date.now()
 
-      await Promise.all(batchIndices.map(async (i) => {
-        const chunkStart = Date.now()
-        try {
-          chunkEmbeddings[i] = await generateWithTimeout(chunks[i], 60000)
-          const duration = Date.now() - chunkStart
-          chunkTimings.push(duration)
-          if (duration > 5000) {
-            console.warn(`[RAG Service] Slow embedding for chunk ${i + 1}: ${duration}ms`)
-          }
-        } catch (err: any) {
-          console.error(`[RAG Service] Failed embedding for chunk ${i + 1}:`, err.message)
-          chunkEmbeddings[i] = null
-        }
-      }))
+      // Y otro al empezar el lote, no sólo al acabarlo: con lotes de 50 el
+      // primer aviso tardaba 50 fragmentos en salir.
+      onProgress?.({
+        current: batchStart,
+        total: chunks.length,
+        message: `Chunk ${batchStart + 1}/${chunks.length}: Generando embeddings...`
+      })
+
+      const vectores = await vectorizarLote(lote)
+
+      vectores.forEach((v, k) => { chunkEmbeddings[batchStart + k] = v ?? null })
+      chunkTimings.push((Date.now() - inicioLote) / lote.length)
 
       completedCount = batchEnd
 
@@ -280,7 +334,7 @@ export class HydraulicRAGService {
           ? chunkTimings.reduce((a, b) => a + b, 0) / chunkTimings.length
           : 0
         const remainingChunks = chunks.length - completedCount
-        const etaSeconds = Math.round((avgTime * remainingChunks / CONCURRENCY) / 1000)
+        const etaSeconds = Math.round((avgTime * remainingChunks) / 1000)
         const etaText = etaSeconds > 0 ? ` (~${etaSeconds}s restantes)` : ''
 
         onProgress({
@@ -350,6 +404,7 @@ export class HydraulicRAGService {
           knowledgeId: documentId,
           content: item.content,
           embedding: JSON.stringify(item.embedding),
+          metadata: marcaDeFragmento(),
           chunkIndex: item.chunkIndex
         }))
       }),
@@ -454,6 +509,7 @@ export class HydraulicRAGService {
             create: successfulChunks.map(item => ({
               content: item.content,
               embedding: JSON.stringify(item.embedding),
+              metadata: marcaDeFragmento(),
               chunkIndex: item.chunkIndex
             }))
           }
@@ -462,6 +518,25 @@ export class HydraulicRAGService {
           chunks: true
         }
       })
+
+      /**
+       * El primer documento de una base vacía deja anotado con qué modelo se
+       * está indexando. Sólo el primero: en una base que ya tiene fragmentos de
+       * otro modelo, subir uno nuevo no convierte a los viejos, y decir lo
+       * contrario apagaría el aviso que pide reindexar.
+       */
+      try {
+        const habia = await this.prisma.knowledgeChunk.count()
+        if (habia === created.chunks.length) {
+          await this.prisma.appSetting.upsert({
+            where: { key: CLAVE_MODELO_INDEXADO },
+            update: { value: modeloEmbeddingsOllama() },
+            create: { key: CLAVE_MODELO_INDEXADO, value: modeloEmbeddingsOllama() },
+          })
+        }
+      } catch (e) {
+        console.warn('[RAG Service] No se pudo anotar el modelo de indexado:', (e as Error).message)
+      }
 
       // Sync to Milvus immediately
       try {
@@ -664,89 +739,82 @@ export class HydraulicRAGService {
   }
 
   // Chunk document into smaller pieces
+  /**
+   * Trocea un documento en piezas que **nunca** pasan de `maxChunkSize`.
+   *
+   * El "nunca" es el arreglo: antes, un párrafo largo que llegaba con algo ya
+   * acumulado se asignaba entero sin partirlo —sólo se partía si no había nada
+   * acumulado—, así que un párrafo de 8.000 caracteres salía como un fragmento
+   * de 8.000. En la base de un usuario real eso dejó fragmentos de 2.381
+   * caracteres de media y hasta 12.106, con dos consecuencias: al vectorizar se
+   * truncaban a 1.000, o sea que el 85 % del corpus estaba indexado sólo por su
+   * primer cuarto; y con un modelo de ventana corta —`granite-embedding:278m`
+   * son 512 tokens— el indexado directamente falla con «the input length
+   * exceeds the context length».
+   */
   private chunkDocument(
     content: string,
     options: { maxChunkSize: number; overlap: number }
   ): string[] {
     const { maxChunkSize, overlap } = options
-    const chunks: string[] = []
 
-    // Split by paragraphs first
-    const paragraphs = content.split(/\n\n+/)
+    /** Las últimas palabras, para que el corte no parta una idea en dos. */
+    const solapeDe = (texto: string) =>
+      texto.split(' ').slice(-Math.floor(overlap / 10)).join(' ')
 
-    let currentChunk = ''
+    /**
+     * Parte un texto en piezas que caben, por palabras. La última se devuelve
+     * igual que las demás: quien llama decide si la arrastra o la cierra.
+     */
+    const partir = (texto: string): string[] => {
+      const piezas: string[] = []
+      let pieza = ''
 
-    for (const paragraph of paragraphs) {
-      if (currentChunk.length + paragraph.length > maxChunkSize) {
-        if (currentChunk) {
-          chunks.push(currentChunk.trim())
-
-          // Add overlap from end of current chunk
-          const overlapText = currentChunk
-            .split(' ')
-            .slice(-Math.floor(overlap / 10))
-            .join(' ')
-
-          currentChunk = overlapText + ' ' + paragraph
-        } else {
-          // Paragraph is too long, split it
-          const words = paragraph.split(' ')
-          let tempChunk = ''
-
-          for (const word of words) {
-            // Handle words that are longer than maxChunkSize themselves
-            if (word.length > maxChunkSize) {
-              // Write out anything currently in tempChunk
-              if (tempChunk) {
-                chunks.push(tempChunk.trim())
-                tempChunk = ''
-              }
-
-              // Split the long word into chunks
-              let remainingWord = word
-              while (remainingWord.length > 0) {
-                const subChunk = remainingWord.slice(0, maxChunkSize)
-                remainingWord = remainingWord.slice(maxChunkSize)
-
-                if (remainingWord.length > 0) {
-                  // If we still have more, push this chunk
-                  chunks.push(subChunk)
-                } else {
-                  // If this is the last piece, it becomes the new tempChunk
-                  tempChunk = subChunk
-                }
-              }
-            } else if (tempChunk.length + word.length + 1 > maxChunkSize) {
-              // Word doesn't fit in current chunk
-              chunks.push(tempChunk.trim())
-              tempChunk = word
-            } else {
-              // Word fits
-              tempChunk += (tempChunk ? ' ' : '') + word
-            }
+      for (const palabra of texto.split(' ')) {
+        if (palabra.length > maxChunkSize) {
+          // Una "palabra" más larga que el tope no existe en prosa; sí en los
+          // PDF mal extraídos, con tablas pegadas sin espacios.
+          if (pieza) { piezas.push(pieza.trim()); pieza = '' }
+          let resto = palabra
+          while (resto.length > maxChunkSize) {
+            piezas.push(resto.slice(0, maxChunkSize))
+            resto = resto.slice(maxChunkSize)
           }
-
-          currentChunk = tempChunk
+          pieza = resto
+        } else if (pieza.length + palabra.length + 1 > maxChunkSize) {
+          piezas.push(pieza.trim())
+          pieza = palabra
+        } else {
+          pieza += (pieza ? ' ' : '') + palabra
         }
+      }
+
+      if (pieza.trim()) piezas.push(pieza.trim())
+      return piezas
+    }
+
+    const chunks: string[] = []
+    let actual = ''
+
+    for (const parrafo of content.split(/\n\n+/)) {
+      if (actual.length + parrafo.length + 2 > maxChunkSize) {
+        let arrastre = ''
+        if (actual.trim()) {
+          chunks.push(actual.trim())
+          arrastre = solapeDe(actual)
+        }
+        // El párrafo se parte SIEMPRE que no quepa, hubiera o no algo acumulado.
+        const piezas = partir((arrastre ? arrastre + ' ' : '') + parrafo)
+        chunks.push(...piezas.slice(0, -1))
+        actual = piezas[piezas.length - 1] ?? ''
       } else {
-        currentChunk += (currentChunk ? '\n\n' : '') + paragraph
+        actual += (actual ? '\n\n' : '') + parrafo
       }
     }
 
-    if (currentChunk) {
-      if (currentChunk.length > maxChunkSize) {
-        // Hard chop if still too long (e.g. single massive word case not caught above)
-        let remaining = currentChunk
-        while (remaining.length > 0) {
-          chunks.push(remaining.slice(0, maxChunkSize).trim())
-          remaining = remaining.slice(maxChunkSize)
-        }
-      } else {
-        chunks.push(currentChunk.trim())
-      }
-    }
+    if (actual.trim()) chunks.push(...partir(actual))
 
-    return chunks
+    return chunks.filter(c => c.length > 0)
   }
 
   // Calculate cosine similarity between embeddings

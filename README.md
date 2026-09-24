@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.37.1
+### 🚀 Latest Release - v1.38.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.37.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.37.1/Boorie-1.37.1-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.37.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.37.1/Boorie-Setup-1.37.1.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.37.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.37.1/Boorie-1.37.1.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.38.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.0/Boorie-1.38.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.38.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.0/Boorie-Setup-1.38.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.38.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.0/Boorie-1.38.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.38.0**: Searching a large knowledge base no longer eats the computer's memory. Every question filtered the vector database by project and document type, and the vector database resolved that filter by loading everything it stored into memory: on a real base of 298,072 fragments each search took about two and a half minutes, gave up before finishing and left the process at 11 GB — enough, on a 16 GB machine, for the system to close the whole desktop session. The same search now takes about 2 seconds and stays under 3 GB. The first time you open this version the vector database reorganises itself once, copying the vectors it already has (about 11 minutes for that base); the knowledge centre shows how far it has got, and it picks up where it left off if you close the application. Also in this version: the default embedding model is now `granite-embedding:278m`, which retrieves better and reindexes three times faster — it requires reindexing once, and the application offers to download the model if it is missing — and a series of fixes that made the RAG find nothing without saying so. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.38.0).
 - **v1.37.1**: A single unreadable document no longer stops you reindexing, searching or checking the knowledge base. If the base held a document whose text is not valid UTF-8 — something the PDF extraction of earlier versions could leave behind — reindexing died before it started, with a database engine error that did not even say which document it meant. Nothing is lost now: what can be read works normally, and what cannot is named so you can remove it. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.37.1).
 - **v1.37.0**: The assistant now sticks to its subject, and stops reporting as indexed what is not. Asked how many burgers a kilo of meat makes, it used to answer «40» — a made-up figure stated with the same confidence it would give a pressure; it now says that falls outside what Boorie knows, instantly, and obeys the switches in Settings → Guardrails. A PDF whose text cannot be extracted is no longer indexed with an invented sentence inside it: it is refused, with the reason, and the ones already indexed that way are named so you can remove them. And the knowledge base now starts switched on when there are indexed documents, instead of silently answering from the model's general knowledge while your documents went unread. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.37.0).
 - **v1.36.0**: The assistant now finds English technical documentation when you ask in Spanish. The embedding model was English-only, so a question in Spanish did not resemble an English technical document however much they shared a subject: measured with ten hydrology questions the corpus answers, the book made the top three 1 time out of 30; now, 30 out of 30. It also answers in the language you have set in the application rather than the language of the sources, and says so when it translates a citation. The reports Boorie writes when it simulates no longer crowd out your documentation in search, and one is no longer piled on top of the last with the same name. Updating requires reindexing the documentation once: the knowledge centre says so and offers the button, and does nothing on its own. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.36.0).
@@ -116,12 +117,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.37.1.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.37.1.AppImage`
-3. Run: `./Boorie-1.37.1.AppImage`
+1. Download `Boorie-1.38.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.38.0.AppImage`
+3. Run: `./Boorie-1.38.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.37.1.exe` from the link above
+1. Download `Boorie-Setup-1.38.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 

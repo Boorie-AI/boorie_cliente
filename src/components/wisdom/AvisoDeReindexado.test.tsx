@@ -117,3 +117,75 @@ describe('el aviso de reindexar', () => {
     expect((await screen.findByText(/wisdom\.reindexado\.fallo/)).textContent).toContain('Ollama no responde')
   })
 })
+
+
+/**
+ * Sin el modelo de embeddings instalado no se puede vectorizar nada: reindexar
+ * sólo conseguiría fallar documento a documento durante horas. Así que se pide
+ * el modelo antes, y el botón de reindexar no se ofrece hasta tenerlo.
+ */
+describe('cuando falta el modelo de embeddings', () => {
+  const saludSinModelo = () => salud({
+    descuadrada: true, dimensionGuardada: 1024, dimensionEsperada: 768,
+    modelo: 'granite-embedding:278m', modeloInstalado: false, total: 817, descuadrados: 817,
+  })
+
+  it('lo pide, y no ofrece reindexar', async () => {
+    getRAGHealth.mockResolvedValue(saludSinModelo())
+
+    render(<AvisoDeReindexado />)
+
+    await waitFor(() => expect(screen.getByText(/tituloModelo/)).toBeInTheDocument())
+    expect(screen.getByText(/porqueFaltaModelo.*granite-embedding:278m/)).toBeInTheDocument()
+    expect(screen.queryByText(/reindexado\.boton$/)).not.toBeInTheDocument()
+  })
+
+  it('el botón lo descarga y vuelve a comprobar', async () => {
+    getRAGHealth
+      .mockResolvedValueOnce(saludSinModelo())
+      .mockResolvedValue(salud({ descuadrada: false, modeloInstalado: true, total: 817 }))
+    const fetchFalso = vi.fn(async () => ({
+      ok: true,
+      body: {
+        getReader: () => {
+          let entregado = false
+          return {
+            read: async () => {
+              if (entregado) return { done: true, value: undefined }
+              entregado = true
+              return {
+                done: false,
+                value: new TextEncoder().encode('{"status":"pulling","completed":50,"total":100}\n'),
+              }
+            },
+          }
+        },
+      },
+    }))
+    vi.stubGlobal('fetch', fetchFalso)
+
+    render(<AvisoDeReindexado />)
+    await waitFor(() => expect(screen.getByText(/tituloModelo/)).toBeInTheDocument())
+    await userEvent.click(screen.getByRole('button', { name: /botonModelo/ }))
+
+    await waitFor(() => expect(fetchFalso).toHaveBeenCalled())
+    const [url, opciones] = fetchFalso.mock.calls[0] as any[]
+    expect(String(url)).toContain('/api/pull')
+    expect(JSON.parse(opciones.body).name).toBe('granite-embedding:278m')
+    // Y al terminar se vuelve a preguntar, que es lo que hace desaparecer el aviso.
+    await waitFor(() => expect(getRAGHealth).toHaveBeenCalledTimes(2))
+    vi.unstubAllGlobals()
+  })
+
+  it('con el modelo instalado, el aviso es el de siempre', async () => {
+    getRAGHealth.mockResolvedValue(salud({
+      descuadrada: true, dimensionGuardada: 1024, dimensionEsperada: 768,
+      modelo: 'granite-embedding:278m', modeloInstalado: true, total: 817, descuadrados: 817,
+    }))
+
+    render(<AvisoDeReindexado />)
+
+    await waitFor(() => expect(screen.getByText(/reindexado\.porque /)).toBeInTheDocument())
+    expect(screen.queryByText(/tituloModelo/)).not.toBeInTheDocument()
+  })
+})

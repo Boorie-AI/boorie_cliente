@@ -693,8 +693,7 @@
     "autoDetected": "Models d’embeddings detectats i disponibles",
     "runningLocally": "Els models corren en local: privadesa i rapidesa",
     "recommended": "Models d’embeddings recomanats:",
-    "modelBge": "bge-m3 (1024d) — multilingüe; el que Boorie fa servir per defecte",
-    "modelNomic": "nomic-embed-text (768d) — lleuger, però només troba en anglès",
+    "modelBge": "bge-m3 (1024d) — multilingüe, finestra més llarga; recupera una mica pitjor i va tres vegades més lent",
     "modelMxbai": "mxbai-embed-large (1024d) — de més qualitat, però només en anglès",
     "modelMinilm": "all-minilm (384d) — ràpid i lleuger, només en anglès",
     "chatModelsNote": "Els models de xat (gemma, llama, mistral) serveixen, però rendeixen pitjor com a embeddings",
@@ -741,7 +740,14 @@
       "enMarcha": "Reindexant…",
       "progreso": "Document {{hechos}} de {{total}}: {{titulo}}",
       "hecho": "Reindexació acabada: {{documentos}} de {{total}} documents, {{fragmentos}} fragments. Les cerques tornen a funcionar.",
-      "fallo": "No s’ha pogut completar la reindexació: {{motivo}}"
+      "fallo": "No s’ha pogut completar la reindexació: {{motivo}}",
+      "porqueModelo": "La base es va indexar amb «{{guardado}}» i ara se cerca amb «{{modelo}}». Encara que els vectors tinguin la mateixa mida són espais diferents, així que la cerca retorna documents sense relació amb la pregunta.",
+      "tituloModelo": "Falta el model d’embeddings",
+      "porqueFaltaModelo": "Boorie converteix els documents en vectors amb «{{modelo}}», i no està instal·lat a Ollama. Sense ell no es pot indexar ni cercar res, així que reindexar només fallaria document a document. Es descarrega un sol cop.",
+      "botonModelo": "Descarregar el model",
+      "descargandoBoton": "Descarregant…",
+      "descargando": "Descarregant el model: {{porcentaje}} %",
+      "falloModelo": "No s’ha pogut descarregar el model: {{motivo}}. També el pots instal·lar des d’un terminal."
     },
     "resultadosSemanticos": {
       "titulo": "Trobat per significat ({{count}})",
@@ -764,7 +770,8 @@
       "ilegible": "No s'ha pogut llegir «{{fichero}}». El fitxer pot estar malmès o protegit.",
       "formato-no-soportado": "El format de «{{fichero}}» no es pot obrir. Converteix-lo a PDF o DOCX.",
       "omitidos": "{{count}} fitxer(s) no s'han indexat perquè no se'n va poder extreure text."
-    }
+    },
+    "modelPorDefecto": "granite-embedding:278m (768d) — multilingüe; el que Boorie fa servir per defecte"
   },
   "wisdomCatalog": {
     "title": "Catàleg de la base de coneixement",
@@ -1045,7 +1052,8 @@
     "count_other": "{{count}} projectes",
     "byDate": "Per data",
     "byName": "Per nom",
-    "modified": "Modificat: {{fecha}}"
+    "modified": "Modificat: {{fecha}}",
+    "loading": "Carregant projectes…"
   },
   "prompt": {
     "loading": "S’està carregant la configuració…",

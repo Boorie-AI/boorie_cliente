@@ -70,13 +70,13 @@ describe('el reparto de plazas', () => {
 
 describe('los filtros del almacén', () => {
   it('cada corpus pide lo suyo, y son complementarios', () => {
-    expect(filtroDeCorpus('simulacion')).toBe('metadata["category"] == "simulations"')
-    expect(filtroDeCorpus('documental')).toBe('not (metadata["category"] == "simulations")')
+    expect(filtroDeCorpus('simulacion')).toBe('category == "simulations"')
+    expect(filtroDeCorpus('documental')).toBe('not (category == "simulations")')
   })
 
   it('se combinan con el del ámbito, que es el que garantiza la confidencialidad', () => {
-    expect(unirFiltros('metadata["projectId"] == ""', filtroDeCorpus('documental')))
-      .toBe('(metadata["projectId"] == "") and (not (metadata["category"] == "simulations"))')
+    expect(unirFiltros('projectId == ""', filtroDeCorpus('documental')))
+      .toBe('(projectId == "") and (not (category == "simulations"))')
   })
 
   it('sin nada que restringir no se inventa una expresión', () => {
