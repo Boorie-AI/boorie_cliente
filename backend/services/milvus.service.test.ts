@@ -356,4 +356,17 @@ describe.skipIf(!hayMilvus)('MilvusService: la colección con el esquema viejo s
     expect(servicio.necesitaReconstruir(nombre)).toBe(false)
     expect(await (servicio as any).contar(nombre)).toBe(0)
   }, 60_000)
+
+  it('una colección con filas sin cargar no se toma por vacía', async () => {
+    // Es como está la de conocimiento mientras Milvus la carga al arrancar: la consulta no lanza,
+    // devuelve la lista vacía con el error en el estado, y la reconstrucción la rehacía entera.
+    const nombre = `test_rec_sin_cargar_${Date.now()}`
+    creadas.push(nombre, MilvusService.nombreReconstruccion(nombre))
+    await (servicio as any).ensureCollection(nombre, DIM)
+    await servicio.insert(nombre, [fila(1)])
+    await servicio.getClient().releaseCollection({ collection_name: nombre })
+
+    expect(await servicio.prepararSiVacia(nombre)).toBe(false)
+    expect(servicio.necesitaReconstruir(nombre)).toBe(false)
+  }, 60_000)
 })

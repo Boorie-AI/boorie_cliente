@@ -181,6 +181,7 @@ export class MilvusService {
         try {
             let retries = 5; // ~7.5s total — enough for start_milvus.py to finish coming up.
             let lastResolvedAddress = MilvusService.resolveAddress();
+            let alcanzado = false;
             while (retries > 0) {
                 try {
                     // Milvus Lite may still be starting up when the client was first
@@ -194,7 +195,7 @@ export class MilvusService {
                         lastResolvedAddress = resolved;
                     }
                     await this.client.listCollections();
-                    this.connected = true;
+                    alcanzado = true;
                     console.log('[MilvusService] Connected successfully at', resolved);
                     break;
                 } catch {
@@ -204,8 +205,17 @@ export class MilvusService {
                 }
             }
 
-            if (this.connected) {
+            if (alcanzado) {
+                /*
+                 * «Conectado» sólo con las colecciones listas. Se marcaba antes de initCollections,
+                 * y cargar la de conocimiento son segundos con una base grande: quien llegaba en
+                 * ese intervalo veía `connected`, consultaba una colección aún sin cargar y recibía
+                 * la lista vacía con el error en el estado. La reconstrucción del arranque de la
+                 * 1.38.1 lo tomaba por colección vacía y la rehacía entera en cada apertura.
+                 * Mientras tanto, quien llega recibe «unavailable» y reintenta, como antes.
+                 */
                 await this.initCollections();
+                this.connected = true;
             } else {
                 this.unavailable = true;
                 this.unavailableSince = Date.now();
@@ -297,6 +307,9 @@ export class MilvusService {
                 limit: 1,
                 consistency_level: ConsistencyLevelEnum.Strong,
             });
+            // Una colección sin cargar no lanza: responde con el error en el estado y la lista
+            // vacía, y eso no dice que esté vacía.
+            MilvusService.exigirExito(res, `la consulta de ${collection}`);
             return Array.isArray(res?.data) && res.data.length === 0;
         } catch (e) {
             console.warn(`[MilvusService] Could not tell whether ${collection} is empty:`, (e as Error).message);
