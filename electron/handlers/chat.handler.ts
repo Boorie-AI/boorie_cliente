@@ -13,7 +13,7 @@ import {
   type RedCompleta,
 } from '../../backend/services/hydraulic/agentTools'
 import { WNTRResilienceService } from '../../backend/services/hydraulic/resilienceService'
-import { componerPromptDeSistema } from '../../backend/services/hydraulic/promptDelAgente'
+import { componerPromptDeSistema, type ModelosEnUso } from '../../backend/services/hydraulic/promptDelAgente'
 import { detectarIntencionEscenario, detectarIntencionEnergia } from '../../backend/services/hydraulic/intencionEscenario'
 
 /**
@@ -74,6 +74,11 @@ const resilienceService = new WNTRResilienceService()
 export interface SendChatMessageParams {
   provider: string
   model: string
+  /**
+   * Con que modelo de embeddings se buscaron las fuentes que van en el mensaje; `null` si no se
+   * consulto la base de conocimiento. Es para que el modelo que redacta pueda decirlo sin inventarlo.
+   */
+  modeloEmbeddings?: string | null
   messages: ChatMessage[]
   apiKey: string
   stream?: boolean
@@ -163,12 +168,15 @@ export class ChatHandler {
   }
 
   private async sendChatMessage(params: SendChatMessageParams): Promise<IPCChatResponse> {
-    const { provider, model, messages, apiKey, projectId, preguntaOriginal } = params
+    const { provider, model, messages, apiKey, projectId, preguntaOriginal, modeloEmbeddings } = params
 
     try {
       // Get system prompt from database and add it to messages if not already present
       logger.info('Processing chat message', { provider, model, messageCount: messages.length })
-      const messagesWithSystemPrompt = await this.addSystemPrompt(messages)
+      const messagesWithSystemPrompt = await this.addSystemPrompt(messages, {
+        redaccion: { proveedor: provider, modelo: model },
+        embeddings: modeloEmbeddings,
+      })
       logger.info('Messages after system prompt processing', { messageCount: messagesWithSystemPrompt.length })
 
       // La red solo se carga si el proveedor sabe usar herramientas, con la
@@ -372,7 +380,7 @@ export class ChatHandler {
     }))
   }
 
-  private async addSystemPrompt(messages: ChatMessage[]): Promise<ChatMessage[]> {
+  private async addSystemPrompt(messages: ChatMessage[], modelos?: ModelosEnUso): Promise<ChatMessage[]> {
     try {
       // Check if there's already a system message
       const hasSystemMessage = messages.some(msg => msg.role === 'system')
@@ -394,7 +402,7 @@ export class ChatHandler {
         where: { key: 'system_prompt' }
       })
 
-      const contenido = componerPromptDeSistema(propio?.value)
+      const contenido = componerPromptDeSistema(propio?.value, modelos)
       logger.info('Adding system prompt to conversation', {
         promptLength: contenido.length,
         conPersonalizacion: !!propio?.value?.trim(),
@@ -404,7 +412,7 @@ export class ChatHandler {
       // Que no se pueda leer la personalizacion no puede dejar al agente sin
       // reglas: se envia la disciplina sola, que es lo que no es opcional.
       logger.warn('No se pudo leer el prompt propio; va la disciplina sola', error as Error)
-      return [{ role: 'system', content: componerPromptDeSistema() }, ...messages]
+      return [{ role: 'system', content: componerPromptDeSistema(null, modelos) }, ...messages]
     }
   }
 

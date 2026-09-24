@@ -23,9 +23,13 @@ vi.mock('electron', () => ({
 // los cinco segundos de reintentos contra un puerto cerrado.
 vi.mock('../../backend/services/milvus.service', () => ({
   MilvusService: {
+    // Sin COLLECTIONS ni estadoReconstruccion, leerlos lanzaba dentro del try del diagnóstico y
+    // éste daba Milvus por desconectado en todas estas pruebas sin que ninguna lo notara.
+    COLLECTIONS: { KNOWLEDGE: 'hydraulic_knowledge' },
     getInstance: () => ({
       ensureConnection: async () => {},
       isAvailable: () => true,
+      estadoReconstruccion: () => reconstruccionEnCurso,
       prepararParaDimension: async () => coleccionRehecha,
     }),
   },
@@ -40,6 +44,7 @@ const addDocument = vi.fn(async (doc: any) => {
 })
 const reindexDocument = vi.fn(async () => ({ chunkCount: 1, failedCount: 0, totalChunks: 1, milvusSynced: true }))
 let coleccionRehecha = false
+let reconstruccionEnCurso: { hechas: number; total: number } | null = null
 vi.mock('../../backend/services/hydraulic/ragService', () => ({
   HydraulicRAGService: class {
     addDocument = (...args: any[]) => addDocument(...args)
@@ -367,6 +372,36 @@ describe('wisdom:getRAGHealth', () => {
     expect(avisoDeDimension(res)).toContain('768')
     expect(avisoDeDimension(res)).toContain('1024')
     expect(res.health.status).toBe('critical')
+  })
+
+  it('con Milvus disponible no se acusa a Milvus', async () => {
+    const res = await salud(1024)
+
+    expect(res.health.metrics.databaseStatus).toBe('connected')
+    expect(res.health.issues.join(' ')).not.toContain('no está disponible')
+  })
+
+  describe('mientras se reconstruye la base vectorial', () => {
+    afterEach(() => { reconstruccionEnCurso = null })
+
+    const avisoDeReconstruccion = (res: any) =>
+      res.health.issues.find((p: string) => p.includes('reconstruyendo'))
+
+    it('dice cuánto lleva', async () => {
+      reconstruccionEnCurso = { hechas: 187000, total: 298072 }
+      const res = await salud(1024)
+
+      expect(avisoDeReconstruccion(res)).toContain('187.000 de 298.072')
+      expect(res.health.status).toBe('critical')
+    })
+
+    it('antes de saber el total no dice «0 de 0»', async () => {
+      reconstruccionEnCurso = { hechas: 0, total: 0 }
+      const res = await salud(1024)
+
+      expect(avisoDeReconstruccion(res)).toContain('contando los fragmentos')
+      expect(avisoDeReconstruccion(res)).not.toContain('0 de 0')
+    })
   })
 
   it('no avisa cuando el tamaño es el del modelo en uso', async () => {

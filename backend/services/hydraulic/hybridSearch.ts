@@ -68,11 +68,28 @@ export function fuenteDeReconstruccion(prisma: PrismaClient): FuenteDeReconstruc
   }
 }
 
-/** Lo lanza el arranque de la app: sin esto no empezaba hasta la primera pregunta al chat. */
-export async function reconstruirSiHaceFalta(prisma: PrismaClient) {
+/**
+ * Lo lanza el arranque de la app: sin esto no empezaba hasta la primera pregunta al chat.
+ *
+ * Espera a Milvus en lugar de rendirse al primer intento. Milvus Lite se lanza a la vez que esto y
+ * `ensureConnection` sólo le da unos 7,5 s: con la base de Luis tardó más en levantar, el arranque
+ * registró «Milvus unavailable» y la reconstrucción se quedó esperando a la primera pregunta.
+ */
+export async function reconstruirSiHaceFalta(
+  prisma: PrismaClient,
+  { intentos = 30, esperaMs = 10_000 }: { intentos?: number; esperaMs?: number } = {}
+) {
   const milvus = MilvusService.getInstance()
   const knowledge = MilvusService.COLLECTIONS.KNOWLEDGE
-  await milvus.ensureConnection()
+  for (let intento = 1; ; intento++) {
+    try {
+      await milvus.ensureConnection()
+      break
+    } catch (error) {
+      if (intento >= intentos) throw error
+      await new Promise(resolve => setTimeout(resolve, esperaMs))
+    }
+  }
   if (!milvus.necesitaReconstruir(knowledge)) {
     const hayVectores = await prisma.knowledgeChunk.findFirst({ where: { embedding: { not: null } }, select: { id: true } })
     if (!hayVectores || !(await milvus.prepararSiVacia(knowledge))) return

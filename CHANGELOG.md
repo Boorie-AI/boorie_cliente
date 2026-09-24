@@ -9,6 +9,25 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.38.1] - 2026-09-23
+
+La reorganización de la base vectorial empieza de verdad al abrir la aplicación, y el asistente
+deja de inventarse con qué modelo responde.
+
+- **Si la base vectorial tardaba en arrancar, la reorganización de la 1.38.0 no empezaba.** Al
+  abrir la aplicación se le daban unos 7 segundos para responder y, si no llegaba, se daba por
+  perdida: la reorganización esperaba a la primera pregunta al chat y, mientras tanto, la Base de
+  Conocimiento no encontraba nada. Pasó con una base grande en un equipo de pruebas, y en uno más
+  lento es lo esperable. Ahora espera hasta cinco minutos a que arranque.
+- **El aviso de la reorganización ya no dice «0 de 0 fragmentos».** Al principio tiene que contar
+  cuántos hay, y con una base grande eso puede tardar medio minuto. Ahora dice que los está
+  contando.
+- **El asistente decía ser GPT-4 corriendo en Ollama.** Un modelo no sabe cómo se llama, así que,
+  si se le pide decirlo —hay quien lo pone en sus indicaciones de Ajustes para que conste en cada
+  informe—, se lo inventa: `qwen2.5:7b` y `qwen3:8b` contestaban «GPT-4». Ahora la aplicación le
+  dice con qué modelo redacta y con qué modelo de embeddings se buscaron las fuentes, y le pide
+  usar esos nombres. Si no los sabe, se le dice que responda que no lo sabe.
+
 ## [1.38.0] - 2026-09-23
 
 El RAG no encontraba nada y no lo decía. Se arregla lo que lo tapaba, buscar en una base grande

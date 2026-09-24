@@ -101,13 +101,13 @@ interface ChatState {
   saveConversation: (conversation: Conversation) => Promise<void>
   loadConversations: (projectId?: string) => Promise<void>
   loadAllConversations: () => Promise<void>
-  callOllamaAPI: (model: string, prompt: string, context: Message[]) => Promise<{ response: string; metadata: any }>
+  callOllamaAPI: (model: string, prompt: string, context: Message[], modeloEmbeddings?: string | null) => Promise<{ response: string; metadata: any }>
   callAPIProvider: (provider: string, model: string, prompt: string, context: Message[]) => Promise<{ response: string; metadata: any }>
 
   // Wisdom/RAG actions
   setWisdomConfig: (config: WisdomConfiguration | undefined) => void
   asegurarBaseDeConocimiento: () => Promise<void>
-  enhancePromptWithRAG: (originalPrompt: string, projectId?: string | null) => Promise<{ enhancedPrompt: string; sources?: any[] }>
+  enhancePromptWithRAG: (originalPrompt: string, projectId?: string | null) => Promise<{ enhancedPrompt: string; sources?: any[]; modeloEmbeddings?: string | null }>
 
   // Hydraulic project context
   buildProjectContext: (projectId: string) => Promise<string>
@@ -350,6 +350,8 @@ export const useChatStore = create<ChatState>()(
             // Enhance prompt with RAG if enabled
             let enhancedPrompt = content
             let ragSources: any[] = []
+            // Si no llega a buscarse —RAG apagado, fallo o tiempo agotado—, no intervino ningún modelo de embeddings.
+            let modeloEmbeddings: string | null = null
             try {
               /**
                * Cuánto se espera a las fuentes (#63).
@@ -364,7 +366,7 @@ export const useChatStore = create<ChatState>()(
                * pasarse de largo no ahorra trabajo, sólo desperdicia el hecho.
                */
               const PRESUPUESTO_FUENTES_MS = 180000
-              const ragTimeout = new Promise<{ enhancedPrompt: string; sources?: any[] }>((resolve) =>
+              const ragTimeout = new Promise<{ enhancedPrompt: string; sources?: any[]; modeloEmbeddings?: string | null }>((resolve) =>
                 setTimeout(() => {
                   logger.warn('RAG enhancement timed out, using original prompt')
                   resolve({ enhancedPrompt: content })
@@ -376,6 +378,7 @@ export const useChatStore = create<ChatState>()(
               ])
               enhancedPrompt = ragResult.enhancedPrompt
               ragSources = ragResult.sources || []
+              modeloEmbeddings = ragResult.modeloEmbeddings ?? null
             } catch (error) {
               logger.warn('Failed to enhance prompt with RAG, using original:', error)
             }
@@ -512,6 +515,7 @@ export const useChatStore = create<ChatState>()(
                       modelo,
                       enhancedPrompt,
                       conversation.messages, // history (without the user msg added below — it's already inside)
+                      modeloEmbeddings,
                     )
                     result = { success: true, data: { response: r.response, metadata: r.metadata } }
                   } catch (e: any) {
@@ -531,7 +535,8 @@ export const useChatStore = create<ChatState>()(
                     // La pregunta sin el contexto inyectado, para reconocer si
                     // pide un escenario (#44): buscar ids de elementos en el
                     // prompt enriquecido encuentra los del resumen de la red.
-                    preguntaOriginal: content
+                    preguntaOriginal: content,
+                    modeloEmbeddings,
                   })
                 }
 
@@ -743,7 +748,7 @@ export const useChatStore = create<ChatState>()(
         await get().loadConversations()
       },
 
-      callOllamaAPI: async (model: string, prompt: string, context: Message[]) => {
+      callOllamaAPI: async (model: string, prompt: string, context: Message[], modeloEmbeddings?: string | null) => {
         try {
           // Clean model name (remove 'ollama-' prefix if present)
           const cleanModelName = model.startsWith('ollama-') ? model.replace('ollama-', '') : model
@@ -771,7 +776,13 @@ export const useChatStore = create<ChatState>()(
           } catch (e) {
             logger.warn('No se pudo leer el prompt propio; va la disciplina sola', e)
           }
-          messages.unshift({ role: 'system', content: componerPromptDeSistema(propio) })
+          messages.unshift({
+            role: 'system',
+            content: componerPromptDeSistema(propio, {
+              redaccion: { proveedor: 'Ollama', modelo: cleanModelName },
+              embeddings: modeloEmbeddings,
+            }),
+          })
 
           const requestBody = {
             model: cleanModelName,
@@ -947,7 +958,7 @@ export const useChatStore = create<ChatState>()(
       enhancePromptWithRAG: async (
         originalPrompt: string,
         projectId?: string | null
-      ): Promise<{ enhancedPrompt: string; sources?: any[] }> => {
+      ): Promise<{ enhancedPrompt: string; sources?: any[]; modeloEmbeddings?: string | null }> => {
         const state = get()
 
         if (!state.wisdomConfig?.enabled) {
@@ -1016,7 +1027,7 @@ export const useChatStore = create<ChatState>()(
 
           // El cierre de idioma no se pone aquí: va al final de *todos* los
           // caminos, y por esta función sólo pasa uno (#160).
-          return { enhancedPrompt: enhancedPrompt, sources }
+          return { enhancedPrompt: enhancedPrompt, sources, modeloEmbeddings: ragResult.data.modeloEmbeddings ?? null }
 
         } catch (error) {
           logger.error('Failed to enhance prompt with RAG:', error)
