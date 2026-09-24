@@ -141,7 +141,7 @@
     "enterApiKey": "Ingresa tu clave API",
     "test": "Probar",
     "availableModels": "Modelos disponibles",
-    "modelFijadoAviso": "Boorie fija el modelo de las respuestas del chat: esta selección no lo cambia. Sirve para las claves y el catálogo de cada proveedor.",
+    "modelFijadoAviso": "El modelo que responde en el chat se elige arriba, en «Modelo que redacta las respuestas del chat». Aquí se configuran las claves y el catálogo de cada proveedor.",
     "checkingOllama": "Verificando instalación de Ollama…",
     "apiProviderConfig": "Configuración de proveedores de API",
     "apiProviderConfigDesc": "Configura tus proveedores de API para acceder a modelos de IA en la nube. Todos los proveedores están deshabilitados por defecto.",
@@ -166,7 +166,16 @@
     "unknownSize": "Tamaño desconocido",
     "searchModels": "Buscar modelos…",
     "noModelsFound": "No se encontraron modelos",
-    "tryDifferentSearch": "Prueba con un término de búsqueda diferente"
+    "tryDifferentSearch": "Prueba con un término de búsqueda diferente",
+    "modeloRespuesta": {
+      "titulo": "Modelo que redacta las respuestas del chat",
+      "descripcion": "Puede ser uno de este equipo o de un proveedor externo con clave. La búsqueda en tus documentos y la evaluación de las fuentes se siguen haciendo en local.",
+      "automatico": "Automático (recomendado): {{modelo}}",
+      "local": "En este equipo (Ollama)",
+      "sinExternos": "Para elegir un modelo externo, añade la clave del proveedor en «Proveedores API» y carga sus modelos.",
+      "avisoExterno": "Con un modelo de {{proveedor}}, tu pregunta y los fragmentos de tus documentos que la acompañan salen de este equipo hacia {{proveedor}}.",
+      "guardado": "Guardado. Se aplica desde la próxima pregunta."
+    }
   },
   "accounts": {
     "connectedAccounts": "Cuentas conectadas",

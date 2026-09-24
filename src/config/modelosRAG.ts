@@ -22,15 +22,47 @@ export interface ModelosRAG {
   selectorVisible: boolean
 }
 
+/**
+ * El modelo que redacta, elegido en Configuración → IA.
+ *
+ * El #49 lo dejó fijo y sin forma de cambiarlo salvo con variables de entorno, que en una
+ * instalación de Windows no son algo que se le pueda pedir a quien la usa. Lo que se elige aquí
+ * manda sobre el automático; el auxiliar, que gradúa fragmento a fragmento, sigue siendo local.
+ */
+export interface ModeloElegido {
+  /** El id del proveedor en `ai_providers`, para encontrar su clave. */
+  proveedorId: string
+  proveedor: string
+  modelo: string
+}
+
+export const CLAVE_MODELO_RESPUESTA = 'chat.modeloRespuesta'
+
 let cache: ModelosRAG | null = null
+let elegido: ModeloElegido | null = null
 let pendiente: Promise<ModelosRAG | null> | null = null
+
+function leerElegido(valor: unknown): ModeloElegido | null {
+  if (typeof valor !== 'string' || !valor.trim()) return null
+  try {
+    const e = JSON.parse(valor)
+    return e && typeof e.modelo === 'string' && e.modelo && typeof e.proveedor === 'string' && e.proveedor
+      ? { proveedorId: String(e.proveedorId ?? ''), proveedor: e.proveedor, modelo: e.modelo }
+      : null
+  } catch {
+    return null
+  }
+}
 
 export async function cargarModelosRAG(): Promise<ModelosRAG | null> {
   if (cache) return cache
   if (!pendiente) {
-    pendiente = window.electronAPI.agenticRAG
-      .modelos()
-      .then((r: { success: boolean; data?: ModelosRAG }) => {
+    const ajuste = Promise.resolve(window.electronAPI.database?.getSetting?.(CLAVE_MODELO_RESPUESTA))
+      .then(leerElegido)
+      .catch(() => null)
+    pendiente = Promise.all([window.electronAPI.agenticRAG.modelos(), ajuste])
+      .then(([r, e]: [{ success: boolean; data?: ModelosRAG }, ModeloElegido | null]) => {
+        elegido = e
         cache = r?.success && r.data ? r.data : null
         return cache
       })
@@ -48,13 +80,27 @@ export function modelosRAGEnCache(): ModelosRAG | null {
   return cache
 }
 
+/** Lo elegido en Configuración, o `null` si se deja en automático. */
+export function modeloElegido(): ModeloElegido | null {
+  return elegido
+}
+
+/** Guarda la elección; `null` vuelve al automático. Vale desde la siguiente pregunta. */
+export async function guardarModeloElegido(nuevo: ModeloElegido | null): Promise<void> {
+  await window.electronAPI.database.setSetting(CLAVE_MODELO_RESPUESTA, nuevo ? JSON.stringify(nuevo) : '', 'ai')
+  elegido = nuevo
+}
+
 /**
  * El modelo y el proveedor con los que hay que responder cuando el usuario no
  * elige, o `null` si sí elige (o si todavía no se sabe y hay que respetar lo
  * que la conversación tuviera guardado).
  */
-export function modeloFijadoRAG(): { model: string; provider: string } | null {
-  if (!cache || cache.selectorVisible) return null
+export function modeloFijadoRAG(): { model: string; provider: string; providerId?: string } | null {
+  // Con el desplegable de diagnóstico a la vista, manda lo que se elija en cada conversación.
+  if (cache?.selectorVisible) return null
+  if (elegido) return { model: elegido.modelo, provider: elegido.proveedor, providerId: elegido.proveedorId }
+  if (!cache) return null
   return {
     model: cache.modeloRespuesta,
     provider: cache.backend === 'nvidia' ? 'nvidia' : 'Ollama',

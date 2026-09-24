@@ -141,7 +141,7 @@
     "enterApiKey": "Enter your API key",
     "test": "Test",
     "availableModels": "Available models",
-    "modelFijadoAviso": "Boorie sets the model that answers in the chat: this selection does not change it. It applies to each provider’s keys and catalogue.",
+    "modelFijadoAviso": "The model that answers in the chat is chosen above, in “Model that writes the chat answers”. This is where each provider’s keys and catalogue are set up.",
     "checkingOllama": "Checking Ollama installation…",
     "apiProviderConfig": "API provider configuration",
     "apiProviderConfigDesc": "Configure your API providers to access cloud-based AI models. All providers are disabled by default.",
@@ -166,7 +166,16 @@
     "unknownSize": "Unknown size",
     "searchModels": "Search models…",
     "noModelsFound": "No models found",
-    "tryDifferentSearch": "Try a different search term"
+    "tryDifferentSearch": "Try a different search term",
+    "modeloRespuesta": {
+      "titulo": "Model that writes the chat answers",
+      "descripcion": "It can run on this computer or come from an external provider with a key. Searching your documents and grading the sources still happen locally.",
+      "automatico": "Automatic (recommended): {{modelo}}",
+      "local": "On this computer (Ollama)",
+      "sinExternos": "To choose an external model, add the provider’s key under “API Providers” and load its models.",
+      "avisoExterno": "With a {{proveedor}} model, your question and the fragments of your documents sent with it leave this computer for {{proveedor}}.",
+      "guardado": "Saved. It applies from the next question."
+    }
   },
   "accounts": {
     "connectedAccounts": "Connected accounts",

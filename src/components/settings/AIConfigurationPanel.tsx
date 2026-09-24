@@ -1,6 +1,7 @@
 import { logger } from '@/utils/logger'
 import { getOllamaBaseUrl } from '@/config/ollama';
 import { cargarModelosRAG } from '@/config/modelosRAG';
+import { ModeloDeRespuesta } from './ModeloDeRespuesta';
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -488,6 +489,7 @@ export function AIConfigurationPanel() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="space-y-6 pb-6">
+        <ModeloDeRespuesta modelosOllama={ollamaModels.map(m => m.name)} />
         <Tabs.Root defaultValue="local" className="h-full flex flex-col">
           <Tabs.List className="flex space-x-1 bg-muted p-1 rounded-lg w-fit mb-6">
             <Tabs.Trigger
