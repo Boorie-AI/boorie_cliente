@@ -2066,9 +2066,13 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
         status = 'critical'
       }
       if (reconstruccion) {
+        // El total sale de contar en SQLite, que con una base grande en frío tarda medio minuto: hasta
+        // entonces es 0 y el aviso decía «0 de 0».
+        const avance = reconstruccion.total > 0
+          ? `(${reconstruccion.hechas.toLocaleString('es')} de ${reconstruccion.total.toLocaleString('es')} fragmentos)`
+          : '(contando los fragmentos)'
         issues.push(
-          `Se está reconstruyendo la base vectorial (${reconstruccion.hechas.toLocaleString('es')} de ` +
-          `${reconstruccion.total.toLocaleString('es')} fragmentos): hasta que termine, la búsqueda por ` +
+          `Se está reconstruyendo la base vectorial ${avance}: hasta que termine, la búsqueda por ` +
           `similitud no devuelve nada. Se hace una sola vez y sigue por donde iba si se cierra la app.`
         )
         status = 'critical'
