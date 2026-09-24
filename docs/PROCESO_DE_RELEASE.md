@@ -289,6 +289,59 @@ Si el clic en cerrar se queda esperando, esto lo dice en una línea:
 document.elementFromPoint(1896, 16)   // ¿quién hay realmente encima del botón?
 ```
 
+**Con una carpeta de datos nueva, los velos son otros.** El descargo no es el único que tapa la
+barra de título. En una instalación limpia salen apilados, por este orden:
+
+1. el de preparar el entorno de Python, con «Continuar de todos modos»;
+2. el tutorial de bienvenida, con «Omitir tutorial»;
+3. el descargo, con «Entendido».
+
+Los tres son un `fixed inset-0`, y el clic en «Cerrar» se lo come el de arriba. **Y no salen
+siempre en el mismo orden ni a la vez**: el de Python puede aparecer segundos después, encima del
+tutorial. Pulsarlos por lista con `locator.click()` agotaba la espera en el que no estaba arriba, y
+el cierre fallaba sin instalar. Lo que funciona es preguntar qué hay de verdad encima del botón y
+pulsar lo que tape, hasta que el botón quede libre. Son botones normales, no de Radix, así que
+basta el `click()` del DOM. Pasó en la v1.38.1 y en la v1.38.2, al hacer la prueba con
+`--user-data-dir`:
+
+```js
+for (let i = 0; i < 10; i++) {
+  const libre = await page.evaluate(() => {
+    const btn = document.querySelector('button[title="Cerrar"]');
+    const r = btn.getBoundingClientRect();
+    if (btn.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2))) return true;
+    for (const texto of ['Continuar de todos modos', 'Omitir tutorial', 'Entendido']) {
+      const b = [...document.querySelectorAll('button')].find(x => x.innerText.trim().startsWith(texto));
+      if (b) { b.click(); return texto; }
+    }
+    return false;
+  });
+  if (libre === true) break;
+  await page.waitForTimeout(1500);
+}
+await page.click('button[title="Cerrar"]');
+```
+
+**Si hay una app de desarrollo abierta, los paquetes van con su propia carpeta de datos.** El
+paquete de Linux y el AppImage de la prueba de actualización abren `~/.config/boorie`, que es la
+misma base y el mismo Milvus que usa `npm run dev`. Dos instancias sobre los mismos datos pueden
+corromperlos. Con `--user-data-dir=<carpeta nueva>` cada una trabaja sobre lo suyo:
+
+- sale `Using database at: <carpeta>/hydraulic.db`;
+- la base conecta igual, que es lo que se comprueba;
+- el actualizador escribe en `<carpeta>/logs/main.log`.
+
+Milvus no arranca en esa carpeta, porque no tiene venv, y el servidor OAuth avisa de
+`EADDRINUSE 127.0.0.1:8020` porque el puerto lo tiene la otra instancia. Las dos cosas son
+esperables y no son de la release.
+
+Y **no avances `main` en el directorio donde corre esa app** —un `git merge`, un `pull` tras
+mergear el PR—. Vite recarga el renderer con el código nuevo mientras el proceso principal sigue
+con el viejo, y la Base de Conocimiento vuelve a lanzar su diagnóstico. En la v1.38.1, con la
+base de 298.072 fragmentos, ese diagnóstico dejó Prisma ocupado varios minutos: la sesión de
+pruebas recibió `P1008` al crear conversaciones y guardar ajustes. Para verificar se usa el
+artefacto del borrador, no un empaquetado local sobre `dist/`.
+
 **El script tiene que estar dentro del directorio que tiene `node_modules`.** En ESM la
 resolución va por la ubicación del fichero y no por el directorio de trabajo, así que
 `cd deps && node ../cerrar.mjs` falla con `ERR_MODULE_NOT_FOUND` aunque `playwright-core`
