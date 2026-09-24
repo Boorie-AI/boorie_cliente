@@ -346,10 +346,10 @@ Hay que componerlo con la fecha de hoy y no arrastrar el de la sesión anterior:
 se escribe en el del mes pasado ni se crea por cuenta propia**: el corte mensual lo decide su
 dueño, que es quien dice qué filas se llevan y si los IDs continúan.
 
-**Dos filas por ciclo**: una del trabajo —rama, `Estado: Integrado`, la categoría que toque— y
-otra de la publicación —`Rama: main`, categoría `Proceso`, título «Publicar la release vX.Y.Z
-con …»—. Si el ciclo tuvo varias tandas de trabajo, una fila por tanda y una sola de
-publicación.
+**Varias filas por ciclo**: una del trabajo —rama, `Estado: Integrado`, la categoría que toque—,
+una más por cada arreglo que entró en el commit y, al final, la de la publicación —`Rama: main`,
+categoría `Proceso`, título «Publicar la release vX.Y.Z con …»—. Si el ciclo tuvo varias tandas
+de trabajo, una fila por tanda, con sus arreglos, y una sola de publicación.
 
 Y el contenido va en el mismo registro que el resto del fichero: qué pasaba, qué se hizo, **cómo
 se validó** —pruebas y comprobación en la aplicación real— y qué queda pendiente. Los tropiezos
