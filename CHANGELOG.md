@@ -9,6 +9,24 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.38.2] - 2026-09-24
+
+Una base grande ya reorganizada deja de reorganizarse otra vez en cada arranque.
+
+- **Con la 1.38.1, cada vez que se abría la aplicación se volvía a reorganizar la base vectorial
+  entera.** Al arrancar, la comprobación de si la base vectorial estaba vacía llegaba antes de que
+  terminara de cargarse, y la daba por vacía: con una base de 298.072 fragmentos eran unos 11
+  minutos sin búsqueda en cada apertura. No se perdía nada —se copia de la base de datos y queda lo
+  mismo—, pero se perdía el tiempo. Ahora la aplicación espera a que la base vectorial esté cargada
+  antes de mirarla, y si no puede saber si está vacía, no la toca. Lo que dejó a medias la 1.38.1
+  se retira solo al arrancar.
+- **Abrir la Base de Conocimiento durante la reorganización la cortaba.** Su comprobación de salud
+  recorre todos los vectores y, con una base grande, tiene la base de datos ocupada varios minutos:
+  la reorganización no podía leer, se abortaba, y la búsqueda se quedaba sin fuentes hasta
+  reiniciar la aplicación. Sin fuentes, un modelo pequeño se inventa la respuesta —preguntado por el
+  golpe de ariete, lo describió como «el estado terminal de una simulación»—. Ahora la
+  reorganización espera y reintenta, y sigue hasta el final.
+
 ## [1.38.1] - 2026-09-23
 
 La reorganización de la base vectorial empieza de verdad al abrir la aplicación, y el asistente

@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.38.1
+### 🚀 Latest Release - v1.38.2
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.38.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.1/Boorie-1.38.1-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.38.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.1/Boorie-Setup-1.38.1.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.38.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.1/Boorie-1.38.1.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.38.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.2/Boorie-1.38.2-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.38.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.2/Boorie-Setup-1.38.2.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.38.2.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.2/Boorie-1.38.2.AppImage) |
 
 ### 📝 What's New
 
+- **v1.38.2**: A large knowledge base that has already been reorganised is no longer reorganised again every time the application opens. With v1.38.1, the startup check for an empty vector database ran before the database had finished loading and took it for empty: on a base of 298,072 fragments that meant about 11 minutes without search at every start. Nothing was lost, only time. The application now waits for the vector database to finish loading before looking at it, and leaves it alone when it cannot tell; what v1.38.1 left half-done is removed at startup. Opening the knowledge centre during the reorganisation no longer cuts it short and leaves search without sources until restart: it now waits, retries and carries on to the end. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.38.2).
 - **v1.38.1**: The one-time reorganisation of the vector database that v1.38.0 introduced now really starts when you open the application. It gave the vector database about 7 seconds to come up; if it took longer, the reorganisation waited for the first chat question, and until then the knowledge centre found nothing. It now waits up to five minutes. The progress notice also no longer reads «0 of 0 fragments» while it is still counting them. And the assistant no longer claims to be GPT-4 when running on Ollama: the application now tells it which model is writing the answer and which embedding model searched the sources, so it can state them instead of guessing. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.38.1).
 - **v1.38.0**: Searching a large knowledge base no longer eats the computer's memory. Every question filtered the vector database by project and document type, and the vector database resolved that filter by loading everything it stored into memory: on a real base of 298,072 fragments each search took about two and a half minutes, gave up before finishing and left the process at 11 GB — enough, on a 16 GB machine, for the system to close the whole desktop session. The same search now takes about 2 seconds and stays under 3 GB. The first time you open this version the vector database reorganises itself once, copying the vectors it already has (about 11 minutes for that base); the knowledge centre shows how far it has got, and it picks up where it left off if you close the application. Also in this version: the default embedding model is now `granite-embedding:278m`, which retrieves better and reindexes three times faster — it requires reindexing once, and the application offers to download the model if it is missing — and a series of fixes that made the RAG find nothing without saying so. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.38.0).
 - **v1.37.1**: A single unreadable document no longer stops you reindexing, searching or checking the knowledge base. If the base held a document whose text is not valid UTF-8 — something the PDF extraction of earlier versions could leave behind — reindexing died before it started, with a database engine error that did not even say which document it meant. Nothing is lost now: what can be read works normally, and what cannot is named so you can remove it. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.37.1).
@@ -118,12 +119,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.38.1.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.38.1.AppImage`
-3. Run: `./Boorie-1.38.1.AppImage`
+1. Download `Boorie-1.38.2.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.38.2.AppImage`
+3. Run: `./Boorie-1.38.2.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.38.1.exe` from the link above
+1. Download `Boorie-Setup-1.38.2.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 

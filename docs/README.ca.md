@@ -39,15 +39,21 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.38.1
+### 🚀 Última Versió - v1.38.2
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.38.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.1/Boorie-1.38.1-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.38.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.1/Boorie-Setup-1.38.1.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.38.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.1/Boorie-1.38.1.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.38.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.2/Boorie-1.38.2-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.38.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.2/Boorie-Setup-1.38.2.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.38.2.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.2/Boorie-1.38.2.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.38.2
+- Amb la v1.38.1, cada vegada que s'obria l'aplicació es tornava a reorganitzar la base vectorial sencera: la comprovació de si era buida arribava abans que acabés de carregar-se. Amb una base de 298.072 fragments eren uns 11 minuts sense cerca a cada obertura. No es perdia res, només temps.
+- Ara l'aplicació espera que la base vectorial estigui carregada abans de mirar-la, i si no pot saber si és buida, no la toca. El que va deixar a mitges la 1.38.1 es retira sol en arrencar.
+- Obrir la Base de Coneixement durant la reorganització la tallava, i la cerca es quedava sense fonts fins a reiniciar. Ara la reorganització espera i reintenta, i continua fins al final.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.38.2).
 
 ### 📝 Novetats a v1.38.1
 - La reorganització de la base vectorial que va portar la v1.38.0 comença de debò en obrir l'aplicació. Se li donaven uns 7 segons a la base vectorial per arrencar; si trigava més, la reorganització esperava la primera pregunta al xat i, fins aleshores, la Base de Coneixement no trobava res. Ara espera fins a cinc minuts.
@@ -415,12 +421,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.38.1.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.38.1.AppImage`
-3. Executa: `./Boorie-1.38.1.AppImage`
+1. Descarrega `Boorie-1.38.2.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.38.2.AppImage`
+3. Executa: `./Boorie-1.38.2.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.38.1.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.38.2.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 

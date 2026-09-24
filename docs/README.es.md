@@ -39,15 +39,21 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.38.1
+### 🚀 Última Versión - v1.38.2
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.38.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.1/Boorie-1.38.1-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.38.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.1/Boorie-Setup-1.38.1.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.38.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.1/Boorie-1.38.1.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.38.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.2/Boorie-1.38.2-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.38.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.2/Boorie-Setup-1.38.2.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.38.2.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.2/Boorie-1.38.2.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.38.2
+- Con la v1.38.1, cada vez que se abría la aplicación se volvía a reorganizar la base vectorial entera: la comprobación de si estaba vacía llegaba antes de que terminara de cargarse. Con una base de 298.072 fragmentos eran unos 11 minutos sin búsqueda en cada apertura. No se perdía nada, solo tiempo.
+- Ahora la aplicación espera a que la base vectorial esté cargada antes de mirarla, y si no puede saber si está vacía, no la toca. Lo que dejó a medias la 1.38.1 se retira solo al arrancar.
+- Abrir la Base de Conocimiento durante la reorganización la cortaba, y la búsqueda se quedaba sin fuentes hasta reiniciar. Ahora la reorganización espera y reintenta, y sigue hasta el final.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.38.2).
 
 ### 📝 Novedades en v1.38.1
 - La reorganización de la base vectorial que trajo la v1.38.0 empieza de verdad al abrir la aplicación. Se le daban unos 7 segundos a la base vectorial para arrancar; si tardaba más, la reorganización esperaba a la primera pregunta al chat y, hasta entonces, la Base de Conocimiento no encontraba nada. Ahora espera hasta cinco minutos.
@@ -415,12 +421,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.38.1.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.38.1.AppImage`
-3. Ejecuta: `./Boorie-1.38.1.AppImage`
+1. Descarga `Boorie-1.38.2.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.38.2.AppImage`
+3. Ejecuta: `./Boorie-1.38.2.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.38.1.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.38.2.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 

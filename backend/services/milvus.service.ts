@@ -67,6 +67,14 @@ export class MilvusService {
     private static readonly PLAZO_COLECCION_MS = 180_000;
 
     private static readonly LOTE_RECONSTRUCCION = 500;
+    /*
+     * Cuánto se insiste en leer de SQLite antes de abortar la reconstrucción. El diagnóstico del
+     * Wisdom Center recorre todos los vectores con `json_array_length` y, con 298.072 fragmentos,
+     * deja Prisma ocupado varios minutos: la lectura del lote vencía su plazo (P1008), la
+     * reconstrucción se abortaba y la búsqueda se quedaba apagada hasta reiniciar la aplicación.
+     */
+    private static readonly INTENTOS_FUENTE = 20;
+    private static ESPERA_FUENTE_MS = 15_000;
     // Sin volcar, Milvus Lite acumula la memtable y el volcado grande llegó a un pico de 4,2 GB.
     private static readonly VOLCADO_CADA = 20_000;
 
@@ -181,6 +189,7 @@ export class MilvusService {
         try {
             let retries = 5; // ~7.5s total — enough for start_milvus.py to finish coming up.
             let lastResolvedAddress = MilvusService.resolveAddress();
+            let alcanzado = false;
             while (retries > 0) {
                 try {
                     // Milvus Lite may still be starting up when the client was first
@@ -194,7 +203,7 @@ export class MilvusService {
                         lastResolvedAddress = resolved;
                     }
                     await this.client.listCollections();
-                    this.connected = true;
+                    alcanzado = true;
                     console.log('[MilvusService] Connected successfully at', resolved);
                     break;
                 } catch {
@@ -204,8 +213,17 @@ export class MilvusService {
                 }
             }
 
-            if (this.connected) {
+            if (alcanzado) {
+                /*
+                 * «Conectado» sólo con las colecciones listas. Se marcaba antes de initCollections,
+                 * y cargar la de conocimiento son segundos con una base grande: quien llegaba en
+                 * ese intervalo veía `connected`, consultaba una colección aún sin cargar y recibía
+                 * la lista vacía con el error en el estado. La reconstrucción del arranque de la
+                 * 1.38.1 lo tomaba por colección vacía y la rehacía entera en cada apertura.
+                 * Mientras tanto, quien llega recibe «unavailable» y reintenta, como antes.
+                 */
                 await this.initCollections();
+                this.connected = true;
             } else {
                 this.unavailable = true;
                 this.unavailableSince = Date.now();
@@ -297,6 +315,9 @@ export class MilvusService {
                 limit: 1,
                 consistency_level: ConsistencyLevelEnum.Strong,
             });
+            // Una colección sin cargar no lanza: responde con el error en el estado y la lista
+            // vacía, y eso no dice que esté vacía.
+            MilvusService.exigirExito(res, `la consulta de ${collection}`);
             return Array.isArray(res?.data) && res.data.length === 0;
         } catch (e) {
             console.warn(`[MilvusService] Could not tell whether ${collection} is empty:`, (e as Error).message);
@@ -537,9 +558,39 @@ export class MilvusService {
     public async prepararSiVacia(collection: string): Promise<boolean> {
         await this.ensureConnection();
         if (this.reconstruyendo.has(collection)) return true;
-        if (!(await this.estaVacia(collection))) return false;
+        if (!(await this.estaVacia(collection))) {
+            await this.limpiarRestos(collection);
+            return false;
+        }
         await this.prepararReconstruccion(collection, 'está vacía y SQLite tiene vectores');
         return true;
+    }
+
+    /**
+     * Lo que dejó una reconstrucción por colección vacía que no debió empezar. La 1.38.1 tomaba
+     * por vacía una colección que todavía se estaba cargando y empezaba a rehacerla; si aquello se
+     * cortó, quedaban el apunte y la colección a medias, y nada los retiraba.
+     */
+    private async limpiarRestos(collection: string) {
+        const estado = this.leerEstado(collection);
+        if (!estado || estado.completa) return;
+        console.warn(`[MilvusService] ${collection} tiene filas: se retira una reconstrucción a medias que no hacía falta.`);
+        try {
+            await this.client.dropCollection({ collection_name: MilvusService.nombreReconstruccion(collection), timeout: MilvusService.PLAZO_COLECCION_MS });
+        } catch { /* pudo no llegar a crearse */ }
+        this.escribirEstado(collection, null);
+    }
+
+    public static async insistir<T>(leer: () => Promise<T>, que: string): Promise<T> {
+        for (let intento = 1; ; intento++) {
+            try {
+                return await leer();
+            } catch (e) {
+                if (intento >= MilvusService.INTENTOS_FUENTE) throw e;
+                console.warn(`[MilvusService] No se pudo ${que} (intento ${intento}): ${(e as Error).message.split('\n').filter(Boolean).pop()}. Se reintenta.`);
+                await new Promise(r => setTimeout(r, MilvusService.ESPERA_FUENTE_MS));
+            }
+        }
     }
 
     private async dimensionDe(collection: string): Promise<number> {
@@ -575,7 +626,7 @@ export class MilvusService {
         const nueva = MilvusService.nombreReconstruccion(collection);
         const dimension = this.dimensiones.get(nueva);
         let estado = this.leerEstado(collection) ?? { ultimoId: null, hechas: 0 };
-        const total = await fuente.total();
+        const total = await MilvusService.insistir(() => fuente.total(), `contar los fragmentos de ${collection}`);
         this.progreso.set(collection, { hechas: estado.leidas ?? estado.hechas, total });
         console.log(
             estado.ultimoId
@@ -586,7 +637,11 @@ export class MilvusService {
         const inicio = Date.now();
         let sinVolcar = 0;
         for (;;) {
-            const filas = await fuente.lote(estado.ultimoId, MilvusService.LOTE_RECONSTRUCCION);
+            const desde = estado.ultimoId;
+            const filas = await MilvusService.insistir(
+                () => fuente.lote(desde, MilvusService.LOTE_RECONSTRUCCION),
+                `leer el lote de ${collection} tras ${desde ?? 'el principio'}`
+            );
             if (filas.length === 0) break;
 
             const validas = filas.filter(f => f.vector?.length === dimension).map(conCamposFiltrables);
