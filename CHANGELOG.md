@@ -9,7 +9,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.39.0] - 2026-09-24
+
+El modelo que redacta las respuestas del chat se puede elegir, local o de un proveedor externo.
 
 - **El modelo que redacta las respuestas del chat se elige en Configuración.** Estaba fijo
   —`nemotron-mini` en local— y sólo se podía cambiar con variables de entorno, algo que no se le
