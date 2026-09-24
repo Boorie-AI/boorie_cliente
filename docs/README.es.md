@@ -52,6 +52,7 @@
 ### 📝 Novedades en v1.38.1
 - La reorganización de la base vectorial que trajo la v1.38.0 empieza de verdad al abrir la aplicación. Se le daban unos 7 segundos a la base vectorial para arrancar; si tardaba más, la reorganización esperaba a la primera pregunta al chat y, hasta entonces, la Base de Conocimiento no encontraba nada. Ahora espera hasta cinco minutos.
 - El aviso de progreso ya no dice «0 de 0 fragmentos» mientras todavía los está contando.
+- El asistente decía ser GPT-4 corriendo en Ollama: un modelo no sabe cómo se llama y, si se le pide decirlo, se lo inventa. Ahora la aplicación le dice con qué modelo redacta y con qué modelo de embeddings se buscaron las fuentes.
 - Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.38.1).
 
 ### 📝 Novedades en v1.38.0

@@ -11,7 +11,8 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 
 ## [1.38.1] - 2026-09-23
 
-La reorganización de la base vectorial empieza de verdad al abrir la aplicación.
+La reorganización de la base vectorial empieza de verdad al abrir la aplicación, y el asistente
+deja de inventarse con qué modelo responde.
 
 - **Si la base vectorial tardaba en arrancar, la reorganización de la 1.38.0 no empezaba.** Al
   abrir la aplicación se le daban unos 7 segundos para responder y, si no llegaba, se daba por
@@ -21,6 +22,11 @@ La reorganización de la base vectorial empieza de verdad al abrir la aplicació
 - **El aviso de la reorganización ya no dice «0 de 0 fragmentos».** Al principio tiene que contar
   cuántos hay, y con una base grande eso puede tardar medio minuto. Ahora dice que los está
   contando.
+- **El asistente decía ser GPT-4 corriendo en Ollama.** Un modelo no sabe cómo se llama, así que,
+  si se le pide decirlo —hay quien lo pone en sus indicaciones de Ajustes para que conste en cada
+  informe—, se lo inventa: `qwen2.5:7b` y `qwen3:8b` contestaban «GPT-4». Ahora la aplicación le
+  dice con qué modelo redacta y con qué modelo de embeddings se buscaron las fuentes, y le pide
+  usar esos nombres. Si no los sabe, se le dice que responda que no lo sabe.
 
 ## [1.38.0] - 2026-09-23
 
