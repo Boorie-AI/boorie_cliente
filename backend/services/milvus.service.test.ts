@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import * as fs from 'fs'
 import * as path from 'path'
 import { DataType } from '@zilliz/milvus2-sdk-node'
-import { MilvusService } from './milvus.service'
+import { MilvusService, conCamposFiltrables, type FilaVectorial, type FuenteDeReconstruccion } from './milvus.service'
 
 /**
  * Milvus no lanza cuando rechaza una escritura: devuelve el motivo dentro de la
@@ -133,5 +133,206 @@ describe.skipIf(!hayMilvus)('MilvusService: la dimensión la ponen los vectores'
 
     expect((await cliente.hasCollection({ collection_name: nombre })).value).toBe(true)
     expect(await dimensionDe(nombre)).toBe(768)
+  }, 60_000)
+})
+
+describe('los campos por los que se filtra salen del JSON', () => {
+  it('se copian de la metainformación, y lo que falta queda como cadena vacía', () => {
+    const fila = conCamposFiltrables({ id: 'c1', metadata: { category: 'simulations', projectId: '', title: 't' } })
+
+    expect(fila).toMatchObject({ category: 'simulations', projectId: '', region: '', language: '' })
+    expect(fila.metadata.title).toBe('t')
+  })
+})
+
+describe.skipIf(!hayMilvus)('MilvusService: la colección con el esquema viejo se reconstruye', () => {
+  let servicio: MilvusService
+  const creadas: string[] = []
+  const DIM = 8
+
+  const fila = (i: number, projectId = '', dims = DIM): FilaVectorial => ({
+    id: `c${String(i).padStart(4, '0')}`,
+    vector: Array.from({ length: dims }, (_, j) => (j === i % dims ? 1 : 0.01)),
+    content: `fragmento ${i}`,
+    metadata: { docId: 'doc-1', category: i % 2 ? 'simulations' : 'manual', projectId },
+    timestamp: Date.now(),
+  })
+
+  function fuente(filas: FilaVectorial[], cortarTras?: number): FuenteDeReconstruccion {
+    let lotes = 0
+    return {
+      total: async () => filas.length,
+      lote: async (despuesDe, cuantas) => {
+        if (cortarTras !== undefined && lotes++ >= cortarTras) throw new Error('se cerró la app')
+        return filas.filter(f => despuesDe === null || f.id > despuesDe).slice(0, cuantas)
+      },
+    }
+  }
+
+  /** Una colección como las de antes: `metadata` en JSON y ningún campo escalar. */
+  async function coleccionVieja(filas: FilaVectorial[], dims = DIM): Promise<string> {
+    const nombre = `test_rec_${Date.now()}_${creadas.length}`
+    creadas.push(nombre, MilvusService.nombreReconstruccion(nombre))
+    const cliente = servicio.getClient()
+    await cliente.createCollection({
+      collection_name: nombre,
+      fields: [
+        { name: 'id', data_type: DataType.VarChar, max_length: 64, is_primary_key: true },
+        { name: 'vector', data_type: DataType.FloatVector, dim: dims },
+        { name: 'content', data_type: DataType.VarChar, max_length: 8192 },
+        { name: 'metadata', data_type: DataType.JSON },
+        { name: 'timestamp', data_type: DataType.Int64 },
+      ],
+    })
+    await cliente.createIndex({ collection_name: nombre, field_name: 'vector', index_type: 'FLAT', metric_type: 'COSINE' })
+    if (filas.length) await cliente.insert({ collection_name: nombre, data: filas as any[] })
+    return nombre
+  }
+
+  async function campos(nombre: string): Promise<string[]> {
+    const desc: any = await servicio.describeCollection(nombre)
+    return desc.schema.fields.map((f: any) => f.name)
+  }
+
+  const existe = async (nombre: string) =>
+    Boolean((await servicio.getClient().hasCollection({ collection_name: nombre })).value)
+
+  const dimensionConfigurada = process.env.EMBEDDING_DIMENSION
+
+  beforeAll(async () => {
+    // La colección nueva toma la dimensión del modelo configurado.
+    process.env.EMBEDDING_DIMENSION = String(DIM)
+    servicio = MilvusService.getInstance()
+    await servicio.ensureConnection()
+    vi.spyOn(servicio as any, 'llevaCamposFiltrables').mockImplementation(
+      (n: unknown) => typeof n === 'string' && n.startsWith('test_rec_')
+    )
+  })
+
+  afterAll(async () => {
+    vi.restoreAllMocks()
+    if (dimensionConfigurada === undefined) delete process.env.EMBEDDING_DIMENSION
+    else process.env.EMBEDDING_DIMENSION = dimensionConfigurada
+    for (const nombre of creadas) {
+      try {
+        await servicio.getClient().dropCollection({ collection_name: nombre })
+      } catch {
+        // pudo no llegar a crearse
+      }
+    }
+  })
+
+  it('no la carga, y la búsqueda no la toca mientras se reconstruye', async () => {
+    const filas = [0, 1, 2].map(i => fila(i))
+    const nombre = await coleccionVieja(filas)
+
+    await (servicio as any).ensureCollection(nombre, DIM)
+
+    expect(servicio.necesitaReconstruir(nombre)).toBe(true)
+    const res: any = await servicio.search(nombre, filas[0].vector, 3, 'category == "manual"')
+    expect(res.results).toEqual([])
+  }, 60_000)
+
+  it('la reconstruida filtra por los campos escalares y deja la vieja en su sitio', async () => {
+    const filas = Array.from({ length: 1200 }, (_, i) => fila(i, i < 600 ? '' : 'proyecto-A'))
+    const nombre = await coleccionVieja(filas)
+    await (servicio as any).ensureCollection(nombre, DIM)
+
+    await servicio.reconstruir(nombre, fuente(filas))
+
+    expect(servicio.necesitaReconstruir(nombre)).toBe(false)
+    expect(await existe(MilvusService.nombreReconstruccion(nombre))).toBe(false)
+    expect(await campos(nombre)).toEqual(expect.arrayContaining(['category', 'projectId', 'region', 'language']))
+
+    const res: any = await servicio.search(nombre, filas[3].vector, 50, 'projectId == "" and category == "simulations"')
+    expect(res.results.length).toBeGreaterThan(0)
+    for (const r of res.results) {
+      expect(r.metadata.projectId).toBe('')
+      expect(r.metadata.category).toBe('simulations')
+    }
+  }, 120_000)
+
+  it('un corte a medias sigue por donde iba, sin repetir filas', async () => {
+    const filas = Array.from({ length: 1200 }, (_, i) => fila(i))
+    const nombre = await coleccionVieja(filas)
+    await (servicio as any).ensureCollection(nombre, DIM)
+
+    await expect(servicio.reconstruir(nombre, fuente(filas, 1))).rejects.toThrow(/se cerró la app/)
+    expect(servicio.estadoReconstruccion(nombre)).toMatchObject({ hechas: 500, total: 1200 })
+
+    const pedidos: Array<string | null> = []
+    const reanudada = fuente(filas)
+    await servicio.reconstruir(nombre, {
+      ...reanudada,
+      lote: (despuesDe, cuantas) => { pedidos.push(despuesDe); return reanudada.lote(despuesDe, cuantas) },
+    })
+
+    expect(pedidos[0]).toBe(filas[499].id)
+    expect(await (servicio as any).contar(nombre)).toBe(1200)
+  }, 120_000)
+
+  it('lo que se indexa durante la reconstrucción no se pierde', async () => {
+    const filas = [0, 1].map(i => fila(i))
+    const nombre = await coleccionVieja(filas)
+    await (servicio as any).ensureCollection(nombre, DIM)
+
+    await servicio.insert(nombre, [fila(7)])
+    await servicio.reconstruir(nombre, fuente(filas))
+
+    expect(await (servicio as any).contar(nombre)).toBe(3)
+  }, 60_000)
+
+  it('si se corta entre tirar la vieja y renombrar la nueva, el arranque siguiente lo termina', async () => {
+    const filas = [0, 1, 2].map(i => fila(i))
+    const nombre = await coleccionVieja(filas)
+    await (servicio as any).ensureCollection(nombre, DIM)
+    await servicio.reconstruir(nombre, { ...fuente(filas), total: async () => 3 })
+    // Se vuelve a dejar como tras el corte: la nueva sin renombrar y el apunte de que estaba completa.
+    await servicio.getClient().renameCollection({ collection_name: nombre, new_collection_name: MilvusService.nombreReconstruccion(nombre) })
+    ;(servicio as any).escribirEstado(nombre, { ultimoId: filas[2].id, hechas: 3, completa: true })
+
+    await (servicio as any).rematarCambio(nombre)
+
+    expect(await existe(nombre)).toBe(true)
+    expect(await existe(MilvusService.nombreReconstruccion(nombre))).toBe(false)
+    expect(await campos(nombre)).toContain('projectId')
+  }, 60_000)
+
+  it('la nueva toma la dimensión del modelo configurado, no la de la vieja', async () => {
+    // Una base traída de otro equipo: la colección vieja es de 4 y SQLite guarda vectores del modelo en uso.
+    const nombre = await coleccionVieja([fila(9, '', 4)], 4)
+    await (servicio as any).ensureCollection(nombre, DIM)
+
+    const filas = [0, 1, 2].map(i => fila(i))
+    await servicio.reconstruir(nombre, fuente(filas))
+
+    expect(await (servicio as any).dimensionDe(nombre)).toBe(DIM)
+    expect(await (servicio as any).contar(nombre)).toBe(3)
+  }, 60_000)
+
+  it('una colección vacía con vectores en SQLite se llena por la vía rápida', async () => {
+    const nombre = `test_rec_vacia_${Date.now()}`
+    creadas.push(nombre, MilvusService.nombreReconstruccion(nombre))
+    await (servicio as any).ensureCollection(nombre, DIM)
+    expect(servicio.necesitaReconstruir(nombre)).toBe(false)
+
+    expect(await servicio.prepararSiVacia(nombre)).toBe(true)
+    const filas = Array.from({ length: 700 }, (_, i) => fila(i))
+    await servicio.reconstruir(nombre, fuente(filas))
+
+    expect(servicio.necesitaReconstruir(nombre)).toBe(false)
+    expect(await (servicio as any).contar(nombre)).toBe(700)
+    const res: any = await servicio.search(nombre, filas[5].vector, 5, 'category == "simulations"')
+    expect(res.results.length).toBeGreaterThan(0)
+  }, 60_000)
+
+  it('una colección con filas no se toca', async () => {
+    const nombre = `test_rec_llena_${Date.now()}`
+    creadas.push(nombre, MilvusService.nombreReconstruccion(nombre))
+    await (servicio as any).ensureCollection(nombre, DIM)
+    await servicio.insert(nombre, [fila(1)])
+
+    expect(await servicio.prepararSiVacia(nombre)).toBe(false)
+    expect(servicio.necesitaReconstruir(nombre)).toBe(false)
   }, 60_000)
 })

@@ -3,6 +3,41 @@ import path from 'path';
 import fs from 'fs';
 import { dimensionEsperada } from './modeloEmbeddings';
 
+export interface FilaVectorial {
+    id: string;
+    vector: number[];
+    content: string;
+    metadata: Record<string, unknown>;
+    timestamp: number;
+}
+
+/** De dónde saca la reconstrucción las filas: en orden de `id`, a partir de la última que vio. */
+export interface FuenteDeReconstruccion {
+    total(): Promise<number>;
+    lote(despuesDe: string | null, cuantas: number): Promise<FilaVectorial[]>;
+}
+
+interface EstadoReconstruccion {
+    ultimoId: string | null;
+    hechas: number;
+    completa?: boolean;
+}
+
+/**
+ * Los campos por los que se filtra, sacados del JSON a columnas propias. Milvus Lite evalúa
+ * `metadata["x"]` pasando el segmento entero —vectores incluidos— a objetos Python: con 298.072
+ * fragmentos, cada búsqueda filtrada tardaba unos 150 s y llevaba el proceso a 11 GB.
+ */
+export const CAMPOS_FILTRABLES = ['category', 'projectId', 'region', 'language'] as const;
+
+export function conCamposFiltrables<T extends { metadata?: Record<string, unknown> }>(fila: T) {
+    const metadata = fila.metadata ?? {};
+    const campos = Object.fromEntries(
+        CAMPOS_FILTRABLES.map(c => [c, typeof metadata[c] === 'string' ? metadata[c] : ''])
+    ) as Record<(typeof CAMPOS_FILTRABLES)[number], string>;
+    return { ...fila, ...campos };
+}
+
 export class MilvusService {
     private static instance: MilvusService;
     private client: MilvusClient;
@@ -26,6 +61,10 @@ export class MilvusService {
      * de la sesión recibía «state 'released'» y devolvía cero fuentes.
      */
     private static readonly PLAZO_COLECCION_MS = 180_000;
+
+    private static readonly LOTE_RECONSTRUCCION = 500;
+    // Sin volcar, Milvus Lite acumula la memtable y el volcado grande llegó a un pico de 4,2 GB.
+    private static readonly VOLCADO_CADA = 20_000;
 
     // Collection Names — Milvus Lite embebido es la BD vectorial única
     // para RAG, memoria de agentes, conversaciones y guardrails.
@@ -196,6 +235,8 @@ export class MilvusService {
         // arranque detrás de quien indexa con otro modelo.
         const dimension = dimensionEsperada();
 
+        await this.rematarCambio(MilvusService.COLLECTIONS.KNOWLEDGE);
+
         // 1. Knowledge Collection (RAG)
         await this.ensureCollection(MilvusService.COLLECTIONS.KNOWLEDGE, dimension);
 
@@ -286,6 +327,7 @@ export class MilvusService {
             // legacy collections; in that case we drop and recreate cleanly.
             let currentDim = 0;
             let canDescribe = true;
+            let sinCamposFiltrables = false;
             try {
                 const desc = await this.client.describeCollection({ collection_name: name, timeout: plazo });
                 const fields = desc?.schema?.fields ?? null;
@@ -305,6 +347,8 @@ export class MilvusService {
                     if (!currentDim) {
                         console.warn(`[MilvusService] Could not read the dimension of ${name} from its schema.`);
                     }
+                    sinCamposFiltrables = this.llevaCamposFiltrables(name)
+                        && !fields.some((f: any) => f.name === 'projectId');
                 }
             } catch (e) {
                 // Un fallo al describir no dice nada del esquema —puede ser un plazo vencido— y
@@ -318,17 +362,33 @@ export class MilvusService {
             if (!canDescribe || (dimensionIncompatible && reconciliarDimension)) {
                 console.warn(`[MilvusService] Recreating collection ${name} (currentDim=${currentDim}, required=${dimension}, describable=${canDescribe})`);
                 try { await this.client.dropCollection({ collection_name: name }); } catch { /* ignore */ }
+                // Se va a reindexar entera con el esquema nuevo: la reconstrucción ya no tiene objeto.
+                await this.abandonarReconstruccion(name);
             } else {
                 if (dimensionIncompatible) {
                     console.warn(`[MilvusService] Collection ${name} has dim=${currentDim}, not the ${dimension} guessed at startup — leaving it alone; the next insert will reconcile it.`);
                 }
                 if (currentDim > 0) this.dimensiones.set(name, currentDim);
+                if (sinCamposFiltrables) {
+                    // No se carga: cargada ocupa ~2,9 GB, y sumada al pico de la reconstrucción
+                    // acercaba la sesión al límite de systemd-oomd.
+                    await this.prepararReconstruccion(name, 'tiene el esquema viejo');
+                    return;
+                }
                 await this.cargar(name);
                 return;
             }
         }
 
+        await this.crearColeccion(name, dimension);
+        await this.cargar(name);
+    }
+
+    private async crearColeccion(name: string, dimension: number) {
         console.log(`[MilvusService] Creating collection ${name} with dimension ${dimension}...`);
+        const filtrables = this.llevaCamposFiltrables(name)
+            ? CAMPOS_FILTRABLES.map(c => ({ name: c, data_type: DataType.VarChar, max_length: 256 }))
+            : [];
         await this.client.createCollection({
             collection_name: name,
             fields: [
@@ -356,7 +416,8 @@ export class MilvusService {
                     name: 'timestamp',
                     data_type: DataType.Int64,
                     description: 'Unix timestamp'
-                }
+                },
+                ...filtrables,
             ],
         });
 
@@ -369,7 +430,230 @@ export class MilvusService {
         });
         console.log(`[MilvusService] Collection ${name} created.`);
         this.dimensiones.set(name, dimension);
-        await this.cargar(name);
+    }
+
+    private llevaCamposFiltrables(name: string): boolean {
+        const knowledge = MilvusService.COLLECTIONS.KNOWLEDGE;
+        return name === knowledge || name === MilvusService.nombreReconstruccion(knowledge);
+    }
+
+    public static nombreReconstruccion(collection: string): string {
+        return `${collection}__reconstruccion`;
+    }
+
+    // Colecciones con el esquema viejo, a la espera de reconstruirse o reconstruyéndose.
+    private reconstruyendo = new Set<string>();
+    private progreso = new Map<string, { hechas: number; total: number }>();
+    private enCurso = new Map<string, Promise<void>>();
+    private estadosEnMemoria = new Map<string, EstadoReconstruccion>();
+
+    /** `null` si la colección no se está reconstruyendo. */
+    public estadoReconstruccion(collection: string): { hechas: number; total: number } | null {
+        if (!this.reconstruyendo.has(collection)) return null;
+        return this.progreso.get(collection) ?? { hechas: 0, total: 0 };
+    }
+
+    public necesitaReconstruir(collection: string): boolean {
+        return this.reconstruyendo.has(collection);
+    }
+
+    /**
+     * Dónde se apunta por dónde va, para retomar si se cierra la app a medias. Sin directorio de
+     * datos —scripts, tests— se guarda en memoria y un corte empieza de cero.
+     */
+    private static rutaEstado(collection: string): string | null {
+        const dir = process.env.BOORIE_DATA_DIR;
+        return dir ? path.join(dir, 'boorie-milvus', `reconstruccion-${collection}.json`) : null;
+    }
+
+    private leerEstado(collection: string): EstadoReconstruccion | null {
+        const ruta = MilvusService.rutaEstado(collection);
+        if (!ruta) return this.estadosEnMemoria.get(collection) ?? null;
+        try {
+            return JSON.parse(fs.readFileSync(ruta, 'utf-8'));
+        } catch {
+            return null;
+        }
+    }
+
+    private escribirEstado(collection: string, estado: EstadoReconstruccion | null) {
+        const ruta = MilvusService.rutaEstado(collection);
+        if (!ruta) {
+            if (estado) this.estadosEnMemoria.set(collection, estado);
+            else this.estadosEnMemoria.delete(collection);
+            return;
+        }
+        if (!estado) {
+            fs.rmSync(ruta, { force: true });
+            return;
+        }
+        // Escribir y renombrar: un corte a mitad de escritura no deja un estado ilegible.
+        fs.writeFileSync(`${ruta}.tmp`, JSON.stringify(estado));
+        fs.renameSync(`${ruta}.tmp`, ruta);
+    }
+
+    private async existe(collection: string): Promise<boolean> {
+        const res = await this.client.hasCollection({ collection_name: collection, timeout: MilvusService.PLAZO_COLECCION_MS });
+        return Boolean(res.value);
+    }
+
+    /**
+     * La dimensión es la del modelo configurado, no la de la colección vieja: es la que tendrán las
+     * preguntas. Con la de la vieja, una base traída de otro equipo con otro modelo se saltaba
+     * todos sus vectores y la reconstrucción dejaba la colección vacía.
+     */
+    private async prepararReconstruccion(collection: string, motivo: string) {
+        if (this.reconstruyendo.has(collection)) return;
+        const nueva = MilvusService.nombreReconstruccion(collection);
+        const dimension = dimensionEsperada();
+        const estado = this.leerEstado(collection);
+        const hayNueva = await this.existe(nueva);
+
+        // Sin apunte no se sabe hasta dónde llegó, y si se cambió de modelo entre medias lo hecho
+        // no vale: en los dos casos se empieza de cero.
+        const retomable = hayNueva && estado !== null && (await this.dimensionDe(nueva)) === dimension;
+        if (hayNueva && !retomable) {
+            await this.client.dropCollection({ collection_name: nueva, timeout: MilvusService.PLAZO_COLECCION_MS });
+        }
+        if (!retomable) {
+            await this.crearColeccion(nueva, dimension);
+            this.escribirEstado(collection, { ultimoId: null, hechas: 0 });
+        }
+        this.dimensiones.set(nueva, dimension);
+        this.reconstruyendo.add(collection);
+        console.warn(`[MilvusService] ${collection} ${motivo}: se reconstruirá en ${nueva}.`);
+    }
+
+    /**
+     * Una colección vacía con los vectores esperando en SQLite —una base traída de otro equipo, o
+     * una instalación nueva a la que se le copia— se llena por la misma vía que la reconstrucción.
+     * La sincronización de `HybridSearchService` va de 50 en 50 y no empieza hasta la primera
+     * pregunta al chat. Devuelve si hay que reconstruir.
+     */
+    public async prepararSiVacia(collection: string): Promise<boolean> {
+        await this.ensureConnection();
+        if (this.reconstruyendo.has(collection)) return true;
+        if (!(await this.estaVacia(collection))) return false;
+        await this.prepararReconstruccion(collection, 'está vacía y SQLite tiene vectores');
+        return true;
+    }
+
+    private async dimensionDe(collection: string): Promise<number> {
+        const desc: any = await this.client.describeCollection({ collection_name: collection, timeout: MilvusService.PLAZO_COLECCION_MS });
+        const vector = desc?.schema?.fields?.find((f: any) => f.name === 'vector');
+        return parseInt(vector?.type_params?.find((p: any) => p.key === 'dim')?.value || '0');
+    }
+
+    private async abandonarReconstruccion(collection: string) {
+        if (!this.reconstruyendo.has(collection)) return;
+        try { await this.client.dropCollection({ collection_name: MilvusService.nombreReconstruccion(collection) }); } catch { /* ignore */ }
+        this.escribirEstado(collection, null);
+        this.reconstruyendo.delete(collection);
+        this.progreso.delete(collection);
+    }
+
+    /**
+     * Rellena la colección nueva desde `fuente` y la pone en lugar de la vieja. Varias llamadas a
+     * la vez comparten la misma reconstrucción.
+     */
+    public reconstruir(collection: string, fuente: FuenteDeReconstruccion): Promise<void> {
+        const pendiente = this.enCurso.get(collection);
+        if (pendiente) return pendiente;
+        const tarea = this.reconstruirUnaVez(collection, fuente).finally(() => this.enCurso.delete(collection));
+        this.enCurso.set(collection, tarea);
+        return tarea;
+    }
+
+    private async reconstruirUnaVez(collection: string, fuente: FuenteDeReconstruccion) {
+        await this.ensureConnection();
+        if (!this.reconstruyendo.has(collection)) return;
+
+        const nueva = MilvusService.nombreReconstruccion(collection);
+        const dimension = this.dimensiones.get(nueva);
+        let estado = this.leerEstado(collection) ?? { ultimoId: null, hechas: 0 };
+        const total = await fuente.total();
+        this.progreso.set(collection, { hechas: estado.hechas, total });
+        console.log(
+            estado.ultimoId
+                ? `[MilvusService] Retomando la reconstrucción de ${collection}: ${estado.hechas} de ${total}.`
+                : `[MilvusService] Reconstruyendo ${collection} con ${total} fragmentos.`
+        );
+
+        const inicio = Date.now();
+        let sinVolcar = 0;
+        for (;;) {
+            const filas = await fuente.lote(estado.ultimoId, MilvusService.LOTE_RECONSTRUCCION);
+            if (filas.length === 0) break;
+
+            const validas = filas.filter(f => f.vector?.length === dimension).map(conCamposFiltrables);
+            if (validas.length > 0) {
+                // `upsert` y no `insert`: tras un corte, el lote que entró sin llegar a apuntarse
+                // vuelve a mandarse, y lo que se indexó durante la reconstrucción ya está dentro.
+                const res = await this.client.upsert({ collection_name: nueva, data: validas as any[] });
+                MilvusService.exigirExito(res, `la reconstrucción de ${collection}`);
+            }
+
+            estado = { ultimoId: filas[filas.length - 1].id, hechas: estado.hechas + validas.length };
+            this.escribirEstado(collection, estado);
+            this.progreso.set(collection, { hechas: estado.hechas, total });
+
+            sinVolcar += validas.length;
+            if (sinVolcar >= MilvusService.VOLCADO_CADA) {
+                await this.client.flush({ collection_names: [nueva] });
+                sinVolcar = 0;
+                console.log(`[MilvusService] Reconstrucción de ${collection}: ${estado.hechas} de ${total}.`);
+            }
+        }
+        await this.client.flush({ collection_names: [nueva] });
+
+        const guardadas = await this.contar(nueva);
+        if (guardadas < estado.hechas) {
+            throw new Error(
+                `La reconstrucción de ${collection} guarda ${guardadas} filas de ${estado.hechas} enviadas: no se sustituye la colección.`
+            );
+        }
+
+        this.escribirEstado(collection, { ...estado, completa: true });
+        await this.rematarCambio(collection);
+        this.reconstruyendo.delete(collection);
+        this.progreso.delete(collection);
+        this.dimensiones.set(collection, dimension!);
+        await this.cargar(collection);
+        console.log(`[MilvusService] ${collection} reconstruida: ${guardadas} filas en ${Math.round((Date.now() - inicio) / 1000)} s.`);
+    }
+
+    /**
+     * El cambio de la vieja por la nueva, en dos pasos que no se pueden hacer a la vez. Si se corta
+     * entre tirar la vieja y renombrar la nueva, el apunte `completa` hace que el siguiente
+     * arranque lo termine en lugar de crear una colección vacía.
+     */
+    private async rematarCambio(collection: string) {
+        const estado = this.leerEstado(collection);
+        if (!estado?.completa) return;
+        const nueva = MilvusService.nombreReconstruccion(collection);
+        if (!(await this.existe(nueva))) {
+            this.escribirEstado(collection, null);
+            return;
+        }
+        // Tirar la vieja —2,2 GB en la base de Luis— pasa de los 15 s del SDK: la llamada lanzaba con
+        // la colección ya borrada en el servidor, y el renombrado no llegaba a pedirse.
+        const plazo = MilvusService.PLAZO_COLECCION_MS;
+        if (await this.existe(collection)) {
+            await this.client.dropCollection({ collection_name: collection, timeout: plazo });
+        }
+        const res = await this.client.renameCollection({ collection_name: nueva, new_collection_name: collection, timeout: plazo });
+        MilvusService.exigirExito(res, `el cambio de ${nueva} por ${collection}`);
+        this.escribirEstado(collection, null);
+    }
+
+    private async contar(collection: string): Promise<number> {
+        const res: any = await this.client.query({
+            collection_name: collection,
+            output_fields: ['count(*)'],
+            consistency_level: ConsistencyLevelEnum.Strong,
+        });
+        MilvusService.exigirExito(res, `el recuento de ${collection}`);
+        return Number(res?.data?.[0]?.['count(*)'] ?? 0);
     }
 
     /**
@@ -401,6 +685,11 @@ export class MilvusService {
             await this.ensureConnection();
         } catch {
             // Fail-soft: return empty results so RAG can fall back to in-DB chunks.
+            return { results: [] } as any;
+        }
+        if (this.reconstruyendo.has(collection)) {
+            const p = this.estadoReconstruccion(collection)!;
+            console.warn(`[MilvusService] ${collection} se está reconstruyendo (${p.hechas} de ${p.total}): la búsqueda no devuelve nada hasta que termine.`);
             return { results: [] } as any;
         }
         // Buscar con un vector de otro tamaño no es un error para Milvus: responde
@@ -457,6 +746,16 @@ export class MilvusService {
         // miraba, y la búsqueda con ese mismo vector contestaba «Success» con
         // cero resultados. El documento quedaba en la lista, marcado como
         // indexado porque sus trozos sí están en SQLite, y el RAG no lo veía.
+        if (this.llevaCamposFiltrables(collection)) rows = rows.map(conCamposFiltrables);
+
+        if (this.reconstruyendo.has(collection)) {
+            // La vieja no admite los campos nuevos y se va a tirar: lo que se indexe mientras
+            // tanto va directo a la que la sustituye.
+            const res = await this.client.upsert({ collection_name: MilvusService.nombreReconstruccion(collection), data: rows });
+            MilvusService.exigirExito(res, `la inserción de ${rows.length} vectores en ${collection}`);
+            return res;
+        }
+
         const dimension = rows[0]?.vector?.length;
         if (dimension) {
             await this.ensureCollection(collection, dimension);
@@ -489,10 +788,11 @@ export class MilvusService {
 
     public async delete(collection: string, ids: string[]) {
         await this.ensureConnection();
-        return this.client.delete({
-            collection_name: collection,
-            filter: `id in ["${ids.join('","')}"]`
-        });
+        const filter = `id in ["${ids.join('","')}"]`;
+        if (this.reconstruyendo.has(collection)) {
+            await this.client.delete({ collection_name: MilvusService.nombreReconstruccion(collection), filter });
+        }
+        return this.client.delete({ collection_name: collection, filter });
     }
 
     public async listCollections() {

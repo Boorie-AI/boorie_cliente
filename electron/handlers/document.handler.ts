@@ -2051,15 +2051,26 @@ export function registerVectorGraphHandlers(prisma?: PrismaClient) {
       // que el panel decía "Database: connected" con el servidor vectorial caído
       // y 0% indexado, que es lo que despistó al diagnosticar un caso real.
       let vectorStatus = 'disconnected'
+      let reconstruccion: { hechas: number; total: number } | null = null
       try {
-        const milvusService = (await import('../../backend/services/milvus.service')).MilvusService.getInstance()
+        const { MilvusService } = await import('../../backend/services/milvus.service')
+        const milvusService = MilvusService.getInstance()
         await milvusService.ensureConnection()
         vectorStatus = milvusService.isAvailable() ? 'connected' : 'disconnected'
+        reconstruccion = milvusService.estadoReconstruccion(MilvusService.COLLECTIONS.KNOWLEDGE)
       } catch {
         vectorStatus = 'disconnected'
       }
       if (vectorStatus !== 'connected') {
         issues.push('Milvus (base vectorial) no está disponible: no se puede indexar ni buscar por similitud')
+        status = 'critical'
+      }
+      if (reconstruccion) {
+        issues.push(
+          `Se está reconstruyendo la base vectorial (${reconstruccion.hechas.toLocaleString('es')} de ` +
+          `${reconstruccion.total.toLocaleString('es')} fragmentos): hasta que termine, la búsqueda por ` +
+          `similitud no devuelve nada. Se hace una sola vez y sigue por donde iba si se cierra la app.`
+        )
         status = 'critical'
       }
       if (dimensionDescuadrada) {

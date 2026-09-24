@@ -7,6 +7,7 @@ vi.mock('../milvus.service', () => ({
     COLLECTIONS: { KNOWLEDGE: 'hydraulic_knowledge' },
     getInstance: () => ({
       ensureConnection: async () => {},
+      necesitaReconstruir: () => false,
       insert: insertar,
       getClient: () => ({
         // Menos vectores que fragmentos: hay migración que hacer.
@@ -34,6 +35,8 @@ function prismaFalso(idQueFalla: string, actualizados: string[]) {
   return {
     knowledgeChunk: {
       count: async () => TOTAL,
+      // Sin vectores que traer de SQLite: la reconstrucción no entra en juego.
+      findFirst: async () => null,
       findMany: async ({ take, cursor, skip }: any) => {
         const desde = cursor ? fragmentos.findIndex(f => f.id === cursor.id) + (skip ?? 0) : 0
         return fragmentos.slice(desde, desde + take)
@@ -127,6 +130,7 @@ describe('los vectores de otro modelo', () => {
     const prisma = {
       knowledgeChunk: {
         count: async () => TOTAL,
+        findFirst: async () => null,
         findMany: async ({ take, cursor, skip }: any) => {
           const desde = cursor ? fragmentos.findIndex(f => f.id === cursor.id) + (skip ?? 0) : 0
           // Todos con vector del modelo anterior.

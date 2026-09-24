@@ -87,6 +87,10 @@ export function duenoVectorial(dueno: DuenoDocumento): string {
  * eran generales y el primero aparecía en el puesto 65. La búsqueda contestaba
  * con la lista vacía y toda la documentación indexada delante.
  *
+ * Va sobre el campo escalar `projectId` y no sobre `metadata["projectId"]`: Milvus Lite evalúa
+ * las rutas dentro de un JSON pasando el segmento entero —vectores incluidos— a objetos Python.
+ * Con 298.072 fragmentos, cada búsqueda filtrada tardaba unos 150 s y llevaba el proceso a 11 GB.
+ *
  * Devuelve `undefined` sólo si no hay nada que restringir, que hoy no pasa:
  * `duenosPermitidos` nunca devuelve la lista vacía.
  */
@@ -94,7 +98,7 @@ export function filtroVectorial(permitidos: DuenoDocumento[]): string | undefine
   if (permitidos.length === 0) return undefined
 
   return permitidos
-    .map(p => `metadata["projectId"] == "${duenoVectorial(p)}"`)
+    .map(p => `projectId == "${duenoVectorial(p)}"`)
     .join(' or ')
 }
 

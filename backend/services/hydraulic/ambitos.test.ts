@@ -78,19 +78,19 @@ describe('cómo se escribe el dueño en el almacén vectorial', () => {
 
 describe('filtro del almacén vectorial', () => {
   it('restringe cuando sólo se piden proyectos', () => {
-    expect(filtroVectorial([A])).toBe('metadata["projectId"] == "proyecto-A"')
+    expect(filtroVectorial([A])).toBe('projectId == "proyecto-A"')
   })
 
   it('el ámbito general también filtra, y filtra por la cadena vacía', () => {
     // Antes devolvía `undefined` y la búsqueda general iba sin filtrar: los
     // fragmentos de proyecto se llevaban todos los candidatos y se descartaban
     // después, así que la búsqueda contestaba vacía con la base indexada.
-    expect(filtroVectorial([null])).toBe('metadata["projectId"] == ""')
+    expect(filtroVectorial([null])).toBe('projectId == ""')
   })
 
   it('ámbito «ambos»: lo general y el proyecto, no todo lo que haya', () => {
     expect(filtroVectorial([null, A])).toBe(
-      'metadata["projectId"] == "" or metadata["projectId"] == "proyecto-A"'
+      'projectId == "" or projectId == "proyecto-A"'
     )
     expect(filtroVectorial([null, A])).not.toContain(B)
   })

@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { MilvusService } from '../milvus.service'
+import { MilvusService, type FilaVectorial, type FuenteDeReconstruccion } from '../milvus.service'
 import { EmbeddingService } from '../embedding.service'
 import { duenoVectorial, duenosPermitidos, filtroPrisma, filtroVectorial, type Ambito } from './ambitos'
 import { corpusDe, filtroDeCorpus, repartirPorCorpus, sinRepetidos, unirFiltros, type Corpus } from './repartoDeCorpus'
@@ -28,6 +28,58 @@ export interface HybridSearchOptions {
   projectId?: string | null
 }
 
+/**
+ * La colección con el esquema viejo se rehace desde SQLite, con los vectores que ya están
+ * guardados: no pasa por Ollama. Medido con 298.072 fragmentos: unos 11 minutos.
+ */
+export function fuenteDeReconstruccion(prisma: PrismaClient): FuenteDeReconstruccion {
+  const conVector = { embedding: { not: null } }
+  return {
+    total: () => prisma.knowledgeChunk.count({ where: conVector }),
+    lote: async (despuesDe, cuantas) => {
+      const chunks = await prisma.knowledgeChunk.findMany({
+        where: despuesDe ? { ...conVector, id: { gt: despuesDe } } : conVector,
+        orderBy: { id: 'asc' },
+        take: cuantas,
+        include: { knowledge: { select: { title: true, category: true, projectId: true } } }
+      })
+      return chunks.map((chunk): FilaVectorial => {
+        let vector: number[] = []
+        try {
+          vector = JSON.parse(chunk.embedding as string)
+        } catch {
+          // se queda sin vector y la reconstrucción la salta
+        }
+        return {
+          id: chunk.id,
+          vector,
+          content: chunk.content,
+          metadata: {
+            chunkId: chunk.id,
+            docId: chunk.knowledgeId,
+            title: chunk.knowledge.title,
+            category: chunk.knowledge.category,
+            projectId: duenoVectorial(chunk.knowledge.projectId)
+          },
+          timestamp: chunk.createdAt.getTime()
+        }
+      })
+    }
+  }
+}
+
+/** Lo lanza el arranque de la app: sin esto no empezaba hasta la primera pregunta al chat. */
+export async function reconstruirSiHaceFalta(prisma: PrismaClient) {
+  const milvus = MilvusService.getInstance()
+  const knowledge = MilvusService.COLLECTIONS.KNOWLEDGE
+  await milvus.ensureConnection()
+  if (!milvus.necesitaReconstruir(knowledge)) {
+    const hayVectores = await prisma.knowledgeChunk.findFirst({ where: { embedding: { not: null } }, select: { id: true } })
+    if (!hayVectores || !(await milvus.prepararSiVacia(knowledge))) return
+  }
+  await milvus.reconstruir(knowledge, fuenteDeReconstruccion(prisma))
+}
+
 export class HybridSearchService {
   private prisma: PrismaClient
   private embeddingService: any
@@ -44,8 +96,22 @@ export class HybridSearchService {
     })
   }
 
-  private async syncPrismaToMilvus() {
+  // Cada servicio que se construye lanza la sincronización: sin esto, dos a la vez mandaban los
+  // mismos fragmentos dos veces.
+  private static sincronizando: Promise<void> | null = null
+
+  private syncPrismaToMilvus(): Promise<void> {
+    if (!HybridSearchService.sincronizando) {
+      HybridSearchService.sincronizando = this.sincronizar()
+        .finally(() => { HybridSearchService.sincronizando = null })
+    }
+    return HybridSearchService.sincronizando
+  }
+
+  private async sincronizar() {
     try {
+      await reconstruirSiHaceFalta(this.prisma)
+
       const stats = await this.milvusService.getClient().getCollectionStatistics({
         collection_name: MilvusService.COLLECTIONS.KNOWLEDGE
       })
@@ -247,13 +313,13 @@ export class HybridSearchService {
       // Construct filter expression
       const filters: string[] = []
       if (options.category) {
-        filters.push(`metadata["category"] == "${options.category}"`)
+        filters.push(`category == "${options.category}"`)
       }
       if (options.region) {
-        filters.push(`metadata["region"] == "${options.region}"`)
+        filters.push(`region == "${options.region}"`)
       }
       if (options.language) {
-        filters.push(`metadata["language"] == "${options.language}"`)
+        filters.push(`language == "${options.language}"`)
       }
 
       const filtroAmbito = filtroVectorial(permitidos)
