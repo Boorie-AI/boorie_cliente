@@ -5,6 +5,7 @@ const insertar = vi.fn()
 vi.mock('../milvus.service', () => ({
   MilvusService: {
     COLLECTIONS: { KNOWLEDGE: 'hydraulic_knowledge' },
+    insistir: (leer: () => Promise<unknown>) => leer(),
     getInstance: () => ({
       ensureConnection: async () => {},
       necesitaReconstruir: () => false,

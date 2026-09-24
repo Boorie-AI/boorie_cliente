@@ -198,8 +198,11 @@ describe.skipIf(!hayMilvus)('MilvusService: la colección con el esquema viejo s
     Boolean((await servicio.getClient().hasCollection({ collection_name: nombre })).value)
 
   const dimensionConfigurada = process.env.EMBEDDING_DIMENSION
+  const esperaFuente = (MilvusService as any).ESPERA_FUENTE_MS
 
   beforeAll(async () => {
+    // Una fuente que lanza se reintenta; aquí sin esperar entre intentos.
+    ;(MilvusService as any).ESPERA_FUENTE_MS = 0
     // La colección nueva toma la dimensión del modelo configurado.
     process.env.EMBEDDING_DIMENSION = String(DIM)
     servicio = MilvusService.getInstance()
@@ -211,6 +214,7 @@ describe.skipIf(!hayMilvus)('MilvusService: la colección con el esquema viejo s
 
   afterAll(async () => {
     vi.restoreAllMocks()
+    ;(MilvusService as any).ESPERA_FUENTE_MS = esperaFuente
     if (dimensionConfigurada === undefined) delete process.env.EMBEDDING_DIMENSION
     else process.env.EMBEDDING_DIMENSION = dimensionConfigurada
     for (const nombre of creadas) {
@@ -368,5 +372,45 @@ describe.skipIf(!hayMilvus)('MilvusService: la colección con el esquema viejo s
 
     expect(await servicio.prepararSiVacia(nombre)).toBe(false)
     expect(servicio.necesitaReconstruir(nombre)).toBe(false)
+  }, 60_000)
+
+  it('un fallo pasajero al leer de SQLite no aborta la reconstrucción', async () => {
+    // El diagnóstico del Wisdom Center deja Prisma ocupado minutos con una base grande, y la lectura
+    // del lote vencía su plazo (P1008): la reconstrucción se abortaba y la búsqueda quedaba apagada.
+    {
+      const filas = Array.from({ length: 700 }, (_, i) => fila(i))
+      const nombre = await coleccionVieja([])
+      await (servicio as any).ensureCollection(nombre, DIM)
+      const base = fuente(filas)
+      let fallos = 2
+
+      await servicio.reconstruir(nombre, {
+        ...base,
+        lote: async (despuesDe, cuantas) => {
+          if (despuesDe !== null && fallos-- > 0) throw new Error('Socket timeout (the database failed to respond to a query within the configured timeout).')
+          return base.lote(despuesDe, cuantas)
+        },
+      })
+
+      expect(servicio.necesitaReconstruir(nombre)).toBe(false)
+      expect(await (servicio as any).contar(nombre)).toBe(700)
+    }
+  }, 60_000)
+
+  it('una reconstrucción a medias sobre una colección con filas se retira', async () => {
+    // Lo que dejó la 1.38.1 al tomar por vacía una colección que se estaba cargando.
+    const nombre = `test_rec_restos_${Date.now()}`
+    const nueva = MilvusService.nombreReconstruccion(nombre)
+    creadas.push(nombre, nueva)
+    await (servicio as any).ensureCollection(nombre, DIM)
+    await servicio.insert(nombre, [fila(1)])
+    await (servicio as any).crearColeccion(nueva, DIM)
+    ;(servicio as any).escribirEstado(nombre, { ultimoId: 'c0100', hechas: 100, leidas: 100 })
+
+    expect(await servicio.prepararSiVacia(nombre)).toBe(false)
+
+    expect(await existe(nueva)).toBe(false)
+    expect((servicio as any).leerEstado(nombre)).toBeNull()
+    expect(await (servicio as any).contar(nombre)).toBe(1)
   }, 60_000)
 })

@@ -91,7 +91,11 @@ export async function reconstruirSiHaceFalta(
     }
   }
   if (!milvus.necesitaReconstruir(knowledge)) {
-    const hayVectores = await prisma.knowledgeChunk.findFirst({ where: { embedding: { not: null } }, select: { id: true } })
+    // También aquí puede vencer el plazo de SQLite, y entonces la reorganización no empezaba.
+    const hayVectores = await MilvusService.insistir(
+      () => prisma.knowledgeChunk.findFirst({ where: { embedding: { not: null } }, select: { id: true } }),
+      'comprobar si SQLite tiene vectores'
+    )
     if (!hayVectores || !(await milvus.prepararSiVacia(knowledge))) return
   }
   await milvus.reconstruir(knowledge, fuenteDeReconstruccion(prisma))
