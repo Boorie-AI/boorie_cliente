@@ -51,7 +51,8 @@
 
 ### 📝 Novetats a v1.38.2
 - Amb la v1.38.1, cada vegada que s'obria l'aplicació es tornava a reorganitzar la base vectorial sencera: la comprovació de si era buida arribava abans que acabés de carregar-se. Amb una base de 298.072 fragments eren uns 11 minuts sense cerca a cada obertura. No es perdia res, només temps.
-- Ara l'aplicació espera que la base vectorial estigui carregada abans de mirar-la, i si no pot saber si és buida, no la toca.
+- Ara l'aplicació espera que la base vectorial estigui carregada abans de mirar-la, i si no pot saber si és buida, no la toca. El que va deixar a mitges la 1.38.1 es retira sol en arrencar.
+- Obrir la Base de Coneixement durant la reorganització la tallava, i la cerca es quedava sense fonts fins a reiniciar. Ara la reorganització espera i reintenta, i continua fins al final.
 - Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.38.2).
 
 ### 📝 Novetats a v1.38.1

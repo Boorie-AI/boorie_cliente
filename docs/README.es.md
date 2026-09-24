@@ -51,7 +51,8 @@
 
 ### 📝 Novedades en v1.38.2
 - Con la v1.38.1, cada vez que se abría la aplicación se volvía a reorganizar la base vectorial entera: la comprobación de si estaba vacía llegaba antes de que terminara de cargarse. Con una base de 298.072 fragmentos eran unos 11 minutos sin búsqueda en cada apertura. No se perdía nada, solo tiempo.
-- Ahora la aplicación espera a que la base vectorial esté cargada antes de mirarla, y si no puede saber si está vacía, no la toca.
+- Ahora la aplicación espera a que la base vectorial esté cargada antes de mirarla, y si no puede saber si está vacía, no la toca. Lo que dejó a medias la 1.38.1 se retira solo al arrancar.
+- Abrir la Base de Conocimiento durante la reorganización la cortaba, y la búsqueda se quedaba sin fuentes hasta reiniciar. Ahora la reorganización espera y reintenta, y sigue hasta el final.
 - Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.38.2).
 
 ### 📝 Novedades en v1.38.1
