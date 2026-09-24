@@ -19,7 +19,11 @@ export interface FuenteDeReconstruccion {
 
 interface EstadoReconstruccion {
     ultimoId: string | null;
+    // Las enviadas a la colección nueva, que es lo que se comprueba al final.
     hechas: number;
+    // Las leídas, que es lo que ve quien espera: si los vectores son de otro modelo no se copia
+    // ninguno, y un aviso que contara las enviadas se quedaba en 0 como si estuviera colgado.
+    leidas?: number;
     completa?: boolean;
 }
 
@@ -572,7 +576,7 @@ export class MilvusService {
         const dimension = this.dimensiones.get(nueva);
         let estado = this.leerEstado(collection) ?? { ultimoId: null, hechas: 0 };
         const total = await fuente.total();
-        this.progreso.set(collection, { hechas: estado.hechas, total });
+        this.progreso.set(collection, { hechas: estado.leidas ?? estado.hechas, total });
         console.log(
             estado.ultimoId
                 ? `[MilvusService] Retomando la reconstrucción de ${collection}: ${estado.hechas} de ${total}.`
@@ -593,15 +597,19 @@ export class MilvusService {
                 MilvusService.exigirExito(res, `la reconstrucción de ${collection}`);
             }
 
-            estado = { ultimoId: filas[filas.length - 1].id, hechas: estado.hechas + validas.length };
+            estado = {
+                ultimoId: filas[filas.length - 1].id,
+                hechas: estado.hechas + validas.length,
+                leidas: (estado.leidas ?? estado.hechas) + filas.length,
+            };
             this.escribirEstado(collection, estado);
-            this.progreso.set(collection, { hechas: estado.hechas, total });
+            this.progreso.set(collection, { hechas: estado.leidas!, total });
 
             sinVolcar += validas.length;
             if (sinVolcar >= MilvusService.VOLCADO_CADA) {
                 await this.client.flush({ collection_names: [nueva] });
                 sinVolcar = 0;
-                console.log(`[MilvusService] Reconstrucción de ${collection}: ${estado.hechas} de ${total}.`);
+                console.log(`[MilvusService] Reconstrucción de ${collection}: ${estado.leidas} de ${total}, ${estado.hechas} copiados.`);
             }
         }
         await this.client.flush({ collection_names: [nueva] });

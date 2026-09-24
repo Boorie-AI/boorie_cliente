@@ -335,4 +335,25 @@ describe.skipIf(!hayMilvus)('MilvusService: la colección con el esquema viejo s
     expect(await servicio.prepararSiVacia(nombre)).toBe(false)
     expect(servicio.necesitaReconstruir(nombre)).toBe(false)
   }, 60_000)
+
+  it('con vectores de otro modelo el aviso avanza, y la colección queda lista para reindexar', async () => {
+    // Quien actualiza con la base en bge-m3 (1024) y el modelo por defecto ya en granite (768).
+    const nombre = await coleccionVieja([])
+    await (servicio as any).ensureCollection(nombre, DIM)
+    const filas = Array.from({ length: 700 }, (_, i) => fila(i, '', 16))
+    const avisos: number[] = []
+    const base = fuente(filas)
+
+    await servicio.reconstruir(nombre, {
+      ...base,
+      lote: async (despuesDe, cuantas) => {
+        avisos.push(servicio.estadoReconstruccion(nombre)?.hechas ?? -1)
+        return base.lote(despuesDe, cuantas)
+      },
+    })
+
+    expect(avisos).toEqual([0, 500, 700])
+    expect(servicio.necesitaReconstruir(nombre)).toBe(false)
+    expect(await (servicio as any).contar(nombre)).toBe(0)
+  }, 60_000)
 })
