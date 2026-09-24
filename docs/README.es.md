@@ -39,15 +39,21 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.38.2
+### 🚀 Última Versión - v1.39.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.38.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.2/Boorie-1.38.2-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.38.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.2/Boorie-Setup-1.38.2.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.38.2.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.2/Boorie-1.38.2.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.39.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.39.0/Boorie-1.39.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.39.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.39.0/Boorie-Setup-1.39.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.39.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.39.0/Boorie-1.39.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.39.0
+- El modelo que redacta las respuestas del chat se puede elegir. Estaba fijo —`nemotron-mini`, en este equipo— y sólo se cambiaba con variables de entorno; y ese modelo no da para una respuesta técnica larga.
+- En Configuración → Configuración de IA, arriba, se elige entre el automático, un modelo de este equipo (Ollama) o uno de un proveedor externo con clave. Con uno externo, la aplicación avisa de que su pregunta y los fragmentos de sus documentos salen del equipo.
+- La búsqueda en sus documentos y la evaluación de las fuentes se siguen haciendo en local.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.39.0).
 
 ### 📝 Novedades en v1.38.2
 - Con la v1.38.1, cada vez que se abría la aplicación se volvía a reorganizar la base vectorial entera: la comprobación de si estaba vacía llegaba antes de que terminara de cargarse. Con una base de 298.072 fragmentos eran unos 11 minutos sin búsqueda en cada apertura. No se perdía nada, solo tiempo.
@@ -421,12 +427,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.38.2.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.38.2.AppImage`
-3. Ejecuta: `./Boorie-1.38.2.AppImage`
+1. Descarga `Boorie-1.39.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.39.0.AppImage`
+3. Ejecuta: `./Boorie-1.39.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.38.2.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.39.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
