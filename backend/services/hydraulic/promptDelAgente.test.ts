@@ -28,6 +28,35 @@ describe('el prompt de sistema del agente', () => {
   })
 })
 
+describe('con qué modelos funciona', () => {
+  // Con un prompt propio que pedía decirlo siempre, qwen2.5 y qwen3 respondían «GPT-4» en Ollama.
+  it('lleva los nombres reales del que redacta y del de embeddings', () => {
+    const p = componerPromptDeSistema('Expresa siempre qué modelo de embeddings usas y cuál de IA.', {
+      redaccion: { proveedor: 'Ollama', modelo: 'qwen2.5:7b' },
+      embeddings: 'granite-embedding:278m',
+    })
+
+    expect(p).toContain('qwen2.5:7b')
+    expect(p).toContain('Ollama')
+    expect(p).toContain('granite-embedding:278m')
+    expect(p).toContain('no digas que eres otro modelo')
+    // Van antes de lo del usuario, que es quien pide decirlos.
+    expect(p.indexOf('granite-embedding:278m')).toBeLessThan(p.indexOf('Expresa siempre'))
+  })
+
+  it('sin consulta a la base de conocimiento dice que no interviene ningún modelo de embeddings', () => {
+    const p = componerPromptDeSistema(null, { redaccion: { proveedor: 'anthropic', modelo: 'claude-sonnet-5' }, embeddings: null })
+
+    expect(p).toContain('claude-sonnet-5')
+    expect(p).toContain('no se ha consultado la base de conocimiento')
+  })
+
+  it('si no se sabe con qué funciona, le dice que no lo sabe en vez de dejarle suponer', () => {
+    expect(componerPromptDeSistema()).toContain('No sabes que modelo eres')
+    expect(componerPromptDeSistema(null, {})).toContain('No sabes que modelo eres')
+  })
+})
+
 describe('las reglas que no se negocian', () => {
   it('exigen unidad en toda cifra, también en los pasos', () => {
     // La familia de fallos que más ha reaparecido: l/s frente a m³/s en el

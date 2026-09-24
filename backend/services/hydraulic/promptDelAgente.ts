@@ -77,18 +77,61 @@ export const DISCIPLINA = [
 ].join('\n')
 
 /**
+ * Con que modelos se responde, tal como los usa la aplicacion.
+ *
+ * `embeddings` es `null` cuando la pregunta no paso por la base de conocimiento,
+ * y se omite cuando no se sabe.
+ */
+export interface ModelosEnUso {
+  redaccion?: { proveedor: string; modelo: string }
+  embeddings?: string | null
+}
+
+/**
+ * Lo que el modelo sabe de si mismo, que es solo lo que le dice la aplicacion.
+ *
+ * Un modelo no sabe como se llama. Con un prompt propio que pide «expresa
+ * siempre que modelo de embeddings estas usando y cual de IA», qwen2.5 y qwen3
+ * contestaban «GPT-4» corriendo en Ollama, y nemotron-mini ni lo intentaba. Con
+ * los nombres delante solo tiene que copiarlos; sin ellos, se le dice que no los
+ * sabe, que es mejor que suponerlos.
+ */
+function identidad(modelos?: ModelosEnUso): string[] {
+  const lineas: string[] = []
+  if (modelos?.redaccion) {
+    lineas.push(`- Redacta esta respuesta el modelo ${modelos.redaccion.modelo}, a traves de ${modelos.redaccion.proveedor}.`)
+  }
+  if (typeof modelos?.embeddings === 'string') {
+    lineas.push(`- La busqueda en la base de conocimiento ha usado el modelo de embeddings ${modelos.embeddings}.`)
+  } else if (modelos?.embeddings === null) {
+    lineas.push('- En esta pregunta no se ha consultado la base de conocimiento, asi que no interviene ningun modelo de embeddings.')
+  }
+  if (lineas.length === 0) {
+    return ['Con que funcionas', '- No sabes que modelo eres. Si te lo preguntan o te piden decirlo, di que no lo sabes en vez de suponerlo.']
+  }
+  return [
+    'Con que funcionas',
+    ...lineas,
+    '- Si te preguntan que modelos usas, o te piden decirlo, da exactamente estos nombres. No sabes nada mas de ti: no digas que eres otro modelo ni de otra empresa.',
+  ]
+}
+
+/**
  * El prompt de sistema completo.
  *
- * El orden importa: el papel, la disciplina, y al final lo que haya escrito el
- * usuario. Suyo es lo ultimo que se lee, asi que puede afinar el tono; lo que no
- * puede es quitar lo de arriba, porque no esta escrito ahi.
+ * El orden importa: el papel, la disciplina, con que modelos funciona, y al
+ * final lo que haya escrito el usuario. Suyo es lo ultimo que se lee, asi que
+ * puede afinar el tono; lo que no puede es quitar lo de arriba, porque no esta
+ * escrito ahi.
  */
-export function componerPromptDeSistema(personalizacion?: string | null): string {
+export function componerPromptDeSistema(personalizacion?: string | null, modelos?: ModelosEnUso): string {
   const propio = personalizacion?.trim()
   return [
     PAPEL,
     '',
     DISCIPLINA,
+    '',
+    ...identidad(modelos),
     ...(propio ? ['', 'Indicaciones de quien usa Boorie:', propio] : []),
   ].join('\n')
 }

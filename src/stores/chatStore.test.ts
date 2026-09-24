@@ -68,6 +68,14 @@ describe('callOllamaAPI — el prompt de sistema', () => {
     expect(peticion.messages[0].content).toContain(DISCIPLINA)
   })
 
+  it('dice con qué modelos se responde, en vez de dejar que el modelo lo suponga', async () => {
+    await useChatStore.getState().callOllamaAPI('ollama-qwen2.5:7b', 'hola', [], 'granite-embedding:278m')
+
+    expect(peticion.messages[0].content).toContain('qwen2.5:7b, a traves de Ollama')
+    expect(peticion.messages[0].content).not.toContain('ollama-qwen2.5:7b')
+    expect(peticion.messages[0].content).toContain('granite-embedding:278m')
+  })
+
   it('el sistema va antes que la pregunta', async () => {
     await useChatStore.getState().callOllamaAPI('nemotron-mini', 'la pregunta', [])
 

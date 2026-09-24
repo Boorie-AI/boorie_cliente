@@ -141,6 +141,8 @@ export class AgenticRAGService {
     confidence: number
     sources: any[]
     metrics: any
+    /** El modelo con el que se busco, para que el chat pueda decirselo al que redacta. */
+    modeloEmbeddings: string | null
   }> {
     const startTime = Date.now()
     const stateManager = createStateManager(question)
@@ -200,6 +202,7 @@ export class AgenticRAGService {
         answer: generar ? (finalState.generation || 'No se pudo generar una respuesta.') : '',
         confidence: finalState.confidence,
         sources: this.formatSources(finalState),
+        modeloEmbeddings: this.nodes.retrieve?.modeloDeEmbeddings?.() ?? null,
         metrics: {
           processingTime: finalState.processingTime,
           iterations: finalState.iteration,
@@ -219,6 +222,7 @@ export class AgenticRAGService {
         answer: 'Ocurrió un error al procesar tu consulta. Por favor, intenta reformular tu pregunta.',
         confidence: 0,
         sources: [],
+        modeloEmbeddings: null,
         metrics: {
           processingTime: Date.now() - startTime,
           error: errorMessage

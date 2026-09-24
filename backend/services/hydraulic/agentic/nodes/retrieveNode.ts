@@ -23,6 +23,11 @@ export class RetrieveNode {
     this.config = config
   }
 
+  /** El modelo que calculo el vector de la ultima pregunta, o `null` si todavia no hubo ninguna. */
+  public modeloDeEmbeddings(): string | null {
+    return this.embeddingService?.activeProvider?.model ?? null
+  }
+
   public setConfig(config: RetrievalConfig) {
     this.config = config
   }
