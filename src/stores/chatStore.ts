@@ -17,7 +17,7 @@ import { useAIConfigStore } from './aiConfigStore'
 import { usePreferencesStore } from './preferencesStore'
 import { databaseService } from '@/services/database'
 import { getOllamaBaseUrl } from '@/config/ollama'
-import { cargarModelosRAG, modeloFijadoRAG, modelosRAGEnCache } from '@/config/modelosRAG'
+import { cargarModelosRAG, modeloElegido, modeloFijadoRAG, modelosRAGEnCache } from '@/config/modelosRAG'
 
 export interface WisdomConfiguration {
   enabled: boolean
@@ -111,6 +111,30 @@ interface ChatState {
 
   // Hydraulic project context
   buildProjectContext: (projectId: string) => Promise<string>
+}
+
+/**
+ * La clave del proveedor con el que se va a responder.
+ *
+ * Los proveedores sólo se cargaban al abrir Configuración → IA, así que con un modelo externo
+ * elegido y la aplicación recién abierta el mensaje salía sin clave. Y en la base conviven
+ * «openai» y «OpenAI»: se busca por el id elegido y, si no, por el nombre sin distinguir
+ * mayúsculas, quedándose con el que tenga clave.
+ */
+export async function claveDelProveedor(proveedor: string, proveedorId?: string): Promise<string> {
+  if (proveedor.toLowerCase() === 'ollama') return ''
+  const store = useAIConfigStore.getState()
+  if (store.providers.length === 0) {
+    try {
+      await store.loadProviders()
+    } catch (error) {
+      logger.warn('No se pudieron cargar los proveedores de IA:', error)
+    }
+  }
+  const proveedores = useAIConfigStore.getState().providers
+  const porId = proveedorId ? proveedores.find(p => p.id === proveedorId && p.apiKey) : undefined
+  const porNombre = proveedores.find(p => p.name.toLowerCase() === proveedor.toLowerCase() && p.apiKey)
+  return (porId ?? porNombre)?.apiKey ?? ''
 }
 
 export const useChatStore = create<ChatState>()(
@@ -471,10 +495,7 @@ export const useChatStore = create<ChatState>()(
             // Clear any previous streaming message
             get().clearStreamingMessage()
 
-            // Get API key for the provider
-            const aiConfigStore = useAIConfigStore.getState()
-            const providerConfig = aiConfigStore.providers.find(p => p.name === proveedor)
-            const apiKey = providerConfig?.apiKey || ''
+            const apiKey = await claveDelProveedor(proveedor, fijado?.providerId)
 
             // Prepare messages for chat handler (includes system prompt automatically)
             const messages: ChatMessage[] = conversation.messages.map(msg => ({
@@ -589,7 +610,7 @@ export const useChatStore = create<ChatState>()(
                 // Que respondiera el auxiliar no puede quedar sólo en el log:
                 // las respuestas salen más cortas y menos cuidadas, y el
                 // usuario no tiene ninguna otra forma de saberlo (#49).
-                if (modelosRAGEnCache()?.degradado) {
+                if (!modeloElegido() && modelosRAGEnCache()?.degradado) {
                   metadata.modeloDegradado = true
                 }
 

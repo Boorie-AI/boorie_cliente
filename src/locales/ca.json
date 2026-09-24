@@ -142,7 +142,7 @@
     "enterApiKey": "Introdueix la teva clau d’API",
     "test": "Prova",
     "availableModels": "Models disponibles",
-    "modelFijadoAviso": "Boorie fixa el model de les respostes del xat: aquesta selecció no el canvia. Serveix per a les claus i el catàleg de cada proveïdor.",
+    "modelFijadoAviso": "El model que respon al xat es tria a dalt, a «Model que redacta les respostes del xat». Aquí es configuren les claus i el catàleg de cada proveïdor.",
     "checkingOllama": "S’està verificant la instal·lació d’Ollama…",
     "apiProviderConfig": "Configuració de proveïdors d’API",
     "apiProviderConfigDesc": "Configura els teus proveïdors d’API per accedir a models d’IA al núvol. Tots els proveïdors estan deshabitats per defecte.",
@@ -166,7 +166,16 @@
     "unknownSize": "Mida desconeguda",
     "searchModels": "Cerca models…",
     "noModelsFound": "No s’han trobat models",
-    "tryDifferentSearch": "Prova amb un terme de cerca diferent"
+    "tryDifferentSearch": "Prova amb un terme de cerca diferent",
+    "modeloRespuesta": {
+      "titulo": "Model que redacta les respostes del xat",
+      "descripcion": "Pot ser un d’aquest equip o d’un proveïdor extern amb clau. La cerca als teus documents i l’avaluació de les fonts es continuen fent en local.",
+      "automatico": "Automàtic (recomanat): {{modelo}}",
+      "local": "En aquest equip (Ollama)",
+      "sinExternos": "Per triar un model extern, afegeix la clau del proveïdor a «Proveïdors API» i carrega’n els models.",
+      "avisoExterno": "Amb un model de {{proveedor}}, la teva pregunta i els fragments dels teus documents que l’acompanyen surten d’aquest equip cap a {{proveedor}}.",
+      "guardado": "Desat. S’aplica a partir de la propera pregunta."
+    }
   },
   "accounts": {
     "connectedAccounts": "Comptes connectats",

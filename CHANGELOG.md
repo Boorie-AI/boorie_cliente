@@ -9,6 +9,17 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **El modelo que redacta las respuestas del chat se elige en Configuración.** Estaba fijo
+  —`nemotron-mini` en local— y sólo se podía cambiar con variables de entorno, algo que no se le
+  puede pedir a quien usa la aplicación instalada. Y ese modelo no da para una respuesta técnica
+  larga: a una pregunta sobre una prueba de bombeo escalonada contestó pidiendo que se concretara,
+  con las fuentes correctas delante. Ahora, en Configuración → Configuración de IA, arriba, se elige
+  entre el automático, un modelo de este equipo (Ollama) o uno de un proveedor externo con clave.
+  Con uno externo se avisa de que la pregunta y los fragmentos de los documentos salen del equipo.
+  La búsqueda en los documentos y la evaluación de las fuentes se siguen haciendo en local.
+
 ## [1.38.2] - 2026-09-24
 
 Una base grande ya reorganizada deja de reorganizarse otra vez en cada arranque.
