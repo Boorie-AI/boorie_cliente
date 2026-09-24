@@ -39,15 +39,20 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.38.0
+### 🚀 Última Versió - v1.38.1
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.38.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.0/Boorie-1.38.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.38.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.0/Boorie-Setup-1.38.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.38.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.0/Boorie-1.38.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.38.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.1/Boorie-1.38.1-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.38.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.1/Boorie-Setup-1.38.1.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.38.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.38.1/Boorie-1.38.1.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.38.1
+- La reorganització de la base vectorial que va portar la v1.38.0 comença de debò en obrir l'aplicació. Se li donaven uns 7 segons a la base vectorial per arrencar; si trigava més, la reorganització esperava la primera pregunta al xat i, fins aleshores, la Base de Coneixement no trobava res. Ara espera fins a cinc minuts.
+- L'avís de progrés ja no diu «0 de 0 fragments» mentre encara els està comptant.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.38.1).
 
 ### 📝 Novetats a v1.38.0
 - Cercar en una base de coneixement gran es menjava la memòria de l'equip. En una base real de 298.072 fragments, cada cerca trigava uns dos minuts i mig, es donava per fallida i deixava el procés en 11 GB: en un equip de 16 GB, això n'hi havia prou perquè el sistema tanqués la sessió sencera. Ara triga uns 2 segons i es queda per sota de 3 GB.
@@ -409,12 +414,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.38.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.38.0.AppImage`
-3. Executa: `./Boorie-1.38.0.AppImage`
+1. Descarrega `Boorie-1.38.1.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.38.1.AppImage`
+3. Executa: `./Boorie-1.38.1.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.38.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.38.1.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
