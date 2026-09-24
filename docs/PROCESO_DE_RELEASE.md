@@ -296,13 +296,28 @@ barra de título. En una instalación limpia salen apilados, por este orden:
 2. el tutorial de bienvenida, con «Omitir tutorial»;
 3. el descargo, con «Entendido».
 
-Los tres son un `fixed inset-0`, y el clic en «Cerrar» se lo come el de arriba. Hay que pasarlos
-en orden, y solo los que estén. Pasó en la v1.38.1, al hacer la prueba con `--user-data-dir`:
+Los tres son un `fixed inset-0`, y el clic en «Cerrar» se lo come el de arriba. **Y no salen
+siempre en el mismo orden ni a la vez**: el de Python puede aparecer segundos después, encima del
+tutorial. Pulsarlos por lista con `locator.click()` agotaba la espera en el que no estaba arriba, y
+el cierre fallaba sin instalar. Lo que funciona es preguntar qué hay de verdad encima del botón y
+pulsar lo que tape, hasta que el botón quede libre. Son botones normales, no de Radix, así que
+basta el `click()` del DOM. Pasó en la v1.38.1 y en la v1.38.2, al hacer la prueba con
+`--user-data-dir`:
 
 ```js
-for (const texto of ['Continuar de todos modos', 'Omitir tutorial', 'Entendido']) {
-  const boton = page.locator('button', { hasText: texto });
-  if (await boton.count()) { await boton.first().click(); await page.waitForTimeout(1500); }
+for (let i = 0; i < 10; i++) {
+  const libre = await page.evaluate(() => {
+    const btn = document.querySelector('button[title="Cerrar"]');
+    const r = btn.getBoundingClientRect();
+    if (btn.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2))) return true;
+    for (const texto of ['Continuar de todos modos', 'Omitir tutorial', 'Entendido']) {
+      const b = [...document.querySelectorAll('button')].find(x => x.innerText.trim().startsWith(texto));
+      if (b) { b.click(); return texto; }
+    }
+    return false;
+  });
+  if (libre === true) break;
+  await page.waitForTimeout(1500);
 }
 await page.click('button[title="Cerrar"]');
 ```
