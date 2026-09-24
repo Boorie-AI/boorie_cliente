@@ -240,15 +240,6 @@ export class HydraulicRAGService {
 
     console.log(`[RAG Service] Chunked document into ${chunks.length} parts`)
 
-    const generateWithTimeout = async (text: string, timeoutMs: number = 60000) => {
-      return Promise.race([
-        this.embeddingService.generateEmbedding(text),
-        new Promise<number[]>((_, reject) =>
-          setTimeout(() => reject(new Error('Embedding generation timed out')), timeoutMs)
-        )
-      ])
-    }
-
     /**
      * Un lote por petición, no un fragmento por petición.
      *
