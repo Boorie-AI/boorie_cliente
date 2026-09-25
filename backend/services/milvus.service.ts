@@ -65,6 +65,25 @@ export class MilvusService {
      * de la sesión recibía «state 'released'» y devolvía cero fuentes.
      */
     private static readonly PLAZO_COLECCION_MS = 180_000;
+    /*
+     * Cuánto se espera a una búsqueda. Sin plazo propio valía el del SDK, 15 s, y con la memoria
+     * de intercambio llena —Ollama con `qwen2.5:7b` empuja a Milvus fuera de la RAM cada vez que
+     * responde— la misma búsqueda que tarda 2 s midió 22: se cortaba, el RAG se quedaba sin
+     * fragmentos y el chat respondía sólo con el modelo. El presupuesto de fuentes del chat es de
+     * 180 s, y el nodo de recuperación puede buscar dos veces.
+     */
+    private static readonly PLAZO_BUSQUEDA_MS = 60_000;
+    /*
+     * Y cuánto se insiste antes de rendirse. Con la base de conocimiento activa, responder sólo
+     * con el conocimiento general del modelo es el último recurso, así que una búsqueda que se
+     * corta por tiempo o no encuentra a Milvus se repite mientras quede presupuesto. Reintentar
+     * sirve: la misma búsqueda midió 22 s, 12 s y 6 s seguidas, porque cada intento devuelve a
+     * RAM parte de lo que la memoria de intercambio le había quitado a Milvus.
+     */
+    private static PRESUPUESTO_BUSQUEDA_MS = 150_000;
+    private static PAUSA_REINTENTO_MS = 2_000;
+    // No se empieza un intento que no tiene tiempo de terminar.
+    private static readonly PLAZO_MINIMO_MS = 5_000;
 
     private static readonly LOTE_RECONSTRUCCION = 500;
     /*
@@ -743,13 +762,34 @@ export class MilvusService {
         return this.connected && !this.unavailable;
     }
 
+    /** Lo que se arregla solo con esperar: un plazo vencido, Milvus arrancando o saturado. */
+    private static esTransitorio(error: unknown): boolean {
+        const texto = String((error as any)?.message ?? error);
+        return /DEADLINE_EXCEEDED|UNAVAILABLE|Milvus unavailable|ECONNREFUSED|ECONNRESET/i.test(texto);
+    }
+
     public async search(collection: string, vector: number[], limit: number = 10, filter?: string, consistency: boolean = true) {
-        try {
-            await this.ensureConnection();
-        } catch {
-            // Fail-soft: return empty results so RAG can fall back to in-DB chunks.
-            return { results: [] } as any;
+        const limite = Date.now() + MilvusService.PRESUPUESTO_BUSQUEDA_MS;
+        for (let intento = 1; ; intento++) {
+            const plazo = Math.min(MilvusService.PLAZO_BUSQUEDA_MS, limite - Date.now());
+            try {
+                return await this.buscarUnaVez(collection, vector, limit, filter, consistency, plazo);
+            } catch (error) {
+                const queda = limite - Date.now() - MilvusService.PAUSA_REINTENTO_MS;
+                if (!MilvusService.esTransitorio(error) || queda < MilvusService.PLAZO_MINIMO_MS) throw error;
+                console.warn(
+                    `[MilvusService] La búsqueda en ${collection} falló (intento ${intento}): ` +
+                    `${(error as any)?.message ?? error}. Se reintenta; quedan ${Math.round(queda / 1000)} s.`
+                );
+                await new Promise(r => setTimeout(r, MilvusService.PAUSA_REINTENTO_MS));
+            }
         }
+    }
+
+    private async buscarUnaVez(collection: string, vector: number[], limit: number, filter: string | undefined, consistency: boolean, plazo: number) {
+        // Sin conexión ya no se devuelve una lista vacía: se lanza, para que `search` lo reintente
+        // y, si no hay manera, el chat sepa que no se pudo buscar en vez de tomarlo por vacío.
+        await this.ensureConnection();
         if (this.reconstruyendo.has(collection)) {
             const p = this.estadoReconstruccion(collection)!;
             console.warn(`[MilvusService] ${collection} se está reconstruyendo (${p.hechas} de ${p.total}): la búsqueda no devuelve nada hasta que termine.`);
@@ -780,7 +820,8 @@ export class MilvusService {
             // nada: el agente respondía sin ninguno de los documentos
             // indexados. Es el mismo métrico con el que se crea el índice.
             params: { metric_type: 'COSINE' },
-            consistency_level: consistency ? ConsistencyLevelEnum.Strong : ConsistencyLevelEnum.Eventually
+            consistency_level: consistency ? ConsistencyLevelEnum.Strong : ConsistencyLevelEnum.Eventually,
+            timeout: plazo
         });
 
         // Una colección sin cargar tampoco lanza: responde con el error en el estado y la lista

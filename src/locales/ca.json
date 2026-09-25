@@ -904,6 +904,7 @@
     "ragPage": "pàgina",
     "ragOn": "RAG activat",
     "ragNothing": "RAG: no s’ha trobat informació rellevant",
+    "ragFallo": "RAG: no s’ha pogut consultar la documentació, ni tornant-ho a provar",
     "helperAnswer": "Resposta del model auxiliar",
     "noProject": "Sense projecte",
     "loadingProjects": "S’estan carregant els projectes…",

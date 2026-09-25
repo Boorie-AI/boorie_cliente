@@ -41,6 +41,8 @@ export interface Message {
     originalQuery?: string
     enhancedQuery?: boolean
     ragAttempted?: boolean
+    /** Sin fuentes porque la búsqueda no respondió, no porque no hubiera nada. */
+    ragFallo?: boolean
     /** Respondió el auxiliar porque el principal no estaba (#49). */
     modeloDegradado?: boolean
     /**
@@ -107,7 +109,7 @@ interface ChatState {
   // Wisdom/RAG actions
   setWisdomConfig: (config: WisdomConfiguration | undefined) => void
   asegurarBaseDeConocimiento: () => Promise<void>
-  enhancePromptWithRAG: (originalPrompt: string, projectId?: string | null) => Promise<{ enhancedPrompt: string; sources?: any[]; modeloEmbeddings?: string | null }>
+  enhancePromptWithRAG: (originalPrompt: string, projectId?: string | null) => Promise<{ enhancedPrompt: string; sources?: any[]; modeloEmbeddings?: string | null; busquedaFallida?: boolean }>
 
   // Hydraulic project context
   buildProjectContext: (projectId: string) => Promise<string>
@@ -347,7 +349,9 @@ export const useChatStore = create<ChatState>()(
         // Eran 5 minutos, que no daban para las dos fases: con el presupuesto de
         // fuentes en 3 minutos y una respuesta que en local tarda otros 2, el
         // límite global cortaba justo lo que se acababa de arreglar (#63).
-        const GLOBAL_TIMEOUT_MS = 480000
+        // Crece lo mismo que el presupuesto de fuentes, para que la respuesta
+        // conserve sus 5 minutos.
+        const GLOBAL_TIMEOUT_MS = 660000
         const globalTimeout = new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('GLOBAL_TIMEOUT')), GLOBAL_TIMEOUT_MS)
         )
@@ -376,6 +380,7 @@ export const useChatStore = create<ChatState>()(
             let ragSources: any[] = []
             // Si no llega a buscarse —RAG apagado, fallo o tiempo agotado—, no intervino ningún modelo de embeddings.
             let modeloEmbeddings: string | null = null
+            let busquedaFallida = false
             try {
               /**
                * Cuánto se espera a las fuentes (#63).
@@ -388,23 +393,35 @@ export const useChatStore = create<ChatState>()(
                * se tira, la recuperación baja a unos dos minutos y este
                * presupuesto ya se puede cumplir. Y la carrera no cancela nada:
                * pasarse de largo no ahorra trabajo, sólo desperdicia el hecho.
+               *
+               * Eran 180 s. Con la base de conocimiento activa, Milvus reintenta
+               * cada búsqueda hasta 150 s antes de rendirse —responder sólo con
+               * el conocimiento general es el último recurso—, y este reloj no
+               * puede adelantarse a esos reintentos: los cortaría y mandaría la
+               * pregunta sin fuentes igual que antes.
                */
-              const PRESUPUESTO_FUENTES_MS = 180000
-              const ragTimeout = new Promise<{ enhancedPrompt: string; sources?: any[]; modeloEmbeddings?: string | null }>((resolve) =>
-                setTimeout(() => {
+              const PRESUPUESTO_FUENTES_MS = 360000
+              let temporizador: ReturnType<typeof setTimeout> | undefined
+              const ragTimeout = new Promise<{ enhancedPrompt: string; sources?: any[]; modeloEmbeddings?: string | null; busquedaFallida?: boolean }>((resolve) => {
+                temporizador = setTimeout(() => {
                   logger.warn('RAG enhancement timed out, using original prompt')
-                  resolve({ enhancedPrompt: content })
+                  resolve({ enhancedPrompt: content, busquedaFallida: true })
                 }, PRESUPUESTO_FUENTES_MS)
-              )
+              })
+              // Sin cancelarlo, el aviso de tiempo agotado salía a los 6 minutos
+              // aunque las fuentes hubieran llegado en uno, y el log contaba un
+              // corte que no había pasado.
               const ragResult = await Promise.race([
                 get().enhancePromptWithRAG(content, proyectoDeLaConversacion),
                 ragTimeout
-              ])
+              ]).finally(() => clearTimeout(temporizador))
               enhancedPrompt = ragResult.enhancedPrompt
               ragSources = ragResult.sources || []
               modeloEmbeddings = ragResult.modeloEmbeddings ?? null
+              busquedaFallida = ragResult.busquedaFallida === true
             } catch (error) {
               logger.warn('Failed to enhance prompt with RAG, using original:', error)
+              busquedaFallida = true
             }
 
               /**
@@ -623,6 +640,7 @@ export const useChatStore = create<ChatState>()(
                 if (state.wisdomConfig?.enabled) {
                   metadata.ragAttempted = true
                   metadata.ragEnabled = ragSources.length > 0
+                  metadata.ragFallo = busquedaFallida && ragSources.length === 0
                   metadata.sources = ragSources
                   metadata.originalQuery = content
                   metadata.enhancedQuery = enhancedPrompt !== content
@@ -979,7 +997,7 @@ export const useChatStore = create<ChatState>()(
       enhancePromptWithRAG: async (
         originalPrompt: string,
         projectId?: string | null
-      ): Promise<{ enhancedPrompt: string; sources?: any[]; modeloEmbeddings?: string | null }> => {
+      ): Promise<{ enhancedPrompt: string; sources?: any[]; modeloEmbeddings?: string | null; busquedaFallida?: boolean }> => {
         const state = get()
 
         if (!state.wisdomConfig?.enabled) {
@@ -1013,10 +1031,11 @@ export const useChatStore = create<ChatState>()(
           // generic system_prompt prefix even when sources was empty, causing
           // the UI to show "RAG Habilitado" with zero actual retrieval (#19/#20).
           if (!ragResult.success || !ragResult.data) {
-            return { enhancedPrompt: originalPrompt, sources: [] }
+            return { enhancedPrompt: originalPrompt, sources: [], busquedaFallida: true }
           }
 
           const sources = ragResult.data.sources || []
+          const busquedaFallida = ragResult.data.busquedaFallida === true
 
           // Build enhanced prompt with context
           let enhancedPrompt = ''
@@ -1043,16 +1062,16 @@ export const useChatStore = create<ChatState>()(
            * como «es-ES»; `contextoDeConocimiento` se queda con la raíz.
            */
           const idiomaDelUsuario = usePreferencesStore.getState().language
-          enhancedPrompt += contextoDeConocimiento(sources, idiomaDelUsuario)
+          enhancedPrompt += contextoDeConocimiento(sources, idiomaDelUsuario, { busquedaFallida })
           enhancedPrompt += originalPrompt
 
           // El cierre de idioma no se pone aquí: va al final de *todos* los
           // caminos, y por esta función sólo pasa uno (#160).
-          return { enhancedPrompt: enhancedPrompt, sources, modeloEmbeddings: ragResult.data.modeloEmbeddings ?? null }
+          return { enhancedPrompt: enhancedPrompt, sources, modeloEmbeddings: ragResult.data.modeloEmbeddings ?? null, busquedaFallida }
 
         } catch (error) {
           logger.error('Failed to enhance prompt with RAG:', error)
-          return { enhancedPrompt: originalPrompt, sources: [] }
+          return { enhancedPrompt: originalPrompt, sources: [], busquedaFallida: true }
         }
       },
 

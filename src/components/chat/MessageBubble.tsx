@@ -194,7 +194,9 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
 
                 {message.metadata.ragAttempted && (!message.metadata.sources || message.metadata.sources.length === 0) && (
                   <div className="mt-1 flex items-center space-x-1">
-                    <span className="text-xs text-muted-foreground">🧠 {t('chatInput.ragNothing')}</span>
+                    {message.metadata.ragFallo
+                      ? <span className="text-xs text-amber-600 dark:text-amber-400">🧠 {t('chatInput.ragFallo')}</span>
+                      : <span className="text-xs text-muted-foreground">🧠 {t('chatInput.ragNothing')}</span>}
                   </div>
                 )}
               </div>

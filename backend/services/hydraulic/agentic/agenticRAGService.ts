@@ -143,6 +143,8 @@ export class AgenticRAGService {
     metrics: any
     /** El modelo con el que se busco, para que el chat pueda decirselo al que redacta. */
     modeloEmbeddings: string | null
+    /** Sin fuentes porque no se pudo buscar, no porque no hubiera nada. */
+    busquedaFallida: boolean
   }> {
     const startTime = Date.now()
     const stateManager = createStateManager(question)
@@ -203,6 +205,7 @@ export class AgenticRAGService {
         confidence: finalState.confidence,
         sources: this.formatSources(finalState),
         modeloEmbeddings: this.nodes.retrieve?.modeloDeEmbeddings?.() ?? null,
+        busquedaFallida: finalState.busquedaFallida === true,
         metrics: {
           processingTime: finalState.processingTime,
           iterations: finalState.iteration,
@@ -223,6 +226,7 @@ export class AgenticRAGService {
         confidence: 0,
         sources: [],
         modeloEmbeddings: null,
+        busquedaFallida: true,
         metrics: {
           processingTime: Date.now() - startTime,
           error: errorMessage

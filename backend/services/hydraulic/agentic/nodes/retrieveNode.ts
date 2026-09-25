@@ -10,6 +10,11 @@ import { EmbeddingService } from '../../../embedding.service'
 // If it refers to 'hydraulic/hybridSearch', I should import that.
 import { HybridSearchService } from '../../hybridSearch'
 
+/** Cuántas búsquedas de una misma consulta se cayeron, por ejemplo por tiempo. */
+interface RegistroDeBusqueda {
+  fallidas: number
+}
+
 export class RetrieveNode {
   private prisma: PrismaClient
   private embeddingService: any
@@ -39,10 +44,14 @@ export class RetrieveNode {
       // Determine which query to use
       const query = this.selectQuery(state)
 
+      // De esta consulta, no de la instancia: el servicio es de vida larga y las
+      // búsquedas de varias reformulaciones van en paralelo.
+      const registro: RegistroDeBusqueda = { fallidas: 0 }
+
       // Multi-query retrieval if we have reformulations
       const documents = state.reformulatedQueries.length > 0
-        ? await this.multiQueryRetrieval(state)
-        : await this.singleQueryRetrieval(query, state)
+        ? await this.multiQueryRetrieval(state, registro)
+        : await this.singleQueryRetrieval(query, state, registro)
 
       // Retrieve parent documents if enabled
       if (this.config.useParentChild && documents.length > 0) {
@@ -51,9 +60,13 @@ export class RetrieveNode {
       }
 
       // Update state with retrieved documents
+      // Sin documentos y con alguna búsqueda caída, el vacío no dice nada de
+      // la documentación: no se llegó a consultar.
+      const busquedaFallida = documents.length === 0 && registro.fallidas > 0
       stateManager.updateState({
         retrievedDocuments: documents,
-        currentQuery: query
+        currentQuery: query,
+        busquedaFallida
       })
 
       return {
@@ -63,7 +76,8 @@ export class RetrieveNode {
           queryEmbedding: await this.embeddingService.generateEmbedding(query),
           searchMethod: state.reformulatedQueries.length > 0 ? 'multiQuery' : 'hybrid'
         },
-        nextNode: 'grade',
+        // Reformular es volver a buscar en el mismo Milvus, que ya agotó sus reintentos.
+        nextNode: busquedaFallida ? 'end' : 'grade',
         metrics: {
           duration: Date.now() - startTime,
           apiCalls: state.reformulatedQueries.length || 1
@@ -73,6 +87,7 @@ export class RetrieveNode {
       console.error('[RetrieveNode] Error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       stateManager.addError('retrieve', errorMessage)
+      stateManager.updateState({ busquedaFallida: true })
 
       return {
         success: false,
@@ -95,7 +110,7 @@ export class RetrieveNode {
     return state.currentQuery
   }
 
-  private async singleQueryRetrieval(query: string, state: AgenticRAGState): Promise<Document[]> {
+  private async singleQueryRetrieval(query: string, state: AgenticRAGState, registro: RegistroDeBusqueda): Promise<Document[]> {
     try {
       // Generate embedding
       // const queryEmbedding = await this.embeddingService.generateEmbedding(query) // Not used directly here, handled inside hybridSearch
@@ -107,6 +122,8 @@ export class RetrieveNode {
         region: this.config.regions?.[0],
         language: state.queryLanguage
       })
+
+      let estrictaCaida = false
 
       // Attempt 1: Strict search with explicit filters
       const searchResults = await this.vectorService.hybridSearch(query, {
@@ -122,7 +139,8 @@ export class RetrieveNode {
         language: undefined, // state.queryLanguage
         // includeMetadata: this.config.includeMetadata
         ambito: this.config.ambito,
-        projectId: this.config.projectId
+        projectId: this.config.projectId,
+        alFallar: () => { estrictaCaida = true; registro.fallidas++ }
       })
 
       console.log(`[RetrieveNode] Hybrid search returned ${searchResults.length} results before filtering. First 2 ID/Scores:`,
@@ -131,7 +149,9 @@ export class RetrieveNode {
 
       // Attempt 2: Fallback - Relaxed search if no/few results found
       // This handles cases where the domain might be misclassified or documents are uncategorized
-      if (searchResults.length < 3) {
+      // Si la estricta se cayó ya agotó los reintentos de Milvus: la relajada se
+      // encontraría el mismo Milvus y gastaría otro presupuesto entero.
+      if (searchResults.length < 3 && !estrictaCaida) {
         console.log('[RetrieveNode] Strict search yielded few results. Retrying with relaxed filters.')
 
         const relaxedResults = await this.vectorService.hybridSearch(query, {
@@ -142,7 +162,8 @@ export class RetrieveNode {
           // El ámbito sí se mantiene: relajar los filtros de búsqueda es
           // aceptable, relajar de quién son los documentos no lo es.
           ambito: this.config.ambito,
-          projectId: this.config.projectId
+          projectId: this.config.projectId,
+          alFallar: () => { registro.fallidas++ }
         })
 
         // Merge results, preferring strict matches, deduping by ID
@@ -163,13 +184,13 @@ export class RetrieveNode {
     }
   }
 
-  private async multiQueryRetrieval(state: AgenticRAGState): Promise<Document[]> {
+  private async multiQueryRetrieval(state: AgenticRAGState, registro: RegistroDeBusqueda): Promise<Document[]> {
     try {
       const allQueries = [state.originalQuestion, ...state.reformulatedQueries]
       const allResults: Map<string, Document & { scores: number[] }> = new Map()
 
       // Execute searches in parallel
-      const searchPromises = allQueries.map(query => this.singleQueryRetrieval(query, state))
+      const searchPromises = allQueries.map(query => this.singleQueryRetrieval(query, state, registro))
       const searchResults = await Promise.all(searchPromises)
 
       // Combine results using Reciprocal Rank Fusion (RRF)

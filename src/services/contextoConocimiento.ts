@@ -137,14 +137,28 @@ const SIN_FUENTES = (idioma: IdiomaApp) => [
 ].join('\n')
 
 /**
+ * Sin fuentes porque la búsqueda no respondió. Decirle que no había nada sería
+ * falso: la documentación puede tratar la pregunta y no se llegó a mirar.
+ */
+const BUSQUEDA_FALLIDA = (idioma: IdiomaApp) => [
+  'No se pudo consultar la documentación indexada: la búsqueda no respondió, ni tras reintentarla.',
+  'Díselo claramente al usuario: no digas que la documentación no trata el tema, porque no se ha llegado a mirar, y sugiérele volver a preguntar.',
+  'Puedes responder con tu conocimiento general, pero avisa de que esa respuesta no está respaldada por los documentos del proyecto y de que conviene comprobarla contra la normativa aplicable.',
+  `Responde en ${nombreDeIdioma(idioma)}, que es el idioma que el usuario tiene puesto en la aplicación.`,
+].join('\n')
+
+/**
  * El bloque completo. Con fuentes lleva su contenido y las reglas; sin ellas,
- * la instrucción de decirlo.
+ * la instrucción de decirlo, que no es la misma si la búsqueda falló.
  */
 export function contextoDeConocimiento(
   fuentes: FuenteConocimiento[],
   idioma: IdiomaApp = 'es',
+  opciones: { busquedaFallida?: boolean } = {},
 ): string {
-  if (!fuentes.length) return `${SIN_FUENTES(idioma)}\n\n`
+  if (!fuentes.length) {
+    return `${opciones.busquedaFallida ? BUSQUEDA_FALLIDA(idioma) : SIN_FUENTES(idioma)}\n\n`
+  }
 
   const bloques = fuentes.map((fuente, i) =>
     `${identidadDeFuente(fuente, i, idioma)}\n${(fuente.content ?? '').trim()}`)
