@@ -138,16 +138,16 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
 
 
   return (
-    <div className="w-80 h-full bg-slate-900 text-white p-4 space-y-4 overflow-y-auto">
+    <div className="w-80 h-full bg-background text-foreground p-4 space-y-4 overflow-y-auto">
 
 
       {/* Vista: mapa o esquema. La red sin sistema de coordenadas declarado no se
           puede situar sobre la ortofoto (#36), pero su esquema siempre se puede
           dibujar: por eso el esquema no es un visor aparte, es la otra vista de
           este (#37). */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-white text-base flex items-center gap-2">
+          <CardTitle className="text-foreground text-base flex items-center gap-2">
             <Layers className="h-4 w-4" />
             {t('viewer.view')}
           </CardTitle>
@@ -165,7 +165,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                 disabled={op.valor === 'mapa' && !mapaDisponible}
                 onClick={() => handleSettingChange('vista', op.valor)}
                 className={cn(
-                  'flex items-center gap-2 border-slate-600 bg-slate-700 text-white hover:bg-slate-600',
+                  'flex items-center gap-2 border-border bg-muted text-foreground hover:bg-accent',
                   settings.vista === op.valor && 'border-blue-500 bg-blue-600 hover:bg-blue-600'
                 )}
               >
@@ -175,7 +175,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
             ))}
           </div>
           {!mapaDisponible && (
-            <p className="text-xs text-yellow-400">
+            <p className="text-xs text-yellow-600 dark:text-yellow-400">
               {t('viewer.needsCrs')}
             </p>
           )}
@@ -184,9 +184,9 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
 
       {/* Ajustes del dibujo. Vivían en un diálogo dentro del propio mapa, que
           competía con este panel; ahora hay un solo sitio donde tocarlos. */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-white text-base flex items-center gap-2">
+          <CardTitle className="text-foreground text-base flex items-center gap-2">
             <Palette className="h-4 w-4" />
             {t('viewer.drawing')}
           </CardTitle>
@@ -194,7 +194,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
         <CardContent className="space-y-4">
           {settings.vista === 'mapa' && (
             <div className="space-y-2">
-              <div className="text-sm text-gray-400">{t('viewer.baseMap')}</div>
+              <div className="text-sm text-muted-foreground">{t('viewer.baseMap')}</div>
               <select
                 value={settings.baseMap}
                 onChange={e => handleSettingChange('baseMap', e.target.value as AjustesVisor['baseMap'])}
@@ -202,7 +202,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                 // la rueda: quien creía estar haciendo zoom se encontraba con
                 // otro mapa base, y con «Satélite» si giraba lo suficiente.
                 onWheel={e => e.currentTarget.blur()}
-                className="w-full rounded-md border border-slate-600 bg-slate-700 px-2 py-1.5 text-sm text-white"
+                className="w-full rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground"
               >
                 <option value="streets">{t('viewer.streets')}</option>
                 <option value="outdoors">{t('viewer.terrain')}</option>
@@ -216,7 +216,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                 </option>
               </select>
               {!SOPORTE_SATELITE.disponible && (
-                <p className="text-xs text-gray-500">{SOPORTE_SATELITE.motivo}</p>
+                <p className="text-xs text-muted-foreground">{SOPORTE_SATELITE.motivo}</p>
               )}
             </div>
           )}
@@ -231,7 +231,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
 
           {settings.vista === 'mapa' && (
             <div className="space-y-2">
-              <div className="text-sm text-gray-400">{t('viewer.opacity', { valor: settings.opacity.toFixed(1) })}</div>
+              <div className="text-sm text-muted-foreground">{t('viewer.opacity', { valor: settings.opacity.toFixed(1) })}</div>
               <Slider
                 value={[settings.opacity]}
                 onValueChange={([v]) => handleSettingChange('opacity', v)}
@@ -243,7 +243,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
           )}
 
           <div className="space-y-2">
-            <div className="text-sm text-gray-400">{t('viewer.nodeSize', { valor: settings.nodeSize })}</div>
+            <div className="text-sm text-muted-foreground">{t('viewer.nodeSize', { valor: settings.nodeSize })}</div>
             <Slider
               value={[settings.nodeSize]}
               onValueChange={([v]) => handleSettingChange('nodeSize', v)}
@@ -255,7 +255,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
 
           {settings.vista === 'mapa' && (
             <div className="space-y-2">
-              <div className="text-sm text-gray-400">{t('viewer.linkWidth', { valor: settings.linkWidth })}</div>
+              <div className="text-sm text-muted-foreground">{t('viewer.linkWidth', { valor: settings.linkWidth })}</div>
               <Slider
                 value={[settings.linkWidth]}
                 onValueChange={([v]) => handleSettingChange('linkWidth', v)}
@@ -271,9 +271,9 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
       {/* Capas. La ofrecía uno de los visores que retiró el #37 y se fue con él
           sin que nadie la portara; con miles de nudos es lo que permite mirar
           sólo las bombas, o el trazado sin la nube de acometidas. */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-white text-base flex items-center justify-between">
+          <CardTitle className="text-foreground text-base flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Layers className="h-4 w-4" />
               {t('viewer.layers')}
@@ -282,7 +282,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-auto px-2 py-0.5 text-xs text-blue-400 hover:text-blue-300"
+                className="h-auto px-2 py-0.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                 onClick={() => handleSettingChange('capas', CAPAS_TODAS)}
               >
                 {t('viewer.seeAll')}
@@ -296,11 +296,11 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
               <span
                 className={cn(
                   'text-sm',
-                  cuentas[capa.tipo] === 0 && 'text-gray-500'
+                  cuentas[capa.tipo] === 0 && 'text-muted-foreground'
                 )}
               >
                 {t(`layers.${capa.tipo}`)}
-                <span className="ml-2 text-xs text-gray-500">{cuentas[capa.tipo]}</span>
+                <span className="ml-2 text-xs text-muted-foreground">{cuentas[capa.tipo]}</span>
               </span>
               <Switch
                 // Un tipo que la red no tiene se deshabilita en vez de esconderse:
@@ -327,16 +327,16 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
       {/* Simbología. Sustituye a los dos interruptores de «mapa de presiones»
           que cambiaban un estado que nadie leía: la red se coloreaba por presión
           estuvieran encendidos o apagados. */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-white text-base flex items-center gap-2">
+          <CardTitle className="text-foreground text-base flex items-center gap-2">
             <Gauge className="h-4 w-4" />
             {t('viewer.legend')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {!simulationResults ? (
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-muted-foreground">
               {t('viewer.noResults')}
             </p>
           ) : (
@@ -350,7 +350,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                       'w-full rounded-md px-3 py-1.5 text-left text-sm transition-colors',
                       settings.simbologia === op.valor
                         ? 'bg-blue-600 text-white'
-                        : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                        : 'bg-muted text-foreground hover:bg-accent'
                     )}
                   >
                     {op.texto}
@@ -363,7 +363,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                   0-200 l/s, velocidad 0-2 m/s—, así que mentían en cuanto la red
                   se salía de ese rango. */}
               {escala && (
-                <div className="space-y-1 text-xs text-gray-400">
+                <div className="space-y-1 text-xs text-muted-foreground">
                   {escala.leyenda.map(tramo => (
                     <div key={tramo.etiqueta} className="flex items-center gap-2">
                       <span
@@ -373,7 +373,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                       {tramo.etiqueta}
                     </div>
                   ))}
-                  <p className="pt-1 text-[11px] text-gray-500">
+                  <p className="pt-1 text-[11px] text-muted-foreground">
                     {escala.absoluta
                       ? t('viewer.absoluteScale')
                       : t('viewer.scaleOfStep', { min: formatearMagnitud(escala.min, escala.magnitud, 3), max: formatearMagnitud(escala.max, escala.magnitud, 3) })}
@@ -382,7 +382,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
               )}
 
               {settings.simbologia !== 'ninguna' && !escala && (
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   {t('viewer.noMagnitude')}
                 </p>
               )}
@@ -392,9 +392,9 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
       </Card>
 
       {/* Model Info */}
-      <Card className="bg-slate-800 border-slate-700">
+      <Card className="bg-card border-border">
         <CardContent className="pt-3">
-          <div className="space-y-2 text-xs text-gray-400">
+          <div className="space-y-2 text-xs text-muted-foreground">
             <div className="flex justify-between">
               <span>{t('viewer.nodesLabel')}</span>
               <span>{networkData?.nodes?.length || 0}</span>
@@ -410,7 +410,7 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
             {simulationResults && (
               <div className="flex justify-between">
                 <span>{t('viewer.state')}</span>
-                <Badge variant="outline" className="text-green-400 border-green-400">
+                <Badge variant="outline" className="text-green-600 dark:text-green-400 border-green-600 dark:border-green-400">
                   {t('viewer.simulated')}
                 </Badge>
               </div>
@@ -420,13 +420,13 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
       </Card>
       {/* Charts Section - Moved here as per request */}
       {simulationResults && simulationResults.node_results && (
-        <div className="space-y-4 pt-4 border-t border-slate-700">
+        <div className="space-y-4 pt-4 border-t border-border">
 
           {/* Demand Curve */}
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-white text-sm flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-green-400" />
+              <CardTitle className="text-foreground text-sm flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
                 {/* La unidad, en el título y en el eje: son los dos sitios que se
                     ven siempre. Estaba sólo en el nombre de la serie, que esta
                     gráfica no enseña —la leyenda está apagada—, así que quien la
@@ -482,10 +482,10 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
 
           {/* Pumps Flow Chart */}
           {networkData?.links?.some((l: any) => l.type?.toLowerCase() === 'pump') && (
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-card border-border">
               <CardHeader className="pb-2">
-                <CardTitle className="text-white text-sm flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-blue-400" />
+                <CardTitle className="text-foreground text-sm flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   Caudal de Bombas ({unidadDe('caudal')})
                 </CardTitle>
               </CardHeader>
@@ -534,8 +534,8 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                 />
               </CardContent>
               {/* Pump Status List */}
-              <div className="px-4 pb-4 border-t border-slate-700 pt-3">
-                <div className="text-xs font-semibold text-gray-400 mb-2">
+              <div className="px-4 pb-4 border-t border-border pt-3">
+                <div className="text-xs font-semibold text-muted-foreground mb-2">
                   Estado en {timeline.etiqueta}
                 </div>
                 <div className="space-y-2">
@@ -548,10 +548,10 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
 
                       return (
                         <div key={pump.id} className="flex items-center justify-between text-xs">
-                          <span className="text-gray-300 font-medium">{pump.id}</span>
+                          <span className="text-foreground font-medium">{pump.id}</span>
                           <div className="flex items-center gap-3">
 
-                            <Badge variant="outline" className={`${isOn ? 'text-green-400 border-green-400 bg-green-400/10' : 'text-red-400 border-red-400 bg-red-400/10'}`}>
+                            <Badge variant="outline" className={`${isOn ? 'text-green-600 dark:text-green-400 border-green-600 dark:border-green-400 bg-green-400/10' : 'text-red-600 dark:text-red-400 border-red-600 dark:border-red-400 bg-red-400/10'}`}>
                               {isOn ? 'ON' : 'OFF'}
                             </Badge>
                           </div>

@@ -9,6 +9,14 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **Con el tema claro, «Mis Proyectos» y el visor de la red ya no se quedan en modo oscuro.**
+  La lista de proyectos, la barra superior de una red, el visor y su panel lateral —mapa base,
+  opacidad, capas, resultados y bombas— tenían los colores oscuros fijados y no cambiaban con el
+  tema: fondo casi negro y texto blanco en medio de una aplicación clara. Ahora siguen el tema
+  elegido, como la vista del proyecto, y los acentos de color se leen también sobre blanco.
+
 ## [1.40.0] - 2026-09-25
 
 Las fórmulas y las tablas de las respuestas del chat se leen como fórmulas y como tablas.

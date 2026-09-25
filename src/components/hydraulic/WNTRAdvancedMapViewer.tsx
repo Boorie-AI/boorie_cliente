@@ -234,7 +234,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
     // `h-full`, no `h-screen`: este visor vive dentro del hueco que deja la barra
     // superior de la aplicación, así que pedir 100 vh lo hace sobresalir por
     // arriba y se come la fila de botones (visible al maximizar la ventana).
-    <div className="flex h-full bg-gray-900 overflow-hidden">
+    <div className="flex h-full bg-background overflow-hidden">
       {/* Main Map Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Map Container */}
@@ -277,15 +277,15 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
         {/* Barra de transporte. Sólo aparece si la simulación tiene más de un
             paso: un estado estacionario no tiene nada que reproducir (#45). */}
         {hayLineaTiempo && (
-        <Card className="m-0 rounded-none bg-slate-800 border-t border-slate-600 z-10">
+        <Card className="m-0 rounded-none bg-card border-t border-border z-10">
           <CardContent className="p-4">
             <div className="space-y-3">
               {/* Momento de la simulación. Antes decía una fecha fija con zona
                   horaria australiana, que no salía de ningún dato. */}
-              <div className="flex items-center justify-center gap-3 text-white">
+              <div className="flex items-center justify-center gap-3 text-foreground">
                 <Clock className="h-4 w-4" />
                 <span className="text-sm font-medium tabular-nums">{timeline.etiqueta}</span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted-foreground">
                   {t('viewer.stepOf', { paso: visualizationSettings.timeStep + 1, total: timeline.linea.pasos })}
                   {' · '}
                   {timeline.linea.intervalo > 0 && t('viewer.everyMin', { minutos: Math.round(timeline.linea.intervalo / 60) })}
@@ -302,7 +302,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                     size="sm"
                     variant="ghost"
                     onClick={skipToStart}
-                    className="text-white hover:bg-slate-700 p-2"
+                    className="text-foreground hover:bg-accent p-2"
                   >
                     <SkipBack className="h-4 w-4" />
                   </Button>
@@ -310,7 +310,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                     size="sm"
                     variant="ghost"
                     onClick={togglePlayback}
-                    className="text-white hover:bg-slate-700 p-2"
+                    className="text-foreground hover:bg-accent p-2"
                   >
                     {visualizationSettings.isPlaying ? (
                       <Pause className="h-4 w-4" />
@@ -322,7 +322,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                     size="sm"
                     variant="ghost"
                     onClick={stopPlayback}
-                    className="text-white hover:bg-slate-700 p-2"
+                    className="text-foreground hover:bg-accent p-2"
                   >
                     <Square className="h-4 w-4" />
                   </Button>
@@ -330,7 +330,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                     size="sm"
                     variant="ghost"
                     onClick={skipToEnd}
-                    className="text-white hover:bg-slate-700 p-2"
+                    className="text-foreground hover:bg-accent p-2"
                   >
                     <SkipForward className="h-4 w-4" />
                   </Button>
@@ -351,7 +351,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                   {/* Marcas del eje, repartidas sobre los pasos que hay de
                       verdad. Antes eran 00:00 a 22:00 fijas, al margen de la
                       duración y del paso de reporte del modelo. */}
-                  <div className="flex justify-between text-xs text-gray-400 px-1 tabular-nums">
+                  <div className="flex justify-between text-xs text-muted-foreground px-1 tabular-nums">
                     {timeline.marcas.map(marca => (
                       <span key={marca.paso}>{marca.texto}</span>
                     ))}
@@ -368,7 +368,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                   onChange={e =>
                     setVisualizationSettings(prev => ({ ...prev, playbackSpeed: Number(e.target.value) }))
                   }
-                  className="rounded-md border border-slate-600 bg-slate-700 px-2 py-1 text-xs text-white"
+                  className="rounded-md border border-border bg-muted px-2 py-1 text-xs text-foreground"
                   title={t('viewer.playbackSpeed')}
                 >
                   {[0.5, 1, 2, 4].map(v => (
@@ -383,14 +383,14 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
       </div>
 
       {/* Right Sidebar Panel */}
-      <div className={`relative flex-shrink-0 border-l border-slate-700 bg-slate-900 transition-all duration-300 ease-in-out ${isRightSidebarCollapsed ? 'w-0' : 'w-80'}`}>
+      <div className={`relative flex-shrink-0 border-l border-border bg-background transition-all duration-300 ease-in-out ${isRightSidebarCollapsed ? 'w-0' : 'w-80'}`}>
 
         {/* Toggle Button */}
         <Button
           variant="outline"
           size="icon"
           onClick={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
-          className="absolute -left-3 top-4 z-50 h-6 w-6 rounded-full border border-slate-600 bg-slate-800 p-0 text-slate-400 hover:bg-slate-700 hover:text-white"
+          className="absolute -left-3 top-4 z-50 h-6 w-6 rounded-full border border-border bg-card p-0 text-muted-foreground hover:bg-accent hover:text-foreground"
           title={isRightSidebarCollapsed ? "Show Sidebar" : "Hide Sidebar"}
         >
           {isRightSidebarCollapsed ? (
