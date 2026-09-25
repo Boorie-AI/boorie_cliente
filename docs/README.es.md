@@ -39,15 +39,21 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.39.0
+### 🚀 Última Versión - v1.40.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.39.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.39.0/Boorie-1.39.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.39.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.39.0/Boorie-Setup-1.39.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.39.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.39.0/Boorie-1.39.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.40.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.40.0/Boorie-1.40.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.40.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.40.0/Boorie-Setup-1.40.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.40.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.40.0/Boorie-1.40.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.40.0
+- Las fórmulas de las respuestas del chat se leen como fórmulas. El modelo las escribe en LaTeX y el chat las mostraba tal cual —`\( t_c = \frac{2L}{a} \)`, con las barras y las llaves a la vista y los subíndices en cursiva—.
+- Ahora se dibujan con fracciones, subíndices, exponentes y letras griegas, en línea con el texto o centradas en su propia línea, y funciona sin conexión. Un importe como «de $50 a $100» se sigue viendo como texto.
+- Las tablas de las respuestas, como el cálculo paso a paso, se ven como tablas: con su cabecera y su cuadrícula, respetando la alineación de cada columna, y con las fórmulas y la negrita funcionando dentro de las celdas.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.40.0).
 
 ### 📝 Novedades en v1.39.0
 - El modelo que redacta las respuestas del chat se puede elegir. Estaba fijo —`nemotron-mini`, en este equipo— y sólo se cambiaba con variables de entorno; y ese modelo no da para una respuesta técnica larga.
@@ -427,12 +433,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.39.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.39.0.AppImage`
-3. Ejecuta: `./Boorie-1.39.0.AppImage`
+1. Descarga `Boorie-1.40.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.40.0.AppImage`
+3. Ejecuta: `./Boorie-1.40.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.39.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.40.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
