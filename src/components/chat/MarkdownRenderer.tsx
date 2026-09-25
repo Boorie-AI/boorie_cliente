@@ -21,6 +21,44 @@ function Formula({ tex, display = false }: { tex: string; display?: boolean }) {
 const FORMULA_EN_LINEA = /^(?:\$(?!\s)((?:\\\$|[^$\n])+?)(?<!\s)\$(?!\d)|\\\((.+?)\\\))/
 const FORMULA_EN_BLOQUE = /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]/g
 
+const FILA_DE_TABLA = /^\s*\|.*\|\s*$/
+const SEPARADOR_DE_TABLA = /^\s*\|?(\s*:?-+:?\s*\|)+\s*(:?-+:?\s*)?$/
+
+type Alineacion = 'left' | 'center' | 'right'
+
+// Parte por los | que separan celdas, no por los de una fórmula o un código
+// (el valor absoluto |x| en LaTeX) ni por un \| escapado.
+function celdasDeLaFila(fila: string): string[] {
+  const celdas: string[] = []
+  let actual = ''
+  let dentroDe: '$' | '`' | null = null
+  const texto = fila.trim().replace(/^\|/, '').replace(/\|$/, '')
+
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i]
+    if (c === '\\' && texto[i + 1] === '|' && !dentroDe) {
+      actual += '|'
+      i++
+      continue
+    }
+    if (c === '$' || c === '`') dentroDe = dentroDe === c ? null : dentroDe ?? c
+    if (c === '|' && !dentroDe) {
+      celdas.push(actual.trim())
+      actual = ''
+      continue
+    }
+    actual += c
+  }
+  celdas.push(actual.trim())
+  return celdas
+}
+
+function alineaciones(separador: string): Alineacion[] {
+  return celdasDeLaFila(separador).map(c =>
+    c.startsWith(':') && c.endsWith(':') ? 'center' : c.endsWith(':') ? 'right' : 'left'
+  )
+}
+
 export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
   const parseInlineMarkdown = (text: string): React.ReactNode[] => {
     const elements: React.ReactNode[] = []
@@ -196,9 +234,51 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
   const renderLines = (text: string, startKey: number) => {
     const lines = text.split('\n')
     const renderedLines: React.ReactNode[] = []
+    let finDeTabla = -1
 
     lines.forEach((line, lineIndex) => {
       const key = startKey + lineIndex
+      if (lineIndex < finDeTabla) return
+
+      // Tables (| a | b | followed by |---|---|)
+      if (FILA_DE_TABLA.test(line) && SEPARADOR_DE_TABLA.test(lines[lineIndex + 1] ?? '')) {
+        const cabecera = celdasDeLaFila(line)
+        const alineacion = alineaciones(lines[lineIndex + 1])
+        finDeTabla = lineIndex + 2
+        const filas: string[][] = []
+        while (finDeTabla < lines.length && FILA_DE_TABLA.test(lines[finDeTabla])) {
+          filas.push(celdasDeLaFila(lines[finDeTabla]))
+          finDeTabla++
+        }
+
+        renderedLines.push(
+          <div key={key} className="my-3 overflow-x-auto whitespace-normal">
+            <table className="border-collapse text-sm">
+              <thead>
+                <tr>
+                  {cabecera.map((celda, i) => (
+                    <th key={i} style={{ textAlign: alineacion[i] ?? 'left' }} className="border border-foreground/20 bg-foreground/5 px-3 py-1.5 font-semibold">
+                      {parseInlineMarkdown(celda)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filas.map((fila, f) => (
+                  <tr key={f}>
+                    {cabecera.map((_, i) => (
+                      <td key={i} style={{ textAlign: alineacion[i] ?? 'left' }} className="border border-foreground/20 px-3 py-1.5 align-top">
+                        {parseInlineMarkdown(fila[i] ?? '')}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+        return
+      }
 
       // Blockquotes (> text)
       if (line.trim().startsWith('> ')) {

@@ -57,3 +57,54 @@ describe('MarkdownRenderer: fórmulas', () => {
     expect(c.querySelector('.katex')).toBeNull()
   })
 })
+
+describe('MarkdownRenderer: tablas', () => {
+  const tabla = [
+    'Cálculo paso a paso:',
+    '| Paso | Descripción | Resultado |',
+    '|------|:-----------:|----------:|',
+    '| 1 | Área **del tubo** | \\( A = \\frac{\\pi D^2}{4} \\) |',
+    '| 2 | Velocidad | $V = Q/A$ |',
+    'Resultado final.',
+  ].join('\n')
+
+  it('pinta cabecera, filas y el texto de alrededor', () => {
+    const c = pintar(tabla)
+    expect(c.querySelectorAll('table')).toHaveLength(1)
+    expect([...c.querySelectorAll('th')].map(th => th.textContent)).toEqual(['Paso', 'Descripción', 'Resultado'])
+    expect(c.querySelectorAll('tbody tr')).toHaveLength(2)
+    expect(c.textContent).toContain('Cálculo paso a paso:')
+    expect(c.textContent).toContain('Resultado final.')
+    expect(c.textContent).not.toContain('|---')
+  })
+
+  it('las celdas admiten negrita y fórmulas', () => {
+    const c = pintar(tabla)
+    expect(c.querySelector('td strong')?.textContent).toBe('del tubo')
+    expect(c.querySelectorAll('td .katex')).toHaveLength(2)
+  })
+
+  it('respeta la alineación del separador', () => {
+    const c = pintar(tabla)
+    const alin = [...c.querySelectorAll('th')].map(th => (th as HTMLElement).style.textAlign)
+    expect(alin).toEqual(['left', 'center', 'right'])
+  })
+
+  it('no parte la celda por el | de una fórmula ni por un \\| escapado', () => {
+    const c = pintar('| Magnitud | Valor |\n|---|---|\n| Módulo | $|z| = 5$ |\n| Tubería | A \\| B |')
+    const filas = [...c.querySelectorAll('tbody tr')].map(tr => tr.querySelectorAll('td').length)
+    expect(filas).toEqual([2, 2])
+    expect(c.querySelector('td .katex')).not.toBeNull()
+    expect(c.querySelectorAll('tbody tr')[1].querySelectorAll('td')[1].textContent).toBe('A | B')
+  })
+
+  it('sin línea separadora no es una tabla', () => {
+    const c = pintar('| esto | no |\n| es | tabla |')
+    expect(c.querySelector('table')).toBeNull()
+  })
+
+  it('completa las filas cortas con celdas vacías', () => {
+    const c = pintar('| a | b | c |\n|---|---|---|\n| 1 |')
+    expect(c.querySelectorAll('tbody td')).toHaveLength(3)
+  })
+})
