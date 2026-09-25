@@ -904,6 +904,7 @@
     "ragPage": "página",
     "ragOn": "RAG activado",
     "ragNothing": "RAG: no se encontró información relevante",
+    "ragFallo": "RAG: no se pudo consultar la documentación, ni tras reintentarlo",
     "helperAnswer": "Respuesta del modelo auxiliar",
     "noProject": "Sin proyecto",
     "loadingProjects": "Cargando los proyectos…",

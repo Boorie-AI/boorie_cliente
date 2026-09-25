@@ -71,6 +71,13 @@ describe('el bloque de conocimiento', () => {
     expect(contextoDeConocimiento([fuente()])).toContain('El diámetro mínimo en red de distribución es de 100 mm.')
   })
 
+  it('si la búsqueda falló no dice que no había nada, porque no se llegó a mirar', () => {
+    const bloque = contextoDeConocimiento([], 'es', { busquedaFallida: true })
+    expect(bloque).toMatch(/No se pudo consultar la documentación/)
+    expect(bloque).not.toMatch(/No se encontró nada relevante/)
+    expect(bloque).not.toContain('=== CONOCIMIENTO CONSULTADO ===')
+  })
+
   it('sin fuentes lo dice, y no deja creer que no hay sistema', () => {
     const bloque = contextoDeConocimiento([])
     expect(bloque).toMatch(/No se encontró nada relevante/)

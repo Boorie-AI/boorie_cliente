@@ -58,6 +58,11 @@ export interface AgenticRAGState {
   processingTime: number
   nodesVisited: string[]
   errors: NodeError[]
+  /**
+   * La recuperación no trajo nada porque la búsqueda falló —Milvus cortado por
+   * tiempo—, no porque la documentación no tratara la pregunta.
+   */
+  busquedaFallida?: boolean
 
   // Technical context
   engineeringDomain: 'water_distribution' | 'sewage' | 'hydraulics' | 'general'

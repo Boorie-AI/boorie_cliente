@@ -26,6 +26,13 @@ export interface HybridSearchOptions {
    */
   ambito?: Ambito
   projectId?: string | null
+  /**
+   * Se llama si la búsqueda falla. Devuelve igualmente una lista vacía, y sin
+   * este aviso el llamante no distingue «no hay nada» de «no se pudo buscar»:
+   * el chat decía «no se encontró información relevante» cuando Milvus se
+   * había cortado por tiempo.
+   */
+  alFallar?: (error: unknown) => void
 }
 
 /**
@@ -398,6 +405,7 @@ export class HybridSearchService {
 
     } catch (error) {
       console.error('Search error:', error)
+      options.alFallar?.(error)
       return []
     }
   }

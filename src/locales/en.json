@@ -904,6 +904,7 @@
     "ragPage": "page",
     "ragOn": "RAG enabled",
     "ragNothing": "RAG: no relevant information found",
+    "ragFallo": "RAG: the documentation could not be searched, even after retrying",
     "helperAnswer": "Answer from the helper model",
     "noProject": "No project",
     "loadingProjects": "Loading projects…",
