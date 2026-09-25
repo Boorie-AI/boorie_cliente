@@ -195,6 +195,50 @@ líneas—, así que buscar ahí la conexión de la base da cero y parece que el
 suya. Hay que redirigir la salida al lanzarlo (`./boorie --no-sandbox > salida.log 2>&1`) y
 grepear ese fichero. Pasó en la v1.33.0 y costó un susto.
 
+- [ ] **Cuando el cambio se ve en la interfaz, verlo en el paquete**, no sólo encontrar su código
+      en `app.asar`. Que el código esté no dice que se pinte: una fuente que no viaja o un CSS
+      con rutas absolutas sólo fallan servidos desde `file://`. Se lanza el AppImage del borrador
+      con `--remote-debugging-port=9222` y se cuenta por CDP lo que tiene que aparecer.
+
+**Y los datos reales pueden no tener nada que lo muestre.** El paquete abre
+`~/.config/boorie/hydraulic.db`, que no es la base de desarrollo. En la v1.40.0 la comprobación
+de las fórmulas y las tablas del chat dio `katex: 0, tablas: 0` con la base conectada: esa base no
+tenía ninguna respuesta con fórmulas, y la conversación que sí las tenía vivía sólo en
+`prisma/hydraulic.db`. Un cero así se lee como que el cambio no viajó, y no era eso.
+
+Se arregla lanzando el paquete sobre una carpeta de datos aparte con una base pequeña sembrada con
+el caso, copiado de la base de desarrollo. La base se crea con las mismas sentencias que usa la
+aplicación empaquetada, así que es la que tendría una instalación nueva:
+
+```bash
+mkdir -p ud
+cat > esquema.mts <<'EOF'
+import { SENTENCIAS_ESQUEMA } from '<repo>/electron/esquemaProduccion.ts'
+import { writeFileSync } from 'fs'
+writeFileSync('esquema.sql', SENTENCIAS_ESQUEMA.map(s => s + ';').join('\n'))
+EOF
+npx tsx esquema.mts
+python3 - <<'EOF'
+import sqlite3
+dst = sqlite3.connect('ud/hydraulic.db')
+for s in open('esquema.sql').read().split(';\n'):
+    try: dst.execute(s)
+    except Exception: pass   # los ALTER que sobran en una base nueva, como al arrancar
+src = sqlite3.connect('file:<repo>/prisma/hydraulic.db?mode=ro', uri=True)
+cid = '<id de la conversación>'
+for tabla, col in [('conversations', 'id'), ('messages', 'conversationId')]:
+    cols = [r[1] for r in dst.execute(f'pragma table_info({tabla})')]
+    filas = src.execute(f'select {",".join(cols)} from {tabla} where {col}=?', (cid,)).fetchall()
+    dst.executemany(f'insert into {tabla} ({",".join(cols)}) values ({",".join("?" * len(cols))})', filas)
+dst.execute('update conversations set projectId = null')   # el proyecto no viaja
+dst.commit()
+EOF
+./Boorie-X.Y.Z.AppImage --no-sandbox --remote-debugging-port=9222 --user-data-dir=$PWD/ud
+```
+
+Con la carpeta nueva salen los velos de una instalación limpia —ver más abajo cómo quitarlos— y
+el tema es el claro, lo que de paso comprueba el cambio en el tema que no se usa al desarrollar.
+
 ### Quitar el borrador
 
 Pasando `tag_name` en el **mismo** PATCH que `draft=false`. Si no, GitHub deja `tag_name` como
