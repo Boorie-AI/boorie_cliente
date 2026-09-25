@@ -102,6 +102,7 @@
     "framer-motion": "^11.0.3",
     "i18next": "^25.2.1",
     "i18next-browser-languagedetector": "^8.2.0",
+    "katex": "^0.18.9",
     "langchain": "^1.1.5",
     "lucide-react": "^0.323.0",
     "mammoth": "^1.11.0",
