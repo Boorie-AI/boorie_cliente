@@ -39,15 +39,21 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.40.0
+### 🚀 Última Versión - v1.41.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.40.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.40.0/Boorie-1.40.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.40.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.40.0/Boorie-Setup-1.40.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.40.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.40.0/Boorie-1.40.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.41.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.41.0/Boorie-1.41.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.41.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.41.0/Boorie-Setup-1.41.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.41.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.41.0/Boorie-1.41.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novedades en v1.41.0
+- Con la base de conocimiento activa, el chat ya no se rinde a los 15 segundos de buscar en la documentación. Con el equipo justo de memoria la búsqueda se cortaba y la pregunta salía sólo con el conocimiento general del modelo, mientras la respuesta decía «no se encontró información relevante».
+- Ahora la búsqueda se reintenta durante un par de minutos antes de rendirse; si aun así no responde, la respuesta dice que no se pudo consultar la documentación. Cuando la búsqueda va mal, la respuesta puede tardar algo más.
+- Con el tema claro, «Mis Proyectos» y el visor de la red ya no se quedan en modo oscuro.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.41.0).
 
 ### 📝 Novedades en v1.40.0
 - Las fórmulas de las respuestas del chat se leen como fórmulas. El modelo las escribe en LaTeX y el chat las mostraba tal cual —`\( t_c = \frac{2L}{a} \)`, con las barras y las llaves a la vista y los subíndices en cursiva—.
@@ -433,12 +439,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.40.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.40.0.AppImage`
-3. Ejecuta: `./Boorie-1.40.0.AppImage`
+1. Descarga `Boorie-1.41.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.41.0.AppImage`
+3. Ejecuta: `./Boorie-1.41.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.40.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.41.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 

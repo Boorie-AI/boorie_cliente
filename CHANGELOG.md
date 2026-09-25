@@ -9,8 +9,18 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.41.0] - 2026-09-25
 
+El chat insiste en consultar la documentación antes de responder sin ella, y el tema claro llega a «Mis Proyectos» y al visor de la red.
+
+- **Con la base de conocimiento activa, el chat ya no se rinde a los 15 segundos de buscar en la
+  documentación.** Con el equipo justo de memoria, la búsqueda tardaba más de eso, se cortaba, y
+  la pregunta salía sólo con el conocimiento general del modelo; bajo la respuesta ponía «no se
+  encontró información relevante», así que parecía que la documentación ni se consultaba. Ahora la
+  búsqueda se reintenta durante un par de minutos antes de rendirse, y cada intento suele ir más
+  rápido que el anterior. Si aun así no responde, la respuesta lo dice —«no se pudo consultar la
+  documentación, ni tras reintentarlo»— en lugar de dar a entender que no había nada. Cuando la
+  búsqueda va mal, la respuesta puede tardar algo más en llegar.
 - **Con el tema claro, «Mis Proyectos» y el visor de la red ya no se quedan en modo oscuro.**
   La lista de proyectos, la barra superior de una red, el visor y su panel lateral —mapa base,
   opacidad, capas, resultados y bombas— tenían los colores oscuros fijados y no cambiaban con el

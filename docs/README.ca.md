@@ -39,15 +39,21 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.40.0
+### 🚀 Última Versió - v1.41.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.40.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.40.0/Boorie-1.40.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.40.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.40.0/Boorie-Setup-1.40.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.40.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.40.0/Boorie-1.40.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.41.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.41.0/Boorie-1.41.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.41.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.41.0/Boorie-Setup-1.41.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.41.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.41.0/Boorie-1.41.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.41.0
+- Amb la base de coneixement activa, el xat ja no es rendeix als 15 segons de cercar a la documentació. Amb l'equip just de memòria la cerca es tallava i la pregunta sortia només amb el coneixement general del model, mentre la resposta deia «no s'ha trobat informació rellevant».
+- Ara la cerca es torna a provar durant un parell de minuts abans de rendir-se; si tot i així no respon, la resposta diu que no s'ha pogut consultar la documentació. Quan la cerca va malament, la resposta pot trigar una mica més.
+- Amb el tema clar, «Els meus projectes» i el visor de la xarxa ja no es queden en mode fosc.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.41.0).
 
 ### 📝 Novetats a v1.40.0
 - Les fórmules de les respostes del xat es llegeixen com a fórmules. El model les escriu en LaTeX i el xat les mostrava tal qual —`\( t_c = \frac{2L}{a} \)`, amb les barres i les claus a la vista i els subíndexs en cursiva—.
@@ -433,12 +439,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.40.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.40.0.AppImage`
-3. Executa: `./Boorie-1.40.0.AppImage`
+1. Descarrega `Boorie-1.41.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.41.0.AppImage`
+3. Executa: `./Boorie-1.41.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.40.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.41.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
