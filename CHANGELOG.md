@@ -9,6 +9,14 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **Las fórmulas de las respuestas del chat se leen como fórmulas.** El modelo las escribe en
+  LaTeX y el chat las mostraba tal cual: `\( t_c = \frac{2L}{a} \)`, con las barras y las llaves
+  a la vista, y los subíndices convertidos en cursiva. Ahora se dibujan con fracciones, subíndices,
+  exponentes y letras griegas, en línea con el texto o centradas en su propia línea. Funciona sin
+  conexión. Un importe como «de $50 a $100» se sigue viendo como texto.
+
 ## [1.39.0] - 2026-09-24
 
 El modelo que redacta las respuestas del chat se puede elegir, local o de un proveedor externo.
