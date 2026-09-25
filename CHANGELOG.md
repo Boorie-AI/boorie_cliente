@@ -16,6 +16,10 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   a la vista, y los subíndices convertidos en cursiva. Ahora se dibujan con fracciones, subíndices,
   exponentes y letras griegas, en línea con el texto o centradas en su propia línea. Funciona sin
   conexión. Un importe como «de $50 a $100» se sigue viendo como texto.
+- **Las tablas de las respuestas se ven como tablas.** El cálculo paso a paso que el modelo
+  presenta en tabla salía como líneas de texto con barras y guiones (`| Paso | Descripción |`).
+  Ahora se dibuja con su cabecera y su cuadrícula, respetando la alineación de cada columna, y
+  las fórmulas y la negrita funcionan dentro de las celdas.
 
 ## [1.39.0] - 2026-09-24
 
