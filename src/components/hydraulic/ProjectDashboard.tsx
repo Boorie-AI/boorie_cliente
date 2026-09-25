@@ -108,17 +108,17 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
     });
 
     return (
-        <div className="p-8 h-full bg-slate-900 overflow-y-auto">
+        <div className="p-8 h-full bg-background overflow-y-auto">
             <div className="max-w-6xl mx-auto space-y-8">
 
                 {/* Header */}
                 <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">{t('projects.myProjects')}</h1>
-                        <p className="text-slate-400">
+                        <h1 className="text-3xl font-bold text-foreground mb-2">{t('projects.myProjects')}</h1>
+                        <p className="text-muted-foreground">
                             {t('projects.manageHint')}
                             {!isLoading && (
-                                <span className="ml-2 text-blue-400 font-semibold">{t('projects.count', { count: projects.length })}</span>
+                                <span className="ml-2 text-blue-600 dark:text-blue-400 font-semibold">{t('projects.count', { count: projects.length })}</span>
                             )}
                         </p>
                     </div>
@@ -126,7 +126,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                         <Button
                             variant="outline"
                             onClick={onImportNetwork}
-                            className="gap-2 bg-slate-800 hover:bg-slate-700 border-slate-700"
+                            className="gap-2 bg-card hover:bg-accent border-border"
                             title={t('projects.importNetworkHint')}
                         >
                             <Upload className="h-4 w-4" />
@@ -135,7 +135,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                         <Button
                             variant="outline"
                             onClick={handleImportProject}
-                            className="gap-2 bg-slate-800 hover:bg-slate-700 border-slate-700"
+                            className="gap-2 bg-card hover:bg-accent border-border"
                             title={t('projects.importProjectHint')}
                         >
                             <Upload className="h-4 w-4" />
@@ -144,7 +144,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                         <Button
                             onClick={() => setSortBy(sortBy === 'name' ? 'date' : 'name')}
                             variant="outline"
-                            className="gap-2 bg-slate-800 hover:bg-slate-700 border-slate-700"
+                            className="gap-2 bg-card hover:bg-accent border-border"
                         >
                             <ArrowUpDown className="h-4 w-4" />
                             {sortBy === 'name' ? t('projects.byDate') : t('projects.byName')}
@@ -158,36 +158,36 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
 
                 {/* Creation Form */}
                 {isCreating && (
-                    <Card className="bg-slate-800 border-slate-700 animate-in fade-in slide-in-from-top-4">
+                    <Card className="bg-card border-border animate-in fade-in slide-in-from-top-4">
                         <CardHeader>
-                            <CardTitle className="text-white">{t('projects.newProjectTitle')}</CardTitle>
+                            <CardTitle className="text-foreground">{t('projects.newProjectTitle')}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid gap-2">
-                                <label className="text-sm font-medium text-slate-300">{t('projects.name')}</label>
+                                <label className="text-sm font-medium text-foreground">{t('projects.name')}</label>
                                 <input
                                     type="text"
                                     value={newName}
                                     onChange={(e) => setNewName(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     placeholder={t('projects.nameExample')}
                                     autoFocus
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <label className="text-sm font-medium text-slate-300">{t('projects.description')}</label>
+                                <label className="text-sm font-medium text-foreground">{t('projects.description')}</label>
                                 <textarea
                                     value={newDesc}
                                     onChange={(e) => setNewDesc(e.target.value)}
-                                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     placeholder={t('projects.descriptionHint')}
                                     rows={3}
                                 />
                             </div>
                         </CardContent>
                         <CardFooter className="justify-end gap-2">
-                            <Button variant="ghost" onClick={() => setIsCreating(false)} className="text-slate-400 hover:text-white">
+                            <Button variant="ghost" onClick={() => setIsCreating(false)} className="text-muted-foreground hover:text-foreground">
                                 {t('projects.cancel')}
                             </Button>
                             <Button onClick={handleCreate} disabled={!newName.trim()} className="bg-blue-600 hover:bg-blue-700">
@@ -200,12 +200,12 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                 {/* Projects Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {isLoading ? (
-                        <div className="col-span-full text-center py-20 text-slate-500 border-2 border-dashed border-slate-800 rounded-xl">
+                        <div className="col-span-full text-center py-20 text-muted-foreground border-2 border-dashed border-border rounded-xl">
                             <RefreshCw className="h-16 w-16 mx-auto mb-4 opacity-50 animate-spin" />
                             <p className="text-xl font-medium">{t('projects.loading')}</p>
                         </div>
                     ) : sortedProjects.length === 0 && !isCreating ? (
-                        <div className="col-span-full text-center py-20 text-slate-500 border-2 border-dashed border-slate-800 rounded-xl">
+                        <div className="col-span-full text-center py-20 text-muted-foreground border-2 border-dashed border-border rounded-xl">
                             <FolderOpen className="h-16 w-16 mx-auto mb-4 opacity-50" />
                             <p className="text-xl font-medium">{t('projects.noProjects')}</p>
                             <p className="text-sm mt-2">{t('projects.createToStart')}</p>
@@ -214,18 +214,18 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                         sortedProjects.map(project => (
                             <Card
                                 key={project.id}
-                                className={`bg-slate-800 transition-all cursor-pointer group flex flex-col ${project.id === activeProjectId
+                                className={`bg-card transition-all cursor-pointer group flex flex-col ${project.id === activeProjectId
                                     ? 'border-blue-500 ring-1 ring-blue-500/40'
-                                    : 'border-slate-700 hover:border-blue-500'
+                                    : 'border-border hover:border-blue-500'
                                     }`}
                                 onClick={() => onSelectProject(project)}
                             >
                                 <CardHeader className="pb-3">
                                     <div className="flex justify-between items-start">
-                                        <CardTitle className="text-white text-xl group-hover:text-blue-400 transition-colors">
+                                        <CardTitle className="text-foreground text-xl group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                             {project.name}
                                             {project.id === activeProjectId && (
-                                                <span className="ml-2 align-middle rounded bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-medium text-blue-300">
+                                                <span className="ml-2 align-middle rounded bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
                                                     {t('projects.active')}
                                                 </span>
                                             )}
@@ -234,7 +234,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-8 w-8 text-slate-500 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="h-8 w-8 text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
                                                 onClick={(e) => handleExportProject(project, e)}
                                                 title={t('projects.exportProject')}
                                             >
@@ -243,7 +243,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-8 w-8 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="h-8 w-8 text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     if (confirm(t('messages.confirmDeleteProject'))) onDeleteProject(project.id);
@@ -254,39 +254,39 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                                             </Button>
                                         </div>
                                     </div>
-                                    <CardDescription className="text-slate-400 line-clamp-2 h-10">
+                                    <CardDescription className="text-muted-foreground line-clamp-2 h-10">
                                         {project.description || "Sin descripción"}
                                     </CardDescription>
                                 </CardHeader>
 
                                 <CardContent className="flex-grow">
-                                    <div className="grid grid-cols-3 gap-2 py-4 border-y border-slate-700/50">
+                                    <div className="grid grid-cols-3 gap-2 py-4 border-y border-border">
                                         <div className="text-center">
-                                            <div className="flex justify-center mb-1 text-blue-400"><Database className="h-4 w-4" /></div>
-                                            <div className="text-lg font-bold text-white">{project.networkCount}</div>
-                                            <div className="text-[10px] uppercase tracking-wider text-slate-500">{t('projects.networks')}</div>
+                                            <div className="flex justify-center mb-1 text-blue-600 dark:text-blue-400"><Database className="h-4 w-4" /></div>
+                                            <div className="text-lg font-bold text-foreground">{project.networkCount}</div>
+                                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('projects.networks')}</div>
                                         </div>
-                                        <div className="text-center border-l border-slate-700/50">
-                                            <div className="flex justify-center mb-1 text-green-400"><Activity className="h-4 w-4" /></div>
-                                            <div className="text-lg font-bold text-white">{project.calculationCount}</div>
-                                            <div className="text-[10px] uppercase tracking-wider text-slate-500">{t('projects.sims')}</div>
+                                        <div className="text-center border-l border-border">
+                                            <div className="flex justify-center mb-1 text-green-600 dark:text-green-400"><Activity className="h-4 w-4" /></div>
+                                            <div className="text-lg font-bold text-foreground">{project.calculationCount}</div>
+                                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('projects.sims')}</div>
                                         </div>
-                                        <div className="text-center border-l border-slate-700/50">
-                                            <div className="flex justify-center mb-1 text-purple-400"><MessageSquare className="h-4 w-4" /></div>
-                                            <div className="text-lg font-bold text-white">{project.chatCount}</div>
-                                            <div className="text-[10px] uppercase tracking-wider text-slate-500">{t('projects.chats')}</div>
+                                        <div className="text-center border-l border-border">
+                                            <div className="flex justify-center mb-1 text-purple-600 dark:text-purple-400"><MessageSquare className="h-4 w-4" /></div>
+                                            <div className="text-lg font-bold text-foreground">{project.chatCount}</div>
+                                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('projects.chats')}</div>
                                         </div>
                                     </div>
                                 </CardContent>
 
-                                <CardFooter className="pt-3 text-xs text-slate-500 flex justify-between items-center">
+                                <CardFooter className="pt-3 text-xs text-muted-foreground flex justify-between items-center">
                                     <div className="flex items-center gap-1">
                                         <Calendar className="h-3 w-3" />
                                         <span>{t('projects.modified', { fecha: new Date(project.lastModified).toLocaleDateString() })}</span>
                                     </div>
                                     <Button
                                         variant="link"
-                                        className="text-blue-400 p-0 h-auto text-xs hover:text-blue-300"
+                                        className="text-blue-600 dark:text-blue-400 p-0 h-auto text-xs hover:text-blue-700 dark:hover:text-blue-300"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             onOpenProject(project);

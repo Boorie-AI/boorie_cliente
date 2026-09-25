@@ -1140,24 +1140,24 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
       return (
         <>
           {/* Project Header Bar */}
-          <div className="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between">
+          <div className="bg-card border-b border-border px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => clearProjectGlobal()}
-                className="text-slate-400 hover:text-white"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <ChevronDown className="h-4 w-4 mr-2 rotate-90" />
                 {t('networkView.projects')}
               </Button>
-              <div className="h-4 w-px bg-slate-700" />
+              <div className="h-4 w-px bg-border" />
               <div className="flex items-center gap-2">
-                <FolderOpen className="h-4 w-4 text-blue-400" />
-                <span className="font-semibold text-white">{currentProject.name}</span>
+                <FolderOpen className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <span className="font-semibold text-foreground">{currentProject.name}</span>
               </div>
             </div>
-            <div className="flex items-center gap-4 text-xs text-slate-400">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Database className="h-3 w-3" />
                 <span>{t('networkView.networksCount', { count: currentProject.networks.length })}</span>
