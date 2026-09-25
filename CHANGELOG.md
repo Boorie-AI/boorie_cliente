@@ -9,7 +9,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.40.0] - 2026-09-25
+
+Las fórmulas y las tablas de las respuestas del chat se leen como fórmulas y como tablas.
 
 - **Las fórmulas de las respuestas del chat se leen como fórmulas.** El modelo las escribe en
   LaTeX y el chat las mostraba tal cual: `\( t_c = \frac{2L}{a} \)`, con las barras y las llaves

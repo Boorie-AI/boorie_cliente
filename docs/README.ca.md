@@ -39,15 +39,21 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.39.0
+### 🚀 Última Versió - v1.40.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.39.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.39.0/Boorie-1.39.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.39.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.39.0/Boorie-Setup-1.39.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.39.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.39.0/Boorie-1.39.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.40.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.40.0/Boorie-1.40.0-arm64.dmg) | ~279 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.40.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.40.0/Boorie-Setup-1.40.0.exe) | ~223 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.40.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.40.0/Boorie-1.40.0.AppImage) | ~344 MB |
 
 
+
+### 📝 Novetats a v1.40.0
+- Les fórmules de les respostes del xat es llegeixen com a fórmules. El model les escriu en LaTeX i el xat les mostrava tal qual —`\( t_c = \frac{2L}{a} \)`, amb les barres i les claus a la vista i els subíndexs en cursiva—.
+- Ara es dibuixen amb fraccions, subíndexs, exponents i lletres gregues, en línia amb el text o centrades en la seva pròpia línia, i funciona sense connexió. Un import com «de $50 a $100» es continua veient com a text.
+- Les taules de les respostes, com el càlcul pas a pas, es veuen com a taules: amb la seva capçalera i la seva quadrícula, respectant l'alineació de cada columna, i amb les fórmules i la negreta funcionant dins de les cel·les.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.40.0).
 
 ### 📝 Novetats a v1.39.0
 - El model que redacta les respostes del xat es pot triar. Estava fix —`nemotron-mini`, en aquest equip— i només es canviava amb variables d'entorn; i aquest model no dona per a una resposta tècnica llarga.
@@ -427,12 +433,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.39.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.39.0.AppImage`
-3. Executa: `./Boorie-1.39.0.AppImage`
+1. Descarrega `Boorie-1.40.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.40.0.AppImage`
+3. Executa: `./Boorie-1.40.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.39.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.40.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 

@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.39.0
+### 🚀 Latest Release - v1.40.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.39.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.39.0/Boorie-1.39.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.39.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.39.0/Boorie-Setup-1.39.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.39.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.39.0/Boorie-1.39.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.40.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.40.0/Boorie-1.40.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.40.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.40.0/Boorie-Setup-1.40.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.40.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.40.0/Boorie-1.40.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.40.0**: Formulas and tables in the chat answers now read as formulas and tables. The model writes formulas in LaTeX and the chat showed them as they came —`\( t_c = \frac{2L}{a} \)`, backslashes and braces in sight, and subscripts turned into italics—. They are now drawn with fractions, subscripts, exponents and Greek letters, inline with the text or centred on their own line, and it works offline; an amount such as «$50 to $100» still reads as text. The step-by-step calculations the model lays out as a table, which came out as lines of bars and dashes, are now drawn with their header and grid, keeping each column's alignment, and formulas and bold work inside the cells. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.40.0).
 - **v1.39.0**: You can now choose the model that writes the chat answers. It was fixed —`nemotron-mini` on this computer— and could only be changed through environment variables, which is not something to ask of someone using the installed application; and that model is too small for a long technical answer. In Settings → AI configuration, at the top, choose between the automatic one, a model running on this computer (Ollama) or one from an external provider with a key. With an external one, the application warns that your question and the fragments of your documents leave this computer. Searching your documents and grading the sources still happen locally. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.39.0).
 - **v1.38.2**: A large knowledge base that has already been reorganised is no longer reorganised again every time the application opens. With v1.38.1, the startup check for an empty vector database ran before the database had finished loading and took it for empty: on a base of 298,072 fragments that meant about 11 minutes without search at every start. Nothing was lost, only time. The application now waits for the vector database to finish loading before looking at it, and leaves it alone when it cannot tell; what v1.38.1 left half-done is removed at startup. Opening the knowledge centre during the reorganisation no longer cuts it short and leaves search without sources until restart: it now waits, retries and carries on to the end. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.38.2).
 - **v1.38.1**: The one-time reorganisation of the vector database that v1.38.0 introduced now really starts when you open the application. It gave the vector database about 7 seconds to come up; if it took longer, the reorganisation waited for the first chat question, and until then the knowledge centre found nothing. It now waits up to five minutes. The progress notice also no longer reads «0 of 0 fragments» while it is still counting them. And the assistant no longer claims to be GPT-4 when running on Ollama: the application now tells it which model is writing the answer and which embedding model searched the sources, so it can state them instead of guessing. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.38.1).
@@ -120,12 +121,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.39.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.39.0.AppImage`
-3. Run: `./Boorie-1.39.0.AppImage`
+1. Download `Boorie-1.40.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.40.0.AppImage`
+3. Run: `./Boorie-1.40.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.39.0.exe` from the link above
+1. Download `Boorie-Setup-1.40.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 
