@@ -1,9 +1,62 @@
 import React from 'react'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
 import { cn } from '@/utils/cn'
 
 interface MarkdownRendererProps {
   content: string
   className?: string
+}
+
+function Formula({ tex, display = false }: { tex: string; display?: boolean }) {
+  // throwOnError: false pinta en rojo el LaTeX que no entiende en vez de romper el mensaje
+  const html = katex.renderToString(tex.trim(), { displayMode: display, throwOnError: false })
+  return display
+    ? <div className="my-3 overflow-x-auto overflow-y-hidden" dangerouslySetInnerHTML={{ __html: html }} />
+    : <span dangerouslySetInnerHTML={{ __html: html }} />
+}
+
+// Pandoc: sin espacio tras el $ que abre ni antes del que cierra, ni cifra detrás,
+// para que «entre $50 y $100» no se tome por fórmula.
+const FORMULA_EN_LINEA = /^(?:\$(?!\s)((?:\\\$|[^$\n])+?)(?<!\s)\$(?!\d)|\\\((.+?)\\\))/
+const FORMULA_EN_BLOQUE = /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]/g
+
+const FILA_DE_TABLA = /^\s*\|.*\|\s*$/
+const SEPARADOR_DE_TABLA = /^\s*\|?(\s*:?-+:?\s*\|)+\s*(:?-+:?\s*)?$/
+
+type Alineacion = 'left' | 'center' | 'right'
+
+// Parte por los | que separan celdas, no por los de una fórmula o un código
+// (el valor absoluto |x| en LaTeX) ni por un \| escapado.
+function celdasDeLaFila(fila: string): string[] {
+  const celdas: string[] = []
+  let actual = ''
+  let dentroDe: '$' | '`' | null = null
+  const texto = fila.trim().replace(/^\|/, '').replace(/\|$/, '')
+
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i]
+    if (c === '\\' && texto[i + 1] === '|' && !dentroDe) {
+      actual += '|'
+      i++
+      continue
+    }
+    if (c === '$' || c === '`') dentroDe = dentroDe === c ? null : dentroDe ?? c
+    if (c === '|' && !dentroDe) {
+      celdas.push(actual.trim())
+      actual = ''
+      continue
+    }
+    actual += c
+  }
+  celdas.push(actual.trim())
+  return celdas
+}
+
+function alineaciones(separador: string): Alineacion[] {
+  return celdasDeLaFila(separador).map(c =>
+    c.startsWith(':') && c.endsWith(':') ? 'center' : c.endsWith(':') ? 'right' : 'left'
+  )
 }
 
 export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
@@ -25,6 +78,16 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
         )
         currentIndex += inlineCodeMatch[0].length
         matched = true
+      }
+
+      // Inline math ($x$ or \(x\)), before italic so subscripts' _ stay math
+      if (!matched) {
+        const mathMatch = text.slice(currentIndex).match(FORMULA_EN_LINEA)
+        if (mathMatch) {
+          elements.push(<Formula key={elementKey++} tex={mathMatch[1] ?? mathMatch[2]} />)
+          currentIndex += mathMatch[0].length
+          matched = true
+        }
       }
 
       // Bold (**text** or __text__)
@@ -91,7 +154,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
 
       // If no markdown found, add the current character
       if (!matched) {
-        const nextSpecialIndex = text.slice(currentIndex + 1).search(/[*_`~[\]]/)
+        const nextSpecialIndex = text.slice(currentIndex + 1).search(/[*_`~[\]$\\]/)
         const endIndex = nextSpecialIndex === -1 ? text.length : currentIndex + 1 + nextSpecialIndex
         const textSegment = text.slice(currentIndex, endIndex)
         if (textSegment) {
@@ -143,11 +206,79 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
   }
 
   const renderRegularContent = (text: string, startKey: number) => {
+    const parts: React.ReactNode[] = []
+    let lastIndex = 0
+    let key = startKey
+    let match
+
+    FORMULA_EN_BLOQUE.lastIndex = 0
+    while ((match = FORMULA_EN_BLOQUE.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        // El salto que separa el texto de la fórmula no es una línea en blanco
+        let before = text.slice(lastIndex, match.index).replace(/\n$/, '')
+        if (lastIndex) before = before.replace(/^\n/, '')
+        if (before) {
+          parts.push(...renderLines(before, key))
+          key += 100
+        }
+      }
+      parts.push(<Formula key={key++} tex={match[1] ?? match[2]} display />)
+      lastIndex = match.index + match[0].length
+    }
+
+    const rest = lastIndex ? text.slice(lastIndex).replace(/^\n/, '') : text
+    if (rest) parts.push(...renderLines(rest, key))
+    return parts
+  }
+
+  const renderLines = (text: string, startKey: number) => {
     const lines = text.split('\n')
     const renderedLines: React.ReactNode[] = []
+    let finDeTabla = -1
 
     lines.forEach((line, lineIndex) => {
       const key = startKey + lineIndex
+      if (lineIndex < finDeTabla) return
+
+      // Tables (| a | b | followed by |---|---|)
+      if (FILA_DE_TABLA.test(line) && SEPARADOR_DE_TABLA.test(lines[lineIndex + 1] ?? '')) {
+        const cabecera = celdasDeLaFila(line)
+        const alineacion = alineaciones(lines[lineIndex + 1])
+        finDeTabla = lineIndex + 2
+        const filas: string[][] = []
+        while (finDeTabla < lines.length && FILA_DE_TABLA.test(lines[finDeTabla])) {
+          filas.push(celdasDeLaFila(lines[finDeTabla]))
+          finDeTabla++
+        }
+
+        renderedLines.push(
+          <div key={key} className="my-3 overflow-x-auto whitespace-normal">
+            <table className="border-collapse text-sm">
+              <thead>
+                <tr>
+                  {cabecera.map((celda, i) => (
+                    <th key={i} style={{ textAlign: alineacion[i] ?? 'left' }} className="border border-foreground/20 bg-foreground/5 px-3 py-1.5 font-semibold">
+                      {parseInlineMarkdown(celda)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filas.map((fila, f) => (
+                  <tr key={f}>
+                    {cabecera.map((_, i) => (
+                      <td key={i} style={{ textAlign: alineacion[i] ?? 'left' }} className="border border-foreground/20 px-3 py-1.5 align-top">
+                        {parseInlineMarkdown(fila[i] ?? '')}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+        return
+      }
 
       // Blockquotes (> text)
       if (line.trim().startsWith('> ')) {
