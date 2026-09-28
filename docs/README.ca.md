@@ -39,15 +39,21 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.42.1
+### 🚀 Última Versió - v1.42.2
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.42.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.1/Boorie-1.42.1-arm64.dmg) | ~324 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.42.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.1/Boorie-Setup-1.42.1.exe) | ~252 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.42.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.1/Boorie-1.42.1.AppImage) | ~403 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.42.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.2/Boorie-1.42.2-arm64.dmg) | ~324 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.42.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.2/Boorie-Setup-1.42.2.exe) | ~252 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.42.2.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.2/Boorie-1.42.2.AppImage) | ~403 MB |
 
 
+
+### 📝 Novetats a v1.42.2
+- «De què parla el capítol 4?» sobre un document adjunt llegeix el capítol 4. Llegia la portada: el document era en anglès, les paraules de la pregunta no hi apareixien i el «4» no es cercava.
+- Ara es cerquen capítols, seccions, taules, figures i annexos pel seu número —en castellà, català i anglès, també «capítol IV» o «capítol cinc»—, i es distingeixen de l'índex, dels números de pàgina i de les taules.
+- Les parts d'un document adjunt es trien també per significat: una pregunta per la «pèrdua de càrrega» troba el que el llibre anomena «well loss». El document es prepara una vegada en adjuntar-lo, amb el progrés a la vista, i es guarda per a després.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.42.2).
 
 ### 📝 Novetats a v1.42.1
 - Amb un document adjunt al xat, el document va abans que la documentació. Les fonts de la base de coneixement entraven primer i l'adjunt es quedava amb el que sobrava: amb el model local, d'un escanejat de 5 pàgines només es llegia 1 dels seus 41 fragments.
@@ -450,12 +456,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.42.1.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.42.1.AppImage`
-3. Executa: `./Boorie-1.42.1.AppImage`
+1. Descarrega `Boorie-1.42.2.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.42.2.AppImage`
+3. Executa: `./Boorie-1.42.2.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.42.1.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.42.2.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 

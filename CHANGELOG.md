@@ -9,7 +9,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.42.2] - 2026-09-28
+
+Las partes de un documento adjunto se eligen por el capítulo o la tabla que se pregunta, y por significado.
 
 - **«¿De qué habla el capítulo 4?» sobre un documento adjunto lee el capítulo 4.** Leía la
   portada: el documento estaba en inglés, «capítulo» no aparecía en él y el «4» no se buscaba, así

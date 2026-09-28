@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.42.1
+### 🚀 Latest Release - v1.42.2
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.42.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.1/Boorie-1.42.1-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.42.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.1/Boorie-Setup-1.42.1.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.42.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.1/Boorie-1.42.1.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.42.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.2/Boorie-1.42.2-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.42.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.2/Boorie-Setup-1.42.2.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.42.2.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.2/Boorie-1.42.2.AppImage) |
 
 ### 📝 What's New
 
+- **v1.42.2**: «What is chapter 4 about?» on an attached document now reads chapter 4. It read the cover: the document was in English, the question's words did not appear in it and the «4» was not searched, so nothing matched and the model got the start of the book. Chapters, sections, tables, figures and appendices are now found by their number —in Spanish, Catalan and English, also as «chapter IV» or «chapter five»—, told apart from the contents page, page numbers and tables. The parts of an attached document are also chosen by meaning: a question about «pérdida de carga» finds what the book calls «well loss». The document is prepared once when attached, with its progress in sight, and kept for later. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.42.2).
 - **v1.42.1**: With a document attached to the chat, the document now comes before the documentation. The knowledge-base sources went in first and the attachment got whatever was left: with the local model, only 1 of the 41 fragments of a 5-page scan was read. Now the document takes its room first —9 fragments in the same test— and the sources fill what remains, most relevant first; if any are left out, the answer says how many. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.42.1).
 - **v1.42.0**: A long document attached to the chat is no longer cut off without warning. It was pasted whole into the message, and with the local model a 76-page PDF reached it cut down to under 2 %, while the answer read as if it had seen everything. Now, if the document does not fit, the model reads the fragments most related to the question —including the heading of the table the row belongs to—, the answer says how many it could read, and you can keep asking about it without attaching it again. The message shows your question with a tag for the file instead of the whole text, and the documentation is searched with the question, not with the document. Scanned PDFs are now read with OCR, offline, both in the chat and in the knowledge base; if the scan is too poor to trust its figures it is not used, and you are told why. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.42.0).
 - **v1.41.0**: With the knowledge base on, the chat no longer gives up on your documentation after 15 seconds. On a computer short of memory the search took longer than that, was cut off, and the question went out with only the model's general knowledge — while the answer said «no relevant information found», so it looked as if the documentation was never searched. The search is now retried for a couple of minutes before giving up, and each attempt tends to be faster than the last; if it still does not respond, the answer says the documentation could not be searched instead of implying there was nothing. When the search struggles, the answer may take a little longer. Also, with the light theme, «My projects» and the network viewer no longer stay dark. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.41.0).
@@ -124,12 +125,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.42.1.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.42.1.AppImage`
-3. Run: `./Boorie-1.42.1.AppImage`
+1. Download `Boorie-1.42.2.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.42.2.AppImage`
+3. Run: `./Boorie-1.42.2.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.42.1.exe` from the link above
+1. Download `Boorie-Setup-1.42.2.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 
