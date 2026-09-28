@@ -214,8 +214,14 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
                       : t('chatInput.adjunto.nada', { nombre: adjuntoUsado.nombre })}
                   </div>
                 )}
+                {adjuntoUsado?.fuentesOmitidas ? (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    📎 {t('chatInput.adjunto.fuentesOmitidas', { nombre: adjuntoUsado.nombre, count: adjuntoUsado.fuentesOmitidas })}
+                  </div>
+                ) : null}
 
-                {message.metadata.ragAttempted && (!message.metadata.sources || message.metadata.sources.length === 0) && (
+                {/* Sin fuentes porque el adjunto se quedó el sitio no es «no se encontró nada» (#201). */}
+                {message.metadata.ragAttempted && !adjuntoUsado?.fuentesOmitidas && (!message.metadata.sources || message.metadata.sources.length === 0) && (
                   <div className="mt-1 flex items-center space-x-1">
                     {message.metadata.ragFallo
                       ? <span className="text-xs text-amber-600 dark:text-amber-400">🧠 {t('chatInput.ragFallo')}</span>

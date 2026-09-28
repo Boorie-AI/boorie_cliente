@@ -9,6 +9,7 @@ import {
   type UsoDelAdjunto,
   bloqueParaElModelo,
   estimarTokens,
+  fuentesQueCaben,
   presupuestoDelAdjunto,
   seleccionarFragmentos,
   separarDocumentoPegado,
@@ -122,7 +123,7 @@ interface ChatState {
   // Wisdom/RAG actions
   setWisdomConfig: (config: WisdomConfiguration | undefined) => void
   asegurarBaseDeConocimiento: () => Promise<void>
-  enhancePromptWithRAG: (originalPrompt: string, projectId?: string | null) => Promise<{ enhancedPrompt: string; sources?: any[]; modeloEmbeddings?: string | null; busquedaFallida?: boolean }>
+  enhancePromptWithRAG: (originalPrompt: string, projectId?: string | null) => Promise<{ enhancedPrompt: string; sources?: any[]; modeloEmbeddings?: string | null; busquedaFallida?: boolean; bloqueConocimiento?: string }>
 
   // Hydraulic project context
   buildProjectContext: (projectId: string) => Promise<string>
@@ -398,6 +399,7 @@ export const useChatStore = create<ChatState>()(
             // Si no llega a buscarse —RAG apagado, fallo o tiempo agotado—, no intervino ningún modelo de embeddings.
             let modeloEmbeddings: string | null = null
             let busquedaFallida = false
+            let bloqueConocimiento = ''
             try {
               /**
                * Cuánto se espera a las fuentes (#63).
@@ -419,7 +421,7 @@ export const useChatStore = create<ChatState>()(
                */
               const PRESUPUESTO_FUENTES_MS = 360000
               let temporizador: ReturnType<typeof setTimeout> | undefined
-              const ragTimeout = new Promise<{ enhancedPrompt: string; sources?: any[]; modeloEmbeddings?: string | null; busquedaFallida?: boolean }>((resolve) => {
+              const ragTimeout = new Promise<{ enhancedPrompt: string; sources?: any[]; modeloEmbeddings?: string | null; busquedaFallida?: boolean; bloqueConocimiento?: string }>((resolve) => {
                 temporizador = setTimeout(() => {
                   logger.warn('RAG enhancement timed out, using original prompt')
                   resolve({ enhancedPrompt: content, busquedaFallida: true })
@@ -436,6 +438,7 @@ export const useChatStore = create<ChatState>()(
               ragSources = ragResult.sources || []
               modeloEmbeddings = ragResult.modeloEmbeddings ?? null
               busquedaFallida = ragResult.busquedaFallida === true
+              bloqueConocimiento = ragResult.bloqueConocimiento ?? ''
             } catch (error) {
               logger.warn('Failed to enhance prompt with RAG, using original:', error)
               busquedaFallida = true
@@ -457,7 +460,6 @@ export const useChatStore = create<ChatState>()(
              * agotado y el del fallo, que devuelven la pregunta sin tocar.
              */
             const idioma = usePreferencesStore.getState().language
-            enhancedPrompt += cierreDeIdioma(idioma, hayQueTraducir(ragSources, idioma))
 
             const conversation = get().conversations.find(c => c.id === conversationId)
             if (!conversation) throw new Error('Conversation not found')
@@ -540,12 +542,40 @@ export const useChatStore = create<ChatState>()(
             const vigente = [...conversation.messages].reverse().find(msg => msg.metadata?.adjunto)?.metadata?.adjunto
             let adjuntoUsado: UsoDelAdjunto | undefined
             if (vigente) {
-              const resto = estimarTokens(enhancedPrompt) + historial.reduce((n, msg) => n + estimarTokens(msg.content), 0)
-              const seleccion = seleccionarFragmentos(vigente.texto, content, presupuestoDelAdjunto(proveedor, resto))
-              enhancedPrompt = bloqueParaElModelo(vigente, seleccion) + enhancedPrompt
+              /**
+               * El adjunto antes que el RAG (#201): su presupuesto se calcula sin
+               * contar las fuentes, y las fuentes entran después en lo que quede.
+               * Es lo que el usuario ha puesto delante para esta pregunta.
+               */
+              // Solo se descuenta el bloque que se puede recortar: el aviso de una
+              // búsqueda fallida no tiene fuentes que quitar y se queda entero.
+              const recortable = bloqueConocimiento && ragSources.length ? bloqueConocimiento : ''
+              const resto = estimarTokens(enhancedPrompt) - (recortable ? estimarTokens(recortable) : 0)
+                + historial.reduce((n, msg) => n + estimarTokens(msg.content), 0)
+              const presupuesto = presupuestoDelAdjunto(proveedor, resto)
+              const seleccion = seleccionarFragmentos(vigente.texto, content, presupuesto)
+              const bloqueAdjunto = bloqueParaElModelo(vigente, seleccion)
               adjuntoUsado = { nombre: vigente.nombre, incluidos: seleccion.incluidos, total: seleccion.total, completo: seleccion.completo }
-              if (!seleccion.completo) logger.info('Adjunto recortado al contexto', adjuntoUsado)
+
+              if (recortable) {
+                const caben = fuentesQueCaben(ragSources, presupuesto - estimarTokens(bloqueAdjunto),
+                  fuentes => contextoDeConocimiento(fuentes, idioma, { busquedaFallida }))
+                if (caben.length < ragSources.length) {
+                  // Sin ninguna, el bloque se quita entero: el de «no se encontró
+                  // nada» le diría al modelo algo que no es verdad. Y la función
+                  // de reemplazo evita que un «$&» del contenido se interprete.
+                  const nuevo = caben.length ? contextoDeConocimiento(caben, idioma, { busquedaFallida }) : ''
+                  enhancedPrompt = enhancedPrompt.replace(bloqueConocimiento, () => nuevo)
+                  adjuntoUsado.fuentesOmitidas = ragSources.length - caben.length
+                  ragSources = caben
+                }
+              }
+              enhancedPrompt = bloqueAdjunto + enhancedPrompt
+              if (!seleccion.completo || adjuntoUsado.fuentesOmitidas) logger.info('Adjunto ajustado al contexto', adjuntoUsado)
             }
+
+            // Después del adjunto, porque puede haber quitado las fuentes que pedían traducir (#201).
+            enhancedPrompt += cierreDeIdioma(idioma, hayQueTraducir(ragSources, idioma))
 
             // Clear any previous streaming message
             get().clearStreamingMessage()
@@ -1037,7 +1067,7 @@ export const useChatStore = create<ChatState>()(
       enhancePromptWithRAG: async (
         originalPrompt: string,
         projectId?: string | null
-      ): Promise<{ enhancedPrompt: string; sources?: any[]; modeloEmbeddings?: string | null; busquedaFallida?: boolean }> => {
+      ): Promise<{ enhancedPrompt: string; sources?: any[]; modeloEmbeddings?: string | null; busquedaFallida?: boolean; bloqueConocimiento?: string }> => {
         const state = get()
 
         if (!state.wisdomConfig?.enabled) {
@@ -1102,12 +1132,14 @@ export const useChatStore = create<ChatState>()(
            * como «es-ES»; `contextoDeConocimiento` se queda con la raíz.
            */
           const idiomaDelUsuario = usePreferencesStore.getState().language
-          enhancedPrompt += contextoDeConocimiento(sources, idiomaDelUsuario, { busquedaFallida })
+          // Se devuelve aparte para poder recortarlo si hay un adjunto que tiene prioridad (#201).
+          const bloqueConocimiento = contextoDeConocimiento(sources, idiomaDelUsuario, { busquedaFallida })
+          enhancedPrompt += bloqueConocimiento
           enhancedPrompt += originalPrompt
 
           // El cierre de idioma no se pone aquí: va al final de *todos* los
           // caminos, y por esta función sólo pasa uno (#160).
-          return { enhancedPrompt: enhancedPrompt, sources, modeloEmbeddings: ragResult.data.modeloEmbeddings ?? null, busquedaFallida }
+          return { enhancedPrompt: enhancedPrompt, sources, modeloEmbeddings: ragResult.data.modeloEmbeddings ?? null, busquedaFallida, bloqueConocimiento }
 
         } catch (error) {
           logger.error('Failed to enhance prompt with RAG:', error)

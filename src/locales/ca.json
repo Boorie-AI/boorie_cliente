@@ -947,7 +947,8 @@
       },
       "ocr": "OCR {{confianza}} %",
       "ocrDetalle": "Llegit amb OCR d’un escanejat (confiança {{confianza}} %): les xifres poden estar mal llegides.",
-      "leyendoOcr": "«{{fichero}}» és un escanejat: s’està llegint amb OCR, pàgina {{pagina}} de {{total}}…"
+      "leyendoOcr": "«{{fichero}}» és un escanejat: s’està llegint amb OCR, pàgina {{pagina}} de {{total}}…",
+      "fuentesOmitidas": "Perquè hi cabés «{{nombre}}», s’han deixat fora {{count}} font(s) de la documentació."
     }
   },
   "milvus": {

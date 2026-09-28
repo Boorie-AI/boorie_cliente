@@ -947,7 +947,8 @@
       },
       "ocr": "OCR {{confianza}} %",
       "ocrDetalle": "Leído con OCR de un escaneado (confianza {{confianza}} %): las cifras pueden estar mal leídas.",
-      "leyendoOcr": "«{{fichero}}» es un escaneado: leyéndolo con OCR, página {{pagina}} de {{total}}…"
+      "leyendoOcr": "«{{fichero}}» es un escaneado: leyéndolo con OCR, página {{pagina}} de {{total}}…",
+      "fuentesOmitidas": "Para que cupiera «{{nombre}}», se han dejado fuera {{count}} fuente(s) de la documentación."
     }
   },
   "milvus": {

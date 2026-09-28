@@ -12,6 +12,7 @@ import {
   seleccionarFragmentos,
   bloqueParaElModelo,
   separarDocumentoPegado,
+  fuentesQueCaben,
 } from './adjunto'
 
 /** Una memoria de cálculo como la de la prueba en la aplicación: 120 tramos de 15 tuberías. */
@@ -121,5 +122,23 @@ describe('los mensajes guardados antes de #194', () => {
 
   it('un mensaje normal se queda como está', () => {
     expect(separarDocumentoPegado('Hola')).toEqual({ pregunta: 'Hola' })
+  })
+})
+
+describe('las fuentes del RAG en lo que deja el adjunto (#201)', () => {
+  const bloque = (fuentes: string[]) => fuentes.join('\n')
+  const f = (n: number) => `fuente ${n} `.repeat(40)
+
+  it('si caben todas, van todas', () => {
+    expect(fuentesQueCaben([f(1), f(2)], 10_000, bloque)).toEqual([f(1), f(2)])
+  })
+
+  it('se quitan desde la menos relevante, que es la última', () => {
+    const una = estimarTokens(bloque([f(1)]))
+    expect(fuentesQueCaben([f(1), f(2), f(3)], una + 5, bloque)).toEqual([f(1)])
+  })
+
+  it('sin sitio, ninguna', () => {
+    expect(fuentesQueCaben([f(1)], 3, bloque)).toEqual([])
   })
 })

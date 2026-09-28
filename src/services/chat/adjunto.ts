@@ -33,6 +33,8 @@ export interface UsoDelAdjunto {
   incluidos: number
   total: number
   completo: boolean
+  /** Fuentes del RAG que no entraron para dejarle sitio al adjunto (#201). */
+  fuentesOmitidas?: number
 }
 
 /**
@@ -74,6 +76,23 @@ export function presupuestoDelAdjunto(proveedor: string, tokensDelResto: number)
 }
 
 const TOKENS_POR_FRAGMENTO = 250
+
+/**
+ * Las fuentes del RAG que caben en lo que deja el adjunto (#201).
+ *
+ * El adjunto va primero porque es lo que el usuario ha puesto delante para esta
+ * pregunta; con 4096 tokens, tres fuentes de libros que no venían a cuento
+ * dejaban sitio para 1 de los 41 fragmentos de un escaneado. Llegan ordenadas
+ * de más a menos relevante, así que se quitan desde el final. Se mide el bloque
+ * compuesto y no las fuentes sueltas porque las reglas que lo acompañan también
+ * ocupan.
+ */
+export function fuentesQueCaben<T>(fuentes: T[], presupuesto: number, bloque: (caben: T[]) => string): T[] {
+  for (let n = fuentes.length; n > 0; n--) {
+    if (estimarTokens(bloque(fuentes.slice(0, n))) <= presupuesto) return fuentes.slice(0, n)
+  }
+  return []
+}
 
 /** Trozos de unos 250 tokens, cortados por líneas para no partir una fila de tabla. */
 export function trocear(texto: string): string[] {
