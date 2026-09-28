@@ -9,7 +9,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.42.1] - 2026-09-28
+
+Con un documento adjunto al chat, el documento va antes que la documentación.
 
 - **Con un documento adjunto, el documento va antes que la documentación.** Las fuentes de la
   base de conocimiento entraban primero y el adjunto se quedaba con lo que sobraba: con el modelo
