@@ -9,6 +9,15 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **Con un documento adjunto, el documento va antes que la documentación.** Las fuentes de la
+  base de conocimiento entraban primero y el adjunto se quedaba con lo que sobraba: con el modelo
+  local, de un escaneado de 5 páginas solo se leía 1 de sus 41 fragmentos. Ahora el documento
+  reserva su sitio primero —en la misma prueba, 9 fragmentos— y las fuentes entran en lo que
+  quede, empezando por las más relevantes. Si alguna se queda fuera, bajo la respuesta se dice
+  cuántas.
+
 ## [1.42.0] - 2026-09-28
 
 Los documentos adjuntos al chat llegan al modelo en lo que cabe, sin recortes a ciegas, y los PDF escaneados se leen con OCR.
