@@ -14,6 +14,7 @@ import {
   seleccionarFragmentos,
   separarDocumentoPegado,
 } from '@/services/chat/adjunto'
+import { similitudesDelAdjunto } from '@/services/chat/similitudDelAdjunto'
 import {
   configuracionInicialDeConocimiento,
   guardarEleccion,
@@ -553,9 +554,16 @@ export const useChatStore = create<ChatState>()(
               const resto = estimarTokens(enhancedPrompt) - (recortable ? estimarTokens(recortable) : 0)
                 + historial.reduce((n, msg) => n + estimarTokens(msg.content), 0)
               const presupuesto = presupuestoDelAdjunto(proveedor, resto)
-              const seleccion = seleccionarFragmentos(vigente.texto, content, presupuesto)
+              // El significado solo hace falta si hay que elegir: un documento que cabe va entero (#205).
+              const similitudes = estimarTokens(vigente.texto) > presupuesto
+                ? await similitudesDelAdjunto(vigente.texto, content)
+                : undefined
+              const seleccion = seleccionarFragmentos(vigente.texto, content, presupuesto, { similitudes })
               const bloqueAdjunto = bloqueParaElModelo(vigente, seleccion)
-              adjuntoUsado = { nombre: vigente.nombre, incluidos: seleccion.incluidos, total: seleccion.total, completo: seleccion.completo }
+              adjuntoUsado = {
+                nombre: vigente.nombre, incluidos: seleccion.incluidos, total: seleccion.total, completo: seleccion.completo,
+                ...(similitudes ? { porSignificado: true } : {}),
+              }
 
               if (recortable) {
                 const caben = fuentesQueCaben(ragSources, presupuesto - estimarTokens(bloqueAdjunto),

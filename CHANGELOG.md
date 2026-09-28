@@ -9,6 +9,22 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **«¿De qué habla el capítulo 4?» sobre un documento adjunto lee el capítulo 4.** Leía la
+  portada: el documento estaba en inglés, «capítulo» no aparecía en él y el «4» no se buscaba, así
+  que no coincidía nada y el modelo recibía el principio del libro. Ahora se buscan los capítulos,
+  secciones, tablas, figuras y anexos por su número —en castellano, catalán e inglés, y también
+  «capítulo IV» o «capítulo cinco»—, y llega al modelo su comienzo. Se distinguen del índice, de
+  los números de página y de las tablas que llevan un número suelto encima.
+- **Las partes de un documento adjunto se eligen también por significado.** Se elegían solo por
+  las palabras de la pregunta, así que con una pregunta en castellano sobre un documento en inglés
+  casi nunca coincidía nada. Ahora, al adjuntar un documento que no cabe entero, se prepara la
+  búsqueda por significado —se ve el progreso y se puede preguntar mientras tanto; con un libro de unas
+  200 páginas, poco más de un minuto la primera vez— y una pregunta por la «pérdida de
+  carga» encuentra lo que el libro llama «well loss». El documento no se vuelve a preparar, ni
+  después de reiniciar.
+
 ## [1.42.1] - 2026-09-28
 
 Con un documento adjunto al chat, el documento va antes que la documentación.

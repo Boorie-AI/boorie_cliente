@@ -70,7 +70,7 @@ export class HandlersManager {
       registerWisdomHandlers(services.database.prisma)
       registerVectorGraphHandlers(services.database.prisma)
       registerWisdomExtendedHandlers(services.database.prisma)
-      registerChatAttachmentHandler()
+      registerChatAttachmentHandler(services.database.prisma)
     } catch (error) {
       logger.warn('Wisdom handlers registration failed, continuing without RAG support', error as Error)
     }

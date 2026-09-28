@@ -948,7 +948,8 @@
       "ocr": "OCR {{confianza}} %",
       "ocrDetalle": "Read with OCR from a scan ({{confianza}} % confidence): figures may be misread.",
       "leyendoOcr": "“{{fichero}}” is a scan: reading it with OCR, page {{pagina}} of {{total}}…",
-      "fuentesOmitidas": "To make room for “{{nombre}}”, {{count}} documentation source(s) were left out."
+      "fuentesOmitidas": "To make room for “{{nombre}}”, {{count}} documentation source(s) were left out.",
+      "preparando": "Preparing meaning-based search in “{{fichero}}”: {{hechos}} of {{total}} fragments. You can already ask."
     }
   },
   "milvus": {
