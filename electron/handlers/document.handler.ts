@@ -1,4 +1,4 @@
-import { ipcMain, dialog } from 'electron'
+import { ipcMain, dialog, app } from 'electron'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import pdf from 'pdf-parse'
@@ -17,6 +17,7 @@ import {
   type TextoDeDocumento,
 } from '../../backend/services/textoDeDocumento'
 import { leerEscaneado, type AlProgresoOcr } from '../../backend/services/ocrDeEscaneados'
+import { VectoresDeAdjunto } from '../../backend/services/vectoresDeAdjunto'
 import { dimensionDeModelo, dimensionEsperada, marcaDeFragmento, modeloEmbeddingsOllama, DIMENSION_DESCONOCIDA, CLAVE_MODELO_INDEXADO } from '../../backend/services/modeloEmbeddings'
 
 /**
@@ -73,7 +74,40 @@ export async function extraerTextoDeFichero(
  * without indexing it into the persistent RAG catalog — used to attach a
  * one-off document directly to a chat message (issue #20-B).
  */
-export function registerChatAttachmentHandler() {
+export function registerChatAttachmentHandler(prisma?: PrismaClient) {
+  /**
+   * Los vectores de los fragmentos del adjunto, para elegirlos también por
+   * significado (#205). Con el mismo servicio que el RAG, para que el modelo de
+   * embeddings sea el mismo con el que se vectoriza la pregunta.
+   */
+  const embeddings = new EmbeddingService(prisma)
+  const vectores = new VectoresDeAdjunto(
+    textos => embeddings.generateEmbeddings(textos),
+    () => embeddings.activeProvider?.model ?? modeloEmbeddingsOllama(),
+    path.join(app.getPath('userData'), 'adjuntos-vectores'),
+  )
+
+  ipcMain.handle('chat:vectoresDeAdjunto', async (event, fragmentos: string[]) => {
+    try {
+      const resultado = await vectores.de(fragmentos, (hechos, total) => {
+        if (!event.sender.isDestroyed()) event.sender.send('chat:vectores-progress', { hechos, total })
+      })
+      return { success: true, vectores: resultado }
+    } catch (error) {
+      console.warn('[Document Handler] chat:vectoresDeAdjunto:', error)
+      return { success: false, message: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('chat:vectorDeTexto', async (_event, texto: string) => {
+    try {
+      const [vector] = await embeddings.generateEmbeddings([texto])
+      return { success: true, vector }
+    } catch (error) {
+      return { success: false, message: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
   ipcMain.handle('chat:pickAttachment', async (event) => {
     try {
       const result = await dialog.showOpenDialog({

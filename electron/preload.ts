@@ -91,6 +91,13 @@ const electronAPI = {
   chat: {
     sendMessage: (params: any) => ipcRenderer.invoke('chat:send-message', params),
     pickAttachment: () => ipcRenderer.invoke('chat:pickAttachment'),
+    vectoresDeAdjunto: (fragmentos: string[]) => ipcRenderer.invoke('chat:vectoresDeAdjunto', fragmentos),
+    vectorDeTexto: (texto: string) => ipcRenderer.invoke('chat:vectorDeTexto', texto),
+    onVectoresProgress: (callback: (data: { hechos: number; total: number }) => void) => {
+      const wrappedCallback = (_event: any, data: any) => callback(data)
+      ipcRenderer.on('chat:vectores-progress', wrappedCallback)
+      return () => ipcRenderer.removeListener('chat:vectores-progress', wrappedCallback)
+    },
     onAttachmentProgress: (callback: (data: { fileName: string; pagina: number; total: number }) => void) => {
       const wrappedCallback = (_event: any, data: any) => callback(data)
       ipcRenderer.on('chat:attachment-progress', wrappedCallback)

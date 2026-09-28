@@ -61,6 +61,9 @@ interface Window {
       streamMessage: (data: any) => Promise<any>;
       pickAttachment: () => Promise<{ success: boolean; fileName?: string; content?: string; message?: string; clave?: string; detalle?: string; datos?: Record<string, number>; ocr?: { confianza: number; paginas: number } }>;
       onAttachmentProgress?: (callback: (data: { fileName: string; pagina: number; total: number }) => void) => () => void;
+      vectoresDeAdjunto?: (fragmentos: string[]) => Promise<{ success: boolean; vectores?: number[][]; message?: string }>;
+      vectorDeTexto?: (texto: string) => Promise<{ success: boolean; vector?: number[]; message?: string }>;
+      onVectoresProgress?: (callback: (data: { hechos: number; total: number }) => void) => () => void;
     };
     agenticRAG: {
       search: (data: any) => Promise<any>;

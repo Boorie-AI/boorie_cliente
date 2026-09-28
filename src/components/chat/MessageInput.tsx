@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { useState, useRef, useEffect } from 'react'
 import { useChatStore } from '@/stores/chatStore'
+import { estimarTokens } from '@/services/chat/adjunto'
+import { prepararAdjunto } from '@/services/chat/similitudDelAdjunto'
 import { Send, Paperclip, Mic, X, FileText } from 'lucide-react'
 
 interface PendingAttachment {
@@ -23,6 +25,9 @@ type SpeechRecognitionInstance = {
   stop: () => void
 }
 
+/** Por debajo de esto el documento cabe entero en el modelo y no hay que elegir partes. */
+const TOKENS_PARA_PREPARAR = 2000
+
 export function MessageInput() {
   const { t } = useTranslation()
   const [message, setMessage] = useState('')
@@ -31,6 +36,8 @@ export function MessageInput() {
   const [attachError, setAttachError] = useState<string | null>(null)
   /** Mientras un escaneado se lee con OCR (#198): puede llevar minutos. */
   const [leyendo, setLeyendo] = useState<{ fileName: string; pagina: number; total: number } | null>(null)
+  /** Mientras se vectoriza un adjunto grande para elegir sus partes por significado (#205). */
+  const [preparando, setPreparando] = useState<{ fileName: string; hechos: number; total: number } | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
   const { sendMessage, isLoading } = useChatStore()
@@ -92,7 +99,13 @@ export function MessageInput() {
         }
         return
       }
-      setAttachment({ fileName: result.fileName || 'document', content: result.content, ocr: result.ocr })
+      const fileName = result.fileName || 'document'
+      setAttachment({ fileName, content: result.content, ocr: result.ocr })
+      // Se vectoriza mientras se escribe la pregunta; se puede enviar antes de que acabe (#205).
+      if (estimarTokens(result.content) > TOKENS_PARA_PREPARAR) {
+        const dejar = window.electronAPI.chat.onVectoresProgress?.(p => setPreparando({ fileName, ...p }))
+        prepararAdjunto(result.content).finally(() => { dejar?.(); setPreparando(null) })
+      }
     } catch (error) {
       logger.error('Failed to attach file:', error)
       setAttachError('Failed to read the selected file.')
@@ -188,6 +201,11 @@ export function MessageInput() {
           >
             <X size={14} />
           </button>
+        </div>
+      )}
+      {preparando && (
+        <div className="mb-2 text-xs text-muted-foreground">
+          {t('chatInput.adjunto.preparando', { fichero: preparando.fileName, hechos: preparando.hechos, total: preparando.total })}
         </div>
       )}
       {leyendo && (
