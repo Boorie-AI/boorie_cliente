@@ -119,12 +119,13 @@ export function UnifiedWisdomPanel() {
   }, [notification])
 
   // Progress State
-  const [uploadProgress, setUploadProgress] = useState<{ current: number, total: number, message: string, filename: string } | null>(null)
+  // `clave` y `datos` los trae el progreso del OCR (#198), que se dice en el idioma de quien mira.
+  const [uploadProgress, setUploadProgress] = useState<{ current: number, total: number, message: string, filename: string, clave?: string, datos?: Record<string, number> } | null>(null)
 
   // Listen for upload progress
   useEffect(() => {
     if (window.electronAPI?.wisdom?.onUploadProgress) {
-      const unsubscribe = window.electronAPI.wisdom.onUploadProgress((data: { current: number; total: number; message: string; filename: string }) => {
+      const unsubscribe = window.electronAPI.wisdom.onUploadProgress((data: { current: number; total: number; message: string; filename: string; clave?: string; datos?: Record<string, number> }) => {
         setUploadProgress(data)
       })
       return () => unsubscribe()
@@ -607,11 +608,18 @@ export function UnifiedWisdomPanel() {
           }
           message += `• Total documents indexed: ${result.stats.total}`
         }
+        for (const doc of result.documents ?? []) {
+          if (doc.ocr) message += `\n${t('wisdom.ocr.subido', { fichero: doc.fileName, confianza: doc.ocr.confianza })}`
+        }
 
         showNotification(message, 'success')
       } else {
+        // Un fichero sin texto trae la clave del motivo y ningún `message` (#157):
+        // sin mirarla, la notificación de error salía vacía (#198).
         showNotification(
-          result.codigo ? t(`messages.${result.codigo}`) : result.message,
+          result.clave
+            ? t(result.clave, { fichero: result.fileName ?? '', ...result.datos })
+            : result.codigo ? t(`messages.${result.codigo}`) : result.message,
           'error'
         )
       }
@@ -1436,7 +1444,7 @@ export function UnifiedWisdomPanel() {
                 ></div>
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{uploadProgress.message}</span>
+                <span>{uploadProgress.clave ? t(uploadProgress.clave, uploadProgress.datos) : uploadProgress.message}</span>
                 <span>{Math.round((uploadProgress.current / uploadProgress.total) * 100)}%</span>
               </div>
             </div>

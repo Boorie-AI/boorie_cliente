@@ -7,6 +7,7 @@ import { Send, Paperclip, Mic, X, FileText } from 'lucide-react'
 interface PendingAttachment {
   fileName: string
   content: string
+  ocr?: { confianza: number; paginas: number }
 }
 
 // Chromium (and therefore Electron's renderer) exposes SpeechRecognition
@@ -28,6 +29,8 @@ export function MessageInput() {
   const [isRecording, setIsRecording] = useState(false)
   const [attachment, setAttachment] = useState<PendingAttachment | null>(null)
   const [attachError, setAttachError] = useState<string | null>(null)
+  /** Mientras un escaneado se lee con OCR (#198): puede llevar minutos. */
+  const [leyendo, setLeyendo] = useState<{ fileName: string; pagina: number; total: number } | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
   const { sendMessage, isLoading } = useChatStore()
@@ -36,16 +39,15 @@ export function MessageInput() {
     e.preventDefault()
     if ((!message.trim() && !attachment) || isLoading) return
 
-    let messageToSend = message.trim()
-    if (attachment) {
-      messageToSend =
-        `=== ATTACHED DOCUMENT: ${attachment.fileName} ===\n\n${attachment.content}\n\n=== END DOCUMENT ===\n\n${messageToSend}`
-    }
+    const messageToSend = message.trim()
+    const adjunto = attachment
+      ? { nombre: attachment.fileName, texto: attachment.content, ...(attachment.ocr ? { ocr: attachment.ocr } : {}) }
+      : undefined
     setMessage('')
     setAttachment(null)
 
     try {
-      await sendMessage(messageToSend)
+      await sendMessage(messageToSend, adjunto)
       // Re-focus the input after sending
       setTimeout(() => {
         if (textareaRef.current) {
@@ -76,18 +78,27 @@ export function MessageInput() {
       setAttachError('Attaching files is not available in this build.')
       return
     }
+    const dejarDeEscuchar = window.electronAPI.chat.onAttachmentProgress?.(setLeyendo)
     try {
       const result = await window.electronAPI.chat.pickAttachment()
       if (!result.success || !result.content) {
-        if (result.message && result.message !== 'No file selected') {
+        // Un documento sin texto llega con la clave del motivo y sin `message`
+        // desde #157; enseñando solo `message`, el adjunto no hacía nada (#197).
+        if (result.clave) {
+          const motivo = result.clave.split('.').pop()
+          setAttachError(t(`chatInput.adjunto.sinTexto.${motivo}`, { fichero: result.fileName ?? '', ...result.datos }))
+        } else if (result.message && result.message !== 'No file selected') {
           setAttachError(result.message)
         }
         return
       }
-      setAttachment({ fileName: result.fileName || 'document', content: result.content })
+      setAttachment({ fileName: result.fileName || 'document', content: result.content, ocr: result.ocr })
     } catch (error) {
       logger.error('Failed to attach file:', error)
       setAttachError('Failed to read the selected file.')
+    } finally {
+      dejarDeEscuchar?.()
+      setLeyendo(null)
     }
   }
 
@@ -164,6 +175,11 @@ export function MessageInput() {
         <div className="mb-2 flex items-center gap-2 text-xs bg-accent text-foreground rounded-lg px-3 py-1.5 w-fit">
           <FileText size={14} />
           <span>{attachment.fileName}</span>
+          {attachment.ocr && (
+            <span className="text-muted-foreground" title={t('chatInput.adjunto.ocrDetalle', { confianza: attachment.ocr.confianza })}>
+              · {t('chatInput.adjunto.ocr', { confianza: attachment.ocr.confianza })}
+            </span>
+          )}
           <button
             type="button"
             onClick={() => setAttachment(null)}
@@ -172,6 +188,11 @@ export function MessageInput() {
           >
             <X size={14} />
           </button>
+        </div>
+      )}
+      {leyendo && (
+        <div className="mb-2 text-xs text-muted-foreground">
+          {t('chatInput.adjunto.leyendoOcr', { fichero: leyendo.fileName, pagina: leyendo.pagina, total: leyendo.total })}
         </div>
       )}
       {attachError && (
@@ -188,6 +209,7 @@ export function MessageInput() {
         <button
           type="button"
           onClick={handleFileAttach}
+          disabled={!!leyendo}
           className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors flex items-center justify-center"
           title={t('chatInput.attach')}
         >

@@ -91,6 +91,11 @@ const electronAPI = {
   chat: {
     sendMessage: (params: any) => ipcRenderer.invoke('chat:send-message', params),
     pickAttachment: () => ipcRenderer.invoke('chat:pickAttachment'),
+    onAttachmentProgress: (callback: (data: { fileName: string; pagina: number; total: number }) => void) => {
+      const wrappedCallback = (_event: any, data: any) => callback(data)
+      ipcRenderer.on('chat:attachment-progress', wrappedCallback)
+      return () => ipcRenderer.removeListener('chat:attachment-progress', wrappedCallback)
+    },
   },
 
   // Authentication

@@ -9,6 +9,28 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **Un documento largo adjunto al chat ya no se recorta sin avisar.** Se pegaba entero en el
+  mensaje, y con el modelo local un PDF de 76 páginas llegaba recortado a menos del 2 %: la
+  respuesta salía como si lo hubiera leído entero. Ahora, si el documento no cabe, el modelo lee
+  los fragmentos más relacionados con la pregunta —también el encabezado de la tabla donde está
+  la fila que se busca—, y bajo la respuesta se dice cuántos ha podido leer. Se puede seguir
+  preguntando por el documento sin volver a adjuntarlo.
+- **La burbuja del mensaje y el título de la conversación ya no muestran el documento entero.**
+  Se ve la pregunta con una ficha con el nombre del archivo, también en las conversaciones
+  guardadas antes; el título sale de la pregunta.
+- **Con un documento adjunto, la documentación se consulta con la pregunta, no con el
+  documento.** Las fuentes que traía no tenían que ver, y la respuesta terminaba diciendo que era
+  una traducción del inglés aunque saliera del adjunto, que estaba en castellano.
+- **Los PDF escaneados se leen con OCR**, al adjuntarlos al chat y al subirlos a la base de
+  conocimiento, sin conexión y en castellano e inglés. Se ve el progreso página a página, que
+  puede llevar unos diez segundos cada una. Si el escaneo es tan malo que no se puede fiar de sus
+  cifras, no se usa y se dice por qué; si se usa, la ficha del adjunto lo indica con su
+  confianza, y la respuesta avisa de que las cifras salen de un escaneado. Hasta 60 páginas.
+- **Adjuntar o subir un PDF del que no se saca texto dice por qué.** En el chat no pasaba nada,
+  y en la base de conocimiento aparecía un aviso de error vacío.
+
 ## [1.41.0] - 2026-09-25
 
 El chat insiste en consultar la documentación antes de responder sin ella, y el tema claro llega a «Mis Proyectos» y al visor de la red.

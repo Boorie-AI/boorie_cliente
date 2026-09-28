@@ -87,3 +87,15 @@ describe('cuándo no hay que decir nada', () => {
     expect(salida).toContain('están en inglés')
   })
 })
+
+describe('con un documento adjunto (#195)', () => {
+  it('una respuesta sin marcas sale del adjunto: no se dice que es traducción', () => {
+    const salida = marcarLoTraducido('La tubería P-120-15 es DN 250 mm.', [EN], 'es', { hayAdjunto: true })
+    expect(salida).toBe('La tubería P-120-15 es DN 250 mm.')
+  })
+
+  it('pero lo que el modelo atribuye a una fuente en inglés sí se marca', () => {
+    const salida = marcarLoTraducido('El coeficiente vale 0,6 (F1).', [EN], 'es', { hayAdjunto: true })
+    expect(salida).toBe('El coeficiente vale 0,6 (F1, traducido del inglés).')
+  })
+})

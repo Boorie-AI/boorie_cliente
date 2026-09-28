@@ -775,12 +775,18 @@
       "fallo": "The reports could not be pruned: {{motivo}}"
     },
     "sinTexto": {
-      "vacio": "No text could be extracted from “{{fichero}}”. If it is a scanned PDF, run OCR on it before uploading: with no text there is nothing to index.",
+      "vacio": "No text could be extracted from “{{fichero}}”. If it is a scan, OCR found nothing to read either: without text there is nothing to index.",
       "ilegible": "“{{fichero}}” could not be read. The file may be damaged or protected.",
       "formato-no-soportado": "The format of “{{fichero}}” cannot be opened. Convert it to PDF or DOCX.",
-      "omitidos": "{{count}} file(s) were not indexed because no text could be extracted from them."
+      "omitidos": "{{count}} file(s) were not indexed because no text could be extracted from them.",
+      "ocr-dudoso": "“{{fichero}}” is too blurry a scan: OCR read it with {{confianza}} % confidence, and {{minima}} % is needed to trust its figures. It was not indexed; try a sharper scan.",
+      "escaneado-largo": "“{{fichero}}” is a {{paginas}}-page scan: reading it with OCR would take too long (the maximum is {{maximo}}). Split it before uploading."
     },
-    "modelPorDefecto": "granite-embedding:278m (768d) - Multilingual; the one Boorie uses by default"
+    "modelPorDefecto": "granite-embedding:278m (768d) - Multilingual; the one Boorie uses by default",
+    "ocr": {
+      "leyendo": "Reading the scan with OCR: page {{pagina}} of {{total}}",
+      "subido": "“{{fichero}}” was a scan and was read with OCR ({{confianza}} % confidence): its figures may contain reading errors."
+    }
   },
   "wisdomCatalog": {
     "title": "Boorie Wisdom Catalog",
@@ -927,7 +933,22 @@
     "refreshSources": "Refresh",
     "maxResults": "Max results: {{count}}",
     "categoriesSelected": "Categories ({{count}} selected)",
-    "availableSources": "Available sources ({{count}})"
+    "availableSources": "Available sources ({{count}})",
+    "adjunto": {
+      "preguntaPorDefecto": "Summarize the attached document.",
+      "parcial": "“{{nombre}}” did not fit in the model: {{incluidos}} of its {{total}} fragments were read, the ones most related to the question. Anything outside them was not seen.",
+      "nada": "“{{nombre}}” did not fit in the model alongside the rest of the conversation: the answer has not read it.",
+      "sinTexto": {
+        "vacio": "No text could be extracted from “{{fichero}}”. If it is a scan, OCR found nothing to read either.",
+        "ilegible": "“{{fichero}}” could not be read. The file may be damaged or protected.",
+        "formato-no-soportado": "The format of “{{fichero}}” cannot be opened. Convert it to PDF or DOCX.",
+        "ocr-dudoso": "“{{fichero}}” is too blurry a scan: OCR read it with {{confianza}} % confidence, and {{minima}} % is needed to trust its figures. Try a sharper scan.",
+        "escaneado-largo": "“{{fichero}}” is a {{paginas}}-page scan: reading it with OCR would take too long (the maximum is {{maximo}}). Attach only the pages you need."
+      },
+      "ocr": "OCR {{confianza}} %",
+      "ocrDetalle": "Read with OCR from a scan ({{confianza}} % confidence): figures may be misread.",
+      "leyendoOcr": "“{{fichero}}” is a scan: reading it with OCR, page {{pagina}} of {{total}}…"
+    }
   },
   "milvus": {
     "preview": "Data preview (max 50)",

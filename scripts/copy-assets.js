@@ -25,6 +25,13 @@ const FILES_TO_COPY = [
     'backend/services/guardrails/rails/execution.co'
 ];
 
+// Los datos de idioma del OCR (#198) van con la app para leer escaneados sin
+// conexión. Salen de devDependencies: en tiempo de ejecución solo hace falta la copia.
+const TESSDATA = ['spa', 'eng'].map(idioma => ({
+    from: `node_modules/@tesseract.js-data/${idioma}/4.0.0_best_int/${idioma}.traineddata.gz`,
+    to: `tessdata/${idioma}.traineddata.gz`
+}));
+
 async function copyAssets() {
     console.log('Copying assets to dist...');
 
@@ -41,6 +48,18 @@ async function copyAssets() {
             console.log(`Copied ${file} -> ${destPath}`);
         } catch (err) {
             console.error(`Error copying ${file}:`, err);
+            process.exit(1);
+        }
+    }
+
+    for (const { from, to } of TESSDATA) {
+        const destPath = path.join(DIST_ROOT, to);
+        try {
+            await mkdir(path.dirname(destPath), { recursive: true });
+            await copyFile(path.join(SRC_ROOT, from), destPath);
+            console.log(`Copied ${from} -> ${destPath}`);
+        } catch (err) {
+            console.error(`Error copying ${from}:`, err);
             process.exit(1);
         }
     }

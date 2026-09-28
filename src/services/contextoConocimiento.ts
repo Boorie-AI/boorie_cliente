@@ -24,6 +24,8 @@ export interface FuenteConocimiento {
   url?: string
   /** Idioma del fragmento, como lo indexó el RAG ('en', 'es', 'ca'…). */
   language?: string
+  /** El documento es un escaneado leído con OCR (#198). */
+  ocr?: { confianza: number }
 }
 
 /** Los idiomas que ofrece la aplicación. */
@@ -92,6 +94,7 @@ export function identidadDeFuente(
   if (fuente.page) donde.push(`página ${fuente.page}`)
   if (fuente.type === 'web' && fuente.url) donde.push(fuente.url)
   if (esDeOtroIdioma(fuente, idioma)) donde.push(`en ${nombreDeIdioma(fuente.language as string)}`)
+  if (fuente.ocr) donde.push(`leída con OCR de un escaneado, confianza ${fuente.ocr.confianza} %`)
 
   const titulo = fuente.title?.trim() || 'Documento sin título'
   return `[${marcaDeFuente(indice)}] ${titulo}${donde.length ? ` — ${donde.join(', ')}` : ''}`
@@ -104,7 +107,7 @@ export function identidadDeFuente(
  * del momento de responder. Puestas aquí, son lo último que el modelo lee antes
  * de la pregunta.
  */
-const REGLAS = (idioma: IdiomaApp, hayTraduccion: boolean) => [
+const REGLAS = (idioma: IdiomaApp, hayTraduccion: boolean, hayOcr: boolean) => [
   'Cómo usar lo anterior:',
   /**
    * El idioma lo manda el usuario, no las fuentes (#160). Sin esta línea, el
@@ -120,6 +123,14 @@ const REGLAS = (idioma: IdiomaApp, hayTraduccion: boolean) => [
      * contrastar contra lo que el documento dice de verdad.
      */
     ? [`- Las fuentes marcadas «en <idioma>» arriba no están en ${nombreDeIdioma(idioma)}. Cuando cites una, traduce lo que uses y dilo en la propia cita: «el diámetro mínimo es 100 mm (F2, traducido del inglés)».`]
+    : []),
+  ...(hayOcr
+    /**
+     * Un escaneado leído con OCR puede traer un 8 donde ponía un 3 (#198). El
+     * lector tiene que saber que la cifra no se copió de un texto, sino que se
+     * leyó de una imagen, para contrastarla antes de usarla.
+     */
+    ? ['- Las fuentes marcadas «leída con OCR» salen de un escaneado y pueden tener cifras mal leídas. Si usas una cifra de ellas, dilo en la cita: «la presión de prueba es 15 bar (F1, leído con OCR)».']
     : []),
   '- Toda afirmación que venga de estas fuentes va con su marca al lado: «el diámetro mínimo es 100 mm (F2)».',
   '- Si la respuesta no está en ellas, dilo con esas palabras. No la completes de memoria: una cifra normativa sin fuente no se distingue de una inventada, y quien la lea no tiene forma de comprobarla.',
@@ -167,6 +178,7 @@ export function contextoDeConocimiento(
   // instrucción que no aplica a ninguna de las fuentes de delante es ruido que
   // compite por la atención del modelo con las que sí aplican.
   const hayTraduccion = fuentes.some(f => esDeOtroIdioma(f, idioma))
+  const hayOcr = fuentes.some(f => f.ocr)
 
   return [
     '=== CONOCIMIENTO CONSULTADO ===',
@@ -175,7 +187,7 @@ export function contextoDeConocimiento(
     '',
     '=== FIN DEL CONOCIMIENTO ===',
     '',
-    REGLAS(idioma, hayTraduccion),
+    REGLAS(idioma, hayTraduccion, hayOcr),
     '',
     '',
   ].join('\n')

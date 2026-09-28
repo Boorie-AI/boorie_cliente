@@ -427,9 +427,24 @@ export class HybridSearchService {
 
     const permitidosEnBase = await this.prisma.hydraulicKnowledge.findMany({
       where: { id: { in: docIds as string[] }, ...filtroPrisma(permitidos) },
-      select: { id: true },
+      select: { id: true, metadata: true },
     })
     const visibles = new Set(permitidosEnBase.map(d => d.id))
+    /**
+     * Si el documento se leyó con OCR (#198), el modelo tiene que saberlo para
+     * no dar sus cifras por seguras. Sale de la base y no de Milvus: así vale
+     * también para los vectores indexados antes, y no hay que tocar las cinco
+     * rutas que escriben fragmentos.
+     */
+    const ocrDe = new Map<string, unknown>()
+    for (const doc of permitidosEnBase) {
+      try {
+        const ocr = doc.metadata ? JSON.parse(doc.metadata).ocr : undefined
+        if (ocr) ocrDe.set(doc.id, ocr)
+      } catch {
+        // metadatos de antes, sin JSON válido: no dicen nada del OCR
+      }
+    }
 
     return hits
       .filter(h => h.metadata?.docId && visibles.has(h.metadata.docId))
@@ -443,7 +458,7 @@ export class HybridSearchService {
         content: hit.content,
         score: hit.score,
         method: 'semantic' as const,
-        metadata: hit.metadata,
+        metadata: ocrDe.has(hit.metadata.docId) ? { ...hit.metadata, ocr: ocrDe.get(hit.metadata.docId) } : hit.metadata,
       }))
   }
 

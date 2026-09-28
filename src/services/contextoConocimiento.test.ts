@@ -165,3 +165,18 @@ describe('el cierre de idioma', () => {
     expect(hayQueTraducir([], 'es')).toBe(false)
   })
 })
+
+describe('una fuente leída con OCR (#198)', () => {
+  it('lo dice junto a la fuente, con la confianza', () => {
+    expect(identidadDeFuente(fuente({ ocr: { confianza: 88 } }), 0))
+      .toBe('[F1] NOM-013-CONAGUA-2015 — leída con OCR de un escaneado, confianza 88 %')
+  })
+
+  it('y pide avisar al citar una cifra suya', () => {
+    expect(contextoDeConocimiento([fuente({ ocr: { confianza: 88 } })])).toMatch(/leído con OCR\)/)
+  })
+
+  it('sin escaneados delante, la regla no se escribe', () => {
+    expect(contextoDeConocimiento([fuente()])).not.toMatch(/OCR/)
+  })
+})

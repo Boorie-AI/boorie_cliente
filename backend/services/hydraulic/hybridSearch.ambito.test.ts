@@ -29,7 +29,7 @@ function hit(docId: string, id = `chunk-${docId}`) {
  * Prisma que sabe de quién es cada documento. `dela` simula la consulta con el
  * filtro de ámbito: sólo devuelve los documentos cuyo dueño está permitido.
  */
-function prismaFalso(duenos: Record<string, string | null>) {
+function prismaFalso(duenos: Record<string, string | null>, metadatos: Record<string, string> = {}) {
   return {
     knowledgeChunk: { count: async () => 0, findMany: async () => [] },
     hydraulicKnowledge: {
@@ -46,7 +46,7 @@ function prismaFalso(duenos: Record<string, string | null>) {
           }
           return false
         }
-        return ids.filter(permitidos).map(id => ({ id }))
+        return ids.filter(permitidos).map(id => ({ id, metadata: metadatos[id] ?? null }))
       }),
     },
   } as any
@@ -96,5 +96,31 @@ describe('la ruta del agente respeta el ámbito (#39)', () => {
     })
 
     expect(await servicio.hybridSearch('presiones')).toEqual([])
+  })
+})
+
+describe('un documento leído con OCR (#198)', () => {
+  it('lo dice en la metainformación del resultado, aunque Milvus no lo sepa', async () => {
+    buscar.mockResolvedValue({ results: [hit('doc-acta'), hit('doc-texto')] })
+    const servicio = new HybridSearchService(
+      prismaFalso({ 'doc-acta': null, 'doc-texto': null }, {
+        'doc-acta': JSON.stringify({ references: [], ocr: { confianza: 95, paginas: 1 } }),
+        'doc-texto': JSON.stringify({ references: [] }),
+      }),
+      { generateEmbedding: async () => [0.1, 0.2] },
+    )
+
+    const res = await servicio.hybridSearch('presión de prueba')
+    expect(res.find(r => r.metadata.docId === 'doc-acta')?.metadata.ocr).toEqual({ confianza: 95, paginas: 1 })
+    expect(res.find(r => r.metadata.docId === 'doc-texto')?.metadata.ocr).toBeUndefined()
+  })
+
+  it('unos metadatos que no son JSON no rompen la búsqueda', async () => {
+    buscar.mockResolvedValue({ results: [hit('doc-viejo')] })
+    const servicio = new HybridSearchService(prismaFalso({ 'doc-viejo': null }, { 'doc-viejo': 'no es json' }), {
+      generateEmbedding: async () => [0.1, 0.2],
+    })
+
+    expect((await servicio.hybridSearch('presión')).map(r => r.metadata.docId)).toEqual(['doc-viejo'])
   })
 })

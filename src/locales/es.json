@@ -775,12 +775,18 @@
       "fallo": "No se pudieron podar los informes: {{motivo}}"
     },
     "sinTexto": {
-      "vacio": "No se ha podido sacar texto de «{{fichero}}». Si es un PDF escaneado, hay que pasarle OCR antes de subirlo: sin texto no hay nada que indexar.",
+      "vacio": "No se ha podido sacar texto de «{{fichero}}». Si es un escaneado, el OCR tampoco ha encontrado nada que leer: sin texto no hay nada que indexar.",
       "ilegible": "No se ha podido leer «{{fichero}}». El fichero puede estar dañado o protegido.",
       "formato-no-soportado": "El formato de «{{fichero}}» no se puede abrir. Conviértelo a PDF o DOCX.",
-      "omitidos": "{{count}} fichero(s) no se han indexado porque no se pudo sacar texto de ellos."
+      "omitidos": "{{count}} fichero(s) no se han indexado porque no se pudo sacar texto de ellos.",
+      "ocr-dudoso": "«{{fichero}}» es un escaneado demasiado borroso: el OCR lo ha leído con un {{confianza}} % de confianza, y hace falta un {{minima}} % para fiarse de sus cifras. No se ha indexado; prueba con un escaneo más nítido.",
+      "escaneado-largo": "«{{fichero}}» es un escaneado de {{paginas}} páginas: leerlo con OCR llevaría demasiado (el máximo son {{maximo}}). Divídelo antes de subirlo."
     },
-    "modelPorDefecto": "granite-embedding:278m (768d) — multilingüe; el que Boorie usa por defecto"
+    "modelPorDefecto": "granite-embedding:278m (768d) — multilingüe; el que Boorie usa por defecto",
+    "ocr": {
+      "leyendo": "Leyendo el escaneado con OCR: página {{pagina}} de {{total}}",
+      "subido": "«{{fichero}}» era un escaneado y se ha leído con OCR (confianza {{confianza}} %): sus cifras pueden tener errores de lectura."
+    }
   },
   "wisdomCatalog": {
     "title": "Catálogo de la base de conocimiento",
@@ -927,7 +933,22 @@
     "refreshSources": "Actualizar",
     "maxResults": "Resultados como máximo: {{count}}",
     "categoriesSelected": "Categorías ({{count}} elegidas)",
-    "availableSources": "Fuentes disponibles ({{count}})"
+    "availableSources": "Fuentes disponibles ({{count}})",
+    "adjunto": {
+      "preguntaPorDefecto": "Resume el documento adjunto.",
+      "parcial": "«{{nombre}}» no cabía entero en el modelo: se han leído {{incluidos}} de sus {{total}} fragmentos, los más relacionados con la pregunta. Lo que no esté en ellos no lo ha visto.",
+      "nada": "«{{nombre}}» no cabía en el modelo junto con el resto de la conversación: la respuesta no lo ha leído.",
+      "sinTexto": {
+        "vacio": "No se ha podido sacar texto de «{{fichero}}». Si es un escaneado, el OCR tampoco ha encontrado nada que leer.",
+        "ilegible": "No se ha podido leer «{{fichero}}». El fichero puede estar dañado o protegido.",
+        "formato-no-soportado": "El formato de «{{fichero}}» no se puede abrir. Conviértelo a PDF o DOCX.",
+        "ocr-dudoso": "«{{fichero}}» es un escaneado demasiado borroso: el OCR lo ha leído con un {{confianza}} % de confianza, y hace falta un {{minima}} % para fiarse de sus cifras. Prueba con un escaneo más nítido.",
+        "escaneado-largo": "«{{fichero}}» es un escaneado de {{paginas}} páginas: leerlo con OCR llevaría demasiado (el máximo son {{maximo}}). Adjunta solo las páginas que necesites."
+      },
+      "ocr": "OCR {{confianza}} %",
+      "ocrDetalle": "Leído con OCR de un escaneado (confianza {{confianza}} %): las cifras pueden estar mal leídas.",
+      "leyendoOcr": "«{{fichero}}» es un escaneado: leyéndolo con OCR, página {{pagina}} de {{total}}…"
+    }
   },
   "milvus": {
     "preview": "Vista previa de los datos (50 como máximo)",

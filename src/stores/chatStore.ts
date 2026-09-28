@@ -5,6 +5,15 @@ import { componerPromptDeSistema } from '@/../backend/services/hydraulic/promptD
 import { marcarLoTraducido } from '@/services/avisoDeTraduccion'
 import { compruebaLaEntrada } from '@/services/guardianDeEntrada'
 import {
+  type Adjunto,
+  type UsoDelAdjunto,
+  bloqueParaElModelo,
+  estimarTokens,
+  presupuestoDelAdjunto,
+  seleccionarFragmentos,
+  separarDocumentoPegado,
+} from '@/services/chat/adjunto'
+import {
   configuracionInicialDeConocimiento,
   guardarEleccion,
   leerEleccion,
@@ -43,6 +52,10 @@ export interface Message {
     ragAttempted?: boolean
     /** Sin fuentes porque la búsqueda no respondió, no porque no hubiera nada. */
     ragFallo?: boolean
+    /** El documento adjunto a este mensaje del usuario, fuera del texto (#194). */
+    adjunto?: Adjunto
+    /** Cuánto del adjunto vigente leyó el modelo para esta respuesta (#194). */
+    adjuntoUsado?: UsoDelAdjunto
     /** Respondió el auxiliar porque el principal no estaba (#49). */
     modeloDegradado?: boolean
     /**
@@ -97,7 +110,7 @@ interface ChatState {
   updateConversationModel: (id: string, model: string, provider: string) => void
   updateConversation: (id: string, updates: Partial<Conversation>) => void
   deleteConversation: (id: string) => void
-  sendMessage: (content: string) => Promise<void>
+  sendMessage: (content: string, adjunto?: Adjunto) => Promise<void>
   setStreamingMessage: (content: string) => void
   clearStreamingMessage: () => void
   saveConversation: (conversation: Conversation) => Promise<void>
@@ -293,7 +306,10 @@ export const useChatStore = create<ChatState>()(
         }
       },
 
-      sendMessage: async (content) => {
+      sendMessage: async (content, adjunto) => {
+        // Con un adjunto y nada escrito, la pregunta por defecto es la que guía
+        // el RAG, el guardarraíl y qué fragmentos del documento se leen (#194).
+        content = content.trim() || (adjunto ? i18n.t('chatInput.adjunto.preguntaPorDefecto') : content)
         const state = get()
         const activeConversation = state.conversations.find(c => c.id === state.activeConversationId)
 
@@ -310,7 +326,8 @@ export const useChatStore = create<ChatState>()(
         // Add user message
         await get().addMessageToConversation(conversationId, {
           role: 'user',
-          content
+          content,
+          ...(adjunto ? { metadata: { adjunto } } : {})
         })
 
         set({ isLoading: true })
@@ -509,13 +526,34 @@ export const useChatStore = create<ChatState>()(
               }
             }
 
+            /**
+             * El adjunto vigente entra con lo que quepa después de todo lo demás
+             * (#194). Es el de este mensaje o el último de la conversación, para
+             * que se pueda seguir preguntando por él sin volver a adjuntarlo; y
+             * los fragmentos se eligen otra vez con cada pregunta.
+             *
+             * El historial va sin el documento que pegaban los mensajes de antes
+             * de #194: con él, cada turno de esas conversaciones desbordaba el
+             * contexto aunque ya no se preguntara por el documento.
+             */
+            const historial = conversation.messages.map(msg => ({ ...msg, content: separarDocumentoPegado(msg.content).pregunta }))
+            const vigente = [...conversation.messages].reverse().find(msg => msg.metadata?.adjunto)?.metadata?.adjunto
+            let adjuntoUsado: UsoDelAdjunto | undefined
+            if (vigente) {
+              const resto = estimarTokens(enhancedPrompt) + historial.reduce((n, msg) => n + estimarTokens(msg.content), 0)
+              const seleccion = seleccionarFragmentos(vigente.texto, content, presupuestoDelAdjunto(proveedor, resto))
+              enhancedPrompt = bloqueParaElModelo(vigente, seleccion) + enhancedPrompt
+              adjuntoUsado = { nombre: vigente.nombre, incluidos: seleccion.incluidos, total: seleccion.total, completo: seleccion.completo }
+              if (!seleccion.completo) logger.info('Adjunto recortado al contexto', adjuntoUsado)
+            }
+
             // Clear any previous streaming message
             get().clearStreamingMessage()
 
             const apiKey = await claveDelProveedor(proveedor, fijado?.providerId)
 
             // Prepare messages for chat handler (includes system prompt automatically)
-            const messages: ChatMessage[] = conversation.messages.map(msg => ({
+            const messages: ChatMessage[] = historial.map(msg => ({
               role: msg.role,
               content: msg.content
             }))
@@ -552,7 +590,7 @@ export const useChatStore = create<ChatState>()(
                     const r = await get().callOllamaAPI(
                       modelo,
                       enhancedPrompt,
-                      conversation.messages, // history (without the user msg added below — it's already inside)
+                      historial, // history (without the user msg added below — it's already inside)
                       modeloEmbeddings,
                     )
                     result = { success: true, data: { response: r.response, metadata: r.metadata } }
@@ -616,7 +654,8 @@ export const useChatStore = create<ChatState>()(
                 const respuesta = marcarLoTraducido(
                   response,
                   ragSources,
-                  usePreferencesStore.getState().language
+                  usePreferencesStore.getState().language,
+                  { hayAdjunto: !!vigente }
                 )
                 const metadata = result.data?.metadata || {
                   model: modelo,
@@ -648,6 +687,7 @@ export const useChatStore = create<ChatState>()(
                   metadata.ragAttempted = false
                   metadata.ragEnabled = false
                 }
+                if (adjuntoUsado) metadata.adjuntoUsado = adjuntoUsado
 
                 // Add assistant message
                 await get().addMessageToConversation(conversationId, {
