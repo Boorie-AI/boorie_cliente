@@ -9,7 +9,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.42.0] - 2026-09-28
+
+Los documentos adjuntos al chat llegan al modelo en lo que cabe, sin recortes a ciegas, y los PDF escaneados se leen con OCR.
 
 - **Un documento largo adjunto al chat ya no se recorta sin avisar.** Se pegaba entero en el
   mensaje, y con el modelo local un PDF de 76 páginas llegaba recortado a menos del 2 %: la

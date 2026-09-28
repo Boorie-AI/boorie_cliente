@@ -195,6 +195,23 @@ líneas—, así que buscar ahí la conexión de la base da cero y parece que el
 suya. Hay que redirigir la salida al lanzarlo (`./boorie --no-sandbox > salida.log 2>&1`) y
 grepear ese fichero. Pasó en la v1.33.0 y costó un susto.
 
+- [ ] **Cuando el cambio corre en un hilo de trabajo o carga un binario nativo, ejecutarlo desde
+      el paquete.** Los hilos de `worker_threads` no leen dentro del asar: el OCR de la v1.42.0
+      (tesseract.js) funcionaba en desarrollo y en el AppImage fallaba con `Cannot find module
+      'regenerator-runtime/runtime'`, porque solo tesseract.js estaba en `asarUnpack` y sus
+      dependencias se quedaban dentro. Se prueba con el Electron del paquete en modo Node,
+      cargando el módulo desde `resources/app.asar`, que resuelve las rutas como la app:
+
+```bash
+./Boorie-X.Y.Z.AppImage --appimage-extract >/dev/null
+ELECTRON_RUN_AS_NODE=1 squashfs-root/boorie -e "
+  require('./squashfs-root/resources/app.asar/dist/backend/services/ocrDeEscaneados.js')
+    .leerEscaneado(require('fs').readFileSync('escaneado.pdf')).then(r => console.log(r.ocr ?? r.problema))"
+```
+
+      En el `.exe`, que no se ejecuta desde aquí, se comprueba al menos que viajan fuera del asar:
+      `resources/app.asar.unpacked/dist/tessdata/` y `node_modules/@napi-rs/canvas-win32-x64-msvc`.
+
 - [ ] **Cuando el cambio se ve en la interfaz, verlo en el paquete**, no sólo encontrar su código
       en `app.asar`. Que el código esté no dice que se pinte: una fuente que no viaja o un CSS
       con rutas absolutas sólo fallan servidos desde `file://`. Se lanza el AppImage del borrador

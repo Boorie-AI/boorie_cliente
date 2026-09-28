@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.41.0
+### 🚀 Latest Release - v1.42.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.41.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.41.0/Boorie-1.41.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.41.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.41.0/Boorie-Setup-1.41.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.41.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.41.0/Boorie-1.41.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.42.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.0/Boorie-1.42.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.42.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.0/Boorie-Setup-1.42.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.42.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.0/Boorie-1.42.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.42.0**: A long document attached to the chat is no longer cut off without warning. It was pasted whole into the message, and with the local model a 76-page PDF reached it cut down to under 2 %, while the answer read as if it had seen everything. Now, if the document does not fit, the model reads the fragments most related to the question —including the heading of the table the row belongs to—, the answer says how many it could read, and you can keep asking about it without attaching it again. The message shows your question with a tag for the file instead of the whole text, and the documentation is searched with the question, not with the document. Scanned PDFs are now read with OCR, offline, both in the chat and in the knowledge base; if the scan is too poor to trust its figures it is not used, and you are told why. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.42.0).
 - **v1.41.0**: With the knowledge base on, the chat no longer gives up on your documentation after 15 seconds. On a computer short of memory the search took longer than that, was cut off, and the question went out with only the model's general knowledge — while the answer said «no relevant information found», so it looked as if the documentation was never searched. The search is now retried for a couple of minutes before giving up, and each attempt tends to be faster than the last; if it still does not respond, the answer says the documentation could not be searched instead of implying there was nothing. When the search struggles, the answer may take a little longer. Also, with the light theme, «My projects» and the network viewer no longer stay dark. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.41.0).
 - **v1.40.0**: Formulas and tables in the chat answers now read as formulas and tables. The model writes formulas in LaTeX and the chat showed them as they came —`\( t_c = \frac{2L}{a} \)`, backslashes and braces in sight, and subscripts turned into italics—. They are now drawn with fractions, subscripts, exponents and Greek letters, inline with the text or centred on their own line, and it works offline; an amount such as «$50 to $100» still reads as text. The step-by-step calculations the model lays out as a table, which came out as lines of bars and dashes, are now drawn with their header and grid, keeping each column's alignment, and formulas and bold work inside the cells. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.40.0).
 - **v1.39.0**: You can now choose the model that writes the chat answers. It was fixed —`nemotron-mini` on this computer— and could only be changed through environment variables, which is not something to ask of someone using the installed application; and that model is too small for a long technical answer. In Settings → AI configuration, at the top, choose between the automatic one, a model running on this computer (Ollama) or one from an external provider with a key. With an external one, the application warns that your question and the fragments of your documents leave this computer. Searching your documents and grading the sources still happen locally. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.39.0).
@@ -122,12 +123,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.41.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.41.0.AppImage`
-3. Run: `./Boorie-1.41.0.AppImage`
+1. Download `Boorie-1.42.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.42.0.AppImage`
+3. Run: `./Boorie-1.42.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.41.0.exe` from the link above
+1. Download `Boorie-Setup-1.42.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 
