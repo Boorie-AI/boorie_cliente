@@ -69,6 +69,7 @@ export function marcarLoTraducido(
   texto: string,
   fuentes: FuenteConocimiento[],
   idioma: IdiomaApp = 'es',
+  { hayAdjunto = false }: { hayAdjunto?: boolean } = {},
 ): string {
   if (!texto) return texto
 
@@ -100,6 +101,11 @@ export function marcarLoTraducido(
   }
 
   if (algunaMarcada) return salida
+
+  // Con un documento adjunto, una respuesta sin marcas lo normal es que salga
+  // de él y no de las fuentes: el aviso final afirmaría una traducción que no
+  // ha habido (#195). Solo se marca lo que el modelo atribuye a una fuente.
+  if (hayAdjunto) return salida
 
   // Nadie usó las marcas: se dice una vez al final, nombrando los idiomas que
   // haya —lo normal es uno— para que el aviso sea concreto y no un genérico.

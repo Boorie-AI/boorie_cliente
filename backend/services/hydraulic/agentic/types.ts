@@ -13,6 +13,8 @@ export interface Document {
     language?: string
     standard?: string
     lastUpdated?: string
+    /** El documento salió de un escaneado leído con OCR (#198). */
+    ocr?: { confianza: number; paginas: number }
   }
   embedding?: number[]
   /**

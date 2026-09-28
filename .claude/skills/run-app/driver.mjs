@@ -125,6 +125,15 @@ const C = {
       el.scrollIntoView({ block: 'start' }); return 'OK';
     }, text));
   },
+  // Los diálogos nativos no se pueden conducir, y teclear en ellos por XTest
+  // acabó con un Ctrl pegado mandando atajos a otras ventanas del escritorio.
+  // Esto sustituye showOpenDialog en el main: el siguiente diálogo devuelve esta ruta.
+  async pickfile(p) {
+    await app.evaluate(({ dialog }, f) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [f] });
+    }, p.trim());
+    log('pickfile ->', p.trim());
+  },
   async windows() {
     for (const w of app.windows()) log(' ', w.url());
   },

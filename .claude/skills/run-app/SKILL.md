@@ -67,6 +67,7 @@ Las capturas van a `/tmp/boorie-driver/shots/` (o `SCREENSHOT_DIR`).
 | `ss [nombre]` | captura a `shots/<nombre>.png` |
 | `text [sel]` | vuelca `innerText` |
 | `evaljs <expr>` | evalúa en la página y devuelve JSON |
+| `pickfile <ruta>` | el siguiente `showOpenDialog` del main devuelve esa ruta sin abrir el diálogo nativo |
 | `windows` | lista las ventanas |
 | `quit` | cierra la app y termina |
 

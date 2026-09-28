@@ -303,6 +303,8 @@ export interface HydraulicDocument {
     references: Reference[]
     keywords: string[]
     language: string
+    /** El texto se leyó con OCR de un escaneado (#198). */
+    ocr?: { confianza: number; paginas: number }
   }
   embeddings?: number[]
   lastUpdated: Date

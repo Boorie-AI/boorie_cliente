@@ -351,7 +351,8 @@ export class RetrieveNode {
           region: result.metadata?.region || (result as any).region,
           language: result.metadata?.language || (result as any).language || state.queryLanguage,
           standard: result.metadata?.standard,
-          lastUpdated: result.metadata?.lastUpdated || (result as any).updated_at
+          lastUpdated: result.metadata?.lastUpdated || (result as any).updated_at,
+          ocr: result.metadata?.ocr
         },
         embedding: [], // Embedding not returned by hybrid search
         // El parecido sobrevive al mapeo: es con lo que se ordena después (#161).

@@ -775,12 +775,18 @@
       "fallo": "No s'han pogut podar els informes: {{motivo}}"
     },
     "sinTexto": {
-      "vacio": "No s'ha pogut extreure text de «{{fichero}}». Si és un PDF escanejat, cal passar-li OCR abans de pujar-lo: sense text no hi ha res a indexar.",
+      "vacio": "No s’ha pogut treure text de «{{fichero}}». Si és un escanejat, l’OCR tampoc no hi ha trobat res a llegir: sense text no hi ha res a indexar.",
       "ilegible": "No s'ha pogut llegir «{{fichero}}». El fitxer pot estar malmès o protegit.",
       "formato-no-soportado": "El format de «{{fichero}}» no es pot obrir. Converteix-lo a PDF o DOCX.",
-      "omitidos": "{{count}} fitxer(s) no s'han indexat perquè no se'n va poder extreure text."
+      "omitidos": "{{count}} fitxer(s) no s'han indexat perquè no se'n va poder extreure text.",
+      "ocr-dudoso": "«{{fichero}}» és un escanejat massa borrós: l’OCR l’ha llegit amb un {{confianza}} % de confiança, i cal un {{minima}} % per fiar-se de les seves xifres. No s’ha indexat; prova amb un escaneig més nítid.",
+      "escaneado-largo": "«{{fichero}}» és un escanejat de {{paginas}} pàgines: llegir-lo amb OCR trigaria massa (el màxim són {{maximo}}). Divideix-lo abans de pujar-lo."
     },
-    "modelPorDefecto": "granite-embedding:278m (768d) — multilingüe; el que Boorie fa servir per defecte"
+    "modelPorDefecto": "granite-embedding:278m (768d) — multilingüe; el que Boorie fa servir per defecte",
+    "ocr": {
+      "leyendo": "S’està llegint l’escanejat amb OCR: pàgina {{pagina}} de {{total}}",
+      "subido": "«{{fichero}}» era un escanejat i s’ha llegit amb OCR (confiança {{confianza}} %): les seves xifres poden tenir errors de lectura."
+    }
   },
   "wisdomCatalog": {
     "title": "Catàleg de la base de coneixement",
@@ -927,7 +933,22 @@
     "refreshSources": "Actualitza",
     "maxResults": "Resultats com a màxim: {{count}}",
     "categoriesSelected": "Categories ({{count}} triades)",
-    "availableSources": "Fonts disponibles ({{count}})"
+    "availableSources": "Fonts disponibles ({{count}})",
+    "adjunto": {
+      "preguntaPorDefecto": "Resumeix el document adjunt.",
+      "parcial": "«{{nombre}}» no hi cabia sencer al model: s’han llegit {{incluidos}} dels seus {{total}} fragments, els més relacionats amb la pregunta. El que no hi sigui no ho ha vist.",
+      "nada": "«{{nombre}}» no hi cabia al model amb la resta de la conversa: la resposta no l’ha llegit.",
+      "sinTexto": {
+        "vacio": "No s’ha pogut treure text de «{{fichero}}». Si és un escanejat, l’OCR tampoc no hi ha trobat res a llegir.",
+        "ilegible": "No s’ha pogut llegir «{{fichero}}». El fitxer pot estar malmès o protegit.",
+        "formato-no-soportado": "El format de «{{fichero}}» no es pot obrir. Converteix-lo a PDF o DOCX.",
+        "ocr-dudoso": "«{{fichero}}» és un escanejat massa borrós: l’OCR l’ha llegit amb un {{confianza}} % de confiança, i cal un {{minima}} % per fiar-se de les seves xifres. Prova amb un escaneig més nítid.",
+        "escaneado-largo": "«{{fichero}}» és un escanejat de {{paginas}} pàgines: llegir-lo amb OCR trigaria massa (el màxim són {{maximo}}). Adjunta només les pàgines que necessitis."
+      },
+      "ocr": "OCR {{confianza}} %",
+      "ocrDetalle": "Llegit amb OCR d’un escanejat (confiança {{confianza}} %): les xifres poden estar mal llegides.",
+      "leyendoOcr": "«{{fichero}}» és un escanejat: s’està llegint amb OCR, pàgina {{pagina}} de {{total}}…"
+    }
   },
   "milvus": {
     "preview": "Vista prèvia de les dades (50 com a màxim)",

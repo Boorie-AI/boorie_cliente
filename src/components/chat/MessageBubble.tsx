@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import { marcaDeFuente } from '@/services/contextoConocimiento'
+import { separarDocumentoPegado } from '@/services/chat/adjunto'
 import { logger } from '@/utils/logger'
 import { Message } from '@/stores/chatStore'
-import { Copy, User, Bot } from 'lucide-react'
+import { Copy, User, Bot, FileText } from 'lucide-react'
 import { useState } from 'react'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import { PropuestaEscenario } from './PropuestaEscenario'
@@ -22,6 +23,11 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
   const isUser = message.role === 'user'
   const propuesta = message.metadata?.propuesta_escenario
   const propuestaEnergia = message.metadata?.propuesta_energia
+  // El documento adjunto se enseña por su nombre, no por su texto (#196); los
+  // mensajes de antes de #194 lo llevan pegado delante de la pregunta.
+  const { pregunta, nombre: nombrePegado } = isUser ? separarDocumentoPegado(message.content) : { pregunta: message.content, nombre: undefined }
+  const nombreAdjunto = message.metadata?.adjunto?.nombre ?? nombrePegado
+  const adjuntoUsado = message.metadata?.adjuntoUsado
 
   /**
    * La narración del escenario entra como un mensaje más del asistente (#44).
@@ -49,7 +55,7 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(message.content)
+      await navigator.clipboard.writeText(pregunta)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (error) {
@@ -80,7 +86,16 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
             } ${isStreaming ? 'animate-pulse' : ''}`}>
             {/* Message text */}
             <div className="relative">
-              <MarkdownRenderer content={message.content} />
+              {nombreAdjunto && (
+                <div className="mb-2 inline-flex items-center gap-1 rounded bg-primary-foreground/15 px-2 py-1 text-xs">
+                  <FileText size={12} />
+                  <span>{nombreAdjunto}</span>
+                  {message.metadata?.adjunto?.ocr && (
+                    <span className="opacity-80">· {t('chatInput.adjunto.ocr', { confianza: message.metadata.adjunto.ocr.confianza })}</span>
+                  )}
+                </div>
+              )}
+              <MarkdownRenderer content={pregunta} />
               {isStreaming && !isUser && (
                 <span className="animate-pulse text-primary ml-1">▌</span>
               )}
@@ -189,6 +204,14 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
                     {message.metadata.originalQuery && message.metadata.originalQuery !== message.content && (
                       <span className="text-xs text-amber-600 dark:text-amber-400">✨ {t('chatInput.improvedQuery')}</span>
                     )}
+                  </div>
+                )}
+
+                {adjuntoUsado && !adjuntoUsado.completo && (
+                  <div className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                    📎 {adjuntoUsado.incluidos
+                      ? t('chatInput.adjunto.parcial', { nombre: adjuntoUsado.nombre, incluidos: adjuntoUsado.incluidos, total: adjuntoUsado.total })
+                      : t('chatInput.adjunto.nada', { nombre: adjuntoUsado.nombre })}
                   </div>
                 )}
 

@@ -498,7 +498,9 @@ export class HydraulicRAGService {
             tables: document.metadata.tables || [],
             figures: document.metadata.figures || [],
             examples: document.metadata.examples || [],
-            references: document.metadata.references
+            references: document.metadata.references,
+            // Se lee en la búsqueda para avisar al modelo de que el texto sale de un escaneado (#198).
+            ...(document.metadata.ocr ? { ocr: document.metadata.ocr } : {})
           }),
           keywords: JSON.stringify(document.metadata.keywords),
           language: document.metadata.language,

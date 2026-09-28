@@ -268,6 +268,10 @@ export class ConversationService {
 
       const vector = await this.embeddingService.generateEmbedding(message.content);
 
+      // El texto del adjunto (#194) puede pasar de cien mil caracteres y no
+      // cabe en el campo JSON de Milvus; basta con su nombre.
+      const { adjunto, ...metadata } = (message.metadata ?? {}) as { adjunto?: { nombre?: string } } & Record<string, unknown>
+
       await this.milvusService.insert(MilvusService.COLLECTIONS.CONVERSATIONS, [{
         id: message.id,
         vector: vector,
@@ -275,7 +279,8 @@ export class ConversationService {
         metadata: {
           conversationId: conversationId,
           role: message.role,
-          ...message.metadata
+          ...metadata,
+          ...(adjunto ? { adjunto: { nombre: adjunto.nombre } } : {})
         },
         timestamp: new Date(message.timestamp).getTime()
       }]);

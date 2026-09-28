@@ -403,6 +403,8 @@ export class AgenticRAGService {
              * se marca nada.
              */
             language: idiomaDelTexto(doc.content) ?? doc.metadata.language,
+            // Leído con OCR de un escaneado (#198): el prompt lo dice junto a la fuente.
+            ocr: doc.metadata.ocr,
             content: doc.content // CRITICAL: Include content for chatStore to use
           })
         }

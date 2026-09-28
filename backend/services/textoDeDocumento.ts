@@ -20,8 +20,14 @@
  * inventada. Aquí hay una sola decisión, y las tres rutas la usan.
  */
 
-/** Por qué un fichero no ha dado texto aprovechable. */
-export type MotivoSinTexto = 'vacio' | 'ilegible' | 'formato-no-soportado'
+/**
+ * Por qué un fichero no ha dado texto aprovechable.
+ *
+ * Los dos últimos son de un PDF escaneado (#198): el OCR leyó con tan poca
+ * confianza que sus cifras no son de fiar, o el documento es tan largo que
+ * leerlo llevaría demasiado.
+ */
+export type MotivoSinTexto = 'vacio' | 'ilegible' | 'formato-no-soportado' | 'ocr-dudoso' | 'escaneado-largo'
 
 export interface TextoDeDocumento {
   /** El texto extraído. Vacío cuando hay `problema`. */
@@ -30,6 +36,10 @@ export interface TextoDeDocumento {
   problema?: MotivoSinTexto
   /** El detalle técnico, para el log. Nunca se guarda como contenido. */
   detalle?: string
+  /** Lo que el mensaje del problema necesita decir: la confianza, las páginas. */
+  datos?: Record<string, number>
+  /** Presente si el texto sale de un escaneado: quien lo lea tiene que saberlo. */
+  ocr?: { confianza: number; paginas: number }
 }
 
 /**

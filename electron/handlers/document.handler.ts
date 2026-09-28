@@ -16,13 +16,17 @@ import {
   textoLeido,
   type TextoDeDocumento,
 } from '../../backend/services/textoDeDocumento'
+import { leerEscaneado, type AlProgresoOcr } from '../../backend/services/ocrDeEscaneados'
 import { dimensionDeModelo, dimensionEsperada, marcaDeFragmento, modeloEmbeddingsOllama, DIMENSION_DESCONOCIDA, CLAVE_MODELO_INDEXADO } from '../../backend/services/modeloEmbeddings'
 
 /**
  * Extract plain text from a document on disk. Shared by wisdom:upload
  * (persistent RAG indexing) and chat:pickAttachment (one-off chat context).
  */
-export async function extraerTextoDeFichero(filePath: string): Promise<TextoDeDocumento> {
+export async function extraerTextoDeFichero(
+  filePath: string,
+  alProgresoOcr?: AlProgresoOcr,
+): Promise<TextoDeDocumento> {
   const fileName = path.basename(filePath)
   const fileExtension = path.extname(fileName).toLowerCase()
 
@@ -30,7 +34,11 @@ export async function extraerTextoDeFichero(filePath: string): Promise<TextoDeDo
     try {
       const pdfBuffer = await fs.readFile(filePath)
       const pdfData = await pdf(pdfBuffer)
-      return textoLeido(pdfData.text.replace(/\n\s*\n/g, '\n\n'))
+      const leido = textoLeido(pdfData.text.replace(/\n\s*\n/g, '\n\n'))
+      // Sin capa de texto es un escaneado: se lee con OCR (#198).
+      if (leido.problema !== 'vacio') return leido
+      console.log(`[Document Handler] ${fileName} no tiene texto: se lee con OCR`)
+      return await leerEscaneado(pdfBuffer, alProgresoOcr)
     } catch (error) {
       console.warn(`Could not process PDF ${fileName}:`, error)
       return textoIlegible(error)
@@ -66,7 +74,7 @@ export async function extraerTextoDeFichero(filePath: string): Promise<TextoDeDo
  * one-off document directly to a chat message (issue #20-B).
  */
 export function registerChatAttachmentHandler() {
-  ipcMain.handle('chat:pickAttachment', async () => {
+  ipcMain.handle('chat:pickAttachment', async (event) => {
     try {
       const result = await dialog.showOpenDialog({
         properties: ['openFile'],
@@ -82,16 +90,18 @@ export function registerChatAttachmentHandler() {
 
       const filePath = result.filePaths[0]
       const fileName = path.basename(filePath)
-      const leido = await extraerTextoDeFichero(filePath)
+      const leido = await extraerTextoDeFichero(filePath, (pagina, total) => {
+        if (!event.sender.isDestroyed()) event.sender.send('chat:attachment-progress', { fileName, pagina, total })
+      })
 
       // Sin texto no hay adjunto: darle al modelo «Unable to extract text
       // content» como si fuera el documento es peor que no adjuntar nada,
       // porque responde sobre ese relleno sin saber que lo es (#157).
       if (leido.problema) {
-        return { success: false, fileName, clave: claveDelProblema(leido.problema), detalle: leido.detalle }
+        return { success: false, fileName, clave: claveDelProblema(leido.problema), detalle: leido.detalle, datos: leido.datos }
       }
 
-      return { success: true, fileName, content: leido.texto }
+      return { success: true, fileName, content: leido.texto, ocr: leido.ocr }
     } catch (error) {
       console.error('[Document Handler] chat:pickAttachment failed:', error)
       return { success: false, message: error instanceof Error ? error.message : 'Failed to read attachment' }
@@ -256,7 +266,18 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
          * igual, así que el documento entraba en la base con un fragmento que
          * no dice nada y compite en las búsquedas.
          */
-        const leido = await extraerTextoDeFichero(filePath)
+        const leido = await extraerTextoDeFichero(filePath, (pagina, total) => {
+          if (event.sender && !event.sender.isDestroyed()) {
+            event.sender.send('wisdom:upload-progress', {
+              current: pagina,
+              total,
+              message: `OCR ${pagina}/${total}`,
+              clave: 'wisdom.ocr.leyendo',
+              datos: { pagina, total },
+              filename: fileName
+            })
+          }
+        })
         if (leido.problema) {
           console.warn(`[Document Handler] ${fileName}: sin texto aprovechable (${leido.problema})`, leido.detalle ?? '')
           return {
@@ -264,6 +285,7 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
             fileName,
             clave: claveDelProblema(leido.problema),
             detalle: leido.detalle,
+            datos: leido.datos,
           }
         }
         const fileContent = leido.texto
@@ -280,7 +302,8 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
           examples: [],
           references: [],
           keywords: extractKeywords(fileContent),
-          language: options.language || 'es'
+          language: options.language || 'es',
+          ...(leido.ocr ? { ocr: leido.ocr } : {})
         }
 
         // Add to RAG system
@@ -308,7 +331,8 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
         uploadedDocs.push({
           id: docId,
           fileName,
-          title: fileName.replace(/\.[^/.]+$/, '')
+          title: fileName.replace(/\.[^/.]+$/, ''),
+          ocr: leido.ocr
         })
       }
 
@@ -1486,7 +1510,8 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
             examples: [],
             references: [],
             keywords: extractKeywords(fileContent),
-            language: options.language || 'es'
+            language: options.language || 'es',
+            ...(leido.ocr ? { ocr: leido.ocr } : {})
           }
 
           // Notify start of file processing
