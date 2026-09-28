@@ -39,15 +39,20 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.42.0
+### 🚀 Última Versió - v1.42.1
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.42.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.0/Boorie-1.42.0-arm64.dmg) | ~321 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.42.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.0/Boorie-Setup-1.42.0.exe) | ~250 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.42.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.0/Boorie-1.42.0.AppImage) | ~400 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.42.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.1/Boorie-1.42.1-arm64.dmg) | ~324 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.42.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.1/Boorie-Setup-1.42.1.exe) | ~252 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.42.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.1/Boorie-1.42.1.AppImage) | ~403 MB |
 
 
+
+### 📝 Novetats a v1.42.1
+- Amb un document adjunt al xat, el document va abans que la documentació. Les fonts de la base de coneixement entraven primer i l'adjunt es quedava amb el que sobrava: amb el model local, d'un escanejat de 5 pàgines només es llegia 1 dels seus 41 fragments.
+- Ara el document reserva el seu lloc primer —a la mateixa prova, 9 fragments— i les fonts entren en el que quedi, començant per les més rellevants. Si alguna es queda fora, sota la resposta es diu quantes.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.42.1).
 
 ### 📝 Novetats a v1.42.0
 - Un document llarg adjunt al xat ja no es retalla sense avisar. S'enganxava sencer al missatge, i amb el model local un PDF de 76 pàgines arribava retallat a menys del 2 %, mentre la resposta semblava haver-lo llegit sencer.
@@ -445,12 +450,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.42.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.42.0.AppImage`
-3. Executa: `./Boorie-1.42.0.AppImage`
+1. Descarrega `Boorie-1.42.1.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.42.1.AppImage`
+3. Executa: `./Boorie-1.42.1.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.42.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.42.1.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
