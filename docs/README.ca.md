@@ -39,15 +39,21 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.41.0
+### 🚀 Última Versió - v1.42.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.41.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.41.0/Boorie-1.41.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.41.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.41.0/Boorie-Setup-1.41.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.41.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.41.0/Boorie-1.41.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.42.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.0/Boorie-1.42.0-arm64.dmg) | ~321 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.42.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.0/Boorie-Setup-1.42.0.exe) | ~250 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.42.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.0/Boorie-1.42.0.AppImage) | ~400 MB |
 
 
+
+### 📝 Novetats a v1.42.0
+- Un document llarg adjunt al xat ja no es retalla sense avisar. S'enganxava sencer al missatge, i amb el model local un PDF de 76 pàgines arribava retallat a menys del 2 %, mentre la resposta semblava haver-lo llegit sencer.
+- Ara, si el document no hi cap, el model llegeix els fragments més relacionats amb la pregunta, la resposta diu quants n'ha pogut llegir i es pot continuar preguntant sense tornar-lo a adjuntar. El missatge mostra la pregunta amb una fitxa del fitxer, i la documentació es consulta amb la pregunta, no amb el document.
+- Els PDF escanejats es llegeixen amb OCR, sense connexió, al xat i a la base de coneixement. Si l'escaneig és tan dolent que no es pot confiar en les seves xifres, no s'utilitza i es diu per què.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.42.0).
 
 ### 📝 Novetats a v1.41.0
 - Amb la base de coneixement activa, el xat ja no es rendeix als 15 segons de cercar a la documentació. Amb l'equip just de memòria la cerca es tallava i la pregunta sortia només amb el coneixement general del model, mentre la resposta deia «no s'ha trobat informació rellevant».
@@ -439,12 +445,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.41.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.41.0.AppImage`
-3. Executa: `./Boorie-1.41.0.AppImage`
+1. Descarrega `Boorie-1.42.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.42.0.AppImage`
+3. Executa: `./Boorie-1.42.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.41.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.42.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 

@@ -39,15 +39,21 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.41.0
+### 🚀 Última Versión - v1.42.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.41.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.41.0/Boorie-1.41.0-arm64.dmg) | ~279 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.41.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.41.0/Boorie-Setup-1.41.0.exe) | ~223 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.41.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.41.0/Boorie-1.41.0.AppImage) | ~344 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.42.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.0/Boorie-1.42.0-arm64.dmg) | ~321 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.42.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.0/Boorie-Setup-1.42.0.exe) | ~250 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.42.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.0/Boorie-1.42.0.AppImage) | ~400 MB |
 
 
+
+### 📝 Novedades en v1.42.0
+- Un documento largo adjunto al chat ya no se recorta sin avisar. Se pegaba entero en el mensaje, y con el modelo local un PDF de 76 páginas llegaba recortado a menos del 2 %, mientras la respuesta parecía haberlo leído entero.
+- Ahora, si el documento no cabe, el modelo lee los fragmentos más relacionados con la pregunta, la respuesta dice cuántos ha podido leer y se puede seguir preguntando sin volver a adjuntarlo. El mensaje muestra la pregunta con una ficha del archivo, y la documentación se consulta con la pregunta, no con el documento.
+- Los PDF escaneados se leen con OCR, sin conexión, en el chat y en la base de conocimiento. Si el escaneo es tan malo que no se puede fiar de sus cifras, no se usa y se dice por qué.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.42.0).
 
 ### 📝 Novedades en v1.41.0
 - Con la base de conocimiento activa, el chat ya no se rinde a los 15 segundos de buscar en la documentación. Con el equipo justo de memoria la búsqueda se cortaba y la pregunta salía sólo con el conocimiento general del modelo, mientras la respuesta decía «no se encontró información relevante».
@@ -439,12 +445,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.41.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.41.0.AppImage`
-3. Ejecuta: `./Boorie-1.41.0.AppImage`
+1. Descarga `Boorie-1.42.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.42.0.AppImage`
+3. Ejecuta: `./Boorie-1.42.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.41.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.42.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
