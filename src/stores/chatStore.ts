@@ -11,10 +11,13 @@ import {
   estimarTokens,
   fuentesQueCaben,
   presupuestoDelAdjunto,
+  CONTEXTO_EN_LA_NUBE,
   seleccionarFragmentos,
   separarDocumentoPegado,
 } from '@/services/chat/adjunto'
 import { similitudesDelAdjunto } from '@/services/chat/similitudDelAdjunto'
+import { consultasEnElIdiomaDelDocumento } from '@/services/chat/consultasDelAdjunto'
+import { contextoDeOllama } from '@/../backend/services/contextoDeOllama'
 import {
   configuracionInicialDeConocimiento,
   guardarEleccion,
@@ -553,12 +556,26 @@ export const useChatStore = create<ChatState>()(
               const recortable = bloqueConocimiento && ragSources.length ? bloqueConocimiento : ''
               const resto = estimarTokens(enhancedPrompt) - (recortable ? estimarTokens(recortable) : 0)
                 + historial.reduce((n, msg) => n + estimarTokens(msg.content), 0)
-              const presupuesto = presupuestoDelAdjunto(proveedor, resto)
-              // El significado solo hace falta si hay que elegir: un documento que cabe va entero (#205).
-              const similitudes = estimarTokens(vigente.texto) > presupuesto
-                ? await similitudesDelAdjunto(vigente.texto, content)
-                : undefined
-              const seleccion = seleccionarFragmentos(vigente.texto, content, presupuesto, { similitudes })
+              const esOllama = proveedor.toLowerCase() === 'ollama'
+              const modeloOllama = modelo.replace(/^ollama-/, '')
+              const numCtx = esOllama ? await contextoDeOllama(getOllamaBaseUrl(), modeloOllama) : CONTEXTO_EN_LA_NUBE
+              const presupuesto = presupuestoDelAdjunto(numCtx, resto)
+              // El significado y las consultas solo hacen falta si hay que elegir: un documento que cabe va entero (#205).
+              const hayQueElegir = estimarTokens(vigente.texto) > presupuesto
+              const [similitudes, textosDeConsultas] = hayQueElegir
+                ? await Promise.all([
+                    similitudesDelAdjunto(vigente.texto, content),
+                    esOllama
+                      ? consultasEnElIdiomaDelDocumento({
+                          documento: vigente.texto, pregunta: content, idiomaDeLaApp: idioma,
+                          baseUrl: getOllamaBaseUrl(), modelo: modeloOllama, numCtx,
+                        })
+                      : Promise.resolve([]),
+                  ])
+                : [undefined, []]
+              const consultas = await Promise.all(textosDeConsultas.map(async texto =>
+                ({ texto, similitudes: await similitudesDelAdjunto(vigente.texto, texto) })))
+              const seleccion = seleccionarFragmentos(vigente.texto, content, presupuesto, { similitudes, consultas })
               const bloqueAdjunto = bloqueParaElModelo(vigente, seleccion)
               adjuntoUsado = {
                 nombre: vigente.nombre, incluidos: seleccion.incluidos, total: seleccion.total, completo: seleccion.completo,
@@ -901,13 +918,14 @@ export const useChatStore = create<ChatState>()(
             }),
           })
 
+          const ollamaUrl = getOllamaBaseUrl()
           const requestBody = {
             model: cleanModelName,
             messages: messages,
-            stream: true
+            stream: true,
+            options: { num_ctx: await contextoDeOllama(ollamaUrl, cleanModelName) },
           }
 
-          const ollamaUrl = getOllamaBaseUrl()
           const response = await fetch(`${ollamaUrl}/api/chat`, {
             method: 'POST',
             headers: {

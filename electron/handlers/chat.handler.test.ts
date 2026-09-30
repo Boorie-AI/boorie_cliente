@@ -17,6 +17,9 @@ vi.mock('electron', () => ({
   },
 }))
 
+// Sin esto, la consulta a /api/show se llevaría la primera respuesta simulada.
+vi.mock('../../backend/services/contextoDeOllama', () => ({ contextoDeOllama: async () => 8192 }))
+
 import { ChatHandler } from './chat.handler'
 
 const RED = {
@@ -270,6 +273,8 @@ describe('bucle de herramientas con Ollama', () => {
     const resultado = segundo.messages.find((m: any) => m.role === 'tool')
     expect(resultado).toMatchObject({ role: 'tool', tool_call_id: 'call_x' })
     expect(JSON.parse(resultado.content).elemento).toMatchObject({ id: 'J3', cota_m: 8 })
+    // El mismo num_ctx en cada vuelta: con otro, Ollama recargaría el modelo.
+    expect([cuerpoDe(0).options.num_ctx, segundo.options.num_ctx]).toEqual([8192, 8192])
   })
 
   it('un modelo local sin plantilla de herramientas no rompe el chat', async () => {

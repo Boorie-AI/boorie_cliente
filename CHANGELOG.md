@@ -9,6 +9,23 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **Con un documento adjunto y el modelo local, se lee más del documento.** Ollama cargaba
+  cualquier modelo con 4096 tokens de contexto, y con qwen2.5:7b y un libro de 216 páginas
+  llegaban al modelo 9 de sus 621 fragmentos. Ahora se le pide a cada modelo lo que admite, hasta
+  8192: con qwen2.5, 23 fragmentos. nemotron-mini se queda en sus 4096.
+- **Una pregunta en castellano sobre un documento en inglés se busca con los términos del
+  documento.** Con la pregunta de un ingeniero sobre una prueba de bombeo a caudal variable, no
+  llegaba al modelo ni la tabla de tiempos ni el capítulo que respondía: sus palabras no salen en
+  un libro en inglés. Ahora un glosario de hidrogeología e hidráulica traduce los conceptos
+  —«prueba a caudal variable» es un *step drawdown test*— y, si no basta, el propio modelo
+  escribe consultas en el idioma del documento. Cada parte de la pregunta trae sus fragmentos y
+  el modelo los recibe agrupados. En la misma prueba llegan la tabla de tiempos, la de diámetros
+  y el capítulo de pérdidas en el pozo.
+- **Dos palabras sueltas en común con la pregunta ya no pesan como el mejor fragmento.**
+  «variable» en el código de un apéndice se llevaba el sitio del capítulo que respondía.
+
 ## [1.42.2] - 2026-09-28
 
 Las partes de un documento adjunto se eligen por el capítulo o la tabla que se pregunta, y por significado.
