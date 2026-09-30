@@ -39,15 +39,20 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.42.2
+### 🚀 Última Versión - v1.43.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.42.2-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.2/Boorie-1.42.2-arm64.dmg) | ~324 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.42.2.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.2/Boorie-Setup-1.42.2.exe) | ~252 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.42.2.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.42.2/Boorie-1.42.2.AppImage) | ~403 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.43.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.43.0/Boorie-1.43.0-arm64.dmg) | ~324 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.43.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.43.0/Boorie-Setup-1.43.0.exe) | ~252 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.43.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.43.0/Boorie-1.43.0.AppImage) | ~403 MB |
 
 
+
+### 📝 Novedades en v1.43.0
+- Con un documento adjunto y el modelo local, llega al modelo mucho más del documento. Ollama cargaba cualquier modelo con 4096 tokens de contexto: con qwen2.5:7b, de un libro de 216 páginas se leían 9 de sus 621 fragmentos, y ninguno útil. Ahora cada modelo recibe el contexto que admite, hasta 8192: con qwen2.5, 23 fragmentos.
+- Una pregunta en castellano sobre un documento en inglés se busca con los términos del documento. Un glosario de hidrogeología e hidráulica traduce los conceptos —«prueba a caudal variable» es un *step drawdown test*— y, si no basta, el propio modelo escribe consultas en el idioma del documento. Cada parte de la pregunta trae sus fragmentos y el modelo los recibe agrupados.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.43.0).
 
 ### 📝 Novedades en v1.42.2
 - «¿De qué habla el capítulo 4?» sobre un documento adjunto lee el capítulo 4. Leía la portada: el documento estaba en inglés, las palabras de la pregunta no aparecían en él y el «4» no se buscaba.
@@ -456,12 +461,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.42.2.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.42.2.AppImage`
-3. Ejecuta: `./Boorie-1.42.2.AppImage`
+1. Descarga `Boorie-1.43.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.43.0.AppImage`
+3. Ejecuta: `./Boorie-1.43.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.42.2.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.43.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 

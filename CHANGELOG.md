@@ -9,7 +9,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.43.0] - 2026-09-30
+
+Con un documento adjunto y el modelo local, se lee más del documento y se busca con los términos que usa.
 
 - **Con un documento adjunto y el modelo local, se lee más del documento.** Ollama cargaba
   cualquier modelo con 4096 tokens de contexto, y con qwen2.5:7b y un libro de 216 páginas
