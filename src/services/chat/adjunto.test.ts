@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest'
 import {
   estimarTokens,
   presupuestoDelAdjunto,
+  CONTEXTO_EN_LA_NUBE,
   seleccionarFragmentos,
   bloqueParaElModelo,
   separarDocumentoPegado,
@@ -48,17 +49,18 @@ describe('la estimación de tokens', () => {
 })
 
 describe('el presupuesto', () => {
-  it('con Ollama sale de los 4096 tokens de contexto', () => {
-    expect(presupuestoDelAdjunto('ollama', 0)).toBeLessThan(4096)
-    expect(presupuestoDelAdjunto('Ollama', 500)).toBe(presupuestoDelAdjunto('ollama', 0) - 500)
+  it('con 4096 tokens de contexto, lo que sobra tras la respuesta y el sistema', () => {
+    expect(presupuestoDelAdjunto(4096, 0)).toBe(4096 - 700 - 900)
+    expect(presupuestoDelAdjunto(4096, 500)).toBe(presupuestoDelAdjunto(4096, 0) - 500)
   })
 
-  it('en la nube hay mucho más sitio', () => {
-    expect(presupuestoDelAdjunto('openai', 0)).toBeGreaterThan(presupuestoDelAdjunto('ollama', 0) * 5)
+  it('con más contexto, más sitio y también más reserva para la respuesta', () => {
+    expect(presupuestoDelAdjunto(8192, 0)).toBe(8192 - 1365 - 900)
+    expect(presupuestoDelAdjunto(CONTEXTO_EN_LA_NUBE, 0)).toBeGreaterThan(presupuestoDelAdjunto(4096, 0) * 5)
   })
 
   it('nunca es negativo', () => {
-    expect(presupuestoDelAdjunto('ollama', 100_000)).toBe(0)
+    expect(presupuestoDelAdjunto(4096, 100_000)).toBe(0)
   })
 })
 
@@ -231,6 +233,44 @@ describe('el significado (#205)', () => {
     const sin = seleccionarFragmentos(texto, 'pérdida de carga', 300)
     const mal = seleccionarFragmentos(texto, 'pérdida de carga', 300, { similitudes: [0.9] })
     expect(mal).toEqual(sin)
+  })
+
+  it('dos palabras sueltas en común no pesan como el mejor parecido', () => {
+    // «variable» salía en el código BASIC del apéndice de Walton y se llevaba el sitio del capítulo 4.
+    const texto = Array.from({ length: 60 }, (_, i) => `Paragraph ${i}. ${
+      i === 10 ? '100 PRINT "VARIABLE VALUES"' : i === 40 ? 'The well loss coefficient is found with a step drawdown test.' : 'Aquifer tests are described here.'} `.repeat(12)).join('\n')
+    const fragmentos = trocear(texto)
+    const similitudes = fragmentos.map(f => (f.includes('well loss') ? 0.76 : 0.6))
+    const s = seleccionarFragmentos(texto, 'Deseo planificar una prueba de bombeo a caudal variable para medir la eficiencia del pozo', 300, { similitudes })
+    expect(s.texto).toContain('The well loss coefficient')
+    expect(s.texto).not.toContain('VARIABLE VALUES')
+  })
+})
+
+describe('con consultas en el idioma del documento', () => {
+  const temas = ['Time intervals for water level measurements are short at first.', 'The well loss coefficient comes from the step drawdown test.', 'Production well diameters depend on the discharge rate.']
+  const texto = Array.from({ length: 90 }, (_, i) => `Paragraph ${i}. ${i % 30 === 7 ? temas[Math.floor(i / 30)] : 'Aquifer tests are described here.'} `.repeat(12)).join('\n')
+  const consultas = [{ texto: 'time intervals measurements' }, { texto: 'well loss coefficient' }, { texto: 'production well diameter' }]
+
+  it('cada consulta trae lo suyo, agrupado bajo ella', () => {
+    const s = seleccionarFragmentos(texto, 'Dame la tabla de tiempos, las fórmulas y el diámetro del pozo', 900, { consultas })
+    expect(s.agrupado).toBe(true)
+    for (const [k, tema] of temas.entries()) {
+      const grupo = s.texto.split('--- Para ').find(g => g.startsWith(`«${consultas[k].texto}»`))
+      expect(grupo).toContain(tema)
+    }
+  })
+
+  it('reparten el presupuesto por turnos y no se pasan', () => {
+    const s = seleccionarFragmentos(texto, 'Dame la tabla de tiempos, las fórmulas y el diámetro del pozo', 900, { consultas })
+    expect(estimarTokens(s.texto)).toBeLessThanOrEqual(900)
+    expect(bloqueParaElModelo({ nombre: 'Walton.pdf' }, s)).toContain('agrupados por la búsqueda')
+  })
+
+  it('sin consultas, como antes: sin grupos', () => {
+    const s = seleccionarFragmentos(texto, 'well loss coefficient', 900)
+    expect(s.agrupado).toBeUndefined()
+    expect(s.texto).not.toContain('--- Para')
   })
 })
 

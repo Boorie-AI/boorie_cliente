@@ -14,6 +14,7 @@ import {
 } from '../../backend/services/hydraulic/agentTools'
 import { WNTRResilienceService } from '../../backend/services/hydraulic/resilienceService'
 import { componerPromptDeSistema, type ModelosEnUso } from '../../backend/services/hydraulic/promptDelAgente'
+import { contextoDeOllama } from '../../backend/services/contextoDeOllama'
 import { detectarIntencionEscenario, detectarIntencionEnergia } from '../../backend/services/hydraulic/intencionEscenario'
 
 /**
@@ -868,6 +869,8 @@ export class ChatHandler {
       content: msg.content
     }))
 
+    const numCtx = await contextoDeOllama(baseUrl, model)
+
     let usarHerramientas = !!red
     /** La propuesta de escenario pendiente de confirmar, si el agente la construye (#44). */
     let propuestaEscenario: Record<string, unknown> | null = null
@@ -882,6 +885,7 @@ export class ChatHandler {
           model: model,
           messages: historial,
           stream: false,
+          options: { num_ctx: numCtx },
         }
         if (usarHerramientas) requestBody.tools = herramientasOpenAI(HERRAMIENTAS)
 

@@ -25,6 +25,8 @@ export interface SeleccionDeAdjunto {
   completo: boolean
   incluidos: number
   total: number
+  /** Los fragmentos van agrupados por la consulta que los encontró. */
+  agrupado?: boolean
 }
 
 /** Lo que queda anotado en la respuesta para decirle al usuario cuánto se leyó. */
@@ -59,22 +61,25 @@ export function estimarTokens(texto: string): number {
 }
 
 /**
- * Ollama usa 4096 tokens de contexto si no se le pasa `num_ctx`, y aquí no se
- * le pasa: subirlo cuesta memoria, y con Milvus en la misma máquina ya ha
- * llegado a cerrarse la sesión por falta de RAM. Por encima de ese tamaño no
- * recorta con cuidado: se queda con el principio y el final del prompt.
+ * Con Ollama, el contexto es el `num_ctx` que se le pide para ese modelo
+ * (`contextoDeOllama`): 8192 con qwen2.5, 4096 con nemotron-mini. Por encima
+ * de ese tamaño Ollama no recorta con cuidado: se queda con el principio y el
+ * final del prompt.
  */
-const CONTEXTO_OLLAMA = 4096
 /** Los proveedores en la nube admiten mucho más; esto es un tope prudente. */
-const CONTEXTO_EN_LA_NUBE = 32000
-/** Lo que se deja para que el modelo escriba la respuesta. */
+export const CONTEXTO_EN_LA_NUBE = 32000
+/**
+ * Lo que se deja para que el modelo escriba la respuesta: la sexta parte del
+ * contexto, y nunca menos de 700. Una pregunta que pide tablas, fórmulas y
+ * procedimiento hizo escribir a qwen2.5 unos 1250 tokens.
+ */
 const RESERVA_RESPUESTA = 700
 /** El prompt de sistema se compone después; mide unos 600 tokens sin personalizar. */
 const RESERVA_SISTEMA = 900
 
-export function presupuestoDelAdjunto(proveedor: string, tokensDelResto: number): number {
-  const contexto = proveedor.toLowerCase() === 'ollama' ? CONTEXTO_OLLAMA : CONTEXTO_EN_LA_NUBE
-  return Math.max(0, contexto - RESERVA_RESPUESTA - RESERVA_SISTEMA - tokensDelResto)
+export function presupuestoDelAdjunto(contexto: number, tokensDelResto: number): number {
+  const respuesta = Math.max(RESERVA_RESPUESTA, Math.floor(contexto / 6))
+  return Math.max(0, contexto - respuesta - RESERVA_SISTEMA - tokensDelResto)
 }
 
 const TOKENS_POR_FRAGMENTO = 250
@@ -455,8 +460,43 @@ export function relevanciaSemantica(similitudes: number[]): number[] {
 }
 
 /**
+ * Una búsqueda más dentro del adjunto, además de la pregunta: una consulta
+ * corta en el idioma del documento (`consultasDelAdjunto`), con sus similitudes
+ * si llegaron los vectores.
+ */
+export interface ConsultaDelAdjunto {
+  texto: string
+  similitudes?: number[]
+}
+
+/**
+ * Lo que suman las palabras de una consulta en cada fragmento, de 0 a 1.
+ *
+ * Es la parte de la consulta que aparece, y no la proporción sobre el fragmento
+ * que más coincide. Con eso, una pregunta en castellano sobre un libro en inglés
+ * con dos palabras sueltas en común —«variable» y «ver», que en el libro de
+ * Walton salen en el código BASIC del apéndice y en un «ver-tical» partido—
+ * daba a esos fragmentos un 1, lo mismo que el mejor por significado, y se
+ * llevaban el sitio.
+ */
+function puntosPorPalabras(normalizados: string[], consulta: string): number[] {
+  const total = normalizados.length
+  const puntos = new Array<number>(total).fill(0)
+  let posible = 0
+  for (const { termino, identificador } of terminos(consulta)) {
+    const patron = new RegExp(`(^|[^\\p{L}\\p{N}])${escapar(termino)}($|[^\\p{L}\\p{N}])`, 'u')
+    const con = normalizados.map(f => patron.test(f))
+    const df = con.filter(Boolean).length
+    const peso = Math.log((total + 1) / (df + 0.5)) * (identificador ? 3 : 1)
+    posible += peso
+    con.forEach((esta, i) => { if (esta) puntos[i] += peso })
+  }
+  return posible ? puntos.map(p => p / posible) : puntos
+}
+
+/**
  * El documento entero si cabe; si no, los fragmentos más parecidos a la
- * pregunta, en el orden en que aparecen.
+ * pregunta y a cada consulta.
  *
  * La puntuación suma tres cosas. Las palabras de la pregunta, con más peso para
  * las que salen en pocos fragmentos y mucho más para los identificadores: las
@@ -471,12 +511,20 @@ export function relevanciaSemantica(similitudes: number[]): number[] {
  * dotación— va unas filas por encima de la que se busca, y con cifras en cada
  * fila caben pocas en un fragmento: en el informe de prueba quedaba a cinco. Sin eso, entre ciento
  * veinte encabezados que dicen «dotación» no hay manera de saber cuál es.
+ *
+ * Con consultas, cada una tiene su lista y eligen por turnos. Una pregunta que
+ * pide seis cosas —tabla de tiempos, escalones, equipos, fórmulas— es un solo
+ * vector que no se parece a ninguna, y lo que se llevaba el sitio era lo que se
+ * parecía un poco a todo. Por turnos, cada cosa que se pide trae lo suyo, y
+ * llega al modelo agrupado bajo la consulta que lo encontró: con los fragmentos
+ * buenos pero revueltos, qwen2.5 tomó la tabla de diámetros del pozo por la de
+ * los escalones de caudal.
  */
 export function seleccionarFragmentos(
   texto: string,
   pregunta: string,
   presupuesto: number,
-  { similitudes }: { similitudes?: number[] } = {},
+  { similitudes, consultas = [] }: { similitudes?: number[]; consultas?: ConsultaDelAdjunto[] } = {},
 ): SeleccionDeAdjunto {
   const fragmentos = trocear(texto)
   const total = fragmentos.length
@@ -487,43 +535,56 @@ export function seleccionarFragmentos(
   // El separador «[…]» y el salto de línea entre fragmentos también cuentan.
   const tamanos = fragmentos.map(f => estimarTokens(f) + 4)
   const normalizados = fragmentos.map(normalizar)
-  const puntos = new Array<number>(total).fill(0)
-  for (const { termino, identificador } of terminos(pregunta)) {
-    const patron = new RegExp(`(^|[^\\p{L}\\p{N}])${escapar(termino)}($|[^\\p{L}\\p{N}])`, 'u')
-    const con = normalizados.map(f => patron.test(f))
-    const df = con.filter(Boolean).length
-    if (!df) continue
-    const peso = Math.log((total + 1) / (df + 0.5)) * (identificador ? 3 : 1)
-    con.forEach((esta, i) => { if (esta) puntos[i] += peso })
-  }
-
-  // Palabras y significado en la misma escala, de 0 a 1, para poder sumarlos (#205).
-  const maximo = Math.max(0, ...puntos)
-  const porContenido = puntos.map((p, i) => (maximo ? p / maximo : 0) + (similitudes?.length === total ? relevanciaSemantica(similitudes)[i] : 0))
   const estructura = puntosPorEstructura(fragmentos, referenciasALaEstructura(pregunta))
-  const conCercania = porContenido.map((p, i) =>
-    p + 0.5 * Math.max(0, ...porContenido.slice(i + 1, i + 1 + VECINOS_POSTERIORES)) + estructura[i])
+  const busquedas: ConsultaDelAdjunto[] = [{ texto: pregunta, similitudes }, ...consultas]
 
+  const listas = busquedas.map(({ texto: consulta, similitudes: suyas }, k) => {
+    // Palabras y significado en la misma escala, de 0 a 1, para poder sumarlos (#205).
+    const semantica = suyas?.length === total ? relevanciaSemantica(suyas) : undefined
+    const palabras = puntosPorPalabras(normalizados, consulta)
+    const porContenido = palabras.map((p, i) => p + (semantica?.[i] ?? 0))
+    // La estructura es de la pregunta: las consultas no nombran capítulos.
+    const puntos = porContenido.map((p, i) =>
+      p + 0.5 * Math.max(0, ...porContenido.slice(i + 1, i + 1 + VECINOS_POSTERIORES)) + (k === 0 ? estructura[i] : 0))
+    return fragmentos.map((_, i) => i).filter(i => puntos[i] > 0).sort((a, b) => puntos[b] - puntos[a] || a - b)
+  })
   // Sin nada en común con la pregunta —«resúmelo», por ejemplo— se lee desde el principio.
-  const orden = conCercania.some(p => p > 0)
-    ? fragmentos.map((_, i) => i).filter(i => conCercania[i] > 0).sort((a, b) => conCercania[b] - conCercania[a] || a - b)
-    : fragmentos.map((_, i) => i)
+  if (listas.every(l => !l.length)) listas[0] = fragmentos.map((_, i) => i)
 
-  const elegidos = new Set<number>()
-  let usados = 0
-  for (const i of orden) {
-    if (usados + tamanos[i] > presupuesto) continue
-    elegidos.add(i)
-    usados += tamanos[i]
+  const encabezado = (k: number) => `--- Para ${k === 0 ? 'la pregunta' : `«${busquedas[k].texto}»`} ---`
+  const agrupar = listas.filter(l => l.length).length > 1
+  let disponible = agrupar ? presupuesto - listas.reduce((n, l, k) => n + (l.length ? estimarTokens(encabezado(k)) + 2 : 0), 0) : presupuesto
+
+  const de = new Map<number, number>()
+  const cursores = listas.map(() => 0)
+  for (let eligio = true; eligio;) {
+    eligio = false
+    listas.forEach((lista, k) => {
+      while (cursores[k] < lista.length) {
+        const i = lista[cursores[k]++]
+        if (de.has(i) || tamanos[i] > disponible) continue
+        de.set(i, k)
+        disponible -= tamanos[i]
+        eligio = true
+        return
+      }
+    })
   }
 
-  const indices = [...elegidos].sort((a, b) => a - b)
-  const partes: string[] = []
-  indices.forEach((i, n) => {
-    if (n > 0 && indices[n - 1] !== i - 1) partes.push('[…]')
-    partes.push(fragmentos[i])
-  })
-  return { texto: partes.join('\n'), completo: false, incluidos: indices.length, total }
+  const juntar = (indices: number[]) => indices.flatMap((i, n) =>
+    n > 0 && indices[n - 1] !== i - 1 ? ['[…]', fragmentos[i]] : [fragmentos[i]]).join('\n')
+  const todos = [...de.keys()].sort((a, b) => a - b)
+  if (!agrupar) return { texto: juntar(todos), completo: false, incluidos: todos.length, total }
+
+  const grupos = listas.map((_, k) => todos.filter(i => de.get(i) === k))
+  const partes = grupos.flatMap((indices, k) => (indices.length ? [`${encabezado(k)}\n${juntar(indices)}`] : []))
+  return {
+    texto: partes.join('\n\n'),
+    completo: false,
+    incluidos: todos.length,
+    total,
+    ...(partes.length > 1 ? { agrupado: true } : {}),
+  }
 }
 
 /**
@@ -536,7 +597,7 @@ export function bloqueParaElModelo({ nombre, ocr }: Pick<Adjunto, 'nombre' | 'oc
   }
   const aviso = seleccion.completo
     ? ''
-    : `El documento no cabe entero en tu contexto. Solo tienes ${seleccion.incluidos} de sus ${seleccion.total} fragmentos, los más relacionados con la pregunta; «[…]» marca lo que falta. Si la respuesta no está en ellos, di que no aparece en lo que has podido leer.\n\n`
+    : `El documento no cabe entero en tu contexto. Solo tienes ${seleccion.incluidos} de sus ${seleccion.total} fragmentos, los más relacionados con la pregunta; «[…]» marca lo que falta.${seleccion.agrupado ? ' Van agrupados por la búsqueda que los encontró: usa cada grupo para la parte de la pregunta a la que corresponde.' : ''} Si la respuesta no está en ellos, di que no aparece en lo que has podido leer.\n\n`
   const deOcr = ocr
     ? `El documento es un escaneado leído con OCR (confianza ${ocr.confianza} %): puede tener cifras mal leídas. Si usas una, di que sale de un escaneado leído con OCR.\n\n`
     : ''
