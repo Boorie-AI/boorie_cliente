@@ -61,6 +61,7 @@ Las capturas van a `/tmp/boorie-driver/shots/` (o `SCREENSHOT_DIR`).
 | `launch` | arranca la app y espera a que haya ventana |
 | `click <sel>` | click real de Playwright (el bueno, ver Trampas) |
 | `clicktext <texto>` | click por texto visible |
+| `mouse <x> <y>` | clic de ratón en coordenadas, sin las comprobaciones de `click`, y dice qué elemento había en ese punto: sirve para ver si algo encima se traga el clic |
 | `set <sel> :: <valor>` | escribe en un input controlado por React |
 | `waitfor <sel>` | espera a que exista el selector, 30 s |
 | `scrollto <texto>` | lleva a la vista el elemento que empieza por ese texto |

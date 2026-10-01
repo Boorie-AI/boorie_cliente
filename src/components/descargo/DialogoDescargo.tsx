@@ -17,8 +17,19 @@ import { guardarAceptacion, hayQueAceptar, leerAceptacion } from '@/services/des
  * haría parpadear un modal a pantalla completa en cada arranque, que es peor
  * que esperar dos décimas.
  */
-export function DialogoDescargo() {
+interface DialogoDescargoProps {
+  /**
+   * Avisa cuando ya no hay nada que aceptar. Lo que se pinte por encima mientras
+   * el diálogo está abierto no se puede pulsar: el modal de Radix pone
+   * `pointer-events: none` en el body, y así quedó muerto el asistente de
+   * Python en el primer arranque (#215).
+   */
+  onResuelto?: () => void
+}
+
+export function DialogoDescargo({ onResuelto }: DialogoDescargoProps = {}) {
   const { t } = useTranslation()
+  const [comprobado, setComprobado] = useState(false)
   const [abierto, setAbierto] = useState(false)
   const [guardando, setGuardando] = useState(false)
 
@@ -32,8 +43,13 @@ export function DialogoDescargo() {
         logger.error('No se pudo leer la aceptación del descargo:', error)
         if (vigente) setAbierto(true)
       })
+      .finally(() => { if (vigente) setComprobado(true) })
     return () => { vigente = false }
   }, [])
+
+  useEffect(() => {
+    if (comprobado && !abierto) onResuelto?.()
+  }, [comprobado, abierto, onResuelto])
 
   const aceptar = async () => {
     setGuardando(true)

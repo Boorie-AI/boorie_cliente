@@ -583,7 +583,10 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
           failedOptional.push(pkg.name)
           emitProgress(window, {
             stage: 'warning',
-            message: `${pkg.name} (opcional) no se pudo instalar. Se continúa sin él; el resto de funciones (RAG/Milvus/WNTR) no se ven afectadas.`,
+            message: MILVUS_PACKAGE_NAMES.includes(pkg.name)
+              ? `${pkg.name} no se pudo instalar: sin él Milvus no arranca y los documentos quedan sin indexar. ` +
+                `WNTR sigue funcionando. Detalle en: ${setupLogFile}`
+              : `${pkg.name} (opcional) no se pudo instalar. Se continúa sin él; el resto de funciones (RAG/Milvus/WNTR) no se ven afectadas.`,
           })
           continue
         }
@@ -621,11 +624,18 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
       }
     }
 
+    // pip puede devolver 0 y el paquete seguir sin cargar, así que lo que
+    // decide si Milvus quedó operativo es el import, no el código de salida.
+    const milvusStillMissing = (await checkPackagesInstalled(venvPython))
+      .filter((p) => MILVUS_PACKAGE_NAMES.includes(p.name))
+    const guardrailsFailed = failedOptional.filter((n) => !MILVUS_PACKAGE_NAMES.includes(n))
     emitProgress(window, {
       stage: 'done',
-      message: failedOptional.length === 0
-        ? '¡Listo! Boorie está preparado para usar guardrails y RAG.'
-        : `¡Listo! RAG/Milvus/WNTR operativos. Guardrails no disponible (${failedOptional.join(', ')} falló al instalar).`,
+      message: milvusStillMissing.length > 0
+        ? `WNTR operativo, pero ${missingNames(milvusStillMissing).join(' y ')} sigue sin cargar: el indexado RAG no funcionará.`
+        : guardrailsFailed.length === 0
+          ? '¡Listo! Boorie está preparado para usar guardrails y RAG.'
+          : `¡Listo! RAG/Milvus/WNTR operativos. Guardrails no disponible (${guardrailsFailed.join(', ')} falló al instalar).`,
     })
 
     // El venv recién instalado tiene milvus-lite: reiniciamos el servidor
@@ -639,7 +649,13 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
       // non-fatal — MilvusService will just stay "unavailable" and RAG degrades gracefully
     }
 
-    return { success: true, pythonPath: venvPython, optionalFailed: failedOptional }
+    return {
+      success: true,
+      pythonPath: venvPython,
+      optionalFailed: failedOptional,
+      milvusMissing: milvusStillMissing,
+      logFile: setupLogFile,
+    }
   })
 
   // --- Selección manual del intérprete de Python ---------------------------

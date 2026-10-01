@@ -1225,7 +1225,10 @@
     "guardrailsOff": "Guardrails ({{faltan}}) no se pudo instalar y quedará desactivado. Esto",
     "guardrailsNo": "no",
     "guardrailsRest": "afecta a RAG, Milvus ni WNTR, que funcionan con normalidad.",
-    "intro": "Boorie necesita instalar algunas dependencias de Python para activar la red agéntica de NVIDIA NeMo Guardrails, la base vectorial Milvus Lite y el motor WNTR. Se hace una sola vez y tarda unos minutos."
+    "intro": "Boorie necesita instalar algunas dependencias de Python para activar la red agéntica de NVIDIA NeMo Guardrails, la base vectorial Milvus Lite y el motor WNTR. Se hace una sola vez y tarda unos minutos.",
+    "stillPending": "La instalación terminó, pero siguen pendientes: {{faltan}}.",
+    "logAt": "Detalle completo en: {{ruta}}",
+    "retry": "Reintentar"
   },
   "proposal": {
     "energyTitle": "Analizar el bombeo y verificar medidas — requiere tu confirmación",

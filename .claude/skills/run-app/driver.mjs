@@ -103,6 +103,17 @@ const C = {
     log('wheel', arg, '-> OK');
   },
 
+  // Clic de ratón sin las comprobaciones de `click`: es lo que hace una persona,
+  // y así se ve si algo encima se traga el evento (#215). Sintaxis: mouse <x> <y>
+  async mouse(arg) {
+    const [x, y] = arg.trim().split(/\s+/).map(Number);
+    await page.mouse.click(x, y);
+    log('mouse', x, y, '->', await page.evaluate(([px, py]) => {
+      const el = document.elementFromPoint(px, py);
+      return el ? `${el.tagName.toLowerCase()} "${(el.textContent ?? '').trim().slice(0, 40)}"` : '(nada)';
+    }, [x, y]));
+  },
+
   async waitfor(sel) {
     try { await page.waitForSelector(sel, { timeout: 30_000 }); log('presente:', sel); }
     catch { log('TIMEOUT esperando', sel); }

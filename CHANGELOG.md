@@ -11,6 +11,15 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 
 ## [Unreleased]
 
+- **«Instalar dependencias» vuelve a funcionar en el primer arranque.** La ventana «Preparando
+  Boorie» salía a la vez que el aviso de «Antes de empezar» y se pintaba encima de él, pero el
+  aviso seguía abierto debajo y se quedaba con todos los clics: el botón no hacía nada, no salía
+  ningún progreso y `pymilvus` seguía pendiente, con lo que el RAG no podía indexar. Ahora el
+  aviso sale primero y la ventana de Python aparece al aceptarlo. Además, si la instalación
+  termina y algo sigue sin cargar, la ventana dice qué falta, por qué y dónde está el log, y el
+  botón pasa a «Reintentar»; antes volvía a la lista de pendientes como si no hubiera pasado
+  nada. Un fallo de `pymilvus` o `milvus-lite` ya no se anuncia como inofensivo, y la barra de
+  progreso ya no se vacía con cada línea de pip.
 - **En Linux, el dock muestra el logo de Boorie y no una rueda dentada.** GNOME 45 en adelante
   no usa el icono que publica la ventana: lo toma de un `.desktop` instalado, y el que lleva el
   AppImage dentro solo se instala con herramientas como AppImageLauncher. Ahora el AppImage
