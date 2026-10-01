@@ -39,15 +39,21 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.43.0
+### 🚀 Última Versió - v1.44.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.43.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.43.0/Boorie-1.43.0-arm64.dmg) | ~324 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.43.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.43.0/Boorie-Setup-1.43.0.exe) | ~252 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.43.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.43.0/Boorie-1.43.0.AppImage) | ~403 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.44.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.44.0/Boorie-1.44.0-arm64.dmg) | ~324 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.44.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.44.0/Boorie-Setup-1.44.0.exe) | ~252 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.44.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.44.0/Boorie-1.44.0.AppImage) | ~403 MB |
 
 
+
+### 📝 Novetats a v1.44.0
+- «Instal·la les dependències» torna a funcionar en la primera arrencada. La finestra «S’està preparant Boorie» sortia alhora que l'avís «Abans de començar» i es pintava al damunt, però l'avís seguia obert a sota i es quedava els clics: el botó no feia res, no sortia cap progrés i `pymilvus` seguia pendent, així que la base de coneixement no podia indexar. Ara l'avís surt primer i la finestra de Python apareix en acceptar-lo.
+- Si la instal·lació acaba i alguna cosa encara no carrega, la finestra diu què falta, per què i on és el registre, i el botó passa a «Torna-ho a provar». La barra de progrés ja no es buida amb cada línia de pip.
+- A Linux, el dock mostra el logotip de Boorie i no una roda dentada.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.44.0).
 
 ### 📝 Novetats a v1.43.0
 - Amb un document adjunt i el model local, arriba al model molt més del document. Ollama carregava qualsevol model amb 4096 tokens de context: amb qwen2.5:7b, d'un llibre de 216 pàgines es llegien 9 dels seus 621 fragments, i cap d'útil. Ara cada model rep el context que admet, fins a 8192: amb qwen2.5, 23 fragments.
@@ -461,12 +467,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.43.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.43.0.AppImage`
-3. Executa: `./Boorie-1.43.0.AppImage`
+1. Descarrega `Boorie-1.44.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.44.0.AppImage`
+3. Executa: `./Boorie-1.44.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.43.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.44.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
