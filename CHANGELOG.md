@@ -9,7 +9,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.44.0] - 2026-10-01
+
+«Instalar dependencias» vuelve a funcionar en el primer arranque, y en Linux el dock muestra el logo de Boorie.
 
 - **«Instalar dependencias» vuelve a funcionar en el primer arranque.** La ventana «Preparando
   Boorie» salía a la vez que el aviso de «Antes de empezar» y se pintaba encima de él, pero el

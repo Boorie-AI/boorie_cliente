@@ -456,9 +456,15 @@ hasta que tiene sus filas.
 ```
 
 Hay que componerlo con la fecha de hoy y no arrastrar el de la sesión anterior: en septiembre de
-2026 es `…_2026-09.xlsx`; el 1 de octubre deja de serlo. **Si el del mes todavía no existe, no
-se escribe en el del mes pasado ni se crea por cuenta propia**: el corte mensual lo decide su
-dueño, que es quien dice qué filas se llevan y si los IDs continúan.
+2026 es `…_2026-09.xlsx`; el 1 de octubre deja de serlo. **Si el del mes todavía no existe, lo
+crea el primer despliegue del mes** —decidido así el 1 oct 2026—, y nunca se escribe en el del
+mes pasado. Se hace a partir del fichero del mes anterior, para que conserve todo lo que no se ve
+a simple vista: las dos hojas (`Actividades` y `Listas`), la cabecera, el formato de las filas
+2-200, la fórmula de `Días restantes`, las validaciones, el autofiltro y el panel congelado en
+`A2`. Se vacían las filas de datos y **los IDs continúan** desde el último del mes anterior, para
+que las referencias entre ficheros sigan cuadrando. El del mes anterior no se toca, y no se deja
+ninguna copia más: del registro sólo existe el fichero en uso, además de la plantilla con el
+histórico.
 
 **Varias filas por ciclo**: una del trabajo —rama, `Estado: Integrado`, la categoría que toque—,
 una más por cada arreglo que entró en el commit y, al final, la de la publicación —`Rama: main`,
