@@ -99,4 +99,41 @@ describe('diálogo del descargo', () => {
     fireEvent.click(screen.getByText('descargo.aceptar'))
     expect(await verElDialogo()).toBeTruthy()
   })
+
+  describe('lo que se pinta encima espera a que se resuelva (#215)', () => {
+    it('mientras está abierto, el body no recibe clics: por eso el asistente de Python quedaba muerto', async () => {
+      render(<DialogoDescargo />)
+      await verElDialogo()
+      await waitFor(() => expect(document.body.style.pointerEvents).toBe('none'))
+    })
+
+    it('avisa de que está resuelto si ya estaba aceptado', async () => {
+      ajustes.set('descargo.aceptacion', JSON.stringify({ version: VERSION_DESCARGO, fecha: 'x' }))
+      const onResuelto = vi.fn()
+      render(<DialogoDescargo onResuelto={onResuelto} />)
+      await waitFor(() => expect(onResuelto).toHaveBeenCalled())
+    })
+
+    it('no avisa mientras falta aceptar, y sí al aceptar', async () => {
+      const onResuelto = vi.fn()
+      render(<DialogoDescargo onResuelto={onResuelto} />)
+      await verElDialogo()
+      expect(onResuelto).not.toHaveBeenCalled()
+
+      fireEvent.click(screen.getByText('descargo.aceptar'))
+      await waitFor(() => expect(onResuelto).toHaveBeenCalled())
+    })
+
+    it('si no se pudo guardar la aceptación, no avisa', async () => {
+      (window.electronAPI as unknown as { database: { setSetting: unknown } }).database.setSetting =
+        vi.fn(async () => { throw new Error('no se pudo escribir') })
+      const onResuelto = vi.fn()
+      render(<DialogoDescargo onResuelto={onResuelto} />)
+      await verElDialogo()
+
+      fireEvent.click(screen.getByText('descargo.aceptar'))
+      await verElDialogo()
+      expect(onResuelto).not.toHaveBeenCalled()
+    })
+  })
 })

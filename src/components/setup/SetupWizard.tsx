@@ -49,7 +49,9 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
     })
 
     const off = api.onProgress((p: ProgressEvent) => {
-      setProgress(p)
+      // Las líneas de pip llegan sueltas, sin message ni contador: si
+      // sustituyeran al progreso, la barra volvía a 0 con cada una.
+      if (p.message || p.current !== undefined) setProgress(p)
       if (p.log) {
         setLogLines((prev) => {
           const next = [...prev, p.log!.trim()].slice(-200)
@@ -90,6 +92,15 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         if (fresh.ready) {
           // pequeño delay para que el usuario vea el "done"
           setTimeout(onComplete, 800)
+        } else {
+          // Sin esto la ventana volvía a la lista de pendientes como si el clic
+          // no hubiera hecho nada (#215).
+          const motivos = (fresh.problems ?? []).map((p: { name: string; error: string }) => `${p.name}: ${p.error}`)
+          setErrorMsg([
+            t('setup.stillPending', { faltan: fresh.missing.join(', ') }),
+            ...motivos,
+            result.logFile ? t('setup.logAt', { ruta: result.logFile }) : '',
+          ].filter(Boolean).join('\n'))
         }
       } else {
         // El evento de progreso 'error' ya trae el motivo real (qué import
@@ -247,7 +258,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
           {errorMsg && (
             <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-700 dark:text-red-400 flex gap-3 items-start">
               <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-              <div>{errorMsg}</div>
+              <div className="whitespace-pre-wrap break-words">{errorMsg}</div>
             </div>
           )}
         </div>
@@ -284,7 +295,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                 )}
               >
                 <Download className="w-4 h-4" />
-                {installing ? 'Instalando…' : 'Instalar dependencias'}
+                {installing ? 'Instalando…' : errorMsg ? t('setup.retry') : 'Instalar dependencias'}
               </button>
             )}
           </div>

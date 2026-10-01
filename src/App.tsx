@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChatLayout } from '@/components/chat/ChatLayout'
 import { CustomTopBar } from '@/components/CustomTopBar'
@@ -22,6 +22,8 @@ function App() {
   const [setupChecked, setSetupChecked] = useState(false)
   const [setupNeeded, setSetupNeeded] = useState(false)
   const [setupSkipped, setSetupSkipped] = useState(false)
+  const [descargoResuelto, setDescargoResuelto] = useState(false)
+  const alResolverDescargo = useCallback(() => setDescargoResuelto(true), [])
   const [informeMigracion, setInformeMigracion] = useState<Awaited<ReturnType<typeof migrateProjectAssets>> | null>(null)
 
   // El proyecto activo se restaura aquí, y no en el store, porque hace falta
@@ -113,14 +115,16 @@ function App() {
       {/* Antes que nada y por encima de todo: hasta que se acepte, no se usa
           Boorie (#108). Va aquí y no dentro del contenido para que ninguna
           vista pueda quedar por delante. */}
-      <DialogoDescargo />
+      <DialogoDescargo onResuelto={alResolverDescargo} />
       <div className="flex-1 min-h-0 relative">
         <ChatLayout />
         <Onboarding />
         {/* Único en la raíz: cualquier vista puede abrir una conversación. */}
         <ProjectMismatchDialog />
         <MigracionAvisoDialog informe={informeMigracion} onClose={() => setInformeMigracion(null)} />
-        {setupChecked && setupNeeded && !setupSkipped && (
+        {/* Después del descargo: con él abierto, el asistente se pintaba
+            encima pero no recibía los clics (#215). */}
+        {descargoResuelto && setupChecked && setupNeeded && !setupSkipped && (
           <SetupWizard onComplete={() => { setSetupNeeded(false); setSetupSkipped(true) }} />
         )}
       </div>
