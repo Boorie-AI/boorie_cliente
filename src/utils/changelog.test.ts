@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
-import { parseChangelog, isChangelogInSync } from './changelog'
+import { parseChangelog, isChangelogInSync, trocearEnLinea, fechaDeChangelog } from './changelog'
 
 describe('parseChangelog', () => {
   it('extrae versión, fecha, resumen y detalles', () => {
@@ -152,5 +152,40 @@ describe('CHANGELOG.md del repositorio', () => {
       expect(e.date, `la versión ${e.version} no tiene fecha`).toMatch(/^\d{4}-\d{2}-\d{2}$/)
       expect(e.summary, `la versión ${e.version} no tiene resumen`).not.toBe('')
     }
+  })
+})
+
+describe('trocearEnLinea', () => {
+  it('separa negrita, cursiva y código del texto', () => {
+    expect(trocearEnLinea('**Ahora** se lee *bien* con `pymilvus`.')).toEqual([
+      { tipo: 'negrita', texto: 'Ahora' },
+      { tipo: 'texto', texto: ' se lee ' },
+      { tipo: 'cursiva', texto: 'bien' },
+      { tipo: 'texto', texto: ' con ' },
+      { tipo: 'codigo', texto: 'pymilvus' },
+      { tipo: 'texto', texto: '.' },
+    ])
+  })
+
+  it('deja tal cual lo que no cierra, sin perder texto', () => {
+    expect(trocearEnLinea('3 * 4 = 12 y **sin cerrar')).toEqual([{ tipo: 'texto', texto: '3 * 4 = 12 y **sin cerrar' }])
+  })
+
+  it('en el CHANGELOG real no queda ningún ** a la vista', () => {
+    const entries = parseChangelog(readFileSync(resolve(__dirname, '../../CHANGELOG.md'), 'utf-8'))
+    const textos = entries.flatMap(e => [e.summary, ...e.details])
+      .flatMap(t => trocearEnLinea(t).filter(x => x.tipo === 'texto').map(x => x.texto))
+    expect(textos.filter(t => t.includes('**'))).toEqual([])
+  })
+})
+
+describe('fechaDeChangelog', () => {
+  it('una fecha sin hora es ese día en la zona local, no el anterior', () => {
+    const d = fechaDeChangelog('2026-10-01')
+    expect([d.getFullYear(), d.getMonth(), d.getDate()]).toEqual([2026, 9, 1])
+  })
+
+  it('una fecha con hora se respeta', () => {
+    expect(fechaDeChangelog('2026-10-01T12:00:00.000Z').toISOString()).toBe('2026-10-01T12:00:00.000Z')
   })
 })

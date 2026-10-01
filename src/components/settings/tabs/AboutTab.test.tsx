@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { AboutTab } from './AboutTab'
+import { useAyudaStore } from '@/stores/ayudaStore'
 
 // El componente importa CHANGELOG.md con `?raw`; se sustituye por un contenido
 // controlado para que el test no dependa del changelog real del repositorio (la
@@ -74,5 +75,53 @@ describe('AboutTab', () => {
     mockVersion(Promise.reject(new Error('sin IPC')))
     render(<AboutTab />)
     expect(await screen.findByText('v9.9.9')).toBeTruthy()
+  })
+
+  describe('Ayuda y comentarios (#217)', () => {
+    function mockFeedback(entorno: { so: string; python: string | null } | null) {
+      const getEnvironment = vi.fn().mockResolvedValue(
+        entorno ? { success: true, entorno: { ...entorno, version: '9.9.9', arquitectura: 'x64', venvGestionado: false, pantalla: 'settings:about', registro: [] } } : { success: false },
+      )
+      const snapshot = vi.fn().mockResolvedValue({ success: true })
+      Object.defineProperty(window, 'electronAPI', {
+        value: { getAppVersion: vi.fn().mockResolvedValue('9.9.9'), feedback: { getEnvironment, snapshot, discardSnapshot: vi.fn().mockResolvedValue({}) } },
+        writable: true,
+      })
+      return getEnvironment
+    }
+
+    beforeEach(() => useAyudaStore.setState({ abierta: false, tipo: 'bug' }))
+
+    it('muestra la tarjeta con los dos botones después de la versión (R1)', async () => {
+      render(<AboutTab />)
+      const titulo = screen.getByText('ayuda.tarjetaTitulo')
+      const version = screen.getByText('settings.about.version')
+      expect(version.compareDocumentPosition(titulo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(screen.getByRole('button', { name: /ayuda.reportar/ })).toBeTruthy()
+      expect(screen.getByRole('button', { name: /ayuda.sugerir/ })).toBeTruthy()
+    })
+
+    it('cada botón abre el formulario en su modo', async () => {
+      mockFeedback(null)
+      render(<AboutTab />)
+      fireEvent.click(screen.getByRole('button', { name: /ayuda.sugerir/ }))
+      await waitFor(() => expect(useAyudaStore.getState()).toMatchObject({ abierta: true, tipo: 'mejora' }))
+      useAyudaStore.setState({ abierta: false })
+      fireEvent.click(screen.getByRole('button', { name: /ayuda.reportar/ }))
+      await waitFor(() => expect(useAyudaStore.getState()).toMatchObject({ abierta: true, tipo: 'bug' }))
+    })
+
+    it('enseña la fila Entorno con el SO y el Python que informa el main (R30)', async () => {
+      const getEnvironment = mockFeedback({ so: 'Windows 10.0.22631', python: 'Python 3.13.12' })
+      render(<AboutTab />)
+      await waitFor(() => expect(screen.getByTestId('entorno').textContent).toBe('Windows 10.0.22631 · Python 3.13.12'))
+      expect(getEnvironment).toHaveBeenCalledWith('settings:about')
+    })
+
+    it('dice que no hay Python en vez de dejar un hueco', async () => {
+      mockFeedback({ so: 'Linux 6.8.0', python: null })
+      render(<AboutTab />)
+      await waitFor(() => expect(screen.getByTestId('entorno').textContent).toBe('Linux 6.8.0 · settings.about.noPython'))
+    })
   })
 })

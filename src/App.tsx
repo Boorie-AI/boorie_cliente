@@ -7,6 +7,7 @@ import { ProjectMismatchDialog } from '@/components/project/ProjectMismatchDialo
 import { MigracionAvisoDialog } from '@/components/project/MigracionAvisoDialog'
 import { Onboarding } from '@/components/Onboarding'
 import { DialogoDescargo } from '@/components/descargo/DialogoDescargo'
+import { DialogoAyuda } from '@/components/ayuda/DialogoAyuda'
 import { SetupWizard } from '@/components/setup/SetupWizard'
 import { useAppStore } from '@/stores/appStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -122,6 +123,7 @@ function App() {
         {/* Único en la raíz: cualquier vista puede abrir una conversación. */}
         <ProjectMismatchDialog />
         <MigracionAvisoDialog informe={informeMigracion} onClose={() => setInformeMigracion(null)} />
+        <DialogoAyuda />
         {/* Después del descargo: con él abierto, el asistente se pintaba
             encima pero no recibía los clics (#215). */}
         {descargoResuelto && setupChecked && setupNeeded && !setupSkipped && (
