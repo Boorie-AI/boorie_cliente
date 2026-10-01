@@ -9,6 +9,16 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **En Linux, el dock muestra el logo de Boorie y no una rueda dentada.** GNOME 45 en adelante
+  no usa el icono que publica la ventana: lo toma de un `.desktop` instalado, y el que lleva el
+  AppImage dentro solo se instala con herramientas como AppImageLauncher. Ahora el AppImage
+  instala su propio `.desktop` y su icono en `~/.local/share` al arrancar, y los rehace si se
+  mueve o se actualiza. Además el `.desktop` del paquete decía `StartupWMClass=Boorie` cuando la
+  ventana se identifica como `boorie`, y en el paquete la ventana buscaba su icono en una ruta
+  que no existía, cosa que notan KDE, XFCE y Cinnamon.
+
 ## [1.43.0] - 2026-09-30
 
 Con un documento adjunto y el modelo local, se lee más del documento y se busca con los términos que usa.

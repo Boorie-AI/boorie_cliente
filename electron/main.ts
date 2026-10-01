@@ -401,6 +401,7 @@ import { findPythonForMilvus } from '../backend/services/hydraulic/pythonDetecto
 import { reconstruirSiHaceFalta } from '../backend/services/hydraulic/hybridSearch'
 import { startMilvusServer, stopMilvusServer } from './services/milvusProcess'
 import { ensureProductionSchema } from './esquemaProduccion'
+import { instalarEntradaEscritorio } from './integracionEscritorio'
 
 log.transports.file.level = 'info'
 autoUpdater.logger = log
@@ -436,7 +437,7 @@ function createWindow(): void {
     frame: false,
     titleBarStyle: process.platform === 'darwin' ? 'hidden' : undefined,
     autoHideMenuBar: true,
-    icon: isDev ? path.join(__dirname, '../../resources/icon.png') : path.join(__dirname, '../resources/icon.png'),
+    icon: path.join(app.getAppPath(), 'resources/icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -790,6 +791,19 @@ function setupBasicIPCHandlers(): void {
 app.whenReady().then(async () => {
   try {
     app.setAppUserModelId('com.boorie.app')
+
+    if (process.platform === 'linux' && process.env.APPIMAGE) {
+      try {
+        const escrito = instalarEntradaEscritorio({
+          appImage: process.env.APPIMAGE,
+          icono: path.join(app.getAppPath(), 'resources/icon.png'),
+          version: app.getVersion()
+        })
+        if (escrito) appLogger.info('Desktop entry installed for the AppImage')
+      } catch (error) {
+        appLogger.warn('Could not install the desktop entry', error as Error)
+      }
+    }
 
     // Initialize all application services
     await initializeApplication()

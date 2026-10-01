@@ -3,6 +3,7 @@
   "version": "1.43.0",
   "description": "Boorie - Advanced AI Desktop Client with comprehensive productivity features",
   "main": "dist/electron/main.js",
+  "desktopName": "boorie.desktop",
   "scripts": {
     "dev": "node scripts/dev-runner.js",
     "dev:vite": "vite",
