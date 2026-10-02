@@ -9,7 +9,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.45.0] - 2026-10-02
+
+Un problema o una mejora se reportan desde la propia aplicación, con «Ayuda y comentarios», y el historial de Acerca de muestra la fecha correcta.
 
 - **Reportar un problema o sugerir una mejora desde la propia aplicación.** Hasta ahora no había
   ningún canal dentro de Boorie: los fallos llegaban por correo o mensajes, sin versión ni sistema,

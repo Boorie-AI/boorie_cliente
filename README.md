@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.44.0
+### 🚀 Latest Release - v1.45.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.44.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.44.0/Boorie-1.44.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.44.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.44.0/Boorie-Setup-1.44.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.44.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.44.0/Boorie-1.44.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.45.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.45.0/Boorie-1.45.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.45.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.45.0/Boorie-Setup-1.45.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.45.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.45.0/Boorie-1.45.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.45.0**: Report a problem or suggest an improvement from inside Boorie. «Help & feedback» sits at the foot of the sidebar on every screen, and in Settings → About; the form opens on top of what you are doing without losing it. «Open in GitHub» leaves the issue written with the team's template, and «Copy report» copies it for anyone without a GitHub account. Ticking «Include technical information» adds the version, system, Python, the screen you were on and the app's latest warnings —without personal paths or emails— and you can see exactly what will be sent first. About also shows the system and the Python version Boorie uses, and its version history now shows the right date —it showed the day before in the Americas— without the formatting asterisks. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.45.0).
 - **v1.44.0**: «Install dependencies» works again on first start. The «Getting Boorie ready» window opened at the same time as the «Before you start» notice and was drawn on top of it, but the notice stayed open underneath and took every click: the button did nothing, no progress appeared and `pymilvus` stayed pending, so the knowledge base could not index. The notice now comes first and the Python window appears once it is accepted. If the installation finishes and something still does not load, the window now says what is missing, why and where the log is, and the button becomes «Retry»; the progress bar no longer empties with every line pip writes. And on Linux the dock shows the Boorie logo instead of a cogwheel. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.44.0).
 - **v1.43.0**: With a document attached and the local model, much more of the document now reaches the model, and a question in Spanish about a book in English finds the parts that answer it. Ollama loaded every model with 4096 tokens of context: with qwen2.5:7b, only 9 of the 621 fragments of a 216-page book were read, none of them useful. Each model now gets the context it supports, up to 8192 —23 fragments with qwen2.5—. The document is also searched with its own terms: a hydrogeology and hydraulics glossary translates the concepts —a «prueba a caudal variable» is a *step drawdown test*— and, when that is not enough, the model writes queries in the document's language. Each part of the question brings its own fragments, grouped for the model. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.43.0).
 - **v1.42.2**: «What is chapter 4 about?» on an attached document now reads chapter 4. It read the cover: the document was in English, the question's words did not appear in it and the «4» was not searched, so nothing matched and the model got the start of the book. Chapters, sections, tables, figures and appendices are now found by their number —in Spanish, Catalan and English, also as «chapter IV» or «chapter five»—, told apart from the contents page, page numbers and tables. The parts of an attached document are also chosen by meaning: a question about «pérdida de carga» finds what the book calls «well loss». The document is prepared once when attached, with its progress in sight, and kept for later. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.42.2).
@@ -127,12 +128,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.44.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.44.0.AppImage`
-3. Run: `./Boorie-1.44.0.AppImage`
+1. Download `Boorie-1.45.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.45.0.AppImage`
+3. Run: `./Boorie-1.45.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.44.0.exe` from the link above
+1. Download `Boorie-Setup-1.45.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 
