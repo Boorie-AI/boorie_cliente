@@ -9,6 +9,71 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+## [1.46.0] - 2026-10-02
+
+Con NVIDIA responde Nemotron Ultra, las respuestas largas llegan enteras y lo que la respuesta atribuye a un documento adjunto se comprueba contra lo leído.
+
+- **Con NVIDIA responde Nemotron Ultra, y cita lo que de verdad ha leído.** El modelo principal
+  pasa de `nemotron-3-super` a `nemotron-3-ultra`: con la misma pregunta sobre un libro adjunto,
+  super se equivocaba en las fórmulas y ultra las daba bien. Para que no invente:
+  - Cada fragmento de un libro adjunto llega al modelo con su página impresa, «[p. 78]»,
+    sacada de las cabeceras del propio libro. Antes el modelo la deducía y fallaba por una o por
+    doce páginas.
+  - Sólo se conservan las páginas citadas que están entre las que el modelo leyó, y una ecuación
+    o tabla citada que no está en lo leído se marca «[no está en lo que se ha leído del
+    documento]».
+  - El agente tiene una regla nueva: lo que no salga del documento lo dice como práctica general,
+    sin atribuírselo.
+  - De un libro adjunto entra más (el tope en la nube pasa de 32 000 a 48 000 tokens) y cada
+    fragmento llega con el final de su frase. Antes se quedaban fuera pasajes clave, como el
+    criterio de Walton para el coeficiente de pérdida del pozo, y el modelo se inventaba el umbral.
+  - Las normas citadas que no están en lo leído (un «RD 849/1986» o una «NCh 3341» puestas como
+    si exigieran la prueba) se marcan igual que las ecuaciones. Los apartados de la propia
+    respuesta («Fórmula 6.3») ya no se toman por fórmulas del documento, y «(páginas indicadas)»
+    ya no se borra como si fuera una página inventada.
+  - Con un proveedor en la nube y un documento leído, la respuesta pasa por una segunda revisión
+    contra los fragmentos, y lo que encuentra se añade al final, en «Revisión contra el
+    documento», con la frase literal del documento que lo demuestra. Sólo se muestra lo que trae
+    esa frase y se puede comprobar: sin el filtro, la mitad de lo que señalaba el revisor era
+    falso; con él pasa mucho menos, aunque no todo lo que pasa es cierto, y por eso cada punto
+    lleva la frase para comprobarlo. Añade unos 10-30 s a la respuesta.
+  - En Ajustes, cada modelo enseña su id debajo del nombre, y el desplegable del chat también:
+    «Nemotron (principal)» no decía qué modelo había detrás.
+
+- **Las respuestas largas ya no se quedan a medias.** Con NVIDIA, un informe extenso se cortaba a
+  media frase al llegar al tope de longitud de la respuesta, y parte de ese tope lo gasta el modelo
+  razonando sin que se vea. El tope de NVIDIA pasa de 4096 a 8192 tokens, que cubre las respuestas
+  largas de una vez. Si aun así se corta, Boorie le cita al modelo el final de lo que escribió, le
+  pide que siga desde ahí y une los trozos, hasta dos veces, sin el título de «Continuación» ni las
+  palabras que el modelo repite al retomar. Vale también para OpenAI y OpenRouter.
+- **Una pregunta con un documento adjunto ya no se pierde al guardarla.** Mientras se buscaba en la
+  base de conocimiento, la base no admitía escrituras, y la pregunta —que lleva el documento
+  dentro— esperaba 5 s y fallaba: se veía en pantalla y no quedaba guardada. La base pasa a modo
+  WAL, en el que leer no impide escribir, y la espera sube a 20 s.
+- **Con NVIDIA cargado, una respuesta larga ya no se corta por tiempo.** La espera tenía un
+  límite fijo de 240 s, y la misma pregunta sobre un libro adjunto tardó 122 s por la mañana y
+  250 s por la tarde: se cortaba a unos segundos de terminar. Ahora la respuesta llega en
+  streaming y sólo se corta si NVIDIA pasa 90 s sin mandar nada. Si aun así se corta, se
+  reintenta una vez y el mensaje dice que el modelo tardó demasiado, en vez de «The operation was
+  aborted due to timeout».
+- **Las respuestas largas se guardan en la memoria de conversaciones.** Milvus rechazaba entero
+  cualquier mensaje de más de 8192 caracteres, y las respuestas largas de NVIDIA pasan de 20 000.
+  Ahora se guardan en trozos por párrafos.
+- **Las citas de un documento adjunto ya no salen rotas.** Con un adjunto, Boorie daba por
+  inventadas todas las páginas que citaba el modelo, también las correctas, y al quitarlas dejaba
+  restos como «(ca‑78)» o paréntesis sin cerrar. Ahora una página impresa en lo que el modelo
+  leyó del adjunto cuenta como respaldo, los rangos «pp. 77‑78» se tratan enteros y el «p.» de
+  «cap.» ya no se toma por una cita.
+
+- **«Probar» en NVIDIA comprueba de verdad la clave.** Hasta ahora daba «conectado» con cualquier
+  texto en el campo, así que una clave mal pegada o caducada sólo se descubría al ver que el chat
+  no respondía. Ahora la prueba pregunta a NVIDIA y dice qué pasa: clave no válida, crédito o
+  límite de peticiones agotado, sin conexión o servicio caído. Si la clave no puede usar uno de
+  los modelos con los que responde Boorie, lo avisa y ese modelo deja de ofrecerse en «Modelo que
+  redacta las respuestas del chat».
+
 ## [1.45.0] - 2026-10-02
 
 Un problema o una mejora se reportan desde la propia aplicación, con «Ayuda y comentarios», y el historial de Acerca de muestra la fecha correcta.

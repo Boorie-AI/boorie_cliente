@@ -42,7 +42,17 @@
       "detalle": "{{nudos}} nudos · {{tuberias}} tuberías · {{km}} km de tubería"
     },
     "fueraDeDominio": "Eso queda fuera de lo que Boorie sabe: es un asistente de ingeniería hidráulica. Pregúntame por redes de agua, presiones, caudales, bombas, normativa o resultados de simulación.",
-    "fueraDeDominioConMotivo": "Eso queda fuera de lo que Boorie sabe ({{motivo}}). Es un asistente de ingeniería hidráulica: pregúntame por redes de agua, presiones, caudales, bombas, normativa o resultados de simulación."
+    "fueraDeDominioConMotivo": "Eso queda fuera de lo que Boorie sabe ({{motivo}}). Es un asistente de ingeniería hidráulica: pregúntame por redes de agua, presiones, caudales, bombas, normativa o resultados de simulación.",
+    "citas": {
+      "noEstaEnLoLeido": "[no está en lo que se ha leído del documento]"
+    },
+    "revision": {
+      "enCurso": "Revisando la respuesta contra el documento…",
+      "titulo": "Revisión contra el documento",
+      "contradice": "El documento dice otra cosa sobre",
+      "omite": "Falta:",
+      "pagina": "(p. {{pagina}})"
+    }
   },
   "settings": {
     "title": "Configuración",
@@ -122,6 +132,15 @@
     "systemPrompt": "Instrucciones del sistema"
   },
   "ai": {
+    "nvidia": {
+      "claveNoValida": "Clave no válida: NVIDIA la rechaza. Cópiala otra vez desde build.nvidia.com.",
+      "sinCredito": "La clave funciona, pero se ha agotado el crédito o el límite de peticiones de NVIDIA. Prueba más tarde o revisa tu cuenta en build.nvidia.com.",
+      "sinRed": "No se pudo conectar con NVIDIA. Revisa la conexión a internet.",
+      "noDisponible": "El servicio de NVIDIA no responde ahora mismo. Prueba más tarde.",
+      "sinAccesoATodos": "NVIDIA no ofrece a esta clave ninguno de los modelos con los que responde Boorie.",
+      "sinPrincipal": "Conectado, pero la clave no tiene acceso al modelo principal: sólo se puede usar el auxiliar.",
+      "sinAuxiliar": "Conectado, pero la clave no tiene acceso al modelo auxiliar: sólo se puede usar el principal."
+    },
     "localModels": "Modelos locales (Ollama)",
     "apiProviders": "Proveedores de API",
     "ollamaConfiguration": "Configuración de Ollama",

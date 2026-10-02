@@ -96,6 +96,13 @@ export interface SendChatMessageParams {
    * inyectado, no en la pregunta.
    */
   preguntaOriginal?: string
+  /**
+   * Sin razonamiento previo, para una tarea acotada como la revisión de una
+   * respuesta contra el documento. nemotron-3-super y -lightning gastaban los
+   * 8192 tokens razonando y no llegaban a escribir el JSON; ultra tardaba 140 s
+   * razonando y 25 s sin razonar, con el mismo resultado.
+   */
+  sinRazonar?: boolean
 }
 
 /**
@@ -104,6 +111,116 @@ export interface SendChatMessageParams {
  * como el caso del modelo que se queda pidiendo herramientas sin concluir.
  */
 const MAX_VUELTAS_HERRAMIENTAS = 4
+
+/**
+ * Cuántas veces se le pide al modelo que siga cuando corta por `max_tokens`.
+ * Con NVIDIA el razonamiento de nemotron gasta parte del tope sin que se vea, y
+ * los informes largos llegaban partidos a media frase. Es el último recurso:
+ * continuar cuesta reenviar el prompt entero y la costura se nota, así que lo
+ * primero es que el tope alcance (ver `sendNvidiaMessage`).
+ */
+const MAX_CONTINUACIONES = 2
+
+/**
+ * Con un «sigue donde lo dejaste» a secas, nemotron abría un título
+ * «Continuación del procedimiento…» y volvía a escribir media respuesta. Citarle
+ * el final exacto le da un punto de enganche que no tiene que adivinar.
+ */
+export function pedirContinuacion(previo: string): string {
+  return 'Te has quedado a medias. Tu respuesta termina exactamente así:\n\n'
+    + `«…${previo.slice(-300)}»\n\n`
+    + 'Escribe sólo lo que va justo después de ese final: sin título, sin introducción, sin repetir lo que ya está escrito.'
+}
+
+/** Un encabezado de «Continuación…» con el que el modelo retoma aunque se le pida que no. */
+const ENCABEZADO_DE_CONTINUACION = /^\s*(?:#{1,6}\s*)?[*_([]*\s*(?:continuaci[oó]n?|continuing|continued)\b[^\n]*\n+/i
+
+/**
+ * Una respuesta de /chat/completions recibida en streaming, con un límite por
+ * inactividad en lugar de uno total.
+ *
+ * Con el límite total de 240 s, nemotron-3-ultra se cortaba a punto de acabar:
+ * la misma pregunta sobre el libro de Walton tardó 122 s por la mañana y 250 s
+ * por la tarde, con datos llegando desde el segundo 3 —el razonamiento hasta el
+ * 96 y el texto después—. Lo que hay que vigilar es que el servidor siga
+ * mandando algo, no cuánto tarda en total. El tope total queda como red por si
+ * el servidor no para nunca.
+ *
+ * Devuelve lo mismo que la respuesta sin streaming, para que el resto del
+ * bucle —continuación, tokens, metadatos— no cambie.
+ */
+export async function leerRespuestaEnStreaming(
+  respuesta: { body: any },
+  controlador: AbortController,
+  inactividadMs: number,
+  mensajeDeInactividad: string
+): Promise<any> {
+  let temporizador: ReturnType<typeof setTimeout> | undefined
+  const vigilar = () => {
+    clearTimeout(temporizador)
+    temporizador = setTimeout(() => controlador.abort(new Error(mensajeDeInactividad)), inactividadMs)
+  }
+  vigilar()
+  const lector = respuesta.body.getReader()
+  const decodificador = new TextDecoder()
+  let pendiente = ''
+  let contenido = ''
+  let fin: string | undefined
+  let usage: any
+  let modelo: string | undefined
+  let creado: number | undefined
+  try {
+    for (;;) {
+      const { done, value } = await lector.read()
+      if (done) break
+      vigilar()
+      pendiente += decodificador.decode(value, { stream: true })
+      let salto: number
+      while ((salto = pendiente.indexOf('\n')) >= 0) {
+        const linea = pendiente.slice(0, salto).trim()
+        pendiente = pendiente.slice(salto + 1)
+        if (!linea.startsWith('data:')) continue
+        const datos = linea.slice(5).trim()
+        if (datos === '[DONE]') continue
+        let evento: any
+        try { evento = JSON.parse(datos) } catch { continue }
+        modelo = evento.model ?? modelo
+        creado = evento.created ?? creado
+        if (evento.usage) usage = evento.usage
+        const eleccion = evento.choices?.[0]
+        if (eleccion?.delta?.content) contenido += eleccion.delta.content
+        if (eleccion?.finish_reason) fin = eleccion.finish_reason
+      }
+    }
+  } catch (error) {
+    // El lector rechaza con el motivo del abort; ese es el mensaje que sirve.
+    const motivo = controlador.signal.reason
+    throw motivo instanceof Error ? motivo : error
+  } finally {
+    clearTimeout(temporizador)
+  }
+  return {
+    model: modelo,
+    created: creado,
+    usage: usage ?? {},
+    choices: [{ finish_reason: fin, message: { role: 'assistant', content: contenido } }],
+  }
+}
+
+/**
+ * Une un trozo con el siguiente. Aunque se le pide que no repita, el modelo
+ * suele retomar con unos puntos suspensivos y las últimas palabras del trozo
+ * anterior —«potencia,…medidor de potencia,»—, o con un título de
+ * «Continuación», así que se quitan. El solape mínimo es de unos caracteres
+ * para no comerse una coincidencia casual.
+ */
+export function unirContinuacion(previo: string, siguiente: string): string {
+  const sinPuntos = siguiente.replace(ENCABEZADO_DE_CONTINUACION, '').replace(/^\s*(?:…|\.{3})/, '')
+  for (let k = Math.min(sinPuntos.length, previo.length, 400); k >= 8; k--) {
+    if (previo.endsWith(sinPuntos.slice(0, k))) return previo + sinPuntos.slice(k)
+  }
+  return previo + sinPuntos
+}
 
 /**
  * Un modelo local tarda lo suyo, y con herramientas cada respuesta cuesta dos
@@ -169,7 +286,7 @@ export class ChatHandler {
   }
 
   private async sendChatMessage(params: SendChatMessageParams): Promise<IPCChatResponse> {
-    const { provider, model, messages, apiKey, projectId, preguntaOriginal, modeloEmbeddings } = params
+    const { provider, model, messages, apiKey, projectId, preguntaOriginal, modeloEmbeddings, sinRazonar } = params
 
     try {
       // Get system prompt from database and add it to messages if not already present
@@ -207,7 +324,7 @@ export class ChatHandler {
           result = await this.sendOllamaMessage(model, messagesWithSystemPrompt, apiKey || '', red)
           break
         case 'nvidia':
-          result = await this.sendNvidiaMessage(model, messagesWithSystemPrompt, apiKey, red)
+          result = await this.sendNvidiaMessage(model, messagesWithSystemPrompt, apiKey, red, sinRazonar)
           break
         default:
           throw new Error(`Unsupported chat provider: ${provider}`)
@@ -593,6 +710,13 @@ export class ChatHandler {
       extraerError: (errorData: any, status: number) => string
       lanzarError: (status: number, errorMessage: string) => never
       modeloDeLaRespuesta: boolean
+      /**
+       * Con esto, las vueltas sin herramientas van en streaming y `timeout` pasa
+       * a ser el tope total: sólo se corta si el servidor deja de mandar datos
+       * este tiempo (`leerRespuestaEnStreaming`). Con herramientas sigue sin
+       * streaming, porque las llamadas llegan troceadas y no compensa.
+       */
+      inactividadMs?: number
     },
     model: string,
     messages: ChatMessage[],
@@ -606,6 +730,8 @@ export class ChatHandler {
     let vueltas = 0
     let ultima: any = null
     let tokens = 0
+    const partes: string[] = []
+    let continuaciones = 0
 
     for (;;) {
       const requestBody: any = {
@@ -615,19 +741,42 @@ export class ChatHandler {
         ...cfg.cuerpoExtra,
       }
       if (usarHerramientas) requestBody.tools = herramientasOpenAI(HERRAMIENTAS)
+      const enStreaming = !!cfg.inactividadMs && !usarHerramientas
+      if (enStreaming) {
+        requestBody.stream = true
+        requestBody.stream_options = { include_usage: true }
+      }
 
       logger.debug(`${cfg.proveedor} API Request via backend`, {
         model,
         messagesCount: historial.length,
         herramientas: usarHerramientas,
+        streaming: enStreaming,
       })
 
-      const response = await fetch(cfg.url, {
-        method: 'POST',
-        headers: cfg.cabeceras,
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(cfg.timeout)
-      })
+      const controlador = new AbortController()
+      const tope = setTimeout(() => controlador.abort(new Error(`${cfg.proveedor} timed out: no terminó en ${Math.round(cfg.timeout / 1000)} s`)), cfg.timeout)
+      const mensajeDeInactividad = `${cfg.proveedor} timed out: ${Math.round((cfg.inactividadMs ?? 0) / 1000)} s sin enviar nada`
+      let response: Response
+      let data: any
+      try {
+        response = await fetch(cfg.url, {
+          method: 'POST',
+          headers: { ...cfg.cabeceras, ...(enStreaming ? { Accept: 'text/event-stream' } : {}) },
+          body: JSON.stringify(requestBody),
+          signal: controlador.signal,
+        })
+        if (response.ok) {
+          data = enStreaming
+            ? await leerRespuestaEnStreaming(response, controlador, cfg.inactividadMs!, mensajeDeInactividad)
+            : await response.json()
+        }
+      } catch (error) {
+        const motivo = controlador.signal.reason
+        throw motivo instanceof Error ? motivo : error
+      } finally {
+        clearTimeout(tope)
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({})) as any
@@ -642,15 +791,30 @@ export class ChatHandler {
           continue
         }
 
+        // Si falla una continuación, mejor la respuesta cortada que ninguna.
+        if (continuaciones > 0) {
+          logger.warn(`${cfg.proveedor} falla al continuar la respuesta, se entrega lo que hay`, { model, errorMessage })
+          break
+        }
+
         cfg.lanzarError(response.status, errorMessage)
       }
 
-      const data = await response.json() as any
       ultima = data
       tokens += data.usage?.total_tokens || 0
 
       const llamadas = usarHerramientas ? llamadasDesdeOpenAI(data) : []
-      if (llamadas.length === 0) break
+      if (llamadas.length === 0) {
+        const texto = data.choices?.[0]?.message?.content || ''
+        partes.push(texto)
+        if (data.choices?.[0]?.finish_reason !== 'length' || continuaciones >= MAX_CONTINUACIONES) break
+
+        continuaciones++
+        logger.info(`${cfg.proveedor} cortó por longitud, se le pide que siga`, { model, continuaciones })
+        usarHerramientas = false
+        historial.push({ role: 'assistant', content: texto }, { role: 'user', content: pedirContinuacion(texto) })
+        continue
+      }
 
       historial.push(data.choices[0].message)
       const resultados = await this.ejecutarLlamadas(llamadas, red!)
@@ -664,7 +828,7 @@ export class ChatHandler {
     }
 
     return {
-      response: ultima?.choices?.[0]?.message?.content || `No response from ${cfg.proveedor}`,
+      response: partes.reduce(unirContinuacion, '') || `No response from ${cfg.proveedor}`,
       metadata: {
         model: cfg.modeloDeLaRespuesta ? (ultima?.model || model) : model,
         provider: cfg.proveedor,
@@ -672,6 +836,7 @@ export class ChatHandler {
         usage: ultima?.usage || {},
         finish_reason: ultima?.choices?.[0]?.finish_reason,
         vueltas_herramientas: vueltas,
+        ...(continuaciones > 0 ? { continuaciones } : {}),
         ...(propuestaEscenario ? { propuesta_escenario: propuestaEscenario } : {}),
         created_at: ultima?.created ? new Date(ultima.created * 1000).toISOString() : new Date().toISOString(),
       }
@@ -992,7 +1157,8 @@ export class ChatHandler {
     model: string,
     messages: ChatMessage[],
     apiKey: string,
-    red?: RedParaHerramientas | null
+    red?: RedParaHerramientas | null,
+    sinRazonar?: boolean
   ): Promise<ChatResponse> {
     return this.enviarOpenAICompat({
       url: 'https://integrate.api.nvidia.com/v1/chat/completions',
@@ -1002,8 +1168,19 @@ export class ChatHandler {
         'Authorization': `Bearer ${apiKey}`,
         'Accept': 'application/json',
       },
-      cuerpoExtra: { max_tokens: 4096, temperature: 0.5, top_p: 1 },
-      timeout: 120000, // 120 second timeout for Nvidia
+      // Medido con nemotron-3-super: 4096 tokens en 56 s. Con 4096 las
+      // respuestas largas se cortaban y había que continuar, y la costura se
+      // notaba; 8192 caben de sobra en 240 s. La temperatura baja de 0,5 a 0,2
+      // porque aquí se responde sobre documentos y normas, no se redacta: con
+      // más, nemotron-3-ultra rellenaba con páginas y referencias de memoria.
+      // `/no_think` en el sistema no hace nada con nemotron-3; esto sí (comprobado: 0 tokens de razonamiento).
+      cuerpoExtra: {
+        max_tokens: 8192, temperature: 0.2, top_p: 1,
+        ...(sinRazonar ? { chat_template_kwargs: { enable_thinking: false } } : {}),
+      },
+      // En streaming esto es el tope total; lo que corta es la inactividad.
+      timeout: 600000,
+      inactividadMs: 90000,
       modeloDeLaRespuesta: true,
       extraerError: (errorData, status) => errorData.detail || errorData.title || `Error ${status}`,
       lanzarError: (status, errorMessage) => {

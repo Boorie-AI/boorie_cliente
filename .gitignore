@@ -74,6 +74,9 @@ coverage/
 # Database files
 *.db
 *.db-journal
+# Los de la base en modo WAL (electron/baseSqlite.ts): llevan lo último guardado.
+*.db-wal
+*.db-shm
 rag-knowledge/
 /data
 

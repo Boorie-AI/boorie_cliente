@@ -42,7 +42,17 @@
       "detalle": "{{nudos}} junctions · {{tuberias}} pipes · {{km}} km of pipe"
     },
     "fueraDeDominio": "That is outside what Boorie knows: it is a hydraulic engineering assistant. Ask me about water networks, pressures, flows, pumps, regulations or simulation results.",
-    "fueraDeDominioConMotivo": "That is outside what Boorie knows ({{motivo}}). It is a hydraulic engineering assistant: ask me about water networks, pressures, flows, pumps, regulations or simulation results."
+    "fueraDeDominioConMotivo": "That is outside what Boorie knows ({{motivo}}). It is a hydraulic engineering assistant: ask me about water networks, pressures, flows, pumps, regulations or simulation results.",
+    "citas": {
+      "noEstaEnLoLeido": "[not in the part of the document that was read]"
+    },
+    "revision": {
+      "enCurso": "Checking the answer against the document…",
+      "titulo": "Checked against the document",
+      "contradice": "The document says otherwise about",
+      "omite": "Missing:",
+      "pagina": "(p. {{pagina}})"
+    }
   },
   "settings": {
     "title": "Settings",
@@ -122,6 +132,15 @@
     "systemPrompt": "System prompt"
   },
   "ai": {
+    "nvidia": {
+      "claveNoValida": "Invalid key: NVIDIA rejects it. Copy it again from build.nvidia.com.",
+      "sinCredito": "The key works, but the NVIDIA credit or request limit has run out. Try again later or check your account at build.nvidia.com.",
+      "sinRed": "Could not connect to NVIDIA. Check your internet connection.",
+      "noDisponible": "The NVIDIA service is not responding right now. Try again later.",
+      "sinAccesoATodos": "NVIDIA does not offer this key any of the models Boorie answers with.",
+      "sinPrincipal": "Connected, but the key has no access to the main model: only the auxiliary one can be used.",
+      "sinAuxiliar": "Connected, but the key has no access to the auxiliary model: only the main one can be used."
+    },
     "localModels": "Local models (Ollama)",
     "apiProviders": "API providers",
     "ollamaConfiguration": "Ollama configuration",

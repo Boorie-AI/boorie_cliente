@@ -224,7 +224,9 @@ tenía ninguna respuesta con fórmulas, y la conversación que sí las tenía vi
 `prisma/hydraulic.db`. Un cero así se lee como que el cambio no viajó, y no era eso.
 
 Se arregla lanzando el paquete sobre una carpeta de datos aparte con una base pequeña sembrada con
-el caso, copiado de la base de desarrollo. La base se crea con las mismas sentencias que usa la
+el caso, copiado de la base de desarrollo. La base va en modo WAL (`electron/baseSqlite.ts`): leerla
+con `sqlite3`, como abajo, lee también lo que está en `hydraulic.db-wal`; copiar sólo el `.db` con la
+aplicación abierta, o tras un cierre brusco, se deja fuera lo último que se guardó. La base se crea con las mismas sentencias que usa la
 aplicación empaquetada, así que es la que tendría una instalación nueva:
 
 ```bash

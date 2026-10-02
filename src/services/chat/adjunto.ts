@@ -13,6 +13,8 @@
  * más se parecen a la pregunta, diciéndoselo al modelo y al usuario.
  */
 
+import { paginasDeLosFragmentos, etiquetaDePaginas } from './paginasDelAdjunto'
+
 export interface Adjunto {
   nombre: string
   texto: string
@@ -27,6 +29,14 @@ export interface SeleccionDeAdjunto {
   total: number
   /** Los fragmentos van agrupados por la consulta que los encontró. */
   agrupado?: boolean
+  /**
+   * Las páginas impresas de lo que lee el modelo, si el documento tiene
+   * cabeceras de las que sacarlas (`paginasDelAdjunto`). Son las únicas que
+   * puede citar con fundamento.
+   */
+  paginas?: number[]
+  /** Cada fragmento lleva delante su página, «[p. 78]». */
+  paginado?: boolean
 }
 
 /** Lo que queda anotado en la respuesta para decirle al usuario cuánto se leyó. */
@@ -66,8 +76,14 @@ export function estimarTokens(texto: string): number {
  * de ese tamaño Ollama no recorta con cuidado: se queda con el principio y el
  * final del prompt.
  */
-/** Los proveedores en la nube admiten mucho más; esto es un tope prudente. */
-export const CONTEXTO_EN_LA_NUBE = 32000
+/**
+ * Los proveedores en la nube admiten mucho más; esto es un tope prudente. Era
+ * 32 000, y con el libro de Walton dejaba fuera de la pregunta por la prueba
+ * escalonada la ecuación 4.2, la tabla 2.1 o el criterio de C, según cómo
+ * cayera el corte: los pasajes buenos estaban justo en el límite. Con 48 000
+ * entran todos (medido con los vectores de granite-embedding de la app).
+ */
+export const CONTEXTO_EN_LA_NUBE = 48000
 /**
  * Lo que se deja para que el modelo escriba la respuesta: la sexta parte del
  * contexto, y nunca menos de 700. Una pregunta que pide tablas, fórmulas y
@@ -147,6 +163,33 @@ function terminos(pregunta: string): Array<{ termino: string; identificador: boo
 const escapar = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 const VECINOS_POSTERIORES = 6
+
+/**
+ * Hasta dónde se mira en el fragmento siguiente para acabar la frase. Los
+ * fragmentos se cortan por líneas, no por frases, y lo que queda al otro lado
+ * no se parece a la pregunta por sí solo: en el libro de Walton entraba la
+ * ecuación 4.2 y se quedaba fuera la frase que la sigue —«Values of C … are
+ * generally less than 10 sec²/ft⁵»—, el único criterio del libro sobre el
+ * estado del pozo, en el puesto 173 de 621 con 102 plazas. Los modelos se
+ * inventaban el umbral.
+ */
+const TOKENS_PARA_ACABAR_LA_FRASE = 120
+
+/**
+ * El principio del fragmento siguiente, hasta el primer final de frase: un
+ * punto seguido de espacio o de fin de línea, no el de «2.0». Si la frase no
+ * acaba dentro del tope, no se añade nada.
+ */
+export function finDeLaFrase(siguiente: string | undefined): string {
+  if (!siguiente) return ''
+  const fin = /[.!?](?=\s|$)/g
+  for (let m = fin.exec(siguiente); m; m = fin.exec(siguiente)) {
+    const cola = siguiente.slice(0, m.index + 1)
+    if (estimarTokens(cola) > TOKENS_PARA_ACABAR_LA_FRASE) return ''
+    if (cola.trim()) return cola
+  }
+  return ''
+}
 
 /**
  * «¿De qué habla el capítulo 4?» no se responde buscando palabras (#204).
@@ -528,12 +571,25 @@ export function seleccionarFragmentos(
 ): SeleccionDeAdjunto {
   const fragmentos = trocear(texto)
   const total = fragmentos.length
+  const paginas = paginasDeLosFragmentos(texto, fragmentos)
+  const paginasDe = (indices: number[]) => {
+    const todas = new Set<number>()
+    for (const i of indices) {
+      const r = paginas[i]
+      if (r) for (let p = r.desde; p <= r.hasta; p++) todas.add(p)
+    }
+    return todas.size ? { paginas: [...todas].sort((a, b) => a - b) } : {}
+  }
   if (estimarTokens(texto) <= presupuesto) {
-    return { texto, completo: true, incluidos: total, total }
+    // Entero ya lleva sus propias cabeceras dentro: no hace falta marcarlo.
+    return { texto, completo: true, incluidos: total, total, ...paginasDe(fragmentos.map((_, i) => i)) }
   }
 
-  // El separador «[…]» y el salto de línea entre fragmentos también cuentan.
-  const tamanos = fragmentos.map(f => estimarTokens(f) + 4)
+  // El separador «[…]» y el salto de línea entre fragmentos también cuentan, y
+  // el final de la frase que sigue, por si el siguiente no entra.
+  const colas = fragmentos.map((_, i) => finDeLaFrase(fragmentos[i + 1]))
+  const etiquetas = paginas.map(r => (r ? etiquetaDePaginas(r) : ''))
+  const tamanos = fragmentos.map((f, i) => estimarTokens(f) + estimarTokens(colas[i]) + estimarTokens(etiquetas[i]) + 4)
   const normalizados = fragmentos.map(normalizar)
   const estructura = puntosPorEstructura(fragmentos, referenciasALaEstructura(pregunta))
   const busquedas: ConsultaDelAdjunto[] = [{ texto: pregunta, similitudes }, ...consultas]
@@ -571,10 +627,23 @@ export function seleccionarFragmentos(
     })
   }
 
-  const juntar = (indices: number[]) => indices.flatMap((i, n) =>
-    n > 0 && indices[n - 1] !== i - 1 ? ['[…]', fragmentos[i]] : [fragmentos[i]]).join('\n')
+  const juntar = (indices: number[]) => {
+    let anterior = ''
+    return indices.flatMap((i, n) => {
+      const salto = n > 0 && indices[n - 1] !== i - 1
+      // La página se repite tras un salto y cuando cambia; en lo seguido de la misma página, no.
+      const etiqueta = etiquetas[i] && (salto || n === 0 || etiquetas[i] !== anterior) ? etiquetas[i] : ''
+      anterior = etiquetas[i]
+      const cuerpo = indices[n + 1] === i + 1 || !colas[i] ? fragmentos[i] : `${fragmentos[i]}\n${colas[i]}`
+      const conEtiqueta = etiqueta ? `${etiqueta}\n${cuerpo}` : cuerpo
+      return salto ? ['[…]', conEtiqueta] : [conEtiqueta]
+    }).join('\n')
+  }
   const todos = [...de.keys()].sort((a, b) => a - b)
-  if (!agrupar) return { texto: juntar(todos), completo: false, incluidos: todos.length, total }
+  // Las páginas del final de frase añadido también se leyeron.
+  const leidos = [...new Set(todos.flatMap(i => (colas[i] ? [i, i + 1] : [i])))]
+  const marcado = etiquetas.some(Boolean) ? { ...paginasDe(leidos), paginado: true } : {}
+  if (!agrupar) return { texto: juntar(todos), completo: false, incluidos: todos.length, total, ...marcado }
 
   const grupos = listas.map((_, k) => todos.filter(i => de.get(i) === k))
   const partes = grupos.flatMap((indices, k) => (indices.length ? [`${encabezado(k)}\n${juntar(indices)}`] : []))
@@ -584,6 +653,7 @@ export function seleccionarFragmentos(
     incluidos: todos.length,
     total,
     ...(partes.length > 1 ? { agrupado: true } : {}),
+    ...marcado,
   }
 }
 
@@ -598,10 +668,13 @@ export function bloqueParaElModelo({ nombre, ocr }: Pick<Adjunto, 'nombre' | 'oc
   const aviso = seleccion.completo
     ? ''
     : `El documento no cabe entero en tu contexto. Solo tienes ${seleccion.incluidos} de sus ${seleccion.total} fragmentos, los más relacionados con la pregunta; «[…]» marca lo que falta.${seleccion.agrupado ? ' Van agrupados por la búsqueda que los encontró: usa cada grupo para la parte de la pregunta a la que corresponde.' : ''} Si la respuesta no está en ellos, di que no aparece en lo que has podido leer.\n\n`
+  const deLasPaginas = seleccion.paginado
+    ? 'Delante de cada fragmento va, entre corchetes, la página del documento impreso en la que está: «[p. 78]» o «[pp. 76-77]». Si citas una página, copia una de esas; no cites ninguna que no veas marcada así.\n\n'
+    : ''
   const deOcr = ocr
     ? `El documento es un escaneado leído con OCR (confianza ${ocr.confianza} %): puede tener cifras mal leídas. Si usas una, di que sale de un escaneado leído con OCR.\n\n`
     : ''
-  return `=== DOCUMENTO ADJUNTO: ${nombre} ===\n${deOcr}${aviso}${seleccion.texto}\n=== FIN DEL DOCUMENTO ===\n\n`
+  return `=== DOCUMENTO ADJUNTO: ${nombre} ===\n${deOcr}${aviso}${deLasPaginas}${seleccion.texto}\n=== FIN DEL DOCUMENTO ===\n\n`
 }
 
 /**

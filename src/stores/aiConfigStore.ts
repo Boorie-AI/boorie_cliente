@@ -239,6 +239,13 @@ export const useAIConfigStore = create<AIConfigState>()(
           if (result?.success) {
             // Fetch models after successful connection
             await get().refreshProviderModels(providerId)
+            // Una prueba que pasa también puede traer un aviso (p. ej. NVIDIA sin
+            // acceso a uno de los modelos), que no debe tapar el «conectado» genérico.
+            if (result.message?.startsWith('ai.')) {
+              set(state => ({
+                providers: state.providers.map(p => p.id === providerId ? { ...p, testMessage: result.message } : p)
+              }))
+            }
             return true
           } else {
             get().updateProviderConnection(providerId, false, 'error', result?.message || 'Connection failed')

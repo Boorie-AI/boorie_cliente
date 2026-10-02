@@ -56,6 +56,19 @@ const HERRAMIENTAS = [
   'Los analisis que simulan se proponen y los ejecuta el usuario. Explica que has preparado y por que hay que confirmarlo, para que la espera no parezca un fallo.',
 ].join('\n- ')
 
+/**
+ * Con el libro de Walton adjunto, nemotron-3-super atribuyo al documento un
+ * «C < 1 x 10^-8 sec2/ft5» —el libro dice menos de 10— y una eficiencia
+ * aceptable del 70 % «segun Walton y la OMS», y citaba normas que no existen.
+ * kimi-k3, con los mismos fragmentos, avisaba de que su umbral «no es cifra del
+ * documento». Esa es la diferencia que hay que pedir.
+ */
+const DOCUMENTOS = [
+  'Lo que atribuyas a un documento o a una fuente tiene que estar en lo que has leido de ella. Si no esta, di que no aparece en lo que has leido.',
+  'Lo que venga de la practica general, de otra norma o de tu conocimiento, dilo asi («practica general, no del documento») y no se lo atribuyas al documento.',
+  'No cites normas, ecuaciones, tablas ni paginas que no tengas delante. Si citas una pagina, que sea una de las marcadas en los fragmentos.',
+].join('\n- ')
+
 /** El papel, que es lo unico que el usuario suele querer cambiar. */
 export const PAPEL =
   'Eres el asistente de Boorie, especializado en ingenieria hidraulica: redes de distribucion, ' +
@@ -72,6 +85,9 @@ export const DISCIPLINA = [
   '',
   'La red y las herramientas',
   `- ${HERRAMIENTAS}`,
+  '',
+  'Documentos y fuentes',
+  `- ${DOCUMENTOS}`,
   '',
   'Responde en el idioma en el que te escriban.',
 ].join('\n')

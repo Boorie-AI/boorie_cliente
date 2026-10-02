@@ -28,7 +28,8 @@ describe('elegir el modelo que redacta', () => {
     await waitFor(() => expect(screen.getByRole('option', { name: /Automático.*nemotron-mini/ })).toBeInTheDocument())
 
     const opciones = screen.getAllByRole('option').map(o => o.textContent)
-    expect(opciones).toEqual(['Automático (recomendado): nemotron-mini', 'qwen2.5:7b', 'llama3.2:latest', 'Claude Sonnet 5'])
+    // El nombre de un externo puede ser genérico («Nemotron (principal)»): va con su id.
+    expect(opciones).toEqual(['Automático (recomendado): nemotron-mini', 'qwen2.5:7b', 'llama3.2:latest', 'Claude Sonnet 5 — claude-sonnet-5'])
   })
 
   it('con uno externo avisa de que los documentos salen del equipo, y lo guarda', async () => {
