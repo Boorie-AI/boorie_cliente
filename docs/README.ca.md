@@ -39,15 +39,21 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.44.0
+### 🚀 Última Versió - v1.45.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.44.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.44.0/Boorie-1.44.0-arm64.dmg) | ~324 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.44.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.44.0/Boorie-Setup-1.44.0.exe) | ~252 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.44.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.44.0/Boorie-1.44.0.AppImage) | ~403 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.45.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.45.0/Boorie-1.45.0-arm64.dmg) | ~324 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.45.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.45.0/Boorie-Setup-1.45.0.exe) | ~252 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.45.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.45.0/Boorie-1.45.0.AppImage) | ~403 MB |
 
 
+
+### 📝 Novetats a v1.45.0
+- Informar d'un problema o suggerir una millora des de la mateixa aplicació. «Ajuda i comentaris» és al peu de la barra lateral, a qualsevol pantalla, i a Configuració → Quant a. El formulari s'obre damunt del que estiguis fent, sense perdre-ho. «Obre a GitHub» deixa l'issue redactat amb la plantilla de l'equip, i «Copia l’informe» el copia per a qui no tingui compte de GitHub.
+- Si marques «Inclou informació tècnica», l'informe afegeix la versió, el sistema, Python, la pantalla on eres i els últims avisos de l'aplicació, sense rutes personals ni correus, i abans d'enviar-lo pots veure exactament què s'enviarà.
+- A Quant a apareixen el sistema i la versió de Python que fa servir Boorie, i l'historial de versions mostra la data correcta —a Amèrica sortia el dia anterior— i sense els asteriscs del format.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.45.0).
 
 ### 📝 Novetats a v1.44.0
 - «Instal·la les dependències» torna a funcionar en la primera arrencada. La finestra «S’està preparant Boorie» sortia alhora que l'avís «Abans de començar» i es pintava al damunt, però l'avís seguia obert a sota i es quedava els clics: el botó no feia res, no sortia cap progrés i `pymilvus` seguia pendent, així que la base de coneixement no podia indexar. Ara l'avís surt primer i la finestra de Python apareix en acceptar-lo.
@@ -467,12 +473,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.44.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.44.0.AppImage`
-3. Executa: `./Boorie-1.44.0.AppImage`
+1. Descarrega `Boorie-1.45.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.45.0.AppImage`
+3. Executa: `./Boorie-1.45.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.44.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.45.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 
