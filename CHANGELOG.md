@@ -9,6 +9,24 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **Reportar un problema o sugerir una mejora desde la propia aplicación.** Hasta ahora no había
+  ningún canal dentro de Boorie: los fallos llegaban por correo o mensajes, sin versión ni sistema,
+  y había que volver a preguntar. Ahora hay «Ayuda y comentarios» al pie de la barra lateral,
+  desde cualquier pantalla, y en Configuración → Acerca de. Abre un formulario sencillo encima de
+  lo que estés haciendo, sin perderlo. Al terminar, «Abrir en GitHub» deja el issue redactado con
+  la plantilla del equipo, y «Copiar informe» lo copia para enviarlo por otro canal a quien no
+  tenga cuenta de GitHub. Si marcas «Incluir información técnica», el reporte añade la versión, el
+  sistema, Python, la pantalla en la que estabas y los últimos avisos de la aplicación, sin rutas
+  personales ni correos. Antes de enviarlo puedes ver exactamente qué se mandará. El formulario
+  avisa de que el reporte será público. También puedes copiar una captura de la pantalla para
+  pegarla en GitHub. En Acerca de aparece además el sistema y la versión de Python que usa Boorie.
+- **El historial de versiones de Acerca de muestra la fecha correcta y sin asteriscos.** En
+  América cada versión aparecía con el día anterior —la v1.44.0, del 1 de octubre, decía
+  «30 sept»— porque la fecha se leía como medianoche de Greenwich. Y las notas enseñaban los `**`
+  y `*` con los que se escriben, en lugar de la negrita y la cursiva.
+
 ## [1.44.0] - 2026-10-01
 
 «Instalar dependencias» vuelve a funcionar en el primer arranque, y en Linux el dock muestra el logo de Boorie.

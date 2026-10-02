@@ -2,6 +2,7 @@ import { useAppStore } from '@/stores/appStore'
 import { useChatStore } from '@/stores/chatStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { usePreferencesStore } from '@/stores/preferencesStore'
+import { useAyudaStore } from '@/stores/ayudaStore'
 import { useTranslation } from 'react-i18next'
 import {
   MessageSquare,
@@ -14,7 +15,8 @@ import {
   Calculator,
   Network,
   Play,
-  Lock
+  Lock,
+  HelpCircle
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { usePrecondiciones } from '@/hooks/usePrecondiciones'
@@ -57,6 +59,7 @@ export function Sidebar() {
   const currentProjectId = useProjectStore(s => s.currentProjectId)
   const nombreProyecto = useProjectStore(s => s.currentProject?.name)
   const { theme } = usePreferencesStore()
+  const abrirAyuda = useAyudaStore(s => s.abrir)
 
   const donde = { vista: currentView, ambitoChat, seccionRed }
 
@@ -263,6 +266,33 @@ export function Sidebar() {
           </div>
         )}
 
+        {/* No es una vista sino una acción: abre el formulario encima de la
+            pantalla actual, así que no va en NAVEGACION (#217). */}
+        <div className="mt-auto p-3 border-t border-border/50 flex-shrink-0">
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <button
+                type="button"
+                data-testid="sidebar-ayuda"
+                onClick={() => { void abrirAyuda('bug') }}
+                aria-label={t('ayuda.entrada')}
+                className={cn(
+                  "w-full flex items-center rounded-lg p-3 transition-all duration-200",
+                  "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  sidebarCollapsed && "justify-center"
+                )}
+              >
+                <HelpCircle size={20} />
+                {!sidebarCollapsed && <span className="ml-3 font-medium">{t('ayuda.entrada')}</span>}
+              </button>
+            </Tooltip.Trigger>
+            {sidebarCollapsed && (
+              <Tooltip.Content side="right" className="px-2 py-1 bg-popover text-popover-foreground text-sm rounded-md border border-border shadow-md">
+                {t('ayuda.entrada')}
+              </Tooltip.Content>
+            )}
+          </Tooltip.Root>
+        </div>
       </div>
     </Tooltip.Provider>
   )

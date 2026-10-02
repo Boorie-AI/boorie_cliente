@@ -94,3 +94,38 @@ export function isChangelogInSync(entries: ChangelogEntry[], appVersion: string)
   // La app puede correr como 1.5.1-rc.9 mientras el changelog documenta la 1.5.1.
   return entries[0].version === appVersion.replace(/-.*$/, '')
 }
+
+export interface TrozoEnLinea {
+  tipo: 'texto' | 'negrita' | 'cursiva' | 'codigo'
+  texto: string
+}
+
+// El CHANGELOG usa **negrita**, *cursiva* y `código` dentro de las viñetas. Pintado
+// como texto plano, el historial enseñaba los asteriscos. Lo que no cierra se deja
+// tal cual: es preferible un asterisco suelto a perder texto.
+const EN_LINEA = /\*\*([^*]+?)\*\*|`([^`]+)`|\*([^*\s][^*]*?)\*/g
+
+export function trocearEnLinea(texto: string): TrozoEnLinea[] {
+  const trozos: TrozoEnLinea[] = []
+  let ultimo = 0
+  for (const m of texto.matchAll(EN_LINEA)) {
+    const inicio = m.index ?? 0
+    if (inicio > ultimo) trozos.push({ tipo: 'texto', texto: texto.slice(ultimo, inicio) })
+    if (m[1] !== undefined) trozos.push({ tipo: 'negrita', texto: m[1] })
+    else if (m[2] !== undefined) trozos.push({ tipo: 'codigo', texto: m[2] })
+    else trozos.push({ tipo: 'cursiva', texto: m[3] })
+    ultimo = inicio + m[0].length
+  }
+  if (ultimo < texto.length) trozos.push({ tipo: 'texto', texto: texto.slice(ultimo) })
+  return trozos
+}
+
+/**
+ * `new Date('2026-10-01')` es la medianoche UTC, y al pintarla en una zona al oeste
+ * de Greenwich sale el día anterior: la v1.44.0 aparecía como «30 sept». Una fecha
+ * sin hora se construye en la zona local.
+ */
+export function fechaDeChangelog(iso: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(iso)
+}

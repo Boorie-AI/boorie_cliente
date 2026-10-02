@@ -402,8 +402,11 @@ import { reconstruirSiHaceFalta } from '../backend/services/hydraulic/hybridSear
 import { startMilvusServer, stopMilvusServer } from './services/milvusProcess'
 import { ensureProductionSchema } from './esquemaProduccion'
 import { instalarEntradaEscritorio } from './integracionEscritorio'
+import { capturarConsolaDelMain } from '../backend/services/feedback/registroReciente'
+import { escucharConsolaDelRenderer, registerFeedbackHandlers } from './handlers/feedback.handler'
 
 log.transports.file.level = 'info'
+capturarConsolaDelMain()
 autoUpdater.logger = log
 
 // Detect development mode by checking if we're not packaged
@@ -599,6 +602,8 @@ function createWindow(): void {
     }
   })
 
+  escucharConsolaDelRenderer(mainWindow.webContents)
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
@@ -672,6 +677,8 @@ async function initializeApplication(): Promise<void> {
     } catch (error) {
       appLogger.warn('Setup handlers registration failed', error as Error)
     }
+
+    registerFeedbackHandlers(() => mainWindow, app.getPath('userData'))
 
     // Start the embedded Milvus Lite server. Both this process and the
     // spawned Python script read/write under BOORIE_DATA_DIR (Resources/

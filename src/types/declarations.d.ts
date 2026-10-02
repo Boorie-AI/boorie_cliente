@@ -70,6 +70,7 @@ interface Window {
       query: (prompt: string, options?: any) => Promise<any>;
       modelos: () => Promise<any>;
     };
+    feedback?: import('./feedback').FeedbackAPI;
     [key: string]: any;
   };
 }

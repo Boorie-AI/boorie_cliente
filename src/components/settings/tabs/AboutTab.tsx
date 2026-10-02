@@ -1,17 +1,33 @@
 import { useTranslation } from 'react-i18next'
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, ExternalLink } from 'lucide-react'
+import { AlertTriangle, Bug, ExternalLink, Lightbulb } from 'lucide-react'
 import changelogRaw from '../../../../CHANGELOG.md?raw'
-import { parseChangelog, isChangelogInSync } from '../../../utils/changelog'
+import { parseChangelog, isChangelogInSync, trocearEnLinea, fechaDeChangelog } from '../../../utils/changelog'
+import { useAyudaStore } from '@/stores/ayudaStore'
 
 const NOTAS_GITHUB = 'https://github.com/Boorie-AI/boorie_cliente/blob/main/CHANGELOG.md'
 
 /** Una versión con sufijo (1.5.1-rc.9) es una candidata, no una liberación estable. */
 const esPrerelease = (v: string) => v.includes('-')
 
+function TextoChangelog({ texto }: { texto: string }) {
+  return (
+    <>
+      {trocearEnLinea(texto).map((t, i) =>
+        t.tipo === 'negrita' ? <strong key={i} className="font-semibold text-foreground">{t.texto}</strong>
+          : t.tipo === 'cursiva' ? <em key={i}>{t.texto}</em>
+            : t.tipo === 'codigo' ? <code key={i} className="rounded bg-muted px-1 font-mono text-[12px]">{t.texto}</code>
+              : t.texto
+      )}
+    </>
+  )
+}
+
 export function AboutTab() {
   const { t, i18n } = useTranslation()
   const [version, setVersion] = useState<string | null>(null)
+  const [entorno, setEntorno] = useState<{ so: string; python: string | null } | null>(null)
+  const abrirAyuda = useAyudaStore(s => s.abrir)
 
   useEffect(() => {
     // Misma fuente que consume electron-builder para nombrar el instalador, así
@@ -19,13 +35,16 @@ export function AboutTab() {
     window.electronAPI?.getAppVersion?.()
       .then((v: string) => setVersion(v))
       .catch(() => setVersion(null))
+    window.electronAPI?.feedback?.getEnvironment('settings:about')
+      .then(r => { if (r.success) setEntorno({ so: r.entorno.so, python: r.entorno.python }) })
+      .catch(() => setEntorno(null))
   }, [])
 
   const entries = useMemo(() => parseChangelog(changelogRaw), [])
   const sincronizado = version ? isChangelogInSync(entries, version) : true
 
   const fechaLarga = (iso: string) =>
-    new Date(iso).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' })
+    fechaDeChangelog(iso).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' })
 
   return (
     <div className="h-full overflow-y-auto p-6 space-y-6">
@@ -60,8 +79,45 @@ export function AboutTab() {
                     : t('settings.about.channelStable')}
                 </div>
               </div>
+              <div>
+                <div className="text-xs text-muted-foreground">{t('settings.about.environment')}</div>
+                <div className="text-sm font-semibold text-foreground" data-testid="entorno">
+                  {entorno
+                    ? `${entorno.so} · ${entorno.python ?? t('settings.about.noPython')}`
+                    : t('settings.about.loading')}
+                </div>
+              </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h3 className="text-base font-semibold text-foreground">{t('ayuda.tarjetaTitulo')}</h3>
+        <p className="mt-1 text-xs text-muted-foreground">{t('ayuda.tarjetaDesc')}</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => abrirAyuda('bug')}
+            className="flex items-center gap-3 rounded-lg bg-primary px-4 py-3 text-left text-primary-foreground hover:bg-primary/90"
+          >
+            <Bug size={20} className="shrink-0" />
+            <span>
+              <span className="block text-sm font-semibold">{t('ayuda.reportar')}</span>
+              <span className="block text-xs opacity-80">{t('ayuda.reportarDesc')}</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => abrirAyuda('mejora')}
+            className="flex items-center gap-3 rounded-lg border border-border px-4 py-3 text-left text-foreground hover:bg-accent"
+          >
+            <Lightbulb size={20} className="shrink-0" />
+            <span>
+              <span className="block text-sm font-semibold">{t('ayuda.sugerir')}</span>
+              <span className="block text-xs text-muted-foreground">{t('ayuda.sugerirDesc')}</span>
+            </span>
+          </button>
         </div>
       </div>
 
@@ -113,12 +169,12 @@ export function AboutTab() {
                     {e.date && <span className="text-xs text-muted-foreground">{fechaLarga(e.date)}</span>}
                   </div>
                   {e.summary && (
-                    <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{e.summary}</p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground"><TextoChangelog texto={e.summary} /></p>
                   )}
                   {e.details.length > 0 && (
                     <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] leading-relaxed text-muted-foreground">
                       {e.details.map((d) => (
-                        <li key={d}>{d}</li>
+                        <li key={d}><TextoChangelog texto={d} /></li>
                       ))}
                     </ul>
                   )}

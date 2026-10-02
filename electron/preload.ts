@@ -500,6 +500,17 @@ const electronAPI = {
     },
   },
 
+  // Ayuda y comentarios (#217): el reporte se construye y anonimiza en el main.
+  feedback: {
+    getEnvironment: (pantalla?: string) => ipcRenderer.invoke('feedback:get-environment', pantalla),
+    preview: (form: unknown, opciones: unknown) => ipcRenderer.invoke('feedback:preview', form, opciones),
+    openGithub: (form: unknown, opciones: unknown) => ipcRenderer.invoke('feedback:open-github', form, opciones),
+    copy: (form: unknown, opciones: unknown) => ipcRenderer.invoke('feedback:copy', form, opciones),
+    snapshot: () => ipcRenderer.invoke('feedback:snapshot'),
+    copySnapshot: () => ipcRenderer.invoke('feedback:copy-snapshot'),
+    discardSnapshot: () => ipcRenderer.invoke('feedback:discard-snapshot'),
+  },
+
   // NVIDIA NeMo Guardrails
   guardrails: {
     getSettings: () => ipcRenderer.invoke('guardrails:getSettings'),
