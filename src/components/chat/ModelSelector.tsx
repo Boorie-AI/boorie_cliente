@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { pedirConsentimiento } from '@/services/consentimientoNube'
 import { logger } from '@/utils/logger'
 import { getOllamaBaseUrl } from '@/config/ollama';
 import { useState, useEffect } from 'react'
@@ -122,8 +123,10 @@ export function ModelSelector() {
     logger.debug('API models from config:', selectedAPIModels)
   }
 
-  const handleModelChange = (modelId: string) => {
+  const handleModelChange = async (modelId: string) => {
     const selectedModelObj = availableModels.find(m => m.id === modelId)
+    // Uno externo, sólo con consentimiento para su proveedor (#225).
+    if (selectedModelObj?.type === 'api' && !(await pedirConsentimiento(selectedModelObj.provider))) return
     if (selectedModelObj) {
       logger.debug('Selected model:', selectedModelObj)
       setSelectedModel(modelId)

@@ -1,6 +1,8 @@
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { PrismaClient } from "@prisma/client";
 import { modeloEmbeddingsOllama, dimensionEsperada } from "./modeloEmbeddings";
+import { claveUtilizable } from "./security/clavesProveedor";
+import { hayConsentimiento } from "./security/consentimientoNube";
 
 export class EmbeddingService {
     private prisma: PrismaClient;
@@ -85,6 +87,15 @@ export class EmbeddingService {
         return vector;
     }
 
+    private async claveDeOpenAI(): Promise<string | null> {
+        const filas = await this.prisma.aIProvider.findMany({ where: { name: { contains: 'OpenAI' } } });
+        for (const f of filas) {
+            const clave = claveUtilizable(f.name, f.apiKey);
+            if (clave) return clave;
+        }
+        return process.env.OPENAI_API_KEY || null;
+    }
+
     async generateEmbedding(text: string): Promise<number[]> {
         // Helper to wrap embed call with timeout
         const embedWithTimeout = async (embeddings: any, text: string, timeoutMs: number = 30000) => {
@@ -99,10 +110,12 @@ export class EmbeddingService {
             try {
                 const pid = this._activeProvider.id;
 
-                // OpenAI
+                // OpenAI: el texto de los documentos sale a su API, así que necesita el consentimiento (#225).
                 if (pid.includes('openai')) {
-                    const apiKey = process.env.OPENAI_API_KEY;
-                    if (!apiKey) {
+                    const apiKey = await this.claveDeOpenAI();
+                    if (!hayConsentimiento('openai')) {
+                        console.warn("[EmbeddingService] OpenAI no tiene consentimiento para recibir documentos; se usa el modelo local.");
+                    } else if (!apiKey) {
                         console.warn("[EmbeddingService] Active provider is OpenAI but no key found. Falling back to auto-discovery.");
                     } else {
                         const embeddings = this.getOrCreateEmbeddingsInstance(pid, () => new OpenAIEmbeddings({
@@ -140,11 +153,14 @@ export class EmbeddingService {
             }
         });
 
-        if (openaiProvider && (openaiProvider.apiKey || process.env.OPENAI_API_KEY)) {
+        const claveOpenAI = openaiProvider
+            ? claveUtilizable(openaiProvider.name, openaiProvider.apiKey) || process.env.OPENAI_API_KEY
+            : null;
+        if (openaiProvider && claveOpenAI && hayConsentimiento('openai')) {
             try {
                 console.log("[EmbeddingService] Auto-discovered OpenAI from DB");
                 const embeddings = this.getOrCreateEmbeddingsInstance('openai-db', () => new OpenAIEmbeddings({
-                    openAIApiKey: openaiProvider.apiKey || process.env.OPENAI_API_KEY,
+                    openAIApiKey: claveOpenAI,
                     modelName: "text-embedding-3-small"
                 }));
                 const result = await embedWithTimeout(embeddings, text);
@@ -209,7 +225,7 @@ export class EmbeddingService {
         }
 
         // C. Check Env for OpenAI
-        if (process.env.OPENAI_API_KEY) {
+        if (process.env.OPENAI_API_KEY && hayConsentimiento('openai')) {
             try {
                 console.log("[EmbeddingService] Auto-discovered OpenAI from ENV");
                 const embeddings = this.getOrCreateEmbeddingsInstance('openai-env', () => new OpenAIEmbeddings({

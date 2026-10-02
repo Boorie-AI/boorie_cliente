@@ -36,6 +36,8 @@ export function anonimizar(texto: string, opciones: OpcionesAnonimizar = {}): st
     .replace(/\bgithub_pat_[A-Za-z0-9_]{20,}/g, '<clave>')
     .replace(/\bAIza[0-9A-Za-z_-]{30,}/g, '<clave>')
     .replace(/\bnvapi-[A-Za-z0-9_-]{20,}/g, '<clave>')
+    // Las de la columna `apiKey` (#225): la cifrada no se puede usar fuera de su equipo, pero tampoco tiene por qué salir.
+    .replace(/\b(?:enc|plano):v1:[^\s"',}]{6,}/g, '<clave>')
     .replace(/(Bearer\s+)[A-Za-z0-9._~+/=-]{8,}/gi, '$1<clave>')
     .replace(/((?:api[_-]?key|token|password|secret)["']?\s*[:=]\s*["']?)[^\s"',}]{6,}/gi, '$1<clave>')
 

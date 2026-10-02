@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { EmbeddingService } from './embedding.service'
 
+const { openAIConstruido } = vi.hoisted(() => ({ openAIConstruido: vi.fn() }))
+vi.mock('@langchain/openai', () => ({
+  OpenAIEmbeddings: class {
+    constructor(opciones: unknown) { openAIConstruido(opciones) }
+    async embedQuery() { return [0.2, 0.2] }
+  },
+}))
+
 /**
  * Indexar mandaba un fragmento por petición HTTP, y ahí se iba el tiempo de
  * reindexar: 96 fragmentos/min uno a uno contra 199 agrupando, medido con
@@ -97,5 +105,32 @@ describe('generateEmbeddings — con el proveedor descubierto en la base', () =>
     expect(fetchFalso).toHaveBeenCalledTimes(1)
     expect(prisma.aIProvider.findFirst).not.toHaveBeenCalled()
     expect(salida).toHaveLength(3)
+  })
+})
+
+describe('embeddings de OpenAI y el consentimiento (#225, R20)', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('con una clave de OpenAI en la base pero sin consentimiento, los documentos no salen: se usa Ollama', async () => {
+    const fetchFalso = vi.fn(async (url: string, opciones: any) => {
+      const n = JSON.parse(opciones.body).input.length
+      return { ok: true, url, json: async () => ({ embeddings: new Array(n).fill(vector()) }) }
+    })
+    vi.stubGlobal('fetch', fetchFalso)
+    const prisma = {
+      aIProvider: {
+        findFirst: vi.fn(async ({ where }: any) =>
+          where.name.contains === 'OpenAI'
+            ? { name: 'OpenAI', isActive: true, apiKey: 'sk-proj-FAKEembeddings0123456789abcdef' }
+            : where.name.contains === 'Ollama' ? { name: 'Ollama', isActive: true, config: null } : null),
+        findMany: vi.fn(async () => []),
+      },
+    }
+    const s = new EmbeddingService(prisma as any)
+
+    await s.generateEmbedding('documento del cliente')
+
+    expect(s.activeProvider.id).toBe('ollama-db')
+    expect(openAIConstruido).not.toHaveBeenCalled()
   })
 })

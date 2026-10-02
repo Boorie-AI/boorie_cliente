@@ -75,6 +75,15 @@ export async function cargarModelosRAG(): Promise<ModelosRAG | null> {
   return pendiente
 }
 
+/**
+ * Olvida lo consultado: con el consentimiento cambiado, el motor del RAG puede
+ * ser otro (`BOORIE_RAG_BACKEND=nvidia` sin consentimiento vuelve a local).
+ */
+export function refrescarModelosRAG(): void {
+  cache = null
+  pendiente = null
+}
+
 /** Lo ya consultado, para los sitios que renderizan y no pueden esperar. */
 export function modelosRAGEnCache(): ModelosRAG | null {
   return cache

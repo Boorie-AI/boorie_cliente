@@ -15,12 +15,24 @@ import {
   olvidarModelosRAG,
   resolverModeloRAG,
   selectorModeloVisible,
+  usarClaveNvidiaDe,
 } from './modelosRAG'
+import { aceptarConsentimiento, cargarConsentimientos, retirarConsentimiento } from '../../security/consentimientoNube'
 
 vi.mock('axios')
 
 const instalados = (...nombres: string[]) =>
   vi.mocked(axios.get).mockResolvedValue({ data: { models: nombres.map(name => ({ name })) } } as never)
+
+function ajustesEnMemoria() {
+  const filas = new Map<string, string>()
+  return {
+    appSetting: {
+      findUnique: async ({ where }: { where: { key: string } }) => (filas.has(where.key) ? { value: filas.get(where.key)! } : null),
+      upsert: async ({ where, create, update }: any) => { filas.set(where.key, filas.has(where.key) ? update.value : create.value) },
+    },
+  }
+}
 
 const peticion = { prompt: 'hola', temperatura: 0.3, maxTokens: 100, timeoutMs: 1000 }
 
@@ -154,6 +166,10 @@ describe('modelos de la ruta del RAG', () => {
 
   it('con el backend de NVIDIA se habla su API y con su pareja', async () => {
     process.env.BOORIE_RAG_BACKEND = 'nvidia'
+    const ajustes = ajustesEnMemoria()
+    await cargarConsentimientos(ajustes)
+    await aceptarConsentimiento(ajustes, 'nvidia')
+    usarClaveNvidiaDe(async () => 'nvapi-FAKErag0123456789abcdefghijklmnop')
     vi.mocked(axios.post).mockResolvedValue(
       { data: { choices: [{ message: { content: 'respuesta' } }] } } as never,
     )
@@ -166,6 +182,20 @@ describe('modelos de la ruta del RAG', () => {
     expect(cuerpo.model).toBe('nvidia/nemotron-3-ultra-550b-a55b')
     // Y no se pregunta a Ollama por un inventario que no pinta nada aquí.
     expect(axios.get).not.toHaveBeenCalled()
+    // La clave es la del proveedor NVIDIA, no una variable de entorno (#225).
+    expect((vi.mocked(axios.post).mock.calls[0][2] as any).headers.Authorization).toBe('Bearer nvapi-FAKErag0123456789abcdefghijklmnop')
+    await retirarConsentimiento(ajustes, 'nvidia')
+  })
+
+  it('con BOORIE_RAG_BACKEND=nvidia pero sin consentimiento, la pareja local (#225, R20)', async () => {
+    process.env.BOORIE_RAG_BACKEND = 'nvidia'
+    await cargarConsentimientos(ajustesEnMemoria())
+    instalados('nemotron-mini')
+    vi.mocked(axios.post).mockResolvedValue({ data: { response: 'local' } } as never)
+
+    expect(backendRAG()).toBe('ollama')
+    expect(await llamarModeloRAG({ ...peticion, rol: 'principal' })).toBe('local')
+    expect(vi.mocked(axios.post).mock.calls[0][0]).toContain('/api/generate')
   })
 
   it('el desplegable de modelos está oculto salvo que se pida a mano', () => {

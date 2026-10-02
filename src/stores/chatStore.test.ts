@@ -84,32 +84,3 @@ describe('callOllamaAPI — el prompt de sistema', () => {
   })
 })
 
-describe('la clave del proveedor con el que se responde', () => {
-  it('carga los proveedores si nadie abrió Configuración y busca por el id elegido', async () => {
-    const { claveDelProveedor } = await import('./chatStore')
-    const { useAIConfigStore } = await import('./aiConfigStore')
-    const cargar = vi.fn(async () => {
-      useAIConfigStore.setState({ providers: [
-        { id: 'a', name: 'anthropic', apiKey: '' },
-        { id: 'b', name: 'Anthropic', apiKey: 'sk-buena' },
-      ] as any })
-    })
-    useAIConfigStore.setState({ providers: [], loadProviders: cargar } as any)
-
-    expect(await claveDelProveedor('Anthropic', 'b')).toBe('sk-buena')
-    expect(cargar).toHaveBeenCalledTimes(1)
-  })
-
-  it('sin id, por el nombre sin distinguir mayúsculas y quedándose con el que tiene clave', async () => {
-    const { claveDelProveedor } = await import('./chatStore')
-    const { useAIConfigStore } = await import('./aiConfigStore')
-    useAIConfigStore.setState({ providers: [
-      { id: 'a', name: 'openai', apiKey: '' },
-      { id: 'b', name: 'OpenAI', apiKey: 'sk-buena' },
-    ] as any })
-
-    expect(await claveDelProveedor('openai')).toBe('sk-buena')
-    expect(await claveDelProveedor('Ollama')).toBe('')
-  })
-})
-

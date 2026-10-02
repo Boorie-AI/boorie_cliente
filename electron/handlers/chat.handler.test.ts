@@ -17,6 +17,12 @@ vi.mock('electron', () => ({
   },
 }))
 
+// El consentimiento tiene sus pruebas en chat.handler.consentimiento.test.ts; aquí se da por dado.
+vi.mock('../../backend/services/security/consentimientoNube', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../backend/services/security/consentimientoNube')>()),
+  hayConsentimiento: () => true,
+}))
+
 // Sin esto, la consulta a /api/show se llevaría la primera respuesta simulada.
 vi.mock('../../backend/services/contextoDeOllama', () => ({ contextoDeOllama: async () => 8192 }))
 
@@ -33,6 +39,7 @@ const RED = {
 }
 
 const baseDeDatos = (conRed: boolean) => ({
+  claveDeProveedor: async () => 'k',
   prisma: {
     appSetting: { findUnique: async () => null },
     aIProvider: { findMany: async () => [] },
@@ -108,7 +115,6 @@ const enviar = (params: Record<string, unknown>) =>
   handlersRegistrados['chat:send-message'](null, {
     model: 'un-modelo',
     messages: [{ role: 'user', content: '¿como mejoro el flujo en J3?' }],
-    apiKey: 'k',
     projectId: 'p1',
     ...params,
   })

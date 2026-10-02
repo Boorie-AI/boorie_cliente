@@ -33,6 +33,27 @@ describe('anonimizar (#217, R12)', () => {
     expect(t.match(/<clave>/g)).toHaveLength(4)
   })
 
+  it('quita las claves de los proveedores en la nube en cualquier forma en que acaben en el log (#225, R12)', () => {
+    const lineas = [
+      'sk-proj-FAKEproyecto0123456789abcdefgh',
+      'sk-or-v1-FAKEopenrouter0123456789abcdef',
+      'sk-ant-api03-FAKEanthropic0123456789abc',
+      'nvapi-FAKEnvidia0123456789abcdefghijklmn',
+      // Lo que imprime `console.log` de un objeto en el main (util.inspect).
+      "{ id: 'p1', name: 'nvidia', apiKey: 'unaclaveSinPrefijoConocido99' }",
+      '{"nvidiaApiKey":"otraclaveSinPrefijo123456"}',
+      "headers: { 'x-api-key': 'clavedeanthropicsinprefijo1' }",
+      '?key=AIzaFAKEgoogle0123456789abcdefghijklmno',
+      'apiKey: enc:v1:bWlhdW1pYXVtaWF1bWlhdQ==',
+      'plano:v1:nvapi-FAKEsincifrar0123456789abcdefgh',
+    ]
+    for (const l of lineas) {
+      const limpio = anonimizar(l)
+      expect(limpio, l).toContain('<clave>')
+      expect(limpio, l).not.toMatch(/FAKE|SinPrefijo|sinprefijo|bWlhd/)
+    }
+  })
+
   it('deja intacto lo que no es personal', () => {
     const linea = '[error] Milvus no responde en 127.0.0.1:19530 (WNTR 1.1.0, red villa_100_casas.inp)'
     expect(anonimizar(linea)).toBe(linea)

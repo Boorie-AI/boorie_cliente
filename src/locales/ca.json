@@ -195,7 +195,26 @@
       "local": "En aquest equip (Ollama)",
       "sinExternos": "Per triar un model extern, afegeix la clau del proveïdor a «Proveïdors API» i carrega’n els models.",
       "avisoExterno": "Amb un model de {{proveedor}}, la teva pregunta i els fragments dels teus documents que l’acompanyen surten d’aquest equip cap a {{proveedor}}.",
-      "guardado": "Desat. S’aplica a partir de la propera pregunta."
+      "guardado": "Desat. S’aplica a partir de la propera pregunta.",
+      "sigueLocal": "No s'ha canviat: sense el teu consentiment no s'envia res a {{proveedor}} i continua responent el model d'aquest equip."
+    },
+    "clave": {
+      "estadoOk": "Desada i xifrada amb el clauer del sistema · acaba en …{{fin}}",
+      "estadoIlegible": "La clau desada no es pot llegir en aquest equip (la base ve d'un altre equip o d'un altre usuari). No es fa servir ni s'esborra: enganxa la clau un altre cop per fer-la servir aquí.",
+      "estadoSinCifrado": "Desada SENSE xifrar en aquest equip · acaba en …{{fin}}. Qualsevol amb una còpia de la base la pot llegir.",
+      "estadoSesion": "Només per a aquesta sessió · acaba en …{{fin}}. No s'ha desat: en tancar Boorie caldrà tornar-la a enganxar.",
+      "sinClave": "Sense clau",
+      "sinLlavero": "Aquest equip no té cap clauer del sistema disponible (a Linux, GNOME Keyring o KWallet), així que Boorie no pot desar les claus xifrades. La que enganxis es fa servir només mentre Boorie estigui obert, tret que decideixis desar-la sense xifrar.",
+      "reemplazar": "Enganxa una clau nova per substituir la desada",
+      "mostrar": "Mostra el que has escrit",
+      "ocultar": "Amaga el que has escrit",
+      "guardar": "Desa",
+      "usarEnSesion": "Fes-la servir en aquesta sessió",
+      "guardarSinCifrar": "Desa sense xifrar en aquest equip",
+      "riesgoSinCifrar": "La clau de {{proveedor}} quedarà escrita tal qual a la base de Boorie d'aquest equip. Qualsevol que accedeixi al fitxer o a una còpia de la base la podrà fer servir i fer peticions al teu compte. Es xifrarà sola quan l'equip tingui clauer.",
+      "cancelar": "Cancel·la",
+      "confirmarSinCifrar": "Entenc el risc: desa-la sense xifrar",
+      "error": "No s'ha pogut desar la clau."
     }
   },
   "accounts": {
@@ -1162,7 +1181,9 @@
     "cannotConnect": "No s’ha pogut connectar al procés de Python.",
     "failOpen": "Mode fail-open: el xat funciona però sense guardrails. Executa",
     "theFlow": "el flux. Útil per veure els falsos positius abans de posar-lo en mode bloquejant.",
-    "intro": "Xarxa agèntica de validació basada en Nemotron. Cada rail és un agent independent que aprova, bloqueja o avisa sobre el flux de xat, RAG i WNTR."
+    "intro": "Xarxa agèntica de validació basada en Nemotron. Cada rail és un agent independent que aprova, bloqueja o avisa sobre el flux de xat, RAG i WNTR.",
+    "claveNvidia": "Fa servir la clau del proveïdor NVIDIA de «Proveïdors API», sense demanar-la un altre cop.",
+    "claveNvidiaFalta": "Falta la clau de NVIDIA: afegeix-la a «Proveïdors API». Mentrestant, es jutja amb el model local."
   },
   "viewer": {
     "streets": "Carrers",
@@ -1394,7 +1415,9 @@
     "scenarioFailed": "L’escenari no s’ha pogut simular",
     "energyFailed": "No s’ha pogut analitzar el consum energètic",
     "measureFailed": "No s’ha pogut verificar la mesura",
-    "sinProveedorDeEmbeddings": "No s’ha pogut indexar: no hi ha cap model d’embeddings disponible. Instal·la Ollama amb «bge-m3», o afegeix una clau d’OpenAI a Configuració → Configuració d’IA."
+    "sinProveedorDeEmbeddings": "No s’ha pogut indexar: no hi ha cap model d’embeddings disponible. Instal·la Ollama amb «bge-m3», o afegeix una clau d’OpenAI a Configuració → Configuració d’IA.",
+    "chatSinConsentimiento": "**No s'ha enviat res.** El model triat és d'un proveïdor extern i falta el teu consentiment per enviar-li dades. Accepta'l a Configuració → Configuració d'IA → «Model que redacta», o torna al model automàtic per respondre en aquest equip.",
+    "chatSinClave": "**No s'ha enviat res.** El proveïdor triat no té cap clau que es pugui fer servir en aquest equip. Enganxa-la a Configuració → Configuració d'IA → Proveïdors API."
   },
   "layers": {
     "junction": "Nusos de consum",
@@ -1650,5 +1673,37 @@
     "copiado": "Informe copiat al porta-retalls.",
     "error": "No s’ha pogut preparar l’informe. Torna-ho a provar o copia l’informe.",
     "cerrar": "Tanca"
+  },
+  "nube": {
+    "consentimiento": {
+      "titulo": "Vols enviar les teves dades a {{proveedor}}?",
+      "intro": "El model que has triat no funciona en aquest equip: per respondre, Boorie envia el que li preguntes als servidors de {{proveedor}}, fora del teu equip i de la teva xarxa.",
+      "queSale": "A cada pregunta sortirà d'aquest equip cap a {{proveedor}}:",
+      "datos": {
+        "pregunta": "la pregunta que escriguis i l'historial de la conversa;",
+        "adjunto": "el document que adjuntis, sencer o en els fragments que hi càpiguen;",
+        "fragmentos": "els fragments de la teva base de coneixement que es recuperin per respondre, inclosos els documents dels teus projectes;",
+        "red": "el context de la xarxa i del projecte oberts (nusos, trams, resultats de simulació) i el que el model consulti de la xarxa amb les seves eines;",
+        "otrasFunciones": "si a més fas servir {{proveedor}} com a jutge de guardrails, per als embeddings o com a motor de la cerca, també la pregunta, els fragments, la resposta i el text dels documents en indexar-los."
+      },
+      "cliente": "Si treballes amb documents o xarxes d'un client, comprova abans que els pots tractar fora del teu equip. El que {{proveedor}} faci amb les dades depèn de les seves condicions d'ús, no de Boorie.",
+      "retirar": "Pots retirar aquest consentiment quan vulguis a Configuració → Configuració d'IA → «Dades que surten al núvol». Des de la pregunta següent no s'envia res més a {{proveedor}} i torna a respondre el model local. El que ja s'hagi enviat no es pot recuperar.",
+      "siNo": "Si no acceptes, no s'envia res i continua responent el model d'aquest equip.",
+      "version": "Text del consentiment, versió {{version}}. En acceptar, es desen en aquest equip la versió i la data.",
+      "rechazar": "No, continuar en local",
+      "aceptar": "Accepto enviar aquestes dades a {{proveedor}}"
+    },
+    "gestion": {
+      "titulo": "Dades que surten al núvol",
+      "ninguno": "No has autoritzat cap proveïdor extern: tot es respon en aquest equip.",
+      "autorizado": "{{proveedor}} · autoritzat el {{fecha}} (text v{{version}})",
+      "retirar": "Retira",
+      "efecto": "En retirar-lo, des de la pregunta següent no s'envia res més a aquest proveïdor i respon el model local."
+    },
+    "marca": {
+      "etiqueta": "Núvol: {{proveedor}}",
+      "detalle": "Aquesta conversa respon amb {{proveedor}}: la pregunta, l'adjunt, els fragments i el context de la xarxa surten d'aquest equip.",
+      "mensaje": "enviat a {{proveedor}}"
+    }
   }
 }

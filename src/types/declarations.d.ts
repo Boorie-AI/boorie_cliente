@@ -71,6 +71,11 @@ interface Window {
       modelos: () => Promise<any>;
     };
     feedback?: import('./feedback').FeedbackAPI;
+    nube?: {
+      estado: () => Promise<{ version: number; consentimientos: Record<string, { version: number; fecha: string }> }>;
+      aceptar: (proveedor: string) => Promise<{ success: boolean; error?: string }>;
+      retirar: (proveedor: string) => Promise<{ success: boolean; error?: string }>;
+    };
     [key: string]: any;
   };
 }

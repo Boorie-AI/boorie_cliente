@@ -28,8 +28,7 @@ export const anthropicProvider: ChatProvider = {
       messagesCount: anthropicMessages.length, 
       stream: isStreaming,
       requestBody,
-      apiKeyPresent: !!apiKey,
-      apiKeyFormat: apiKey?.substring(0, 10) + '...'
+      apiKeyPresent: !!apiKey
     })
 
     let response: Response

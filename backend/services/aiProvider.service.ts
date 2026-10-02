@@ -14,6 +14,7 @@ import { aiProviderLogger } from '../utils/logger'
 import { validateString, validateBoolean, validateRequired } from '../utils/validation'
 import { PAREJAS } from './hydraulic/agentic/modelosRAG'
 import { probarClaveNvidia, type ResultadoPruebaNvidia } from './ai/pruebaNvidia'
+import { claveUtilizable, type EstadoPublicoClave, estadoPublico } from './security/clavesProveedor'
 
 export class AIProviderService {
   private databaseService: DatabaseService
@@ -58,28 +59,24 @@ export class AIProviderService {
       ]
 
       for (const p of providers) {
-        // Prepare update data - don't overwrite apiKey if it exists and we don't have a new one
-        const updateData: any = {
-          type: p.type,
-          config: JSON.stringify(p.config)
-        }
-
-        if (p.apiKey) {
-          updateData.apiKey = p.apiKey
-        }
-
-        await this.databaseService.prisma.aIProvider.upsert({
+        // La clave no va en el upsert: se escribe aparte, cifrada (#225).
+        const fila = await this.databaseService.prisma.aIProvider.upsert({
           where: { name: p.name },
-          update: updateData,
+          update: { type: p.type, config: JSON.stringify(p.config) },
           create: {
             name: p.name,
             type: p.type,
-            apiKey: p.apiKey || '',
+            apiKey: '',
             isActive: true,
             isConnected: false,
             config: JSON.stringify(p.config)
           }
         })
+        // La del entorno sólo se escribe si cambia: reescribirla en cada arranque
+        // sería un punto de control de la base por proveedor y arranque.
+        if (p.apiKey && claveUtilizable(fila.name, fila.apiKey) !== p.apiKey) {
+          await this.databaseService.escribirClave(fila.id, p.apiKey)
+        }
         this.logger.debug(`Ensured provider ${p.name} is active`)
       }
 
@@ -172,7 +169,7 @@ export class AIProviderService {
       })
       return result as unknown as IServiceResponse<IAIProvider>
     } catch (error) {
-      this.logger.error('Failed to create AI provider', error as Error, data)
+      this.logger.error('Failed to create AI provider', error as Error, { name: data.name, type: data.type })
       return {
         success: false,
         error: error instanceof ServiceError ? error.message : 'Failed to create AI provider'
@@ -183,7 +180,7 @@ export class AIProviderService {
   async updateProvider(id: string, updates: IUpdateAIProviderData): Promise<IServiceResponse<IAIProvider>> {
     try {
       validateString(id, 'Provider ID')
-      this.logger.debug('Updating AI provider', { id, updates })
+      this.logger.debug('Updating AI provider', { id, campos: Object.keys(updates) })
 
       // Validate updates
       this.validateProviderUpdates(updates)
@@ -222,11 +219,36 @@ export class AIProviderService {
       })
       return result as unknown as IServiceResponse<IAIProvider>
     } catch (error) {
-      this.logger.error('Failed to update AI provider', error as Error, { id, updates })
+      this.logger.error('Failed to update AI provider', error as Error, { id, campos: Object.keys(updates) })
       return {
         success: false,
         error: error instanceof ServiceError ? error.message : 'Failed to update AI provider'
       }
+    }
+  }
+
+  /**
+   * Guarda la clave que se pega en Configuración (#225). Es la única entrada de
+   * una clave desde la interfaz, y lo único que devuelve es su estado.
+   */
+  async guardarClave(
+    id: string,
+    clave: string,
+    opciones: { permitirSinCifrar?: boolean } = {}
+  ): Promise<IServiceResponse<EstadoPublicoClave>> {
+    try {
+      validateString(id, 'Provider ID')
+      const fila = await this.databaseService.escribirClave(
+        id,
+        clave.trim(),
+        { isConnected: false, lastTestResult: null, lastTestMessage: null },
+        opciones
+      )
+      this.ultimaPruebaNvidia = null
+      return { success: true, data: estadoPublico(fila.name, fila.apiKey) }
+    } catch (error) {
+      this.logger.error('Failed to save API key', error as Error, { id })
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to save API key' }
     }
   }
 

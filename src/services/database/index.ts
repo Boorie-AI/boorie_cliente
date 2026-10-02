@@ -2,11 +2,19 @@ import { logger } from '@/utils/logger'
 // Database service for electron renderer process
 // This interfaces with the main process via IPC
 
+export type EstadoClave = 'ok' | 'ilegible' | 'sinCifrado' | 'sesion'
+
+/**
+ * Un proveedor tal como llega del proceso principal: sin la clave (#225). Sólo
+ * se sabe si hay una, en qué estado está y sus cuatro últimos caracteres.
+ */
 export interface AIProvider {
   id: string
   name: string
   type: 'local' | 'api'
-  apiKey?: string
+  tieneClave?: boolean
+  estadoClave?: EstadoClave | null
+  finClave?: string | null
   isActive: boolean
   isConnected: boolean
   lastTestResult?: string
@@ -64,7 +72,9 @@ class DatabaseService {
         id: provider.id,
         name: provider.name,
         type: provider.type,
-        apiKey: provider.apiKey,
+        tieneClave: provider.tieneClave === true,
+        estadoClave: provider.estadoClave ?? null,
+        finClave: provider.finClave ?? null,
         isActive: provider.isActive,
         isConnected: provider.isConnected,
         lastTestResult: provider.lastTestResult,
@@ -89,7 +99,6 @@ class DatabaseService {
       const result = await window.electronAPI.database.saveAIProvider({
         name: provider.name,
         type: provider.type,
-        apiKey: provider.apiKey,
         isActive: provider.isActive,
         isConnected: provider.isConnected,
         config: provider.config ? JSON.stringify(provider.config) : null
@@ -130,6 +139,30 @@ class DatabaseService {
     } catch (error) {
       logger.error('❌ Failed to update AI provider:', error)
       return false
+    }
+  }
+
+  /** La clave va al proceso principal y no vuelve; vuelve su estado (#225). */
+  async guardarClaveProveedor(
+    id: string,
+    clave: string,
+    opciones: { permitirSinCifrar?: boolean } = {}
+  ): Promise<{ success: boolean; data?: { tieneClave: boolean; estadoClave: EstadoClave | null; finClave: string | null }; error?: string }> {
+    if (!window.electronAPI) return { success: false, error: 'ElectronAPI not available' }
+    try {
+      return await window.electronAPI.database.guardarClaveProveedor(id, clave, opciones)
+    } catch (error) {
+      logger.error('No se pudo guardar la clave del proveedor:', error instanceof Error ? error.message : error)
+      return { success: false, error: 'No se pudo guardar la clave' }
+    }
+  }
+
+  /** Si este equipo puede guardar las claves cifradas. */
+  async estadoCifrado(): Promise<{ disponible: boolean; plataforma: string } | null> {
+    try {
+      return await window.electronAPI?.database?.estadoCifrado?.() ?? null
+    } catch {
+      return null
     }
   }
 

@@ -38,6 +38,7 @@
  */
 
 import axios from 'axios'
+import { alCambiarConsentimiento, hayConsentimiento } from '../../security/consentimientoNube'
 
 export type RolRAG = 'principal' | 'auxiliar'
 
@@ -73,8 +74,19 @@ export interface ModeloResuelto {
   motivo?: string
 }
 
+/**
+ * Con `BOORIE_RAG_BACKEND=nvidia` los fragmentos y la pregunta salen a NVIDIA,
+ * así que sin consentimiento para NVIDIA se vuelve a la pareja local (#225).
+ */
 export function backendRAG(): BackendRAG {
-  return process.env.BOORIE_RAG_BACKEND === 'nvidia' ? 'nvidia' : 'ollama'
+  return process.env.BOORIE_RAG_BACKEND === 'nvidia' && hayConsentimiento('nvidia') ? 'nvidia' : 'ollama'
+}
+
+let claveNvidia: () => Promise<string | null> = async () => process.env.NVIDIA_API_KEY || null
+
+/** La clave del proveedor NVIDIA de Proveedores API: la misma para toda la aplicación. */
+export function usarClaveNvidiaDe(fuente: () => Promise<string | null>): void {
+  claveNvidia = fuente
 }
 
 function pareja(): Pareja {
@@ -245,6 +257,8 @@ interface PeticionRAG {
 
 async function ejecutar(modelo: string, p: PeticionRAG): Promise<string> {
   if (backendRAG() === 'nvidia') {
+    const clave = await claveNvidia()
+    if (!clave) throw new Error('No hay clave de NVIDIA en Proveedores API')
     const baseUrl = process.env.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1'
     const respuesta = await axios.post(
       `${baseUrl}/chat/completions`,
@@ -258,7 +272,7 @@ async function ejecutar(modelo: string, p: PeticionRAG): Promise<string> {
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.NVIDIA_API_KEY || ''}`,
+          Authorization: `Bearer ${clave}`,
           'Content-Type': 'application/json',
         },
         timeout: p.timeoutMs,
@@ -342,3 +356,6 @@ export function olvidarModelosRAG(): void {
   pendiente = null
   resueltos = new Map()
 }
+
+// Lo resuelto depende del motor, y el motor del consentimiento.
+alCambiarConsentimiento(olvidarModelosRAG)

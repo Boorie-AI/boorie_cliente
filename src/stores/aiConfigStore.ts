@@ -1,7 +1,7 @@
 import { logger } from '@/utils/logger'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { databaseService } from '@/services/database'
+import { databaseService, type EstadoClave } from '@/services/database'
 
 export interface ProviderModel {
   modelId: string
@@ -16,7 +16,10 @@ export interface AIProvider {
   type: 'local' | 'api'
   description: string
   isActive: boolean
-  apiKey: string
+  /** La clave no llega aquí (#225): sólo si la hay, su estado y sus cuatro últimos caracteres. */
+  tieneClave: boolean
+  estadoClave: EstadoClave | null
+  finClave: string | null
   isConnected: boolean
   testStatus: 'idle' | 'testing' | 'success' | 'error'
   testMessage: string
@@ -34,7 +37,7 @@ interface AIConfigState {
   saveProvider: (provider: Partial<AIProvider>) => Promise<void>
   updateProvider: (providerId: string, updates: Partial<AIProvider>) => Promise<void>
   toggleProvider: (providerId: string, isActive: boolean) => Promise<void>
-  updateAPIKey: (providerId: string, apiKey: string) => Promise<void>
+  updateAPIKey: (providerId: string, apiKey: string, opciones?: { permitirSinCifrar?: boolean }) => Promise<boolean>
   testProviderConnection: (providerId: string) => Promise<boolean>
   updateProviderConnection: (providerId: string, isConnected: boolean, testStatus: AIProvider['testStatus'], testMessage: string, models?: ProviderModel[]) => void
   toggleModelSelection: (providerId: string, modelId: string, isSelected: boolean) => Promise<void>
@@ -72,7 +75,9 @@ export const useAIConfigStore = create<AIConfigState>()(
               type: dbProvider.type as 'local' | 'api',
               description: get().getProviderDescription(dbProvider.name),
               isActive: dbProvider.isActive,
-              apiKey: dbProvider.apiKey || '',
+              tieneClave: dbProvider.tieneClave === true,
+              estadoClave: dbProvider.estadoClave ?? null,
+              finClave: dbProvider.finClave ?? null,
               isConnected: dbProvider.isConnected,
               testStatus: dbProvider.lastTestResult === 'success' ? 'success' :
                 dbProvider.lastTestResult === 'error' ? 'error' : 'idle',
@@ -109,7 +114,6 @@ export const useAIConfigStore = create<AIConfigState>()(
           const savedProvider = await databaseService.saveAIProvider({
             name: providerData.name!,
             type: providerData.name?.toLowerCase() === 'ollama' ? 'local' : 'api',
-            apiKey: providerData.apiKey,
             isActive: providerData.isActive || false,
             isConnected: providerData.isConnected || false,
             config: null
@@ -123,7 +127,9 @@ export const useAIConfigStore = create<AIConfigState>()(
               type: savedProvider.type as 'local' | 'api',
               description: get().getProviderDescription(savedProvider.name),
               isActive: savedProvider.isActive,
-              apiKey: savedProvider.apiKey || '',
+              tieneClave: false,
+              estadoClave: null,
+              finClave: null,
               isConnected: savedProvider.isConnected,
               testStatus: 'idle',
               testMessage: '',
@@ -169,7 +175,10 @@ export const useAIConfigStore = create<AIConfigState>()(
             dbUpdates.lastTestMessage = updates.testMessage
             delete dbUpdates.testMessage
           }
-          // Remove UI-only fields
+          // Remove UI-only fields; la clave tiene su propio canal.
+          delete dbUpdates.tieneClave
+          delete dbUpdates.estadoClave
+          delete dbUpdates.finClave
           delete dbUpdates.availableModels
           delete dbUpdates.description
           delete dbUpdates.color
@@ -201,13 +210,21 @@ export const useAIConfigStore = create<AIConfigState>()(
         })
       },
 
-      updateAPIKey: async (providerId, apiKey) => {
-        await get().updateProvider(providerId, {
-          apiKey,
-          isConnected: false,
-          testStatus: 'idle' as const,
-          testMessage: ''
-        })
+      updateAPIKey: async (providerId, apiKey, opciones = {}) => {
+        const provider = get().providers.find(p => p.id === providerId)
+        if (!provider) return false
+        const dbProvider = (await databaseService.getAIProviders()).find(p => p.name === provider.name)
+        if (!dbProvider) return false
+
+        const r = await databaseService.guardarClaveProveedor(dbProvider.id, apiKey, opciones)
+        if (!r.success || !r.data) return false
+        const estado = r.data
+        set(state => ({
+          providers: state.providers.map(p => p.id === providerId
+            ? { ...p, ...estado, isConnected: false, testStatus: 'idle' as const, testMessage: '' }
+            : p)
+        }))
+        return true
       },
 
       testProviderConnection: async (providerId) => {

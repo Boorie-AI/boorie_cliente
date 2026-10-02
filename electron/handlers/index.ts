@@ -25,6 +25,7 @@ import { NetworkRepositoryHandler } from './networkRepository.handler'
 import { NetworkVersionService } from '../../backend/services/hydraulic/networkVersions'
 import { registerAgenticRAGHandlers } from './agenticRAG.handler'
 import { registerGuardrailsHandlers } from './guardrails.handler'
+import { registerNubeHandlers } from './nube.handler'
 import { registerMilvusHandlers } from './milvus.handler'
 import { createLogger } from '../../backend/utils/logger'
 
@@ -92,6 +93,8 @@ export class HandlersManager {
     } catch (error) {
       logger.warn('Milvus handlers registration failed', error as Error)
     }
+
+    registerNubeHandlers(services.database.prisma)
 
     // Setup Guardrails (NeMo) handlers
     try {
