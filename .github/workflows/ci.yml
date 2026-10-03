@@ -196,7 +196,6 @@ jobs:
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
-    continue-on-error: true
     
     steps:
     - name: Checkout code
@@ -211,8 +210,18 @@ jobs:
     - name: Install dependencies
       run: npm ci --legacy-peer-deps
 
-    - name: Run npm audit
-      run: npm audit --audit-level=moderate
-      
-    - name: Check for vulnerabilities
-      run: npm audit --parseable | grep -c "vulnerabilities" || true
+    # Bloquea sólo lo que viaja en el paquete. Un aviso sin parche en una
+    # dependencia de build (tailwind, electron-builder) dejaba el job en rojo
+    # sin nada que hacer (#235); se sigue viendo en el paso siguiente.
+    - name: Run npm audit (production)
+      run: npm audit --omit=dev --audit-level=moderate
+
+    - name: Report npm audit (all dependencies)
+      run: |
+        {
+          echo '### npm audit (todas las dependencias, informativo)'
+          echo '```'
+          npm audit --audit-level=moderate 2>&1 | tail -40 || true
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
+        npm audit --audit-level=moderate || echo "::warning::npm audit con avisos en dependencias de desarrollo (ver resumen del job)"

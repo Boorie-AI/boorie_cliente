@@ -10,8 +10,13 @@ Cada punto de aquí está por algo que ya pasó, y el motivo va anotado.
       (`electron/` + `backend/`). Antes sólo cubría `src/`, y un import que faltaba en
       `electron/` no se veía hasta que el paquete corría.
 - [ ] `npm test` en verde.
-- [ ] `npm audit --audit-level=moderate` sin hallazgos, que es lo que corre el job
-      `Security Audit`. **Puede ponerse rojo sin que nadie haya tocado el repositorio**: `npm
+- [ ] `npm audit --omit=dev --audit-level=moderate` sin hallazgos, que es lo que bloquea el
+      job `Security Audit`, y `npm audit --audit-level=moderate` mirado. El completo ya no
+      bloquea desde el #235: en la v1.46.0 salieron `braces` y `http-cache-semantics` sin
+      versión corregida, los dos sólo de build (tailwind, electron-builder), y el job quedaba
+      en rojo sin nada que hacer. El CI deja el completo en el resumen del job con un aviso.
+      Un hallazgo ahí se anota en un issue y se arregla cuando haya parche; uno en
+      producción para la versión. **Puede ponerse rojo sin que nadie haya tocado el repositorio**: `npm
       audit` pregunta al registro en cada ejecución, así que un aviso publicado entre dos
       ejecuciones tiñe de rojo el mismo `package-lock.json` que pasaba ayer. Le pasó al PR
       #116 con `fflate` (GHSA-px8p-9vwx-vf98), que entra por `@vitest/ui` y no viaja en el
