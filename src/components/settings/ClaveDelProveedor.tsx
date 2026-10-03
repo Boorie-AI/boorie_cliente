@@ -49,7 +49,7 @@ export function ClaveDelProveedor({ provider, cifradoDisponible, onGuardar }: Pr
   return (
     <div className="space-y-2">
       <div className={`flex items-start gap-2 text-xs ${aviso ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground'}`} data-testid={`estado-clave-${provider.id}`}>
-        {estado === 'ok' ? <Lock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" /> : aviso ? <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" /> : <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />}
+        {estado === 'ok' ? <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" /> : aviso ? <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" /> : <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />}
         <span>
           {estado === 'ok' && t('ai.clave.estadoOk', { fin })}
           {estado === 'ilegible' && t('ai.clave.estadoIlegible')}
@@ -61,7 +61,7 @@ export function ClaveDelProveedor({ provider, cifradoDisponible, onGuardar }: Pr
 
       {sinLlavero && (
         <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 text-xs text-amber-800 dark:text-amber-300">
-          <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+          <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
           <span>{t('ai.clave.sinLlavero')}</span>
         </div>
       )}
@@ -77,7 +77,7 @@ export function ClaveDelProveedor({ provider, cifradoDisponible, onGuardar }: Pr
             aria-label={t('ai.apiKey')}
             autoComplete="off"
             spellCheck={false}
-            className="w-full px-3 py-2 pr-10 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none text-sm"
+            className="w-full px-3 py-2 pr-10 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-hidden text-sm"
           />
           <button
             type="button"

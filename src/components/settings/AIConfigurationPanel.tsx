@@ -448,7 +448,7 @@ export function AIConfigurationPanel() {
               value="local"
               className={cn(
                 "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+                "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs",
                 "data-[state=inactive]:text-muted-foreground hover:text-foreground"
               )}
             >
@@ -458,7 +458,7 @@ export function AIConfigurationPanel() {
               value="api"
               className={cn(
                 "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+                "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs",
                 "data-[state=inactive]:text-muted-foreground hover:text-foreground"
               )}
             >
@@ -537,7 +537,7 @@ export function AIConfigurationPanel() {
                                     value={newModelName}
                                     onChange={(e) => setNewModelName(e.target.value)}
                                     placeholder={t('models.egOllama')}
-                                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none"
+                                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-hidden"
                                   />
                                 </div>
 
@@ -638,7 +638,7 @@ export function AIConfigurationPanel() {
                         {ollamaModels.map((model, index) => (
                           <div key={index} className="flex items-center justify-between p-4 bg-accent/30 rounded-lg border border-border/50">
                             <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm border border-border/20">
+                              <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-xs border border-border/20">
                                 <img
                                   src={getProviderLogo("ollama")!}
                                   alt="Ollama logo"
@@ -659,7 +659,7 @@ export function AIConfigurationPanel() {
                                   e.stopPropagation()
                                   handleDeleteModelClick(model.name)
                                 }}
-                                className="flex items-center space-x-2 px-4 py-2.5 text-sm bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-all duration-200 shadow-sm hover:shadow-md"
+                                className="flex items-center space-x-2 px-4 py-2.5 text-sm bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-all duration-200 shadow-xs hover:shadow-md"
                               >
                                 <Trash2 className="w-4 h-4" />
                                 <span>{t('ai.remove')}</span>
@@ -721,7 +721,7 @@ export function AIConfigurationPanel() {
                   <div className="p-4 sm:p-6 border-b border-border">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                       <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center bg-white shadow-sm border border-border/20 flex-shrink-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center bg-white shadow-xs border border-border/20 shrink-0">
                           {getProviderLogo(provider.id) && (
                             <img
                               src={getProviderLogo(provider.id)!}
@@ -734,7 +734,7 @@ export function AIConfigurationPanel() {
                           <h3 className="font-semibold text-card-foreground flex items-center space-x-2">
                             <span className="truncate">{provider.name}</span>
                             {provider.isConnected && (
-                              <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                              <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
                             )}
                           </h3>
                           <p className="text-sm text-muted-foreground line-clamp-2">
@@ -743,7 +743,7 @@ export function AIConfigurationPanel() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 flex-shrink-0">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 shrink-0">
                         {provider.testStatus !== 'idle' && (
                           <div className="flex items-center space-x-2 min-w-0">
                             {getStatusIcon(provider.testStatus)}
@@ -760,7 +760,7 @@ export function AIConfigurationPanel() {
                           disabled={!provider.isActive && !!motivoParaNoActivar(provider)}
                           aria-label={t('ai.activar.etiqueta', { proveedor: provider.name })}
                           title={!provider.isActive && motivoParaNoActivar(provider) ? t(motivoParaNoActivar(provider)!) : undefined}
-                          className="w-11 h-6 bg-gray-200 rounded-full data-[state=checked]:bg-primary relative flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-11 h-6 bg-gray-200 rounded-full data-[state=checked]:bg-primary relative shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Switch.Thumb className="block w-5 h-5 bg-white rounded-full transition-transform duration-100 translate-x-0.5 data-[state=checked]:translate-x-[22px]" />
                         </Switch.Root>
@@ -773,7 +773,7 @@ export function AIConfigurationPanel() {
                     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                       {!provider.isActive && motivoParaNoActivar(provider) && (
                         <div className="flex items-start space-x-2 text-xs text-muted-foreground" data-testid={`motivo-${provider.id}`}>
-                          <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                          <Info className="w-4 h-4 shrink-0 mt-0.5" />
                           <span>{t(motivoParaNoActivar(provider)!)}</span>
                         </div>
                       )}
@@ -794,7 +794,7 @@ export function AIConfigurationPanel() {
                             onClick={() => testAPIConnection(provider.id)}
                             disabled={!provider.tieneClave || provider.estadoClave === 'ilegible' || provider.testStatus === 'testing'}
                             className={cn(
-                              "px-3 sm:px-4 py-2 rounded-lg border transition-all flex items-center justify-center space-x-2 text-sm whitespace-nowrap flex-shrink-0 min-w-[70px]",
+                              "px-3 sm:px-4 py-2 rounded-lg border transition-all flex items-center justify-center space-x-2 text-sm whitespace-nowrap shrink-0 min-w-[70px]",
                               provider.testStatus === 'testing' && "opacity-50 cursor-not-allowed",
                               provider.testStatus === 'success' && "border-green-500 bg-green-50 text-green-700",
                               provider.testStatus === 'error' && "border-red-500 bg-red-50 text-red-700",
@@ -839,7 +839,7 @@ export function AIConfigurationPanel() {
 
                           {modeloDelChatFijado && (
                             <div className="flex items-start space-x-2 p-3 rounded-lg bg-accent/40 border border-border/50 text-xs text-muted-foreground">
-                              <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                              <Info className="w-4 h-4 shrink-0 mt-0.5" />
                               <span>{t('ai.modelFijadoAviso')}</span>
                             </div>
                           )}
@@ -853,7 +853,7 @@ export function AIConfigurationPanel() {
                                 placeholder={t('ai.searchModels')}
                                 value={modelSearchTerms[provider.id] || ''}
                                 onChange={(e) => handleModelSearch(provider.id, e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 text-sm bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none"
+                                className="w-full pl-10 pr-4 py-2 text-sm bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-hidden"
                               />
                             </div>
                           )}
@@ -869,7 +869,7 @@ export function AIConfigurationPanel() {
                                 <div key={`${provider.id}-${model.modelId}`} className={cn(
                                   "flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 rounded-lg border transition-all space-y-3 sm:space-y-0",
                                   model.isSelected
-                                    ? "bg-primary/10 border-primary/30 shadow-sm"
+                                    ? "bg-primary/10 border-primary/30 shadow-xs"
                                     : "bg-accent/30 border-border/50 hover:bg-accent/50"
                                 )}>
                                   <div className="flex-1 min-w-0">
@@ -886,7 +886,7 @@ export function AIConfigurationPanel() {
                                       {model.description}
                                     </div>
                                   </div>
-                                  <div className="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-3 sm:ml-4 flex-shrink-0">
+                                  <div className="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-3 sm:ml-4 shrink-0">
                                     {model.isSelected && (
                                       <div className="flex items-center space-x-1 text-xs text-primary">
                                         <CheckCircle className="w-3 h-3" />
@@ -896,14 +896,14 @@ export function AIConfigurationPanel() {
                                     <Switch.Root
                                       checked={model.isSelected}
                                       onCheckedChange={(checked) => handleModelToggle(provider.id, model.modelId, checked)}
-                                      className="w-9 h-5 bg-gray-200 rounded-full data-[state=checked]:bg-primary relative flex-shrink-0"
+                                      className="w-9 h-5 bg-gray-200 rounded-full data-[state=checked]:bg-primary relative shrink-0"
                                     >
                                       <Switch.Thumb className="block w-4 h-4 bg-white rounded-full transition-transform duration-100 translate-x-0.5 data-[state=checked]:translate-x-4" />
                                     </Switch.Root>
                                     {provider.id === 'openrouter' && (
                                       <button
                                         onClick={() => removeCustomModel(provider.id, model.modelId)}
-                                        className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors flex-shrink-0"
+                                        className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors shrink-0"
                                       >
                                         <X className="w-4 h-4" />
                                       </button>
@@ -959,7 +959,7 @@ export function AIConfigurationPanel() {
                         value={customModel.modelId}
                         onChange={(e) => setCustomModel(prev => ({ ...prev, modelId: e.target.value }))}
                         placeholder={t('models.egModelId')}
-                        className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none"
+                        className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-hidden"
                       />
                     </div>
 
@@ -972,7 +972,7 @@ export function AIConfigurationPanel() {
                         value={customModel.modelName}
                         onChange={(e) => setCustomModel(prev => ({ ...prev, modelName: e.target.value }))}
                         placeholder={t('models.egModelName')}
-                        className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none"
+                        className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-hidden"
                       />
                     </div>
 
@@ -985,7 +985,7 @@ export function AIConfigurationPanel() {
                         value={customModel.description}
                         onChange={(e) => setCustomModel(prev => ({ ...prev, description: e.target.value }))}
                         placeholder={t('ai.fastEfficient')}
-                        className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none"
+                        className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-hidden"
                       />
                     </div>
 

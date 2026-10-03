@@ -146,7 +146,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
             "flex items-center space-x-2 px-3 py-2 rounded-lg border border-border/50",
             "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
             "transition-all duration-200 hover:border-border",
-            "bg-card/50 hover:bg-accent/50 flex-shrink-0"
+            "bg-card/50 hover:bg-accent/50 shrink-0"
           )}
           title={t('chatHeader.newChatHint')}
         >
@@ -175,7 +175,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
             className={cn(
               "flex-1 bg-input border border-border rounded-lg px-3 py-2",
               "text-foreground placeholder-muted-foreground",
-              "focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              "focus:border-ring focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
             )}
             placeholder={t('chatHeader.titlePlaceholder')}
           />
@@ -198,7 +198,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
         <WisdomSelector
           selectedConfig={wisdomConfig}
           onConfigChange={handleWisdomConfigChange}
-          className="flex-shrink-0"
+          className="shrink-0"
         />
         {/* A la vista y no solo en el menú ⋯: lo pidió el cliente sin saber que existía (#234). */}
         <button
@@ -209,7 +209,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
           title={t('chatHeader.copiarConversacion')}
           className={cn(
             "p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg",
-            "transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+            "transition-colors focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2",
             "disabled:opacity-50 disabled:pointer-events-none"
           )}
         >
@@ -225,7 +225,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
             onClick={() => setShowMenu(!showMenu)}
             className={cn(
               "p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg",
-              "transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+              "transition-colors focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2",
               showMenu && "bg-accent text-foreground"
             )}
           >

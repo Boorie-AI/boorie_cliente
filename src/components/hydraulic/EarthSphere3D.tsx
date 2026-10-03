@@ -140,7 +140,7 @@ export const EarthSphere3D: React.FC<EarthSphere3DProps> = ({
   }, [rotation]);
 
   return (
-    <div className="relative w-full h-full bg-gradient-to-b from-black via-gray-900 to-black overflow-hidden">
+    <div className="relative w-full h-full bg-linear-to-b from-black via-gray-900 to-black overflow-hidden">
       {/* Space background with stars */}
       <div 
         className="absolute inset-0 opacity-30"

@@ -100,7 +100,7 @@ export function ChatArea() {
       {/* Main chat area - centered, full width to let thinking text breathe */}
       <div className="flex-1 flex flex-col min-h-0 w-full mx-auto">
         {/* Header with conversation info and model selector */}
-        <div className="flex-shrink-0 border-b border-border/50 bg-card z-10">
+        <div className="shrink-0 border-b border-border/50 bg-card z-10">
           <ChatHeader conversation={activeConversation} />
         </div>
 
@@ -117,7 +117,7 @@ export function ChatArea() {
         </div>
 
         {/* Input area */}
-        <div className="flex-shrink-0 border-t border-border/50 bg-card/30">
+        <div className="shrink-0 border-t border-border/50 bg-card/30">
           <div className="max-w-7xl mx-auto w-full">
             <MessageInput />
           </div>
@@ -125,7 +125,7 @@ export function ChatArea() {
       </div>
 
       {/* Project conversations list - fixed sidebar */}
-      <div className="flex-shrink-0">
+      <div className="shrink-0">
         <ProjectConversationsList
           projectId={activeConversation.projectId}
           currentConversationId={activeConversation.id}

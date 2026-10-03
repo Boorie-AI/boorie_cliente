@@ -24,9 +24,9 @@ export function DialogoConsentimientoNube() {
   return (
     <Dialog.Root open={!!peticion} onOpenChange={abierto => { if (!abierto) peticion?.responder(false) }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/60 z-[100]" />
+        <Dialog.Overlay className="fixed inset-0 bg-black/60 z-100" />
         <Dialog.Content
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[101]
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-101
                      w-[min(40rem,calc(100vw-2rem))] max-h-[85vh] overflow-y-auto
                      bg-card border border-border rounded-lg shadow-xl p-6"
         >

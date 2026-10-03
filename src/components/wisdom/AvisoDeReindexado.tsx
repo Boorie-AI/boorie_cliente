@@ -160,7 +160,7 @@ export function AvisoDeReindexado({ alTerminar }: Props) {
     return (
       <div className="mb-4 rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-4">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <h4 className="font-medium text-amber-900 dark:text-amber-100">
               {t('wisdom.reindexado.tituloModelo')}
@@ -206,7 +206,7 @@ export function AvisoDeReindexado({ alTerminar }: Props) {
   return (
     <div className="mb-4 rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-4">
       <div className="flex items-start gap-3">
-        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <h4 className="font-medium text-amber-900 dark:text-amber-100">
             {t('wisdom.reindexado.titulo')}

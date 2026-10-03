@@ -14,7 +14,7 @@ export function TypingIndicator({ show }: TypingIndicatorProps) {
     <div className="flex justify-start group">
       <div className="flex max-w-[70%]">
         {/* Avatar */}
-        <div className="flex-shrink-0 mr-3">
+        <div className="shrink-0 mr-3">
           <div className="w-8 h-8 rounded-full flex items-center justify-center bg-muted text-muted-foreground">
             <Bot size={16} />
           </div>

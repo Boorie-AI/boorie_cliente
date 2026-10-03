@@ -254,7 +254,7 @@ export function MessageInput() {
               }
             }}
             placeholder={t('chatInput.placeholder')}
-            className="w-full p-3 bg-input text-foreground border border-border rounded-lg focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 resize-none min-h-[44px] max-h-[200px] placeholder-muted-foreground transition-all duration-200"
+            className="w-full p-3 bg-input text-foreground border border-border rounded-lg focus:border-ring focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 resize-none min-h-[44px] max-h-[200px] placeholder-muted-foreground transition-all duration-200"
             rows={1}
             disabled={isLoading}
             tabIndex={0}

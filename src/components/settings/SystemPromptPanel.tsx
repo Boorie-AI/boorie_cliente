@@ -173,7 +173,7 @@ Si ves algo que conviene comprobar aparte, sugiérelo al final.`
               onChange={(e) => setSystemPrompt(e.target.value)}
               placeholder={defaultPrompt}
               rows={16}
-              className="w-full px-3 py-3 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none text-sm font-mono resize-vertical"
+              className="w-full px-3 py-3 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-hidden text-sm font-mono resize-vertical"
             />
 
             <div className="flex items-center justify-between">

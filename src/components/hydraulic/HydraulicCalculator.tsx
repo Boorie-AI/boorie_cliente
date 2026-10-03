@@ -312,8 +312,8 @@ export function HydraulicCalculator() {
       {/* Full Screen Content Area with overflow hidden */}
       <div className="flex-1 flex p-6 gap-6 bg-muted/10 overflow-hidden">
         {/* Formula Selector */}
-        <div className="w-80 bg-card rounded-xl border border-border shadow-sm flex flex-col h-full">
-          <div className="p-4 border-b border-border flex-shrink-0">
+        <div className="w-80 bg-card rounded-xl border border-border shadow-xs flex flex-col h-full">
+          <div className="p-4 border-b border-border shrink-0">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <currentCategory.icon className={cn("w-5 h-5", currentCategory.color)} />
               {t(`calc.cat.${currentCategory.clave}`)}
@@ -356,7 +356,7 @@ export function HydraulicCalculator() {
         </div>
         
         {/* Main Calculation Area */}
-        <div className="flex-1 bg-card rounded-xl border border-border shadow-sm flex h-full">
+        <div className="flex-1 bg-card rounded-xl border border-border shadow-xs flex h-full">
           {selectedFormula ? (
             <div className="flex-1 flex">
               {/* Input Panel */}
@@ -425,7 +425,7 @@ export function HydraulicCalculator() {
                               className={cn(
                                 "flex-1 px-4 py-3 rounded-lg text-base",
                                 "bg-background border-2 border-border",
-                                "focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary",
+                                "focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-primary",
                                 "placeholder:text-muted-foreground"
                               )}
                               placeholder={param.defaultValue?.toString() || t('calculator.enterValue')}
@@ -442,7 +442,7 @@ export function HydraulicCalculator() {
                                 className={cn(
                                   "px-4 py-3 rounded-lg text-base font-medium",
                                   "bg-background border-2 border-border",
-                                  "focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                                  "focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-primary"
                                 )}
                               >
                                 {param.units.map((unit) => (

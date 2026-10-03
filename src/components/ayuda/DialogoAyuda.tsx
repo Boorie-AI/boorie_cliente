@@ -23,7 +23,7 @@ const FRECUENCIAS: { valor: Frecuencia; clave: string }[] = [
 const VACIO = { haciendo: '', paso: '', esperabas: '', frecuencia: 'a-veces' as Frecuencia, necesitas: '', paraQue: '', comoHoy: '' }
 
 const campoClase =
-  'w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/40'
+  'w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:ring-2 focus:ring-primary/40'
 
 export function DialogoAyuda() {
   const { t } = useTranslation()
@@ -126,9 +126,9 @@ export function DialogoAyuda() {
   return (
     <Dialog.Root open={abierta} onOpenChange={o => { if (!o) cerrar() }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/60 z-[90] animate-in fade-in-0" />
+        <Dialog.Overlay className="fixed inset-0 bg-black/60 z-90 animate-in fade-in-0" />
         <Dialog.Content
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[91]
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-91
                      w-[min(44rem,calc(100vw-2rem))] max-h-[90vh] overflow-y-auto
                      bg-card border border-border rounded-xl shadow-xl p-6 space-y-5
                      animate-in fade-in-0 zoom-in-95"
@@ -237,7 +237,7 @@ export function DialogoAyuda() {
                 previa ? (
                   <div className="mt-2 space-y-1">
                     {previa.recortado && <p className="text-xs text-amber-700 dark:text-amber-400">{t('ayuda.previaRecortada')}</p>}
-                    <pre data-testid="previa-reporte" className="max-h-60 overflow-auto whitespace-pre-wrap [overflow-wrap:anywhere] rounded bg-background p-2 text-[11px] text-foreground">{previa.cuerpo}</pre>
+                    <pre data-testid="previa-reporte" className="max-h-60 overflow-auto whitespace-pre-wrap wrap-anywhere rounded bg-background p-2 text-[11px] text-foreground">{previa.cuerpo}</pre>
                   </div>
                 ) : (
                   <p className="mt-2 text-xs text-muted-foreground">{t('ayuda.cargandoPrevia')}</p>

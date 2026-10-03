@@ -57,7 +57,7 @@ export function ProjectSelector({ selectedProjectId, onProjectSelect, className 
           "inline-flex items-center justify-between gap-2 px-3 py-2 rounded-lg",
           "bg-card border border-border/50 text-sm",
           "hover:bg-accent/50 hover:border-border transition-colors",
-          "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+          "focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2",
           "min-w-[200px]"
         )}>
           <div className="flex items-center gap-2">
@@ -83,9 +83,9 @@ export function ProjectSelector({ selectedProjectId, onProjectSelect, className 
                 value="none"
                 className={cn(
                   "relative flex items-center gap-2 rounded px-3 py-2 text-sm",
-                  "cursor-pointer select-none outline-none",
+                  "cursor-pointer select-none outline-hidden",
                   "hover:bg-accent hover:text-accent-foreground",
-                  "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
+                  "data-highlighted:bg-accent data-highlighted:text-accent-foreground"
                 )}
               >
                 <Select.ItemText>{t('chatInput.noProject')}</Select.ItemText>
@@ -113,9 +113,9 @@ export function ProjectSelector({ selectedProjectId, onProjectSelect, className 
                     value={project.id}
                     className={cn(
                       "relative flex items-center gap-2 rounded px-3 py-2 text-sm",
-                      "cursor-pointer select-none outline-none",
+                      "cursor-pointer select-none outline-hidden",
                       "hover:bg-accent hover:text-accent-foreground",
-                      "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
+                      "data-highlighted:bg-accent data-highlighted:text-accent-foreground"
                     )}
                   >
                     <Select.ItemText>
@@ -147,7 +147,7 @@ export function ProjectSelector({ selectedProjectId, onProjectSelect, className 
           className={cn(
             "p-1.5 rounded-lg text-muted-foreground",
             "hover:bg-accent/50 hover:text-foreground transition-colors",
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            "focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
           )}
           title={t('chatInput.clearProject')}
         >

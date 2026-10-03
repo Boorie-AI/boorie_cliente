@@ -25,7 +25,7 @@ export function SelectorVentana({ valor, onChange, horasFichero, className, disa
         value={valor}
         onChange={e => onChange(e.target.value as Ventana)}
         disabled={disabled}
-        className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary disabled:opacity-50"
+        className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary disabled:opacity-50"
       >
         <option value="fichero">
           {horasFichero === null
