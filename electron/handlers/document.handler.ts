@@ -1,4 +1,5 @@
 import { ipcMain, dialog, app } from 'electron'
+import { claveUtilizable } from '../../backend/services/security/clavesProveedor'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import pdf from 'pdf-parse'
@@ -198,7 +199,7 @@ async function hayClaveDeOpenAI(prismaClient: PrismaClient): Promise<boolean> {
   const proveedor = await prismaClient.aIProvider.findFirst({
     where: { name: { contains: 'OpenAI' }, isActive: true },
   })
-  return Boolean(proveedor?.apiKey)
+  return Boolean(proveedor && claveUtilizable(proveedor.name, proveedor.apiKey))
 }
 
 /** Un trozo indexado es el que tiene embedding; los demás no cuentan para el grafo. */

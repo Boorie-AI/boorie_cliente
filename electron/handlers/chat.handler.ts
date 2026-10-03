@@ -16,6 +16,7 @@ import { WNTRResilienceService } from '../../backend/services/hydraulic/resilien
 import { componerPromptDeSistema, type ModelosEnUso } from '../../backend/services/hydraulic/promptDelAgente'
 import { contextoDeOllama } from '../../backend/services/contextoDeOllama'
 import { detectarIntencionEscenario, detectarIntencionEnergia } from '../../backend/services/hydraulic/intencionEscenario'
+import { esLocal, hayConsentimiento, SIN_CONSENTIMIENTO } from '../../backend/services/security/consentimientoNube'
 
 /**
  * La red activa tal como la usan las herramientas, con su identificador (#44).
@@ -81,7 +82,6 @@ export interface SendChatMessageParams {
    */
   modeloEmbeddings?: string | null
   messages: ChatMessage[]
-  apiKey: string
   stream?: boolean
   /** Proyecto cuya red activa puede consultar el agente con herramientas (#34). */
   projectId?: string
@@ -242,11 +242,16 @@ export interface IPCChatResponse {
   error?: string
 }
 
+/** Sin una clave legible para el proveedor externo: no se llama a la API. */
+export const SIN_CLAVE = 'SIN_CLAVE'
+
 export class ChatHandler {
   private databaseService: DatabaseService
+  private consentido: (proveedor: string) => boolean
 
-  constructor(databaseService: DatabaseService) {
+  constructor(databaseService: DatabaseService, consentido: (proveedor: string) => boolean = hayConsentimiento) {
     this.databaseService = databaseService
+    this.consentido = consentido
     this.registerHandlers()
     logger.info('Chat handler initialized')
   }
@@ -286,7 +291,25 @@ export class ChatHandler {
   }
 
   private async sendChatMessage(params: SendChatMessageParams): Promise<IPCChatResponse> {
-    const { provider, model, messages, apiKey, projectId, preguntaOriginal, modeloEmbeddings, sinRazonar } = params
+    const { provider, model, messages, projectId, preguntaOriginal, modeloEmbeddings, sinRazonar } = params
+
+    /**
+     * La puerta de la nube (#225). Está aquí y no sólo en la interfaz porque por
+     * aquí pasa todo lo que el chat manda fuera —la respuesta y la revisión
+     * contra el documento—, y la clave se busca aquí: no viaja desde el renderer.
+     */
+    let apiKey = ''
+    if (!esLocal(provider)) {
+      if (!this.consentido(provider)) {
+        logger.warn('Mensaje no enviado: falta el consentimiento para el proveedor', { provider })
+        return { success: false, error: SIN_CONSENTIMIENTO }
+      }
+      apiKey = (await this.databaseService.claveDeProveedor(provider)) ?? ''
+      if (!apiKey) {
+        logger.warn('Mensaje no enviado: el proveedor no tiene una clave legible', { provider })
+        return { success: false, error: SIN_CLAVE }
+      }
+    }
 
     try {
       // Get system prompt from database and add it to messages if not already present
@@ -321,7 +344,7 @@ export class ChatHandler {
           result = await this.sendOpenRouterMessage(model, messagesWithSystemPrompt, apiKey, red)
           break
         case 'ollama':
-          result = await this.sendOllamaMessage(model, messagesWithSystemPrompt, apiKey || '', red)
+          result = await this.sendOllamaMessage(model, messagesWithSystemPrompt, '', red)
           break
         case 'nvidia':
           result = await this.sendNvidiaMessage(model, messagesWithSystemPrompt, apiKey, red, sinRazonar)

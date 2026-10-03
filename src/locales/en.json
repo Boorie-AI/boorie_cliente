@@ -195,7 +195,26 @@
       "local": "On this computer (Ollama)",
       "sinExternos": "To choose an external model, add the provider’s key under “API Providers” and load its models.",
       "avisoExterno": "With a {{proveedor}} model, your question and the fragments of your documents sent with it leave this computer for {{proveedor}}.",
-      "guardado": "Saved. It applies from the next question."
+      "guardado": "Saved. It applies from the next question.",
+      "sigueLocal": "Not changed: without your consent nothing is sent to {{proveedor}} and the model on this computer keeps answering."
+    },
+    "clave": {
+      "estadoOk": "Saved and encrypted with the system keychain · ends in …{{fin}}",
+      "estadoIlegible": "The saved key cannot be read on this computer (the database comes from another computer or user). It is neither used nor deleted: paste the key again to use it here.",
+      "estadoSinCifrado": "Saved WITHOUT encryption on this computer · ends in …{{fin}}. Anyone with a copy of the database can read it.",
+      "estadoSesion": "For this session only · ends in …{{fin}}. It has not been saved: you will need to paste it again after closing Boorie.",
+      "sinClave": "No key",
+      "sinLlavero": "This computer has no system keychain available (on Linux, GNOME Keyring or KWallet), so Boorie cannot save keys encrypted. The key you paste is only used while Boorie is open, unless you choose to save it unencrypted.",
+      "reemplazar": "Paste a new key to replace the saved one",
+      "mostrar": "Show what you typed",
+      "ocultar": "Hide what you typed",
+      "guardar": "Save",
+      "usarEnSesion": "Use for this session",
+      "guardarSinCifrar": "Save unencrypted on this computer",
+      "riesgoSinCifrar": "The {{proveedor}} key will be written as-is in Boorie's database on this computer. Anyone who can access the file or a copy of the database will be able to use it and make requests on your account. It will be encrypted automatically as soon as the computer has a keychain.",
+      "cancelar": "Cancel",
+      "confirmarSinCifrar": "I understand the risk: save it unencrypted",
+      "error": "The key could not be saved."
     }
   },
   "accounts": {
@@ -1162,7 +1181,9 @@
     "cannotConnect": "The Python process could not be reached.",
     "failOpen": "Fail-open mode: the chat works, but without guardrails. Run",
     "theFlow": "the flow. Useful for spotting false positives before switching to blocking mode.",
-    "intro": "Nemotron-based agentic validation network. Each rail is an independent agent that approves, blocks or warns about the chat, RAG and WNTR flow."
+    "intro": "Nemotron-based agentic validation network. Each rail is an independent agent that approves, blocks or warns about the chat, RAG and WNTR flow.",
+    "claveNvidia": "Uses the NVIDIA provider key from “API Providers”, without asking for it again.",
+    "claveNvidiaFalta": "The NVIDIA key is missing: add it in “API Providers”. Meanwhile, the local model is used as judge."
   },
   "viewer": {
     "streets": "Streets",
@@ -1394,7 +1415,9 @@
     "scenarioFailed": "The scenario could not be simulated",
     "energyFailed": "The energy use could not be analysed",
     "measureFailed": "The measure could not be checked",
-    "sinProveedorDeEmbeddings": "Could not index: no embedding model is available. Install Ollama with “bge-m3”, or add an OpenAI key under Settings → AI configuration."
+    "sinProveedorDeEmbeddings": "Could not index: no embedding model is available. Install Ollama with “bge-m3”, or add an OpenAI key under Settings → AI configuration.",
+    "chatSinConsentimiento": "**Nothing was sent.** The selected model belongs to an external provider and your consent to send it data is missing. Accept it in Settings → AI Configuration → “Model that writes the answers”, or go back to the automatic model to answer on this computer.",
+    "chatSinClave": "**Nothing was sent.** The selected provider has no key that can be used on this computer. Paste it in Settings → AI Configuration → API Providers."
   },
   "layers": {
     "junction": "Demand junctions",
@@ -1650,5 +1673,37 @@
     "copiado": "Report copied to the clipboard.",
     "error": "The report could not be prepared. Try again or copy the report.",
     "cerrar": "Close"
+  },
+  "nube": {
+    "consentimiento": {
+      "titulo": "Send your data to {{proveedor}}?",
+      "intro": "The model you chose does not run on this computer: to answer, Boorie sends what you ask to {{proveedor}}'s servers, outside your computer and your network.",
+      "queSale": "With every question, this will leave this computer for {{proveedor}}:",
+      "datos": {
+        "pregunta": "the question you type and the conversation history;",
+        "adjunto": "the document you attach, in full or in the excerpts that fit;",
+        "fragmentos": "the excerpts from your knowledge base retrieved to answer, including your projects' documents;",
+        "red": "the context of the open network and project (junctions, pipes, simulation results) and whatever the model looks up in the network with its tools;",
+        "otrasFunciones": "if you also use {{proveedor}} as the guardrails judge, for embeddings or as the search engine, also the question, the excerpts, the answer and the text of documents when they are indexed."
+      },
+      "cliente": "If you work with a client's documents or networks, first check that you may process them outside your computer. What {{proveedor}} does with the data depends on its terms of use, not on Boorie.",
+      "retirar": "You can withdraw this consent at any time in Settings → AI Configuration → “Data sent to the cloud”. From the next question on, nothing else is sent to {{proveedor}} and the local model answers again. What has already been sent cannot be recalled.",
+      "siNo": "If you do not accept, nothing is sent and the model on this computer keeps answering.",
+      "version": "Consent text, version {{version}}. When you accept, the version and date are stored on this computer.",
+      "rechazar": "No, stay local",
+      "aceptar": "I agree to send this data to {{proveedor}}"
+    },
+    "gestion": {
+      "titulo": "Data sent to the cloud",
+      "ninguno": "You have not authorised any external provider: everything is answered on this computer.",
+      "autorizado": "{{proveedor}} · authorised on {{fecha}} (text v{{version}})",
+      "retirar": "Withdraw",
+      "efecto": "Once withdrawn, from the next question on nothing else is sent to that provider and the local model answers."
+    },
+    "marca": {
+      "etiqueta": "Cloud: {{proveedor}}",
+      "detalle": "This conversation is answered by {{proveedor}}: the question, the attachment, the excerpts and the network context leave this computer.",
+      "mensaje": "sent to {{proveedor}}"
+    }
   }
 }

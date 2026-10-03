@@ -1,4 +1,39 @@
 import { PrismaClient } from '@prisma/client';
+import {
+    avisarCambioDeClave,
+    claveUtilizable,
+    estadoPublico,
+    guardarClaveDeSesion,
+    valorParaGuardar,
+    type EstadoPublicoClave,
+} from './security/clavesProveedor';
+
+/**
+ * Lo que va a la columna `apiKey` para una clave nueva (#225): cifrada si hay
+ * llavero; si no, vacía, y la clave se queda en memoria para la sesión salvo que
+ * el usuario haya pedido guardarla sin cifrar.
+ */
+function columnaDeClave(proveedor: string, clave: string, permitirSinCifrar = false): string {
+    const valor = valorParaGuardar(clave, { permitirSinCifrar });
+    guardarClaveDeSesion(proveedor, valor === null ? clave : null);
+    return valor ?? '';
+}
+
+/**
+ * Una fila de `ai_providers` sin la clave, que es lo que puede salir del proceso principal.
+ * Lo que viene de `getAIProviders` ya trae el estado y la clave descifrada: recalcularlo
+ * sobre ella diría «sin cifrar» de una cifrada y «sin clave» de una ilegible.
+ */
+export function proveedorSinClave<T extends { name: string; apiKey?: string | null }>(fila: T): Omit<T, 'apiKey'> & EstadoPublicoClave {
+    if ('estadoClave' in fila) return sinCampoClave<T>(fila) as Omit<T, 'apiKey'> & EstadoPublicoClave;
+    return { ...sinCampoClave(fila), ...estadoPublico(fila.name, fila.apiKey) };
+}
+
+export function sinCampoClave<T extends object>(datos: T): Omit<T, 'apiKey'> {
+    const copia = { ...datos } as Record<string, unknown>;
+    delete copia.apiKey;
+    return copia as Omit<T, 'apiKey'>;
+}
 
 // Simple database service wrapper for legacy code
 /**
@@ -49,11 +84,14 @@ export class DatabaseService {
                 }
             });
 
+            // La clave va descifrada porque esto sólo lo usa el proceso principal;
+            // lo que sale hacia la interfaz pasa antes por `proveedorSinClave`.
             const result = providers.map(provider => ({
                 id: provider.id,
                 name: provider.name,
                 type: provider.type as "local" | "api",
-                apiKey: provider.apiKey,
+                apiKey: claveUtilizable(provider.name, provider.apiKey),
+                ...estadoPublico(provider.name, provider.apiKey),
                 isActive: provider.isActive,
                 enabled: provider.isActive,
                 isConnected: false,
@@ -83,7 +121,7 @@ export class DatabaseService {
                 data: {
                     name: data.name,
                     type: data.type,
-                    apiKey: data.apiKey,
+                    apiKey: data.apiKey ? columnaDeClave(data.name, data.apiKey) : data.apiKey,
                     isActive: data.isActive || false,
                     isConnected: data.isConnected || false,
                     config: data.config
@@ -101,6 +139,10 @@ export class DatabaseService {
 
     async updateAIProvider(id: string, data: any) {
         try {
+            if (typeof data?.apiKey === 'string') {
+                const { apiKey, ...resto } = data;
+                return { success: true, data: await this.escribirClave(id, apiKey, resto) };
+            }
             const provider = await this.prisma.aIProvider.update({
                 where: { id },
                 data: data
@@ -113,6 +155,53 @@ export class DatabaseService {
                 error: error instanceof Error ? error.message : 'Unknown error'
             };
         }
+    }
+
+    /**
+     * Guarda la clave de un proveedor (#225) y deja la base sin restos de la anterior.
+     *
+     * `UPDATE` no borra el valor viejo: queda en el espacio libre de la página y,
+     * en WAL, en el `-wal` hasta el siguiente punto de control. Con
+     * `secure_delete` SQLite pone a cero lo que libera, y el punto de control
+     * con `TRUNCATE` vacía el `-wal`. La pragma va en la misma transacción
+     * porque es de la conexión, y Prisma puede repartir las consultas entre
+     * varias.
+     */
+    async escribirClave(id: string, clave: string, otros: Record<string, unknown> = {}, opciones: { permitirSinCifrar?: boolean } = {}) {
+        const actual = await this.prisma.aIProvider.findUnique({ where: { id } });
+        if (!actual) throw new Error('AI provider not found');
+        const apiKey = columnaDeClave(actual.name, clave, opciones.permitirSinCifrar);
+        const provider = await this.prisma.$transaction(async (tx) => {
+            await tx.$queryRawUnsafe('PRAGMA secure_delete=ON');
+            return tx.aIProvider.update({ where: { id }, data: { ...otros, apiKey } });
+        });
+        await this.vaciarDiario();
+        avisarCambioDeClave(actual.name);
+        return provider;
+    }
+
+    /** Vuelca el `-wal` a la base y lo deja a cero. Sin WAL no hace nada. */
+    async vaciarDiario(): Promise<void> {
+        try {
+            await this.prisma.$queryRawUnsafe('PRAGMA wal_checkpoint(TRUNCATE)');
+        } catch (error) {
+            console.warn('No se pudo vaciar el diario de la base:', error instanceof Error ? error.message : error);
+        }
+    }
+
+    /**
+     * La clave de un proveedor por su nombre, ya descifrada, para el proceso principal.
+     *
+     * En la base conviven «openai» y «OpenAI»: vale la primera que tenga una clave legible.
+     */
+    async claveDeProveedor(nombre: string): Promise<string | null> {
+        const filas = await this.prisma.aIProvider.findMany({ select: { name: true, apiKey: true } });
+        for (const fila of filas) {
+            if (fila.name.toLowerCase() !== nombre.toLowerCase()) continue;
+            const clave = claveUtilizable(fila.name, fila.apiKey);
+            if (clave) return clave;
+        }
+        return null;
     }
 
     async getAIModels(providerId?: string) {

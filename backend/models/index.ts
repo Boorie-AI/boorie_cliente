@@ -29,7 +29,11 @@ export interface IAIProvider {
   id: string
   name: string
   type: 'local' | 'api'
+  /** Descifrada; sólo en el proceso principal (#225). */
   apiKey?: string | null
+  tieneClave?: boolean
+  estadoClave?: 'ok' | 'ilegible' | 'sinCifrado' | 'sesion' | null
+  finClave?: string | null
   isActive: boolean
   isConnected: boolean
   lastTestResult?: 'success' | 'error' | null

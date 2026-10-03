@@ -11,6 +11,26 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 
 ## [Unreleased]
 
+- **Las claves de los proveedores en la nube se guardan cifradas.** Antes estaban tal cual en
+  `hydraulic.db`, y cualquiera con el fichero o con una copia de la base las tenía. Ahora se
+  cifran con el llavero del sistema (Windows, macOS y, en Linux, GNOME Keyring o KWallet), y
+  las que ya había se cifran solas la primera vez que se abre esta versión.
+  - Configuración ya no enseña la clave guardada: dice si hay una, si está cifrada y sus cuatro
+    últimos caracteres. Para cambiarla se pega la nueva y se pulsa «Guardar».
+  - Una base copiada de otro equipo no trae las claves utilizables: Configuración avisa y pide
+    pegarlas otra vez.
+  - En un Linux sin llavero, la clave se usa sólo mientras Boorie está abierto, salvo que se
+    elija «Guardar sin cifrar en este equipo», que explica el riesgo antes.
+- **Nada sale a un modelo externo sin tu consentimiento.** La primera vez que eliges un modelo
+  de un proveedor en la nube, Boorie dice qué datos le enviará (la pregunta, el historial, el
+  adjunto, los fragmentos de tus documentos y el contexto de la red y del proyecto) y a quién.
+  Si ya lo tenías elegido de una versión anterior, te lo pregunta al enviar la primera pregunta.
+  Si no lo aceptas, sigue respondiendo el modelo local. Se puede retirar en Configuración →
+  Configuración de IA, y mientras una conversación usa la nube se ve en su cabecera y en cada
+  respuesta. Vale también para el juez de guardrails de NVIDIA y los embeddings de OpenAI.
+- **Una sola clave de NVIDIA.** Guardrails usa la del proveedor NVIDIA de «Proveedores API»; ya
+  no hay que pegarla dos veces.
+
 ## [1.46.0] - 2026-10-02
 
 Con NVIDIA responde Nemotron Ultra, las respuestas largas llegan enteras y lo que la respuesta atribuye a un documento adjunto se comprueba contra lo leído.

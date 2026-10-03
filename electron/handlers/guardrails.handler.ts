@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { PrismaClient } from '@prisma/client'
 import { guardrailsWrapper, GuardrailVerdict, RailName } from '../../backend/services/guardrails/guardrailsWrapper'
+import { DatabaseService } from '../../backend/services/database.service'
 
 interface SettingsShape {
   enabled: Record<RailName, boolean>
@@ -8,7 +9,6 @@ interface SettingsShape {
   judgeProvider: 'ollama' | 'nvidia-api'
   judgeModel: string
   ollamaBaseUrl: string
-  nvidiaApiKey?: string
 }
 
 const DEFAULT_SETTINGS: SettingsShape = {
@@ -17,7 +17,17 @@ const DEFAULT_SETTINGS: SettingsShape = {
   judgeProvider: 'ollama',
   judgeModel: 'nemotron-mini',
   ollamaBaseUrl: 'http://localhost:11434',
-  nvidiaApiKey: undefined,
+}
+
+/**
+ * Guardrails ya no tiene clave propia (#225, D4): usa la del proveedor NVIDIA.
+ * Si una base vieja la trae todavía —la migración la quita al arrancar, salvo
+ * en un equipo sin llavero—, ni se usa ni sale hacia la interfaz.
+ */
+export function sinClavePropia(ajustes: Record<string, unknown>): SettingsShape {
+  const limpio: Record<string, unknown> = { ...DEFAULT_SETTINGS, ...ajustes }
+  delete limpio.nvidiaApiKey
+  return limpio as unknown as SettingsShape
 }
 
 let cachedSettings: SettingsShape | null = null
@@ -30,14 +40,15 @@ async function loadSettings(prisma: PrismaClient): Promise<SettingsShape> {
     return cachedSettings
   }
   try {
-    cachedSettings = { ...DEFAULT_SETTINGS, ...JSON.parse(row.value) }
+    cachedSettings = sinClavePropia(JSON.parse(row.value))
   } catch {
     cachedSettings = DEFAULT_SETTINGS
   }
   return cachedSettings!
 }
 
-async function saveSettings(prisma: PrismaClient, next: SettingsShape) {
+async function saveSettings(prisma: PrismaClient, siguiente: SettingsShape) {
+  const next = sinClavePropia(siguiente as unknown as Record<string, unknown>)
   cachedSettings = next
   await prisma.appSetting.upsert({
     where: { key: 'guardrails_settings' },
@@ -50,7 +61,6 @@ async function saveSettings(prisma: PrismaClient, next: SettingsShape) {
     judgeProvider: next.judgeProvider,
     judgeModel: next.judgeModel,
     ollamaBaseUrl: next.ollamaBaseUrl,
-    nvidiaApiKey: next.nvidiaApiKey,
   })
 }
 
@@ -84,6 +94,9 @@ async function audit(
 
 export function registerGuardrailsHandlers(prisma?: PrismaClient) {
   const prismaClient = prisma || new PrismaClient()
+  const proveedores = new DatabaseService(prismaClient)
+  guardrailsWrapper.usarClaveNvidiaDe(async () =>
+    (await proveedores.claveDeProveedor('nvidia')) ?? process.env.NVIDIA_API_KEY ?? null)
 
   // Apply persisted settings at startup
   loadSettings(prismaClient).then((s) => {
@@ -93,7 +106,6 @@ export function registerGuardrailsHandlers(prisma?: PrismaClient) {
       judgeProvider: s.judgeProvider,
       judgeModel: s.judgeModel,
       ollamaBaseUrl: s.ollamaBaseUrl,
-      nvidiaApiKey: s.nvidiaApiKey,
     })
 
     /**

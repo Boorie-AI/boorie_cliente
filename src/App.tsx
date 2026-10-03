@@ -7,6 +7,7 @@ import { ProjectMismatchDialog } from '@/components/project/ProjectMismatchDialo
 import { MigracionAvisoDialog } from '@/components/project/MigracionAvisoDialog'
 import { Onboarding } from '@/components/Onboarding'
 import { DialogoDescargo } from '@/components/descargo/DialogoDescargo'
+import { DialogoConsentimientoNube } from '@/components/nube/DialogoConsentimientoNube'
 import { DialogoAyuda } from '@/components/ayuda/DialogoAyuda'
 import { SetupWizard } from '@/components/setup/SetupWizard'
 import { useAppStore } from '@/stores/appStore'
@@ -122,6 +123,7 @@ function App() {
         <Onboarding />
         {/* Único en la raíz: cualquier vista puede abrir una conversación. */}
         <ProjectMismatchDialog />
+        <DialogoConsentimientoNube />
         <MigracionAvisoDialog informe={informeMigracion} onClose={() => setInformeMigracion(null)} />
         <DialogoAyuda />
         {/* Después del descargo: con él abierto, el asistente se pintaba

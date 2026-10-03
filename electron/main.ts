@@ -166,7 +166,7 @@ try {
   console.error('Error in early config:', e);
 }
 
-import { app, BrowserWindow, ipcMain, Menu, shell, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, shell, dialog, safeStorage } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import log from 'electron-log'
@@ -407,6 +407,9 @@ import { urlConEspera, activarWAL } from './baseSqlite'
 import { instalarEntradaEscritorio } from './integracionEscritorio'
 import { capturarConsolaDelMain } from '../backend/services/feedback/registroReciente'
 import { escucharConsolaDelRenderer, registerFeedbackHandlers } from './handlers/feedback.handler'
+import { cifradorDeSafeStorage, configurarCifrador } from '../backend/services/security/clavesProveedor'
+import { migrarClaves } from '../backend/services/security/migracionClaves'
+import { cargarConsentimientos } from '../backend/services/security/consentimientoNube'
 
 log.transports.file.level = 'info'
 capturarConsolaDelMain()
@@ -653,6 +656,28 @@ async function initializeApplication(): Promise<void> {
 
     // Initialize database
     await initDatabase()
+
+    /**
+     * Antes que ningún servicio (#225): las claves en claro de versiones
+     * anteriores se cifran ahora, y el consentimiento para la nube tiene que
+     * estar leído antes de que nada decida si sale de la máquina. Si algo de
+     * esto falla, la aplicación arranca igual: sin consentimiento no sale nada.
+     */
+    const cifrador = cifradorDeSafeStorage(safeStorage)
+    configurarCifrador(cifrador)
+    if (!cifrador.disponible()) {
+      appLogger.warn('No hay llavero del sistema: las claves de los proveedores no se pueden guardar cifradas')
+    }
+    try {
+      await migrarClaves(prisma, cifrador)
+    } catch (error) {
+      appLogger.error('No se pudieron cifrar las claves guardadas', error as Error)
+    }
+    try {
+      await cargarConsentimientos(prisma)
+    } catch (error) {
+      appLogger.error('No se pudo leer el consentimiento para la nube', error as Error)
+    }
 
     // Initialize services with dependency injection
     services = new ServiceContainer(prisma)

@@ -195,7 +195,26 @@
       "local": "En este equipo (Ollama)",
       "sinExternos": "Para elegir un modelo externo, añade la clave del proveedor en «Proveedores API» y carga sus modelos.",
       "avisoExterno": "Con un modelo de {{proveedor}}, tu pregunta y los fragmentos de tus documentos que la acompañan salen de este equipo hacia {{proveedor}}.",
-      "guardado": "Guardado. Se aplica desde la próxima pregunta."
+      "guardado": "Guardado. Se aplica desde la próxima pregunta.",
+      "sigueLocal": "No se ha cambiado: sin tu consentimiento no se envía nada a {{proveedor}} y sigue respondiendo el modelo de este equipo."
+    },
+    "clave": {
+      "estadoOk": "Guardada y cifrada con el llavero del sistema · termina en …{{fin}}",
+      "estadoIlegible": "La clave guardada no se puede leer en este equipo (la base viene de otro equipo o de otro usuario). No se usa ni se borra: pega la clave otra vez para usarla aquí.",
+      "estadoSinCifrado": "Guardada SIN cifrar en este equipo · termina en …{{fin}}. Cualquiera con una copia de la base puede leerla.",
+      "estadoSesion": "Sólo para esta sesión · termina en …{{fin}}. No se ha guardado: al cerrar Boorie habrá que volver a pegarla.",
+      "sinClave": "Sin clave",
+      "sinLlavero": "Este equipo no tiene un llavero del sistema disponible (en Linux, GNOME Keyring o KWallet), así que Boorie no puede guardar las claves cifradas. La que pegues se usa sólo mientras Boorie esté abierto, salvo que decidas guardarla sin cifrar.",
+      "reemplazar": "Pega una clave nueva para sustituir la guardada",
+      "mostrar": "Mostrar lo escrito",
+      "ocultar": "Ocultar lo escrito",
+      "guardar": "Guardar",
+      "usarEnSesion": "Usar en esta sesión",
+      "guardarSinCifrar": "Guardar sin cifrar en este equipo",
+      "riesgoSinCifrar": "La clave de {{proveedor}} quedará escrita tal cual en la base de Boorie de este equipo. Cualquiera que acceda al fichero o a una copia de la base podrá usarla y hacer peticiones a tu cuenta. Se cifrará sola en cuanto el equipo tenga llavero.",
+      "cancelar": "Cancelar",
+      "confirmarSinCifrar": "Entiendo el riesgo: guardarla sin cifrar",
+      "error": "No se pudo guardar la clave."
     }
   },
   "accounts": {
@@ -1162,7 +1181,9 @@
     "cannotConnect": "No se pudo conectar al proceso de Python.",
     "failOpen": "Modo fail-open: el chat funciona pero sin guardrails. Ejecuta",
     "theFlow": "el flujo. Útil para ver los falsos positivos antes de ponerlo en modo bloqueante.",
-    "intro": "Red agéntica de validación basada en Nemotron. Cada rail es un agente independiente que aprueba, bloquea o avisa sobre el flujo de chat, RAG y WNTR."
+    "intro": "Red agéntica de validación basada en Nemotron. Cada rail es un agente independiente que aprueba, bloquea o avisa sobre el flujo de chat, RAG y WNTR.",
+    "claveNvidia": "Usa la clave del proveedor NVIDIA de «Proveedores API», sin pedirla otra vez.",
+    "claveNvidiaFalta": "Falta la clave de NVIDIA: añádela en «Proveedores API». Mientras, se juzga con el modelo local."
   },
   "viewer": {
     "streets": "Calles",
@@ -1394,7 +1415,9 @@
     "scenarioFailed": "El escenario no se pudo simular",
     "energyFailed": "No se pudo analizar el consumo energético",
     "measureFailed": "No se pudo verificar la medida",
-    "sinProveedorDeEmbeddings": "No se pudo indexar: no hay ningún modelo de embeddings disponible. Instala Ollama con «bge-m3», o añade una clave de OpenAI en Configuración → Configuración de IA."
+    "sinProveedorDeEmbeddings": "No se pudo indexar: no hay ningún modelo de embeddings disponible. Instala Ollama con «bge-m3», o añade una clave de OpenAI en Configuración → Configuración de IA.",
+    "chatSinConsentimiento": "**No se ha enviado nada.** El modelo elegido es de un proveedor externo y falta tu consentimiento para mandarle datos. Acéptalo en Configuración → Configuración de IA → «Modelo que redacta», o vuelve al modelo automático para responder en este equipo.",
+    "chatSinClave": "**No se ha enviado nada.** El proveedor elegido no tiene una clave que se pueda usar en este equipo. Pégala en Configuración → Configuración de IA → Proveedores API."
   },
   "layers": {
     "junction": "Nudos de consumo",
@@ -1650,5 +1673,37 @@
     "copiado": "Informe copiado al portapapeles.",
     "error": "No se pudo preparar el reporte. Inténtalo de nuevo o copia el informe.",
     "cerrar": "Cerrar"
+  },
+  "nube": {
+    "consentimiento": {
+      "titulo": "¿Enviar tus datos a {{proveedor}}?",
+      "intro": "El modelo que has elegido no funciona en este equipo: para responder, Boorie envía lo que le preguntas a los servidores de {{proveedor}}, fuera de tu equipo y de tu red.",
+      "queSale": "En cada pregunta saldrá de este equipo hacia {{proveedor}}:",
+      "datos": {
+        "pregunta": "la pregunta que escribas y el historial de la conversación;",
+        "adjunto": "el documento que adjuntes, entero o en los fragmentos que quepan;",
+        "fragmentos": "los fragmentos de tu base de conocimiento que se recuperen para responder, incluidos los documentos de tus proyectos;",
+        "red": "el contexto de la red y del proyecto abiertos (nudos, tramos, resultados de simulación) y lo que el modelo consulte de la red con sus herramientas;",
+        "otrasFunciones": "si además usas {{proveedor}} como juez de guardrails, para los embeddings o como motor de la búsqueda, también la pregunta, los fragmentos, la respuesta y el texto de los documentos al indexarlos."
+      },
+      "cliente": "Si trabajas con documentos o redes de un cliente, comprueba antes que puedes tratarlos fuera de tu equipo. Lo que {{proveedor}} haga con los datos depende de sus condiciones de uso, no de Boorie.",
+      "retirar": "Puedes retirar este consentimiento cuando quieras en Configuración → Configuración de IA → «Datos que salen a la nube». Desde la pregunta siguiente no se envía nada más a {{proveedor}} y vuelve a responder el modelo local. Lo que ya se haya enviado no se puede recuperar.",
+      "siNo": "Si no aceptas, no se envía nada y sigue respondiendo el modelo de este equipo.",
+      "version": "Texto del consentimiento, versión {{version}}. Al aceptar se guardan en este equipo la versión y la fecha.",
+      "rechazar": "No, seguir en local",
+      "aceptar": "Acepto enviar estos datos a {{proveedor}}"
+    },
+    "gestion": {
+      "titulo": "Datos que salen a la nube",
+      "ninguno": "No has autorizado a ningún proveedor externo: todo se responde en este equipo.",
+      "autorizado": "{{proveedor}} · autorizado el {{fecha}} (texto v{{version}})",
+      "retirar": "Retirar",
+      "efecto": "Al retirarlo, desde la pregunta siguiente no se envía nada más a ese proveedor y responde el modelo local."
+    },
+    "marca": {
+      "etiqueta": "Nube: {{proveedor}}",
+      "detalle": "Esta conversación responde con {{proveedor}}: la pregunta, el adjunto, los fragmentos y el contexto de la red salen de este equipo.",
+      "mensaje": "enviado a {{proveedor}}"
+    }
   }
 }

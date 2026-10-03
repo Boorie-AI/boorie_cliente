@@ -136,6 +136,14 @@ export function MessageBubble({ message, isStreaming = false }: MessageBubblePro
                     invisible y queda anotado en el log (#49). */}
                 <div className="flex items-center space-x-2">
                   <span>{message.metadata.provider}</span>
+                  {message.metadata.provider && message.metadata.provider.toLowerCase() !== 'ollama' && (
+                    <>
+                      <span>•</span>
+                      <span className="text-sky-700 dark:text-sky-400" title={t('nube.marca.detalle', { proveedor: message.metadata.provider })}>
+                        {t('nube.marca.mensaje', { proveedor: message.metadata.provider })}
+                      </span>
+                    </>
+                  )}
                   {message.metadata.tokens && (
                     <>
                       <span>•</span>

@@ -4,6 +4,8 @@ import { Info } from 'lucide-react'
 import { useAIConfigStore } from '@/stores/aiConfigStore'
 import { cargarModelosRAG, guardarModeloElegido, modeloElegido, type ModeloElegido } from '@/config/modelosRAG'
 import { logger } from '@/utils/logger'
+import { pedirConsentimiento } from '@/services/consentimientoNube'
+import { ConsentimientosNube } from '@/components/nube/ConsentimientosNube'
 
 /** Los de embeddings no redactan: sacarlos de la lista evita elegir uno que no puede responder. */
 const DE_EMBEDDINGS = /embed|bge|(^|[-/])e5[-:]|minilm/i
@@ -27,6 +29,8 @@ export function ModeloDeRespuesta({ modelosOllama }: { modelosOllama: string[] }
   const [automatico, setAutomatico] = useState<string>('')
   const [valor, setValor] = useState<string>(AUTOMATICO)
   const [guardado, setGuardado] = useState(false)
+  const [rechazado, setRechazado] = useState<string | null>(null)
+  const [cambiosDeConsentimiento, setCambiosDeConsentimiento] = useState(0)
 
   useEffect(() => {
     cargarModelosRAG().then(m => {
@@ -40,7 +44,7 @@ export function ModeloDeRespuesta({ modelosOllama }: { modelosOllama: string[] }
   const idOllama = ollama?.id ?? 'ollama'
   const locales = modelosOllama.filter(m => !DE_EMBEDDINGS.test(m))
   const externos = useMemo(
-    () => providers.filter(p => p.type === 'api' && p.apiKey && p.availableModels.length > 0),
+    () => providers.filter(p => p.type === 'api' && p.tieneClave && p.estadoClave !== 'ilegible' && p.availableModels.length > 0),
     [providers]
   )
 
@@ -54,8 +58,22 @@ export function ModeloDeRespuesta({ modelosOllama }: { modelosOllama: string[] }
   const esExterno = !!actual && actual.proveedor.toLowerCase() !== 'ollama'
 
   const cambiar = async (nuevo: string) => {
-    setValor(nuevo)
+    const elegido = aElegido(nuevo)
     setGuardado(false)
+    setRechazado(null)
+    /**
+     * Antes de que salga nada, el consentimiento (#225). Sin él la elección no
+     * cambia: sigue respondiendo lo que hubiera, que es el modelo local.
+     */
+    if (elegido && elegido.proveedor.toLowerCase() !== 'ollama') {
+      const acepta = await pedirConsentimiento(elegido.proveedor)
+      setCambiosDeConsentimiento(n => n + 1)
+      if (!acepta) {
+        setRechazado(elegido.proveedor)
+        return
+      }
+    }
+    setValor(nuevo)
     try {
       await guardarModeloElegido(aElegido(nuevo))
       setGuardado(true)
@@ -110,6 +128,14 @@ export function ModeloDeRespuesta({ modelosOllama }: { modelosOllama: string[] }
       )}
 
       {guardado && <p className="text-xs text-muted-foreground">{t('ai.modeloRespuesta.guardado')}</p>}
+      {rechazado && <p className="text-xs text-muted-foreground">{t('ai.modeloRespuesta.sigueLocal', { proveedor: rechazado })}</p>}
+
+      <ConsentimientosNube
+        version={cambiosDeConsentimiento}
+        alRetirar={proveedor => {
+          if (actual && actual.proveedor.toLowerCase() === proveedor.toLowerCase()) setValor(AUTOMATICO)
+        }}
+      />
     </div>
   )
 }

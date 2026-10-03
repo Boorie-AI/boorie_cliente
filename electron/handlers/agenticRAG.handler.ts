@@ -2,7 +2,8 @@ import { ipcMain } from 'electron'
 import { PrismaClient } from '@prisma/client'
 import { createAgenticRAGService } from '../../backend/services/hydraulic/agentic/agenticRAGService'
 import { guardrailsWrapper } from '../../backend/services/guardrails/guardrailsWrapper'
-import { estadoModelosRAG } from '../../backend/services/hydraulic/agentic/modelosRAG'
+import { estadoModelosRAG, usarClaveNvidiaDe } from '../../backend/services/hydraulic/agentic/modelosRAG'
+import { DatabaseService } from '../../backend/services/database.service'
 
 let ragService: any = null
 
@@ -44,6 +45,9 @@ async function auditViolation(
 
 export function registerAgenticRAGHandlers(prismaClient: PrismaClient) {
   console.log('[AgenticRAG Handler] Starting registration...')
+
+  const proveedores = new DatabaseService(prismaClient)
+  usarClaveNvidiaDe(async () => (await proveedores.claveDeProveedor('nvidia')) ?? process.env.NVIDIA_API_KEY ?? null)
 
   // Initialize service
   if (!ragService) {

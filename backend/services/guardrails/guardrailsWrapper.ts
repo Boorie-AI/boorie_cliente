@@ -1,5 +1,7 @@
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process'
 import { juzgarDominio } from './dominioDeLaPregunta'
+import { alCambiarConsentimiento, hayConsentimiento } from '../security/consentimientoNube'
+import { alCambiarClave } from '../security/clavesProveedor'
 import * as path from 'path'
 
 export type RailName = 'input' | 'retrieval' | 'output' | 'execution'
@@ -17,7 +19,6 @@ export interface GuardrailsOptions {
   judgeModel?: string
   judgeProvider?: 'ollama' | 'nvidia-api'
   ollamaBaseUrl?: string
-  nvidiaApiKey?: string
   /** When true, every rail returns allow=true regardless of judge verdict.
    *  Used for "advisory mode" where we record violations but don't block. */
   advisoryMode?: boolean
@@ -28,6 +29,30 @@ export interface GuardrailsOptions {
 interface PendingRequest {
   resolve: (v: GuardrailVerdict) => void
   reject: (e: Error) => void
+}
+
+/** El juez local con el que se responde cuando el de NVIDIA no puede usarse. */
+const JUEZ_LOCAL = 'nemotron-mini'
+
+/**
+ * Con qué juez arranca el proceso de Python (#225).
+ *
+ * El juez de NVIDIA recibe la pregunta, los fragmentos recuperados y la
+ * respuesta aunque redacte el modelo local, así que también necesita el
+ * consentimiento. Sin él se juzga en local —el modelo elegido es de NVIDIA y en
+ * Ollama no existe—, y la clave es la del proveedor NVIDIA: guardrails ya no
+ * tiene la suya (D4).
+ */
+export function juezEfectivo(
+  opts: Pick<GuardrailsOptions, 'judgeProvider' | 'judgeModel'>,
+  consentido: boolean,
+  clave: string | null,
+): { proveedor: 'ollama' | 'nvidia-api'; modelo: string; clave: string } {
+  if (opts.judgeProvider === 'nvidia-api' && consentido && clave) {
+    return { proveedor: 'nvidia-api', modelo: opts.judgeModel || 'nvidia/nemotron-3.5-lightning-30b-a3b', clave }
+  }
+  const modelo = opts.judgeProvider === 'nvidia-api' ? JUEZ_LOCAL : opts.judgeModel || JUEZ_LOCAL
+  return { proveedor: 'ollama', modelo, clave: '' }
 }
 
 const ALLOW: GuardrailVerdict = {
@@ -46,6 +71,18 @@ class GuardrailsWrapper {
   private starting: Promise<void> | null = null
   private opts: GuardrailsOptions = {}
   private startupError: string | null = null
+  private claveNvidia: () => Promise<string | null> = async () => process.env.NVIDIA_API_KEY || null
+
+  constructor() {
+    // Con otra clave o con el consentimiento cambiado, el proceso tiene que arrancar de nuevo.
+    alCambiarClave(proveedor => { if (proveedor === 'nvidia') this.shutdown() })
+    alCambiarConsentimiento(() => this.shutdown())
+  }
+
+  /** De dónde sale la clave de NVIDIA: la del proveedor en Proveedores API. */
+  usarClaveNvidiaDe(fuente: () => Promise<string | null>) {
+    this.claveNvidia = fuente
+  }
 
   configure(opts: GuardrailsOptions) {
     this.opts = { ...this.opts, ...opts }
@@ -84,15 +121,27 @@ class GuardrailsWrapper {
     if (this.proc && !this.proc.killed) return
     if (this.starting) return this.starting
 
-    this.starting = new Promise<void>((resolve, reject) => {
+    this.starting = this.arrancar().finally(() => { this.starting = null })
+    return this.starting
+  }
+
+  private async arrancar(): Promise<void> {
+    const consentido = hayConsentimiento('nvidia')
+    const quiereNvidia = this.opts.judgeProvider === 'nvidia-api' && consentido
+    const juez = juezEfectivo(this.opts, consentido, quiereNvidia ? await this.claveNvidia().catch(() => null) : null)
+    if (this.opts.judgeProvider === 'nvidia-api' && juez.proveedor !== 'nvidia-api') {
+      console.warn('[Guardrails] El juez de NVIDIA no tiene consentimiento o clave: se juzga en local')
+    }
+
+    return new Promise<void>((resolve, reject) => {
       try {
         const env = {
           ...process.env,
           PYTHONUNBUFFERED: '1',
-          BOORIE_GUARDRAILS_MODEL: this.opts.judgeModel ?? 'nemotron-mini',
-          BOORIE_GUARDRAILS_PROVIDER: this.opts.judgeProvider ?? 'ollama',
+          BOORIE_GUARDRAILS_MODEL: juez.modelo,
+          BOORIE_GUARDRAILS_PROVIDER: juez.proveedor,
           OLLAMA_BASE_URL: this.opts.ollamaBaseUrl ?? process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434',
-          NVIDIA_API_KEY: this.opts.nvidiaApiKey ?? process.env.NVIDIA_API_KEY ?? '',
+          NVIDIA_API_KEY: juez.clave,
         }
 
         const proc = spawn(this.getPythonPath(), [this.getScriptPath()], {
@@ -126,12 +175,8 @@ class GuardrailsWrapper {
       } catch (e: any) {
         this.startupError = e?.message ?? String(e)
         reject(e)
-      } finally {
-        this.starting = null
       }
     })
-
-    return this.starting
   }
 
   private onStdout(text: string) {

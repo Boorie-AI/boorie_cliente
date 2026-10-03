@@ -10,6 +10,7 @@ import { WisdomSelector } from './WisdomSelector'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { ProjectSelector } from './ProjectSelector'
 import { RedEnContexto } from './RedEnContexto'
+import { MarcaDeNube } from '@/components/nube/MarcaDeNube'
 import { NewProjectDialog } from '@/components/hydraulic/NewProjectDialog'
 import * as Dialog from '@radix-ui/react-dialog'
 import { nombreDescarga } from '@/utils/nombreArchivo'
@@ -161,6 +162,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
         {/* Qué red está viendo el agente (#34): sin esto el usuario no puede
             saber si el chat responde sobre su red o de memoria. */}
         <RedEnContexto />
+        <MarcaDeNube proveedorDeLaConversacion={conversation.provider} />
         
         {isEditing ? (
           <input

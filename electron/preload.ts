@@ -45,6 +45,10 @@ const electronAPI = {
     deleteAIModels: (providerId: string) => ipcRenderer.invoke('db-delete-ai-models', providerId),
     testAIProvider: (id: string) => ipcRenderer.invoke('db-test-ai-provider', id),
     refreshAIModels: (providerId: string) => ipcRenderer.invoke('db-refresh-ai-models', providerId),
+    // La clave entra por aquí y no vuelve: se recibe su estado (#225).
+    guardarClaveProveedor: (id: string, clave: string, opciones?: { permitirSinCifrar?: boolean }) =>
+      ipcRenderer.invoke('ai-provider:guardarClave', id, clave, opciones),
+    estadoCifrado: () => ipcRenderer.invoke('ai-provider:cifrado'),
 
     // Conversations
     getConversations: () => ipcRenderer.invoke('db-get-conversations'),
@@ -85,6 +89,13 @@ const electronAPI = {
       ipcRenderer.invoke('ollama-query', model, prompt, options),
     openaiQuery: (messages: any[], options?: any) =>
       ipcRenderer.invoke('openai-query', messages, options),
+  },
+
+  // Consentimiento para mandar datos a la nube (#225)
+  nube: {
+    estado: () => ipcRenderer.invoke('nube:estado'),
+    aceptar: (proveedor: string) => ipcRenderer.invoke('nube:aceptar', proveedor),
+    retirar: (proveedor: string) => ipcRenderer.invoke('nube:retirar', proveedor),
   },
 
   // Chat services

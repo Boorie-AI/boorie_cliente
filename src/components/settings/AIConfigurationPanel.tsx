@@ -2,6 +2,7 @@ import { logger } from '@/utils/logger'
 import { getOllamaBaseUrl } from '@/config/ollama';
 import { cargarModelosRAG } from '@/config/modelosRAG';
 import { ModeloDeRespuesta } from './ModeloDeRespuesta';
+import { ClaveDelProveedor } from './ClaveDelProveedor';
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -10,8 +11,6 @@ import {
   RefreshCw,
   AlertTriangle,
   ExternalLink,
-  Eye,
-  EyeOff,
   Download,
   Trash2,
   Plus,
@@ -79,7 +78,7 @@ export function AIConfigurationPanel() {
   // Con el modelo del chat fijado (#49), marcar modelos aquí no cambia quién
   // responde: el panel sigue sirviendo para las claves y el catálogo.
   const [modeloDelChatFijado, setModeloDelChatFijado] = useState(false)
-  const [showAPIKey, setShowAPIKey] = useState<Record<string, boolean>>({})
+  const [cifradoDisponible, setCifradoDisponible] = useState<boolean | null>(null)
   const [newModelName, setNewModelName] = useState('')
   const [isInstallingModel, setIsInstallingModel] = useState(false)
   const [installProgress, setInstallProgress] = useState({ progress: 0, status: '', currentModel: '' })
@@ -111,6 +110,7 @@ export function AIConfigurationPanel() {
 
   useEffect(() => {
     cargarModelosRAG().then(modelos => setModeloDelChatFijado(modelos?.selectorVisible === false))
+    databaseService.estadoCifrado().then(e => setCifradoDisponible(e ? e.disponible : null))
   }, [])
 
   const initializeProviders = async () => {
@@ -343,7 +343,6 @@ export function AIConfigurationPanel() {
       if (existingProvider) {
         // Update existing provider
         await databaseService.updateAIProvider(existingProvider.id, {
-          apiKey: provider.apiKey,
           isActive: provider.isActive,
           isConnected: provider.isConnected
         })
@@ -352,7 +351,6 @@ export function AIConfigurationPanel() {
         await databaseService.saveAIProvider({
           name: provider.id,
           type: 'api',
-          apiKey: provider.apiKey,
           isActive: provider.isActive,
           isConnected: provider.isConnected
         })
@@ -389,9 +387,9 @@ export function AIConfigurationPanel() {
     await toggleModelSelection(providerId, modelId, isSelected)
   }
 
-  const handleAPIKeyUpdate = async (providerId: string, apiKey: string) => {
+  const handleAPIKeyUpdate = async (providerId: string, apiKey: string, opciones: { permitirSinCifrar?: boolean }) => {
     logger.debug('API key update:', { providerId })
-    await updateAPIKey(providerId, apiKey)
+    return updateAPIKey(providerId, apiKey, opciones)
   }
 
   const handleProviderToggle = async (providerId: string, isActive: boolean) => {
@@ -429,10 +427,6 @@ export function AIConfigurationPanel() {
     setCustomModel({ modelId: '', modelName: '', description: '' })
     setShowAddModelDialog(false)
     setSelectedProviderId('')
-  }
-
-  const toggleAPIKeyVisibility = (providerId: string) => {
-    setShowAPIKey(prev => ({ ...prev, [providerId]: !prev[providerId] }))
   }
 
   const handleModelSearch = (providerId: string, searchTerm: string) => {
@@ -820,25 +814,17 @@ export function AIConfigurationPanel() {
                         <label className="text-sm font-medium text-card-foreground">
                           {t('ai.apiKey')}
                         </label>
-                        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                          <div className="relative flex-1 min-w-0">
-                            <input
-                              type={showAPIKey[provider.id] ? "text" : "password"}
-                              value={provider.apiKey}
-                              onChange={(e) => handleAPIKeyUpdate(provider.id, e.target.value)}
-                              placeholder={t('ai.enterApiKey')}
-                              className="w-full px-3 py-2 pr-10 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none text-sm"
+                        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 sm:items-start">
+                          <div className="flex-1 min-w-0">
+                            <ClaveDelProveedor
+                              provider={provider}
+                              cifradoDisponible={cifradoDisponible}
+                              onGuardar={(clave, opciones) => handleAPIKeyUpdate(provider.id, clave, opciones)}
                             />
-                            <button
-                              onClick={() => toggleAPIKeyVisibility(provider.id)}
-                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            >
-                              {showAPIKey[provider.id] ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </button>
                           </div>
                           <button
                             onClick={() => testAPIConnection(provider.id)}
-                            disabled={!provider.apiKey || provider.testStatus === 'testing'}
+                            disabled={!provider.tieneClave || provider.estadoClave === 'ilegible' || provider.testStatus === 'testing'}
                             className={cn(
                               "px-3 sm:px-4 py-2 rounded-lg border transition-all flex items-center justify-center space-x-2 text-sm whitespace-nowrap flex-shrink-0 min-w-[70px]",
                               provider.testStatus === 'testing' && "opacity-50 cursor-not-allowed",

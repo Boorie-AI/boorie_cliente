@@ -4,6 +4,8 @@ import { ipcMain, IpcMainInvokeEvent } from 'electron'
 import { AIProviderService } from '../../backend/services'
 import { createLogger } from '../../backend/utils/logger'
 import { ICreateAIProviderData, IUpdateAIProviderData } from '../../backend/models'
+import { proveedorSinClave, sinCampoClave } from '../../backend/services/database.service'
+import { cifradorActual } from '../../backend/services/security/clavesProveedor'
 
 const logger = createLogger('AIProviderHandler')
 
@@ -25,7 +27,7 @@ export class AIProviderHandler {
         
         if (result.success) {
           logger.success(`IPC: Retrieved ${result.data?.length || 0} AI providers`)
-          return result.data
+          return (result.data ?? []).map(proveedorSinClave)
         } else {
           logger.error('IPC: Failed to get AI providers', new Error(result.error))
           return []
@@ -44,7 +46,7 @@ export class AIProviderHandler {
         
         if (result.success) {
           logger.success('IPC: Retrieved AI provider', { id, name: result.data?.name })
-          return result.data
+          return result.data ? proveedorSinClave(result.data) : null
         } else {
           logger.error('IPC: Failed to get AI provider', new Error(result.error), { id })
           return null
@@ -59,20 +61,21 @@ export class AIProviderHandler {
     ipcMain.handle('db-save-ai-provider', async (event: IpcMainInvokeEvent, data: ICreateAIProviderData) => {
       try {
         logger.debug('IPC: Creating AI provider', { name: data.name, type: data.type })
-        const result = await this.aiProviderService.createProvider(data)
+        // La clave sólo entra por `ai-provider:guardarClave` (#225).
+        const result = await this.aiProviderService.createProvider(sinCampoClave(data))
         
         if (result.success) {
           logger.success('IPC: Created AI provider', { 
             id: result.data?.id, 
             name: result.data?.name 
           })
-          return result.data
+          return result.data ? proveedorSinClave(result.data) : null
         } else {
-          logger.error('IPC: Failed to create AI provider', new Error(result.error), data)
+          logger.error('IPC: Failed to create AI provider', new Error(result.error), { name: data.name })
           return null
         }
       } catch (error) {
-        logger.error('IPC: Error in save-ai-provider handler', error as Error, data)
+        logger.error('IPC: Error in save-ai-provider handler', error as Error, { name: data?.name })
         return null
       }
     })
@@ -80,24 +83,42 @@ export class AIProviderHandler {
     // Update existing AI provider
     ipcMain.handle('db-update-ai-provider', async (event: IpcMainInvokeEvent, id: string, updates: IUpdateAIProviderData) => {
       try {
-        logger.debug('IPC: Updating AI provider', { id, updates })
-        const result = await this.aiProviderService.updateProvider(id, updates)
+        const sinClave = sinCampoClave(updates ?? {})
+        logger.debug('IPC: Updating AI provider', { id, campos: Object.keys(sinClave) })
+        const result = await this.aiProviderService.updateProvider(id, sinClave)
         
         if (result.success) {
           logger.success('IPC: Updated AI provider', { 
             id: result.data?.id, 
             name: result.data?.name 
           })
-          return result.data
+          return result.data ? proveedorSinClave(result.data) : null
         } else {
-          logger.error('IPC: Failed to update AI provider', new Error(result.error), { id, updates })
+          logger.error('IPC: Failed to update AI provider', new Error(result.error), { id })
           return null
         }
       } catch (error) {
-        logger.error('IPC: Error in update-ai-provider handler', error as Error, { id, updates })
+        logger.error('IPC: Error in update-ai-provider handler', error as Error, { id })
         return null
       }
     })
+
+    /**
+     * La única entrada de una clave desde la interfaz (#225, D2). Devuelve su
+     * estado, nunca la clave. `permitirSinCifrar` es el «Guardar sin cifrar en
+     * este equipo» de un equipo sin llavero (D3).
+     */
+    ipcMain.handle('ai-provider:guardarClave', async (_event: IpcMainInvokeEvent, id: string, clave: string, opciones?: { permitirSinCifrar?: boolean }) => {
+      const result = await this.aiProviderService.guardarClave(id, typeof clave === 'string' ? clave : '', {
+        permitirSinCifrar: opciones?.permitirSinCifrar === true,
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    })
+
+    ipcMain.handle('ai-provider:cifrado', async () => ({
+      disponible: cifradorActual().disponible(),
+      plataforma: process.platform,
+    }))
 
     // Test AI provider connection
     ipcMain.handle('db-test-ai-provider', async (event: IpcMainInvokeEvent, id: string) => {
@@ -241,7 +262,9 @@ export class AIProviderHandler {
       'db-get-ai-models',
       'db-save-ai-model',
       'db-delete-ai-models',
-      'db-refresh-ai-models'
+      'db-refresh-ai-models',
+      'ai-provider:guardarClave',
+      'ai-provider:cifrado'
     ]
 
     handlers.forEach(handler => {

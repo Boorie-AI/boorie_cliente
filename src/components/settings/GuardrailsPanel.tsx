@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { Shield, ShieldCheck, ShieldAlert, RefreshCw, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import * as Switch from '@radix-ui/react-switch'
+import { pedirConsentimiento } from '@/services/consentimientoNube'
+import { databaseService } from '@/services/database'
 
 type RailName = 'input' | 'retrieval' | 'output' | 'execution'
 
@@ -12,7 +14,6 @@ interface GuardrailsSettings {
   judgeProvider: 'ollama' | 'nvidia-api'
   judgeModel: string
   ollamaBaseUrl: string
-  nvidiaApiKey?: string
 }
 
 interface Violation {
@@ -51,6 +52,7 @@ export function GuardrailsPanel() {
   const [pingStatus, setPingStatus] = useState<{ ok: boolean; error?: string } | null>(null)
   const [violations, setViolations] = useState<Violation[]>([])
   const [loading, setLoading] = useState(false)
+  const [nvidiaConClave, setNvidiaConClave] = useState<boolean | null>(null)
 
   const api = (window as any).electronAPI?.guardrails
 
@@ -72,6 +74,19 @@ export function GuardrailsPanel() {
   }
 
   useEffect(() => { load() }, [])
+
+  // La clave es la del proveedor NVIDIA (#225): aquí sólo se dice si la hay.
+  useEffect(() => {
+    databaseService.getAIProviders()
+      .then(ps => setNvidiaConClave(ps.some(p => p.name.toLowerCase() === 'nvidia' && p.tieneClave && p.estadoClave !== 'ilegible')))
+      .catch(() => setNvidiaConClave(null))
+  }, [])
+
+  /** El juez de NVIDIA recibe la pregunta, los fragmentos y la respuesta: necesita el consentimiento. */
+  const cambiarJuez = async (proveedor: GuardrailsSettings['judgeProvider']) => {
+    if (proveedor === 'nvidia-api' && !(await pedirConsentimiento('nvidia'))) return
+    await update({ judgeProvider: proveedor })
+  }
 
   const update = async (patch: Partial<GuardrailsSettings>) => {
     if (!api || !settings) return
@@ -154,7 +169,7 @@ export function GuardrailsPanel() {
             <label className="text-xs text-muted-foreground">{t('settings.provider')}</label>
             <select
               value={settings.judgeProvider}
-              onChange={(e) => update({ judgeProvider: e.target.value as any })}
+              onChange={(e) => void cambiarJuez(e.target.value as GuardrailsSettings['judgeProvider'])}
               className="mt-1 w-full px-3 py-2 rounded-lg bg-background border border-border text-sm"
             >
               <option value="ollama">Ollama (local)</option>
@@ -186,13 +201,9 @@ export function GuardrailsPanel() {
             ) : (
               <>
                 <label className="text-xs text-muted-foreground">NVIDIA API key</label>
-                <input
-                  type="password"
-                  value={settings.nvidiaApiKey ?? ''}
-                  onChange={(e) => update({ nvidiaApiKey: e.target.value })}
-                  placeholder="nvapi-..."
-                  className="mt-1 w-full px-3 py-2 rounded-lg bg-background border border-border text-sm"
-                />
+                <p className={cn('mt-1 text-xs', nvidiaConClave === false ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground')}>
+                  {t(nvidiaConClave === false ? 'guardrails.claveNvidiaFalta' : 'guardrails.claveNvidia')}
+                </p>
               </>
             )}
           </div>

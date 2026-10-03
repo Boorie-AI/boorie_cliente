@@ -33,6 +33,7 @@ import { usePreferencesStore } from './preferencesStore'
 import { databaseService } from '@/services/database'
 import { getOllamaBaseUrl } from '@/config/ollama'
 import { cargarModelosRAG, modeloElegido, modeloFijadoRAG, modelosRAGEnCache } from '@/config/modelosRAG'
+import { consentirAlEnviar } from '@/services/consentimientoNube'
 
 export interface WisdomConfiguration {
   enabled: boolean
@@ -132,30 +133,6 @@ interface ChatState {
 
   // Hydraulic project context
   buildProjectContext: (projectId: string) => Promise<string>
-}
-
-/**
- * La clave del proveedor con el que se va a responder.
- *
- * Los proveedores sólo se cargaban al abrir Configuración → IA, así que con un modelo externo
- * elegido y la aplicación recién abierta el mensaje salía sin clave. Y en la base conviven
- * «openai» y «OpenAI»: se busca por el id elegido y, si no, por el nombre sin distinguir
- * mayúsculas, quedándose con el que tenga clave.
- */
-export async function claveDelProveedor(proveedor: string, proveedorId?: string): Promise<string> {
-  if (proveedor.toLowerCase() === 'ollama') return ''
-  const store = useAIConfigStore.getState()
-  if (store.providers.length === 0) {
-    try {
-      await store.loadProviders()
-    } catch (error) {
-      logger.warn('No se pudieron cargar los proveedores de IA:', error)
-    }
-  }
-  const proveedores = useAIConfigStore.getState().providers
-  const porId = proveedorId ? proveedores.find(p => p.id === proveedorId && p.apiKey) : undefined
-  const porNombre = proveedores.find(p => p.name.toLowerCase() === proveedor.toLowerCase() && p.apiKey)
-  return (porId ?? porNombre)?.apiKey ?? ''
 }
 
 export const useChatStore = create<ChatState>()(
@@ -335,6 +312,25 @@ export const useChatStore = create<ChatState>()(
           content,
           ...(adjunto ? { metadata: { adjunto } } : {})
         })
+
+        /**
+         * El consentimiento, antes que el guardián y el RAG (#225): con un modelo
+         * de la nube elegido de antes, se pregunta aquí en vez de acabar en «no
+         * se ha enviado nada» tras un minuto de RAG.
+         */
+        const puedeResponder = await consentirAlEnviar(async () => {
+          await cargarModelosRAG()
+          return modeloFijadoRAG()?.provider
+            ?? get().conversations.find(c => c.id === conversationId)?.provider
+            ?? 'Ollama'
+        })
+        if (!puedeResponder) {
+          await get().addMessageToConversation(conversationId, {
+            role: 'assistant',
+            content: i18n.t('messages.chatSinConsentimiento'),
+          })
+          return
+        }
 
         set({ isLoading: true })
 
@@ -617,8 +613,6 @@ export const useChatStore = create<ChatState>()(
             // Clear any previous streaming message
             get().clearStreamingMessage()
 
-            const apiKey = await claveDelProveedor(proveedor, fijado?.providerId)
-
             // Prepare messages for chat handler (includes system prompt automatically)
             const messages: ChatMessage[] = historial.map(msg => ({
               role: msg.role,
@@ -679,7 +673,7 @@ export const useChatStore = create<ChatState>()(
                     provider: proveedor,
                     model: modelo,
                     messages: messages,
-                    apiKey: apiKey,
+                    // Sin clave: la busca el proceso principal, que es donde vive (#225).
 
                     // Con proyecto el agente puede consultar la red por
                     // herramientas, en vez de quedarse en el resumen (#34).
@@ -754,7 +748,6 @@ export const useChatStore = create<ChatState>()(
                       provider: proveedor,
                       model: modelo,
                       messages: [{ role: 'user', content: promptDeRevision(content, leido, respuesta) }],
-                      apiKey,
                       sinRazonar: true,
                     })
                     if (r?.success) {
@@ -835,6 +828,10 @@ export const useChatStore = create<ChatState>()(
 
           if (errorMessage === 'GLOBAL_TIMEOUT') {
             userFacingMessage = i18n.t('messages.chatTimeout')
+          } else if (errorMessage === 'SIN_CONSENTIMIENTO') {
+            userFacingMessage = i18n.t('messages.chatSinConsentimiento')
+          } else if (errorMessage === 'SIN_CLAVE') {
+            userFacingMessage = i18n.t('messages.chatSinClave')
           } else if (errorMessage.includes('Cannot connect to Ollama') || errorMessage.includes('ECONNREFUSED')) {
             userFacingMessage = i18n.t('messages.chatNoOllama')
           } else if (errorMessage.includes('not found') && errorMessage.includes('ollama pull')) {
@@ -1071,7 +1068,7 @@ export const useChatStore = create<ChatState>()(
           const aiConfigStore = useAIConfigStore.getState()
           const providerConfig = aiConfigStore.providers.find(p => p.name === provider)
 
-          if (!providerConfig || !providerConfig.apiKey) {
+          if (!providerConfig || !providerConfig.tieneClave) {
             throw new Error(`No API key configured for ${provider}`)
           }
 
@@ -1093,7 +1090,6 @@ export const useChatStore = create<ChatState>()(
             provider,
             model,
             messages: chatMessages,
-            apiKey: providerConfig.apiKey,
             stream: false // Disable streaming for now through IPC
           })
 
