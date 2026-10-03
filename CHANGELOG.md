@@ -9,7 +9,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.46.0] - 2026-10-03
+
+Con NVIDIA responde Nemotron Ultra y cita lo que de verdad ha leído, las respuestas largas llegan enteras, las claves de la nube se guardan cifradas y nada sale a un modelo externo sin tu consentimiento.
 
 - **Las claves de los proveedores en la nube se guardan cifradas.** Antes estaban tal cual en
   `hydraulic.db`, y cualquiera con el fichero o con una copia de la base las tenía. Ahora se
@@ -30,10 +32,6 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   respuesta. Vale también para el juez de guardrails de NVIDIA y los embeddings de OpenAI.
 - **Una sola clave de NVIDIA.** Guardrails usa la del proveedor NVIDIA de «Proveedores API»; ya
   no hay que pegarla dos veces.
-
-## [1.46.0] - 2026-10-02
-
-Con NVIDIA responde Nemotron Ultra, las respuestas largas llegan enteras y lo que la respuesta atribuye a un documento adjunto se comprueba contra lo leído.
 
 - **Con NVIDIA responde Nemotron Ultra, y cita lo que de verdad ha leído.** El modelo principal
   pasa de `nemotron-3-super` a `nemotron-3-ultra`: con la misma pregunta sobre un libro adjunto,

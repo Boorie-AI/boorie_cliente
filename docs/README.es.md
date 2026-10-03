@@ -39,15 +39,22 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.45.0
+### 🚀 Última Versión - v1.46.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.45.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.45.0/Boorie-1.45.0-arm64.dmg) | ~324 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.45.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.45.0/Boorie-Setup-1.45.0.exe) | ~252 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.45.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.45.0/Boorie-1.45.0.AppImage) | ~403 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.46.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.46.0/Boorie-1.46.0-arm64.dmg) | ~324 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.46.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.46.0/Boorie-Setup-1.46.0.exe) | ~252 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.46.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.46.0/Boorie-1.46.0.AppImage) | ~403 MB |
 
 
+
+### 📝 Novedades en v1.46.0
+- Las claves de los proveedores en la nube se guardan cifradas con el llavero del sistema (Windows, macOS y, en Linux, GNOME Keyring o KWallet), y las que ya había se cifran solas la primera vez que se abre esta versión. Configuración ya no enseña la clave: sólo si hay una y sus cuatro últimos caracteres.
+- Nada sale a un modelo externo sin tu consentimiento. La primera vez que eliges un modelo en la nube, Boorie dice qué datos le enviará —la pregunta, el historial, el adjunto, fragmentos de tus documentos y el contexto de la red y del proyecto— y a quién. Si no lo aceptas, sigue respondiendo el modelo local.
+- Con NVIDIA responde Nemotron Ultra y cita lo que de verdad ha leído: cada fragmento de un libro adjunto lleva su página impresa, las citas que no están en lo leído se marcan y una segunda revisión comprueba la respuesta contra el documento.
+- Las respuestas largas ya no se quedan a medias, con NVIDIA ya no se cortan por un tiempo fijo, y «Probar» comprueba de verdad la clave de NVIDIA.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.46.0).
 
 ### 📝 Novedades en v1.45.0
 - Reportar un problema o sugerir una mejora desde la propia aplicación. «Ayuda y comentarios» está al pie de la barra lateral, en cualquier pantalla, y en Configuración → Acerca de. El formulario se abre encima de lo que estés haciendo, sin perderlo. «Abrir en GitHub» deja el issue redactado con la plantilla del equipo, y «Copiar informe» lo copia para quien no tenga cuenta de GitHub.
@@ -473,12 +480,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.45.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.45.0.AppImage`
-3. Ejecuta: `./Boorie-1.45.0.AppImage`
+1. Descarga `Boorie-1.46.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.46.0.AppImage`
+3. Ejecuta: `./Boorie-1.46.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.45.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.46.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
