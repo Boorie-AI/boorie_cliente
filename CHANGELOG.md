@@ -11,7 +11,7 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 
 ## [1.47.0] - 2026-10-03
 
-La conversación entera se copia de un clic para pegarla en Word o en el Bloc de notas, y una respuesta de NVIDIA que se corta ya no se pierde.
+La conversación entera se copia de un clic para pegarla en Word o en el Bloc de notas, una respuesta de NVIDIA que se corta ya no se pierde, y los proveedores en la nube sólo quedan activos con una clave que funciona.
 
 - **Copiar la conversación entera, para pegarla en Word.** Copiar el chat estaba escondido en el
   menú ⋯ de la cabecera, y lo que se pegaba era el markdown en bruto, con «User» y «Assistant» en
@@ -27,6 +27,17 @@ La conversación entera se copia de un clic para pegarla en Word o en el Bloc de
   desde cero, con otra espera de varios minutos. Ahora se muestra lo que llegó hasta el corte, con
   un aviso de que la respuesta quedó incompleta. Sólo se vuelve a intentar si no había llegado
   nada.
+- **Los proveedores en la nube sólo quedan activos con una clave que funciona.** Configuración
+  enseñaba OpenAI y Anthropic activos sin ninguna clave, y en la base cada proveedor estaba dos
+  veces. Ahora cada uno sale una sola vez y queda apagado hasta que «Probar» acepta su clave; uno
+  apagado no aparece en ningún selector.
+  - Al abrir esta versión se corrige solo: se apagan los que no tienen clave y, si el modelo que
+    redacta era de uno de ellos, vuelve a automático. NVIDIA, con su clave, sigue como estaba.
+- **Anthropic, OpenAI, OpenRouter y Google redactan como NVIDIA.** «Probar» comprueba la clave
+  contra su servicio y distingue una clave no válida, la falta de crédito, la falta de red y el
+  servicio caído; los modelos salen de tu cuenta; las respuestas largas llegan enteras y, si el
+  servicio deja de responder, se conserva lo que llegó. La búsqueda en tus documentos se sigue
+  haciendo con Ollama o NVIDIA.
 
 ## [1.46.0] - 2026-10-03
 

@@ -53,6 +53,8 @@
 - Copiar la conversación entera de un clic para pegarla en Word o en el Bloc de notas. El botón está en la cabecera del chat y dice «Copiado». En Word se pega con negritas, listas, tablas con bordes y las fórmulas en texto legible; en el Bloc de notas, como texto limpio.
 - Los autores van como «Usuario» y «Asistente» en el idioma de la aplicación; de un documento adjunto sólo va el nombre, y al final el mismo aviso que lleva la exportación.
 - Con NVIDIA, una respuesta que se corta a mitad ya no se pierde: se muestra lo que llegó con un aviso de que quedó incompleta, en vez de tirarlo y repetir la pregunta desde cero.
+- Los proveedores en la nube sólo quedan activos con una clave que funciona: cada uno sale una sola vez y queda apagado hasta que «Probar» acepta su clave. Al abrir esta versión se apagan solos los que no tienen clave.
+- Anthropic, OpenAI, OpenRouter y Google redactan como NVIDIA: «Probar» distingue una clave no válida de la falta de crédito, de red o de un servicio caído, los modelos salen de tu cuenta y las respuestas largas llegan enteras.
 - Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.47.0).
 
 ### 📝 Novedades en v1.46.0
