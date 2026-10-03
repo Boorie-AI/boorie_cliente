@@ -88,7 +88,8 @@ export function letra(h: ResultadoHecho | undefined): string {
 }
 
 function estableEnPorcentaje(c: ResultadoDeCaso): string {
-  if (!c.estabilidad) return '—'
+  // Con una sola repetición no hay nada que comparar.
+  if (!c.estabilidad || c.estabilidad.repeticiones < 2) return '—'
   const total = Object.keys(c.estabilidad.porHecho).length
   return total ? `${Math.round((c.estabilidad.hechosEstables / total) * 100)} %` : '—'
 }

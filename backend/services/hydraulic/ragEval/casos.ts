@@ -269,8 +269,8 @@ export const CASOS: CasoRAG[] = [
       },
       {
         id: 'cita-ecuacion-4-1',
-        descripcion: 'Usa s_w = C·Q²',
-        enRespuesta: [texto(CQ2)],
+        descripcion: 'Usa s_w = C·Q² (ecuación 4.1)',
+        enRespuesta: [texto(CQ2), texto('ecuaci[oó]n 4\\.1|equation 4\\.1')],
         enFuente: [texto('s w = cq 2')],
         origen: 'Ecuación 4.1, p. 77',
       },
