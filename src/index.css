@@ -97,6 +97,17 @@
   ::file-selector-button {
     border-color: var(--color-gray-200, currentcolor);
   }
+
+  /* La v4 cambió estos dos valores por defecto; se fijan los de la v3. */
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 @layer base {

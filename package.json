@@ -121,7 +121,7 @@
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^18.2.0",
     "react-i18next": "^15.5.3",
-    "tailwind-merge": "^2.2.1",
+    "tailwind-merge": "^3.7.0",
     "tesseract.js": "^7.0.0",
     "vis-data": "^8.0.3",
     "vis-network": "^10.0.2",
