@@ -39,15 +39,23 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.46.0
+### 🚀 Última Versión - v1.47.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.46.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.46.0/Boorie-1.46.0-arm64.dmg) | ~324 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.46.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.46.0/Boorie-Setup-1.46.0.exe) | ~252 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.46.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.46.0/Boorie-1.46.0.AppImage) | ~403 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.47.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.47.0/Boorie-1.47.0-arm64.dmg) | ~324 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.47.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.47.0/Boorie-Setup-1.47.0.exe) | ~252 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.47.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.47.0/Boorie-1.47.0.AppImage) | ~403 MB |
 
 
+
+### 📝 Novedades en v1.47.0
+- Copiar la conversación entera de un clic para pegarla en Word o en el Bloc de notas. El botón está en la cabecera del chat y dice «Copiado». En Word se pega con negritas, listas, tablas con bordes y las fórmulas en texto legible; en el Bloc de notas, como texto limpio.
+- Los autores van como «Usuario» y «Asistente» en el idioma de la aplicación; de un documento adjunto sólo va el nombre, y al final el mismo aviso que lleva la exportación.
+- Con NVIDIA, una respuesta que se corta a mitad ya no se pierde: se muestra lo que llegó con un aviso de que quedó incompleta, en vez de tirarlo y repetir la pregunta desde cero.
+- Los proveedores en la nube sólo quedan activos con una clave que funciona: cada uno sale una sola vez y queda apagado hasta que «Probar» acepta su clave. Al abrir esta versión se apagan solos los que no tienen clave.
+- Anthropic, OpenAI, OpenRouter y Google redactan como NVIDIA: «Probar» distingue una clave no válida de la falta de crédito, de red o de un servicio caído, los modelos salen de tu cuenta y las respuestas largas llegan enteras.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.47.0).
 
 ### 📝 Novedades en v1.46.0
 - Las claves de los proveedores en la nube se guardan cifradas con el llavero del sistema (Windows, macOS y, en Linux, GNOME Keyring o KWallet), y las que ya había se cifran solas la primera vez que se abre esta versión. Configuración ya no enseña la clave: sólo si hay una y sus cuatro últimos caracteres.
@@ -480,12 +488,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.46.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.46.0.AppImage`
-3. Ejecuta: `./Boorie-1.46.0.AppImage`
+1. Descarga `Boorie-1.47.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.47.0.AppImage`
+3. Ejecuta: `./Boorie-1.47.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.46.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.47.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
