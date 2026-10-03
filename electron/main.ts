@@ -409,6 +409,7 @@ import { capturarConsolaDelMain } from '../backend/services/feedback/registroRec
 import { escucharConsolaDelRenderer, registerFeedbackHandlers } from './handlers/feedback.handler'
 import { cifradorDeSafeStorage, configurarCifrador } from '../backend/services/security/clavesProveedor'
 import { migrarClaves } from '../backend/services/security/migracionClaves'
+import { corregirProveedores } from '../backend/services/security/proveedoresActivos'
 import { cargarConsentimientos } from '../backend/services/security/consentimientoNube'
 
 log.transports.file.level = 'info'
@@ -672,6 +673,12 @@ async function initializeApplication(): Promise<void> {
       await migrarClaves(prisma, cifrador)
     } catch (error) {
       appLogger.error('No se pudieron cifrar las claves guardadas', error as Error)
+    }
+    // Después de cifrar: un proveedor externo activo sin clave utilizable se apaga (#246).
+    try {
+      await corregirProveedores(prisma, cifrador)
+    } catch (error) {
+      appLogger.error('No se pudieron corregir los proveedores sin clave', error as Error)
     }
     try {
       await cargarConsentimientos(prisma)
