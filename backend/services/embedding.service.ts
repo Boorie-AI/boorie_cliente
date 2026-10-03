@@ -88,7 +88,7 @@ export class EmbeddingService {
     }
 
     private async claveDeOpenAI(): Promise<string | null> {
-        const filas = await this.prisma.aIProvider.findMany({ where: { name: { contains: 'OpenAI' } } });
+        const filas = await this.prisma.aIProvider.findMany({ where: { name: { contains: 'OpenAI' }, isActive: true } });
         for (const f of filas) {
             const clave = claveUtilizable(f.name, f.apiKey);
             if (clave) return clave;

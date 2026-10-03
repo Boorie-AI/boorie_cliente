@@ -527,12 +527,15 @@ describe('NVIDIA en streaming, con límite por inactividad', () => {
     expect(cuerpoDe(0).stream).toBe(false)
   })
 
-  it('OpenAI no cambia: sin streaming', async () => {
+  it('OpenAI también, con el tope que aceptan sus modelos de razonamiento (#246)', async () => {
     new ChatHandler(baseDeDatos(false))
     fetchSimulado.mockResolvedValueOnce(respuesta(termina('ok')))
 
-    await enviar({ provider: 'openai' })
-    expect(cuerpoDe(0).stream).toBe(false)
+    const r = await enviar({ provider: 'openai' })
+    expect(cuerpoDe(0)).toMatchObject({ stream: true, max_completion_tokens: 8192 })
+    expect(cuerpoDe(0)).not.toHaveProperty('max_tokens')
+    expect(cuerpoDe(0)).not.toHaveProperty('temperature')
+    expect(r.data.response).toBe('ok')
   })
 
   it('se corta si el servidor deja de mandar datos, con un mensaje que se reintenta', async () => {

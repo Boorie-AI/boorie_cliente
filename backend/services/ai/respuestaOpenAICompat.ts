@@ -58,6 +58,104 @@ export async function leerRespuestaEnStreaming(
   inactividadMs: number,
   mensajeDeInactividad: string
 ): Promise<any> {
+  let contenido = ''
+  let fin: string | undefined
+  let usage: any
+  let modelo: string | undefined
+  let creado: number | undefined
+  const callado = await leerEventos(respuesta, controlador, inactividadMs, mensajeDeInactividad, evento => {
+    modelo = evento.model ?? modelo
+    creado = evento.created ?? creado
+    if (evento.usage) usage = evento.usage
+    const eleccion = evento.choices?.[0]
+    if (eleccion?.delta?.content) contenido += eleccion.delta.content
+    if (eleccion?.finish_reason) fin = eleccion.finish_reason
+  }, () => !!contenido)
+  return {
+    model: modelo,
+    created: creado,
+    usage: usage ?? {},
+    choices: [{ finish_reason: callado ? FIN_POR_INACTIVIDAD : fin, message: { role: 'assistant', content: contenido } }],
+  }
+}
+
+/**
+ * Lo mismo para `POST /v1/messages` de Anthropic con `stream: true` (#246).
+ * Devuelve la forma de la respuesta sin streaming, con sólo los bloques de
+ * texto: el streaming va en las vueltas sin herramientas.
+ */
+export async function leerAnthropicEnStreaming(
+  respuesta: { body: any },
+  controlador: AbortController,
+  inactividadMs: number,
+  mensajeDeInactividad: string
+): Promise<any> {
+  let texto = ''
+  let fin: string | undefined
+  let modelo: string | undefined
+  const usage = { input_tokens: 0, output_tokens: 0 }
+  const callado = await leerEventos(respuesta, controlador, inactividadMs, mensajeDeInactividad, evento => {
+    switch (evento.type) {
+      case 'message_start':
+        modelo = evento.message?.model ?? modelo
+        usage.input_tokens = evento.message?.usage?.input_tokens ?? 0
+        break
+      case 'content_block_delta':
+        if (evento.delta?.type === 'text_delta') texto += evento.delta.text ?? ''
+        break
+      case 'message_delta':
+        fin = evento.delta?.stop_reason ?? fin
+        usage.output_tokens = evento.usage?.output_tokens ?? usage.output_tokens
+        break
+      case 'error':
+        throw new Error(`Anthropic stream error: ${evento.error?.message ?? evento.error?.type ?? 'unknown'}`)
+    }
+  }, () => !!texto)
+  return {
+    model: modelo,
+    stop_reason: callado ? FIN_POR_INACTIVIDAD : fin,
+    usage,
+    content: [{ type: 'text', text: texto }],
+  }
+}
+
+/** Y para `:streamGenerateContent?alt=sse` de Google (#246). */
+export async function leerGoogleEnStreaming(
+  respuesta: { body: any },
+  controlador: AbortController,
+  inactividadMs: number,
+  mensajeDeInactividad: string
+): Promise<any> {
+  let texto = ''
+  let fin: string | undefined
+  let usageMetadata: any
+  const callado = await leerEventos(respuesta, controlador, inactividadMs, mensajeDeInactividad, evento => {
+    const candidato = evento.candidates?.[0]
+    for (const parte of candidato?.content?.parts ?? []) {
+      // Las partes de razonamiento no son respuesta.
+      if (typeof parte.text === 'string' && !parte.thought) texto += parte.text
+    }
+    if (candidato?.finishReason) fin = candidato.finishReason
+    if (evento.usageMetadata) usageMetadata = evento.usageMetadata
+  }, () => !!texto)
+  return {
+    candidates: [{ finishReason: callado ? FIN_POR_INACTIVIDAD : fin, content: { parts: [{ text: texto }] } }],
+    usageMetadata: usageMetadata ?? {},
+  }
+}
+
+/**
+ * El bucle común de las tres: lee las líneas `data:` de un SSE con un límite
+ * por inactividad y devuelve si se cortó por silencio con texto ya recibido.
+ */
+async function leerEventos(
+  respuesta: { body: any },
+  controlador: AbortController,
+  inactividadMs: number,
+  mensajeDeInactividad: string,
+  alEvento: (evento: any) => void,
+  hayTexto: () => boolean
+): Promise<boolean> {
   let temporizador: ReturnType<typeof setTimeout> | undefined
   let callado = false
   const vigilar = () => {
@@ -71,11 +169,6 @@ export async function leerRespuestaEnStreaming(
   const lector = respuesta.body.getReader()
   const decodificador = new TextDecoder()
   let pendiente = ''
-  let contenido = ''
-  let fin: string | undefined
-  let usage: any
-  let modelo: string | undefined
-  let creado: number | undefined
   try {
     for (;;) {
       const { done, value } = await lector.read()
@@ -91,31 +184,21 @@ export async function leerRespuestaEnStreaming(
         if (datos === '[DONE]') continue
         let evento: any
         try { evento = JSON.parse(datos) } catch { continue }
-        modelo = evento.model ?? modelo
-        creado = evento.created ?? creado
-        if (evento.usage) usage = evento.usage
-        const eleccion = evento.choices?.[0]
-        if (eleccion?.delta?.content) contenido += eleccion.delta.content
-        if (eleccion?.finish_reason) fin = eleccion.finish_reason
+        alEvento(evento)
       }
     }
+    return false
   } catch (error) {
     // Sólo el silencio del servidor conserva lo parcial; el tope total y un
     // fallo de red siguen como antes: error, y el chat reintenta.
-    if (!callado || !contenido) {
+    if (!callado || !hayTexto()) {
       // El lector rechaza con el motivo del abort; ese es el mensaje que sirve.
       const motivo = controlador.signal.reason
       throw motivo instanceof Error ? motivo : error
     }
-    fin = FIN_POR_INACTIVIDAD
+    return true
   } finally {
     clearTimeout(temporizador)
-  }
-  return {
-    model: modelo,
-    created: creado,
-    usage: usage ?? {},
-    choices: [{ finish_reason: fin, message: { role: 'assistant', content: contenido } }],
   }
 }
 

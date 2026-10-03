@@ -120,6 +120,36 @@ describe('con consentimiento', () => {
   })
 })
 
+describe.each(['anthropic', 'openai', 'google', 'openrouter'])('%s pasa por la misma puerta que NVIDIA (#246)', proveedor => {
+  it('sin consentimiento no sale nada ni se lee la clave', async () => {
+    expect(await enviar(proveedor)).toEqual({ success: false, error: SIN_CONSENTIMIENTO })
+    expect(fetchSimulado).not.toHaveBeenCalled()
+    expect(claveDeProveedor).not.toHaveBeenCalled()
+  })
+
+  it('con consentimiento sale con la clave del proceso principal', async () => {
+    await aceptarConsentimiento(prisma as never, proveedor)
+    await enviar(proveedor)
+    expect(claveDeProveedor).toHaveBeenCalledWith(proveedor)
+    expect(fetchSimulado).toHaveBeenCalledTimes(1)
+    expect(JSON.stringify(fetchSimulado.mock.calls[0][1].headers)).toContain(CLAVE)
+  })
+
+  it('al retirarlo, la siguiente pregunta ya no sale', async () => {
+    await aceptarConsentimiento(prisma as never, proveedor)
+    await retirarConsentimiento(prisma as never, proveedor)
+    expect((await enviar(proveedor)).error).toBe(SIN_CONSENTIMIENTO)
+    expect(fetchSimulado).not.toHaveBeenCalled()
+  })
+
+  it('sin clave utilizable —o con el proveedor apagado— no se llama a la API', async () => {
+    await aceptarConsentimiento(prisma as never, proveedor)
+    claveDeProveedor.mockResolvedValue(null)
+    expect((await enviar(proveedor)).error).toBe(SIN_CLAVE)
+    expect(fetchSimulado).not.toHaveBeenCalled()
+  })
+})
+
 describe('lo local no necesita permiso', () => {
   it('Ollama no pide consentimiento ni clave', () => {
     expect(hayConsentimiento('Ollama')).toBe(true)

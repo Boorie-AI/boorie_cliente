@@ -78,7 +78,7 @@ export function GuardrailsPanel() {
   // La clave es la del proveedor NVIDIA (#225): aquí sólo se dice si la hay.
   useEffect(() => {
     databaseService.getAIProviders()
-      .then(ps => setNvidiaConClave(ps.some(p => p.name.toLowerCase() === 'nvidia' && p.tieneClave && p.estadoClave !== 'ilegible')))
+      .then(ps => setNvidiaConClave(ps.some(p => p.name.toLowerCase() === 'nvidia' && p.isActive && p.tieneClave && p.estadoClave !== 'ilegible')))
       .catch(() => setNvidiaConClave(null))
   }, [])
 

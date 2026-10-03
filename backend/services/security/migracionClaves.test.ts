@@ -58,7 +58,9 @@ afterAll(() => rmSync(plantilla, { recursive: true, force: true }))
 beforeEach(async () => {
   dir = mkdtempSync(join(tmpdir(), 'boorie-claves-'))
   copyFileSync(join(plantilla, 'vacia.db'), join(dir, 'prueba.db'))
-  url = `file:${join(dir, 'prueba.db')}`
+  // Una sola conexión: el `wal_checkpoint(TRUNCATE)` del final espera a las demás
+  // del pool hasta el `busy_timeout` (5 s) y en un CI cargado tumbaba la prueba.
+  url = `file:${join(dir, 'prueba.db')}?connection_limit=1`
   prisma = new PrismaClient({ datasources: { db: { url } } })
   await prisma.$connect()
   await activarWAL(prisma, url)
