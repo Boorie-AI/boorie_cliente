@@ -164,6 +164,104 @@ export async function leerRespuestaEnStreaming(
   inactividadMs: number,
   mensajeDeInactividad: string
 ): Promise<any> {
+  let contenido = ''
+  let fin: string | undefined
+  let usage: any
+  let modelo: string | undefined
+  let creado: number | undefined
+  const callado = await leerEventos(respuesta, controlador, inactividadMs, mensajeDeInactividad, evento => {
+    modelo = evento.model ?? modelo
+    creado = evento.created ?? creado
+    if (evento.usage) usage = evento.usage
+    const eleccion = evento.choices?.[0]
+    if (eleccion?.delta?.content) contenido += eleccion.delta.content
+    if (eleccion?.finish_reason) fin = eleccion.finish_reason
+  }, () => !!contenido)
+  return {
+    model: modelo,
+    created: creado,
+    usage: usage ?? {},
+    choices: [{ finish_reason: callado ? FIN_POR_INACTIVIDAD : fin, message: { role: 'assistant', content: contenido } }],
+  }
+}
+
+/**
+ * Lo mismo para `POST /v1/messages` de Anthropic con `stream: true` (#246).
+ * Devuelve la forma de la respuesta sin streaming, con sólo los bloques de
+ * texto: el streaming va en las vueltas sin herramientas.
+ */
+export async function leerAnthropicEnStreaming(
+  respuesta: { body: any },
+  controlador: AbortController,
+  inactividadMs: number,
+  mensajeDeInactividad: string
+): Promise<any> {
+  let texto = ''
+  let fin: string | undefined
+  let modelo: string | undefined
+  const usage = { input_tokens: 0, output_tokens: 0 }
+  const callado = await leerEventos(respuesta, controlador, inactividadMs, mensajeDeInactividad, evento => {
+    switch (evento.type) {
+      case 'message_start':
+        modelo = evento.message?.model ?? modelo
+        usage.input_tokens = evento.message?.usage?.input_tokens ?? 0
+        break
+      case 'content_block_delta':
+        if (evento.delta?.type === 'text_delta') texto += evento.delta.text ?? ''
+        break
+      case 'message_delta':
+        fin = evento.delta?.stop_reason ?? fin
+        usage.output_tokens = evento.usage?.output_tokens ?? usage.output_tokens
+        break
+      case 'error':
+        throw new Error(`Anthropic stream error: ${evento.error?.message ?? evento.error?.type ?? 'unknown'}`)
+    }
+  }, () => !!texto)
+  return {
+    model: modelo,
+    stop_reason: callado ? FIN_POR_INACTIVIDAD : fin,
+    usage,
+    content: [{ type: 'text', text: texto }],
+  }
+}
+
+/** Y para `:streamGenerateContent?alt=sse` de Google (#246). */
+export async function leerGoogleEnStreaming(
+  respuesta: { body: any },
+  controlador: AbortController,
+  inactividadMs: number,
+  mensajeDeInactividad: string
+): Promise<any> {
+  let texto = ''
+  let fin: string | undefined
+  let usageMetadata: any
+  const callado = await leerEventos(respuesta, controlador, inactividadMs, mensajeDeInactividad, evento => {
+    const candidato = evento.candidates?.[0]
+    for (const parte of candidato?.content?.parts ?? []) {
+      // Las partes de razonamiento no son respuesta.
+      if (typeof parte.text === 'string' && !parte.thought) texto += parte.text
+    }
+    if (candidato?.finishReason) fin = candidato.finishReason
+    if (evento.usageMetadata) usageMetadata = evento.usageMetadata
+  }, () => !!texto)
+  return {
+    candidates: [{ finishReason: callado ? FIN_POR_INACTIVIDAD : fin, content: { parts: [{ text: texto }] } }],
+    usageMetadata: usageMetadata ?? {},
+  }
+}
+
+/**
+ * El bucle común de las tres: lee las líneas `data:` de un SSE con un límite
+ * por inactividad y devuelve si se cortó por silencio con texto ya recibido.
+ */
+async function leerEventos(
+  respuesta: { body: any },
+  controlador: AbortController,
+  inactividadMs: number,
+  mensajeDeInactividad: string,
+  alEvento: (evento: any) => void,
+  hayTexto: () => boolean
+): Promise<boolean> {
   let temporizador: ReturnType<typeof setTimeout> | undefined
   let callado = false
   const vigilar = () => {
@@ -177,11 +275,6 @@ export async function leerRespuestaEnStreaming(
   const lector = respuesta.body.getReader()
   const decodificador = new TextDecoder()
   let pendiente = ''
-  let contenido = ''
-  let fin: string | undefined
-  let usage: any
-  let modelo: string | undefined
-  let creado: number | undefined
   try {
     for (;;) {
       const { done, value } = await lector.read()
@@ -197,31 +290,21 @@ export async function leerRespuestaEnStreaming(
         if (datos === '[DONE]') continue
         let evento: any
         try { evento = JSON.parse(datos) } catch { continue }
-        modelo = evento.model ?? modelo
-        creado = evento.created ?? creado
-        if (evento.usage) usage = evento.usage
-        const eleccion = evento.choices?.[0]
-        if (eleccion?.delta?.content) contenido += eleccion.delta.content
-        if (eleccion?.finish_reason) fin = eleccion.finish_reason
+        alEvento(evento)
       }
     }
+    return false
   } catch (error) {
     // Sólo el silencio del servidor conserva lo parcial; el tope total y un
     // fallo de red siguen como antes: error, y el chat reintenta.
-    if (!callado || !contenido) {
+    if (!callado || !hayTexto()) {
       // El lector rechaza con el motivo del abort; ese es el mensaje que sirve.
       const motivo = controlador.signal.reason
       throw motivo instanceof Error ? motivo : error
     }
-    fin = FIN_POR_INACTIVIDAD
+    return true
   } finally {
     clearTimeout(temporizador)
-  }
-  return {
-    model: modelo,
-    created: creado,
-    usage: usage ?? {},
-    choices: [{ finish_reason: fin, message: { role: 'assistant', content: contenido } }],
   }
 }
 
@@ -238,6 +321,55 @@ export function unirContinuacion(previo: string, siguiente: string): string {
     if (previo.endsWith(sinPuntos.slice(0, k))) return previo + sinPuntos.slice(k)
   }
   return previo + sinPuntos
+}
+
+/**
+ * Cuánto se espera a un proveedor externo (#246, igual que NVIDIA desde el
+ * #232). En streaming lo que corta es la inactividad, y el total sólo es una
+ * red por si el servidor no para nunca; sin streaming —las vueltas con
+ * herramientas— el total es lo único que hay.
+ */
+const INACTIVIDAD_NUBE_MS = 90000
+const TOPE_TOTAL_NUBE_MS = 600000
+const TOPE_SIN_STREAMING_MS = 180000
+/** El tope de la respuesta de un proveedor externo, el mismo que NVIDIA. */
+const MAX_TOKENS_NUBE = 8192
+
+type LectorSSE = (respuesta: { body: any }, controlador: AbortController, inactividadMs: number, mensaje: string) => Promise<any>
+
+/**
+ * Una petición a un proveedor externo. Devuelve la respuesta y, si fue bien,
+ * sus datos ya leídos; si se corta, lanza el motivo del corte (inactividad o
+ * tope), que es el mensaje que el chat sabe reintentar.
+ */
+async function pedirAlProveedor(
+  url: string,
+  init: RequestInit,
+  proveedor: string,
+  streaming: { inactividadMs: number; leer: LectorSSE } | null,
+  timeout: number = streaming ? TOPE_TOTAL_NUBE_MS : TOPE_SIN_STREAMING_MS
+): Promise<{ response: Response; data?: any }> {
+  const controlador = new AbortController()
+  const tope = setTimeout(() => controlador.abort(new Error(`${proveedor} timed out: no terminó en ${Math.round(timeout / 1000)} s`)), timeout)
+  const mensajeDeInactividad = `${proveedor} timed out: ${Math.round((streaming?.inactividadMs ?? 0) / 1000)} s sin enviar nada`
+  try {
+    const response = await fetch(url, { ...init, signal: controlador.signal })
+    if (!response.ok) return { response }
+    const data = streaming
+      ? await streaming.leer(response, controlador, streaming.inactividadMs, mensajeDeInactividad)
+      : await response.json()
+    return { response, data }
+  } catch (error) {
+    const motivo = controlador.signal.reason
+    throw motivo instanceof Error ? motivo : error
+  } finally {
+    clearTimeout(tope)
+  }
+}
+
+/** Un modelo que no se deja servir en streaming (OpenAI exige verificar la organización para algunos). */
+function esErrorDeStreaming(status: number, mensaje: string): boolean {
+  return status === 400 && /stream/i.test(mensaje)
 }
 
 /**
@@ -575,14 +707,18 @@ export class ChatHandler {
     }
   }
 
+  /**
+   * Anthropic como NVIDIA (#246): streaming con límite por inactividad en las
+   * vueltas sin herramientas, lo recibido se conserva si se calla, y si corta
+   * por `max_tokens` se le pide que siga.
+   */
   private async sendAnthropicMessage(
     model: string,
     messages: ChatMessage[],
     apiKey: string,
     red?: RedParaHerramientas | null
   ): Promise<ChatResponse> {
-    // Convert messages to Anthropic format
-    const historial: any[] = this.convertToAnthropicFormat(messages)
+    const { system, historial } = this.convertToAnthropicFormat(messages)
 
     let usarHerramientas = !!red
     /** La propuesta de escenario pendiente de confirmar, si el agente la construye (#44). */
@@ -591,32 +727,45 @@ export class ChatHandler {
     let entrada = 0
     let salida = 0
     let ultima: any = null
+    const partes: string[] = []
+    let continuaciones = 0
 
     for (;;) {
+      const enStreaming = !usarHerramientas
       const requestBody: any = {
         model: model,
-        max_tokens: 4000,
+        max_tokens: MAX_TOKENS_NUBE,
         messages: historial,
-        stream: false,
+        stream: enStreaming,
       }
+      if (system) requestBody.system = system
       if (usarHerramientas) requestBody.tools = herramientasAnthropic(HERRAMIENTAS)
 
       logger.debug('Anthropic API Request via backend', {
         model,
         messagesCount: historial.length,
         herramientas: usarHerramientas,
+        streaming: enStreaming,
       })
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(90000) // 90 second timeout (allows for RAG-enhanced prompts)
-      })
+      let response: Response
+      let data: any
+      try {
+        ({ response, data } = await pedirAlProveedor('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            ...(enStreaming ? { Accept: 'text/event-stream' } : {}),
+          },
+          body: JSON.stringify(requestBody),
+        }, 'Anthropic', enStreaming ? { inactividadMs: INACTIVIDAD_NUBE_MS, leer: leerAnthropicEnStreaming } : null))
+      } catch (error) {
+        if (continuaciones === 0) throw error
+        logger.warn('Anthropic falla al continuar la respuesta, se entrega lo que hay', { model, error: String(error) })
+        break
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({})) as any
@@ -631,16 +780,30 @@ export class ChatHandler {
           continue
         }
 
+        if (continuaciones > 0) {
+          logger.warn('Anthropic falla al continuar la respuesta, se entrega lo que hay', { model, errorMessage })
+          break
+        }
+
         this.lanzarErrorAnthropic(response.status, errorMessage, model)
       }
 
-      const data = await response.json() as any
       ultima = data
       entrada += data.usage?.input_tokens || 0
       salida += data.usage?.output_tokens || 0
 
       const llamadas = usarHerramientas ? llamadasDesdeAnthropic(data) : []
-      if (llamadas.length === 0) break
+      if (llamadas.length === 0) {
+        const texto = textoDesdeAnthropic(data)
+        partes.push(texto)
+        if (data.stop_reason !== 'max_tokens' || continuaciones >= MAX_CONTINUACIONES) break
+
+        continuaciones++
+        logger.info('Anthropic cortó por longitud, se le pide que siga', { model, continuaciones })
+        usarHerramientas = false
+        historial.push({ role: 'assistant', content: texto }, { role: 'user', content: pedirContinuacion(texto) })
+        continue
+      }
 
       historial.push({ role: 'assistant', content: data.content })
       const resultados = await this.ejecutarLlamadas(llamadas, red!)
@@ -657,9 +820,9 @@ export class ChatHandler {
     }
 
     return {
-      response: textoDesdeAnthropic(ultima) || 'No response from Anthropic',
+      response: partes.reduce(unirContinuacion, '') || 'No response from Anthropic',
       metadata: {
-        model: model,
+        model: ultima?.model || model,
         provider: 'Anthropic',
         tokens: entrada + salida,
         usage: {
@@ -669,6 +832,7 @@ export class ChatHandler {
         },
         finish_reason: ultima?.stop_reason,
         vueltas_herramientas: vueltas,
+        ...(continuaciones > 0 ? { continuaciones } : {}),
         ...(propuestaEscenario ? { propuesta_escenario: propuestaEscenario } : {}),
         created_at: new Date().toISOString(),
       }
@@ -687,6 +851,9 @@ export class ChatHandler {
       case 401:
         throw new Error('\u{1F511} Invalid Anthropic API key. Please check your API key in settings.')
 
+      case 402:
+        throw new Error('\u{1F4B3} Insufficient Anthropic credits. Please go to Plans & Billing in your Anthropic account to add credits or upgrade your plan.')
+
       case 403:
         if (errorMessage.toLowerCase().includes('credit') || errorMessage.toLowerCase().includes('billing') || errorMessage.toLowerCase().includes('balance')) {
           throw new Error('\u{1F4B3} Insufficient Anthropic credits. Please go to Plans & Billing in your Anthropic account to add credits or upgrade your plan.')
@@ -703,6 +870,7 @@ export class ChatHandler {
       case 502:
       case 503:
       case 504:
+      case 529:
         throw new Error('Anthropic API is temporarily unavailable. Please try again in a few moments.')
 
       default:
@@ -710,29 +878,13 @@ export class ChatHandler {
     }
   }
 
-  private convertToAnthropicFormat(messages: ChatMessage[]) {
-    // Anthropic expects alternating user/assistant messages
-    // System messages should be handled separately
-    const converted = []
-    let systemMessage = ''
-
-    for (const message of messages) {
-      if (message.role === 'system') {
-        systemMessage += message.content + '\n'
-      } else {
-        converted.push({
-          role: message.role,
-          content: message.content,
-        })
-      }
-    }
-
-    // If we have system messages, prepend to first user message
-    if (systemMessage && converted.length > 0 && converted[0].role === 'user') {
-      converted[0].content = systemMessage.trim() + '\n\n' + converted[0].content
-    }
-
-    return converted
+  /** El sistema va en su campo, no pegado al primer mensaje del usuario. */
+  private convertToAnthropicFormat(messages: ChatMessage[]): { system: string; historial: any[] } {
+    const system = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n')
+    const historial = messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({ role: m.role, content: m.content }))
+    return { system, historial }
   }
 
   /**
@@ -773,6 +925,7 @@ export class ChatHandler {
     let tokens = 0
     const partes: string[] = []
     let continuaciones = 0
+    let sinStreaming = false
 
     for (;;) {
       const requestBody: any = {
@@ -782,7 +935,7 @@ export class ChatHandler {
         ...cfg.cuerpoExtra,
       }
       if (usarHerramientas) requestBody.tools = herramientasOpenAI(HERRAMIENTAS)
-      const enStreaming = !!cfg.inactividadMs && !usarHerramientas
+      const enStreaming = !!cfg.inactividadMs && !usarHerramientas && !sinStreaming
       if (enStreaming) {
         requestBody.stream = true
         requestBody.stream_options = { include_usage: true }
@@ -795,32 +948,19 @@ export class ChatHandler {
         streaming: enStreaming,
       })
 
-      const controlador = new AbortController()
-      const tope = setTimeout(() => controlador.abort(new Error(`${cfg.proveedor} timed out: no terminó en ${Math.round(cfg.timeout / 1000)} s`)), cfg.timeout)
-      const mensajeDeInactividad = `${cfg.proveedor} timed out: ${Math.round((cfg.inactividadMs ?? 0) / 1000)} s sin enviar nada`
       let response: Response
       let data: any
       try {
-        response = await fetch(cfg.url, {
+        ({ response, data } = await pedirAlProveedor(cfg.url, {
           method: 'POST',
           headers: { ...cfg.cabeceras, ...(enStreaming ? { Accept: 'text/event-stream' } : {}) },
           body: JSON.stringify(requestBody),
-          signal: controlador.signal,
-        })
-        if (response.ok) {
-          data = enStreaming
-            ? await leerRespuestaEnStreaming(response, controlador, cfg.inactividadMs!, mensajeDeInactividad)
-            : await response.json()
-        }
+        }, cfg.proveedor, enStreaming ? { inactividadMs: cfg.inactividadMs!, leer: leerRespuestaEnStreaming } : null, cfg.timeout))
       } catch (error) {
-        const motivo = controlador.signal.reason
-        const fallo = motivo instanceof Error ? motivo : error
         // Como con un error HTTP más abajo: lanzar aquí tiraba también los trozos ya recibidos.
-        if (continuaciones === 0) throw fallo
-        logger.warn(`${cfg.proveedor} falla al continuar la respuesta, se entrega lo que hay`, { model, error: String(fallo) })
+        if (continuaciones === 0) throw error
+        logger.warn(`${cfg.proveedor} falla al continuar la respuesta, se entrega lo que hay`, { model, error: String(error) })
         break
-      } finally {
-        clearTimeout(tope)
       }
 
       if (!response.ok) {
@@ -833,6 +973,12 @@ export class ChatHandler {
         if (usarHerramientas && esErrorDeHerramientas(response.status, errorMessage)) {
           logger.warn(`${cfg.proveedor} rechaza las herramientas, se reintenta sin ellas`, { model, errorMessage })
           usarHerramientas = false
+          continue
+        }
+
+        if (enStreaming && esErrorDeStreaming(response.status, errorMessage)) {
+          logger.warn(`${cfg.proveedor} no sirve este modelo en streaming, se pide sin él`, { model, errorMessage })
+          sinStreaming = true
           continue
         }
 
@@ -903,8 +1049,12 @@ export class ChatHandler {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
-      cuerpoExtra: { max_tokens: 4000, temperature: 0.7 },
-      timeout: 90000, // 90 second timeout (allows for RAG-enhanced prompts)
+      // `max_completion_tokens` y sin temperatura: los modelos de razonamiento
+      // (o-series, gpt-5) rechazan `max_tokens` y cualquier temperatura que no
+      // sea la suya, y la lista de modelos ya sale de la API (#246).
+      cuerpoExtra: { max_completion_tokens: MAX_TOKENS_NUBE },
+      timeout: TOPE_TOTAL_NUBE_MS,
+      inactividadMs: INACTIVIDAD_NUBE_MS,
       modeloDeLaRespuesta: false,
       extraerError: (errorData) => errorData.error?.message || 'Unknown error',
       lanzarError: (status, errorMessage) => {
@@ -930,94 +1080,125 @@ export class ChatHandler {
     }, model, messages, red)
   }
 
+  /**
+   * Google como NVIDIA (#246) salvo las herramientas, cuyo dialecto no está
+   * implementado: streaming con límite por inactividad, lo recibido se
+   * conserva, y si corta por `MAX_TOKENS` se le pide que siga.
+   */
   private async sendGoogleMessage(model: string, messages: ChatMessage[], apiKey: string): Promise<ChatResponse> {
-    // Convert messages to Google AI format
-    const googleMessages = this.convertToGoogleFormat(messages)
+    const { contents, systemInstruction } = this.convertToGoogleFormat(messages)
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`
 
-    const requestBody = {
-      contents: googleMessages.contents,
-      systemInstruction: googleMessages.systemInstruction,
-      generationConfig: {
-        maxOutputTokens: 4000,
-        temperature: 0.7,
-      },
-    }
+    let ultima: any = null
+    let entrada = 0
+    let salida = 0
+    const partes: string[] = []
+    let continuaciones = 0
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
-
-    logger.debug('Google AI API Request via backend', { model, messagesCount: googleMessages.contents.length })
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
-      body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(90000) // 90 second timeout (allows for RAG-enhanced prompts)
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({})) as any
-      const errorMessage = errorData.error?.message || 'Unknown error'
-
-      switch (response.status) {
-        case 400:
-          throw new Error(`Bad request to Google AI: ${errorMessage}`)
-        case 401:
-        case 403:
-          throw new Error('🔑 Invalid Google AI API key. Please check your API key in settings.')
-        case 429:
-          throw new Error('Too many requests to Google AI. Please try again later.')
-        case 500:
-        case 502:
-        case 503:
-        case 504:
-          throw new Error('Google AI API is temporarily unavailable. Please try again in a few moments.')
-        default:
-          throw new Error(`Google AI API error (${response.status}): ${errorMessage}`)
+    for (;;) {
+      const requestBody = {
+        contents,
+        ...(systemInstruction ? { systemInstruction } : {}),
+        generationConfig: { maxOutputTokens: MAX_TOKENS_NUBE, temperature: 0.7 },
       }
-    }
 
-    const data = await response.json() as any
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from Google AI'
-    const usageMetadata = data.usageMetadata || {}
+      logger.debug('Google AI API Request via backend', { model, messagesCount: contents.length, continuaciones })
+
+      let response: Response
+      let data: any
+      try {
+        ({ response, data } = await pedirAlProveedor(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
+          },
+          body: JSON.stringify(requestBody),
+        }, 'Google AI', { inactividadMs: INACTIVIDAD_NUBE_MS, leer: leerGoogleEnStreaming }))
+      } catch (error) {
+        if (continuaciones === 0) throw error
+        logger.warn('Google AI falla al continuar la respuesta, se entrega lo que hay', { model, error: String(error) })
+        break
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({})) as any
+        const errorMessage = errorData.error?.message || 'Unknown error'
+        if (continuaciones > 0) {
+          logger.warn('Google AI falla al continuar la respuesta, se entrega lo que hay', { model, errorMessage })
+          break
+        }
+        this.lanzarErrorGoogle(response.status, errorMessage, JSON.stringify(errorData))
+      }
+
+      ultima = data
+      // El lector se queda con el último `usageMetadata`, que ya es el total de la petición.
+      entrada += data.usageMetadata?.promptTokenCount || 0
+      salida += data.usageMetadata?.candidatesTokenCount || 0
+      const texto: string = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+      partes.push(texto)
+      if (data.candidates?.[0]?.finishReason !== 'MAX_TOKENS' || continuaciones >= MAX_CONTINUACIONES) break
+
+      continuaciones++
+      logger.info('Google AI cortó por longitud, se le pide que siga', { model, continuaciones })
+      contents.push(
+        { role: 'model', parts: [{ text: texto }] },
+        { role: 'user', parts: [{ text: pedirContinuacion(texto) }] },
+      )
+    }
 
     return {
-      response: content,
+      response: partes.reduce(unirContinuacion, '') || 'No response from Google AI',
       metadata: {
         model: model,
         provider: 'Google AI',
-        tokens: usageMetadata.totalTokenCount || 0,
+        tokens: entrada + salida,
         usage: {
-          prompt_tokens: usageMetadata.promptTokenCount || 0,
-          completion_tokens: usageMetadata.candidatesTokenCount || 0,
-          total_tokens: usageMetadata.totalTokenCount || 0,
+          prompt_tokens: entrada,
+          completion_tokens: salida,
+          total_tokens: entrada + salida,
         },
-        finish_reason: data.candidates?.[0]?.finishReason,
+        finish_reason: ultima?.candidates?.[0]?.finishReason,
+        ...(continuaciones > 0 ? { continuaciones } : {}),
         created_at: new Date().toISOString(),
       }
     }
   }
 
-  private convertToGoogleFormat(messages: ChatMessage[]) {
-    const contents = []
-    let systemInstruction = null
-
-    for (const message of messages) {
-      if (message.role === 'system') {
-        systemInstruction = {
-          parts: [{ text: message.content }]
+  private lanzarErrorGoogle(status: number, errorMessage: string, cuerpo: string): never {
+    switch (status) {
+      case 400:
+        // Una clave mala es un 400 INVALID_ARGUMENT, no un 401.
+        if (/API_KEY_INVALID|API key not valid/i.test(cuerpo)) {
+          throw new Error('🔑 Invalid Google AI API key. Please check your API key in settings.')
         }
-      } else {
-        contents.push({
-          role: message.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: message.content }]
-        })
-      }
+        throw new Error(`Bad request to Google AI: ${errorMessage}`)
+      case 401:
+      case 403:
+        throw new Error('🔑 Invalid Google AI API key. Please check your API key in settings.')
+      case 429:
+        throw new Error('Too many requests to Google AI. Please try again later.')
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        throw new Error('Google AI API is temporarily unavailable. Please try again in a few moments.')
+      default:
+        throw new Error(`Google AI API error (${status}): ${errorMessage}`)
     }
+  }
 
-    return { contents, systemInstruction }
+  private convertToGoogleFormat(messages: ChatMessage[]) {
+    const contents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = []
+    const sistema = messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n')
+    for (const message of messages) {
+      if (message.role === 'system') continue
+      contents.push({
+        role: message.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: message.content }]
+      })
+    }
+    return { contents, systemInstruction: sistema ? { parts: [{ text: sistema }] } : null }
   }
 
   private async sendOpenRouterMessage(
@@ -1036,8 +1217,9 @@ export class ChatHandler {
         'X-Title': 'Boorie', // Required by OpenRouter
       },
       // OpenRouter specific parameters
-      cuerpoExtra: { max_tokens: 4000, temperature: 0.7, top_p: 1, frequency_penalty: 0, presence_penalty: 0 },
-      timeout: 90000, // 90 second timeout (allows for RAG-enhanced prompts)
+      cuerpoExtra: { max_tokens: MAX_TOKENS_NUBE, temperature: 0.7, top_p: 1, frequency_penalty: 0, presence_penalty: 0 },
+      timeout: TOPE_TOTAL_NUBE_MS,
+      inactividadMs: INACTIVIDAD_NUBE_MS,
       modeloDeLaRespuesta: true,
       extraerError: (errorData) => errorData.error?.message || 'Unknown error',
       lanzarError: (status, errorMessage) => {
