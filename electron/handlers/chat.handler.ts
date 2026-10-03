@@ -135,6 +135,9 @@ export function pedirContinuacion(previo: string): string {
 /** Un encabezado de «Continuación…» con el que el modelo retoma aunque se le pida que no. */
 const ENCABEZADO_DE_CONTINUACION = /^\s*(?:#{1,6}\s*)?[*_([]*\s*(?:continuaci[oó]n?|continuing|continued)\b[^\n]*\n+/i
 
+/** El `finish_reason` de una respuesta que se cortó porque el servidor dejó de mandar datos. */
+export const FIN_POR_INACTIVIDAD = 'inactividad'
+
 /**
  * Una respuesta de /chat/completions recibida en streaming, con un límite por
  * inactividad en lugar de uno total.
@@ -148,6 +151,12 @@ const ENCABEZADO_DE_CONTINUACION = /^\s*(?:#{1,6}\s*)?[*_([]*\s*(?:continuaci[o�
  *
  * Devuelve lo mismo que la respuesta sin streaming, para que el resto del
  * bucle —continuación, tokens, metadatos— no cambie.
+ *
+ * Si se calla después de haber mandado texto, lo recibido se entrega con
+ * `finish_reason: FIN_POR_INACTIVIDAD` en vez de lanzar: con una respuesta
+ * larga, tirarla y repetir la pregunta entera era perder minutos para volver
+ * a esperar lo mismo (#237). Sin texto —sólo razonamiento o nada— sigue
+ * lanzando, y el chat reintenta.
  */
 export async function leerRespuestaEnStreaming(
   respuesta: { body: any },
@@ -156,9 +165,13 @@ export async function leerRespuestaEnStreaming(
   mensajeDeInactividad: string
 ): Promise<any> {
   let temporizador: ReturnType<typeof setTimeout> | undefined
+  let callado = false
   const vigilar = () => {
     clearTimeout(temporizador)
-    temporizador = setTimeout(() => controlador.abort(new Error(mensajeDeInactividad)), inactividadMs)
+    temporizador = setTimeout(() => {
+      callado = true
+      controlador.abort(new Error(mensajeDeInactividad))
+    }, inactividadMs)
   }
   vigilar()
   const lector = respuesta.body.getReader()
@@ -193,9 +206,14 @@ export async function leerRespuestaEnStreaming(
       }
     }
   } catch (error) {
-    // El lector rechaza con el motivo del abort; ese es el mensaje que sirve.
-    const motivo = controlador.signal.reason
-    throw motivo instanceof Error ? motivo : error
+    // Sólo el silencio del servidor conserva lo parcial; el tope total y un
+    // fallo de red siguen como antes: error, y el chat reintenta.
+    if (!callado || !contenido) {
+      // El lector rechaza con el motivo del abort; ese es el mensaje que sirve.
+      const motivo = controlador.signal.reason
+      throw motivo instanceof Error ? motivo : error
+    }
+    fin = FIN_POR_INACTIVIDAD
   } finally {
     clearTimeout(temporizador)
   }
@@ -796,7 +814,11 @@ export class ChatHandler {
         }
       } catch (error) {
         const motivo = controlador.signal.reason
-        throw motivo instanceof Error ? motivo : error
+        const fallo = motivo instanceof Error ? motivo : error
+        // Como con un error HTTP más abajo: lanzar aquí tiraba también los trozos ya recibidos.
+        if (continuaciones === 0) throw fallo
+        logger.warn(`${cfg.proveedor} falla al continuar la respuesta, se entrega lo que hay`, { model, error: String(fallo) })
+        break
       } finally {
         clearTimeout(tope)
       }
@@ -830,6 +852,8 @@ export class ChatHandler {
       if (llamadas.length === 0) {
         const texto = data.choices?.[0]?.message?.content || ''
         partes.push(texto)
+        // Un corte por inactividad no se continúa: sería reenviar el prompt
+        // entero a un servidor que acaba de callarse, y esperar otros 90 s.
         if (data.choices?.[0]?.finish_reason !== 'length' || continuaciones >= MAX_CONTINUACIONES) break
 
         continuaciones++
