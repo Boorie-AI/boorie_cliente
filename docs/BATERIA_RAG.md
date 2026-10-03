@@ -109,12 +109,14 @@ puntúan en `bateria.ts`. Cada caso tiene:
 - `prohibidos`: lo que no debe decir (una conversión mal hecha, una fórmula inventada).
 - `revision`: quién redactó la referencia y si está revisada.
 
-Una comprobación es `{ patron }` (expresión regular) o `{ cifra, tolerancia, junto? }`.
-La tolerancia es absoluta, en la unidad de la cifra; `junto` exige una expresión
-a menos de 60 caracteres, para que un «2» suelto no valga por «2,0 s²/ft⁵». Las
-cifras se leen con coma o punto decimal. Todo se compara en minúsculas y con los
-espacios normalizados: el texto del PDF parte las fórmulas («s_w = CQ²» llega
-como «s w = cq 2»), así que `enFuente` se escribe contra ese texto.
+Una comprobación es `{ patron }` (expresión regular) o `{ cifra, tolerancia, unidad? }`.
+La tolerancia es absoluta, en la unidad de la cifra; `unidad` es una expresión
+que tiene que ir **justo detrás** del número, para que un «2» suelto —el de
+«Q_2», por ejemplo— no valga por «2,0 s²/ft⁵». Las cifras se leen con coma o
+punto decimal, y el LaTeX de las respuestas (`\text{ft}`, `\,`) se desenvuelve
+antes de comparar. Todo se compara en minúsculas y con los espacios
+normalizados: el texto del PDF parte las fórmulas («s_w = CQ²» llega como
+«s w = cq 2»), así que `enFuente` se escribe contra ese texto.
 
 ### Añadir un caso
 

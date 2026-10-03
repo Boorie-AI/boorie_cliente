@@ -62,11 +62,16 @@ describe('cumple', () => {
     expect(cumple('s\nw\n =  CQ\n2 (4.1)', { patron: 's w = cq 2 \\(4\\.1\\)' })).toBe(true)
   })
 
-  it('una cifra vale con tolerancia y, si se pide, con su unidad cerca', () => {
-    expect(cumple('La pérdida es de 0,23 ft.', { cifra: 0.23, tolerancia: 0.01, junto: 'ft' })).toBe(true)
-    expect(cumple('La pérdida es de 0,23 m.', { cifra: 0.23, tolerancia: 0.01, junto: 'ft' })).toBe(false)
-    expect(cumple('Unos 318 gpm', { cifra: 317, tolerancia: 3, junto: 'gpm' })).toBe(true)
-    expect(cumple('Unos 330 gpm', { cifra: 317, tolerancia: 3, junto: 'gpm' })).toBe(false)
+  it('una cifra vale con tolerancia y, si se pide, con su unidad justo detrás', () => {
+    expect(cumple('La pérdida es de 0,23 ft.', { cifra: 0.23, tolerancia: 0.01, unidad: 'ft' })).toBe(true)
+    expect(cumple('La pérdida es de 0,23 m.', { cifra: 0.23, tolerancia: 0.01, unidad: 'ft' })).toBe(false)
+    expect(cumple('Unos 318 gpm', { cifra: 317, tolerancia: 3, unidad: 'gpm' })).toBe(true)
+    expect(cumple('Unos 330 gpm', { cifra: 317, tolerancia: 3, unidad: 'gpm' })).toBe(false)
+  })
+
+  it('lee las unidades escritas en LaTeX', () => {
+    expect(cumple('C = 2.0 \\, \\text{seg}^2/\\text{ft}^5', { cifra: 2, tolerancia: 0.1, unidad: 'seg\\^2/ft' })).toBe(true)
+    expect(cumple('menores a 10 \\(\\text{sec}^2/\\text{ft}^5\\)', { cifra: 10, tolerancia: 0, unidad: 'sec\\^2/ft' })).toBe(true)
   })
 })
 
@@ -121,6 +126,13 @@ Día 4: Prueba de recuperación durante 24 horas con el fin de verificar las car
     for (const r of ['s_w = CQ²', 's_w = C·Q^2', '\\(s_{w} = C Q^{2}\\)', 'sw = CQ2']) {
       expect(puntuarRespuesta(c, r, '').hechos.find(h => h.id === 'sw-cq2')?.estado, r).toBe('acierta')
     }
+  })
+
+  it('un «2» de un subíndice no vale por C = 2,0 (qwen2.5:7b calculó 0,557)', () => {
+    const respuesta = 'C = \\frac{(5.14/0.336) - (3.35/0.223)}{0.336 + 0.223} con S_2/Q_2 \\approx 15.29, así que C \\approx 0.557 \\, \\text{seg}^2/\\text{ft}^5 y s_w = C Q_2^2 \\approx 0.0614 \\, \\text{ft}'
+    const p = puntuarRespuesta(caso('walton-ejemplo-4-1'), respuesta, '')
+    expect(p.hechos.find(h => h.id === 'c-2-0')?.estado).not.toBe('acierta')
+    expect(p.hechos.find(h => h.id === 'sw-0-23-ft')?.estado).not.toBe('acierta')
   })
 
   it('el ejemplo 4.1: C = 2,0 s²/ft⁵ y 0,23 ft a 151 gpm', () => {

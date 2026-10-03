@@ -26,11 +26,12 @@
 export type Comprobacion =
   | { patron: string }
   /**
-   * Una cifra, con tolerancia **absoluta** en su unidad. `junto` exige que una
-   * expresión aparezca cerca (60 caracteres), para no dar por buena una cifra
-   * que sale en otro contexto: un «2» suelto aparece en cualquier respuesta.
+   * Una cifra, con tolerancia **absoluta** en su unidad. `unidad` es una
+   * expresión que tiene que ir justo detrás del número. Se probó con «cerca»
+   * (60 caracteres a cada lado) y daba por bueno «C ≈ 0,557» porque había un
+   * «Q_2» al lado: un «2» suelto aparece en cualquier respuesta.
    */
-  | { cifra: number; tolerancia: number; junto?: string }
+  | { cifra: number; tolerancia: number; unidad?: string }
 
 export interface Hecho {
   id: string
@@ -91,6 +92,9 @@ export interface PuntuacionRespuesta {
 export function normalizar(texto: string): string {
   return texto
     .normalize('NFC')
+    // «2.0 \, \text{seg}^2/\text{ft}^5», como lo escribe un modelo en LaTeX.
+    .replace(/\\(?:text|mathrm|mbox)\{([^}]*)\}/g, '$1')
+    .replace(/\\[,;! ]/g, ' ')
     .replace(/[‐-―−]/g, '-')
     .replace(/\s+/g, ' ')
     .toLowerCase()
@@ -101,10 +105,10 @@ export function normalizar(texto: string): string {
  *
  * «0,23» y «1,000» no se distinguen sin saber el idioma, y las respuestas
  * mezclan castellano con cifras copiadas de un libro en inglés. Se aceptan las
- * dos lecturas: la tolerancia y `junto` ya acotan lo suficiente.
+ * dos lecturas: la tolerancia y la unidad ya acotan lo suficiente.
  */
-export function cifrasDelTexto(texto: string): Array<{ valor: number; posicion: number }> {
-  const salida: Array<{ valor: number; posicion: number }> = []
+export function cifrasDelTexto(texto: string): Array<{ valor: number; posicion: number; fin: number }> {
+  const salida: Array<{ valor: number; posicion: number; fin: number }> = []
   for (const m of texto.matchAll(/\d+(?:[.,]\d+)*/g)) {
     const crudo = m[0]
     const lecturas = new Set<number>()
@@ -118,22 +122,22 @@ export function cifrasDelTexto(texto: string): Array<{ valor: number; posicion: 
       // Todo como miles.
       lecturas.add(Number(crudo.replace(/[.,]/g, '')))
     }
-    for (const valor of lecturas) if (Number.isFinite(valor)) salida.push({ valor, posicion: m.index ?? 0 })
+    const posicion = m.index ?? 0
+    for (const valor of lecturas) if (Number.isFinite(valor)) salida.push({ valor, posicion, fin: posicion + crudo.length })
   }
   return salida
 }
 
-const CERCA = 60
-
 export function cumple(texto: string, comprobacion: Comprobacion): boolean {
   const t = normalizar(texto)
   if ('patron' in comprobacion) return new RegExp(comprobacion.patron, 'iu').test(t)
-  const { cifra, tolerancia, junto } = comprobacion
-  return cifrasDelTexto(t).some(({ valor, posicion }) => {
+  const { cifra, tolerancia, unidad } = comprobacion
+  // El «2» de «Q_2» o de «Q^{2}» no es un 2.
+  return cifrasDelTexto(t).some(({ valor, posicion, fin }) => {
     if (Math.abs(valor - cifra) > tolerancia) return false
-    if (!junto) return true
-    const alrededor = t.slice(Math.max(0, posicion - CERCA), posicion + CERCA)
-    return new RegExp(junto, 'iu').test(alrededor)
+    if (/[\d_^{]$/.test(t.slice(0, posicion))) return false
+    // Entre la cifra y la unidad sólo caben espacios, negritas y delimitadores: «10 \(\text{sec}^2…».
+    return !unidad || new RegExp(`^[\\s*$\\\\(]{0,5}(?:${unidad})`, 'iu').test(t.slice(fin))
   })
 }
 

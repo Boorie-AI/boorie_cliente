@@ -30,8 +30,8 @@ const BORRADOR = 'Borrador de Claude para revisar con Luis (3 oct 2026); sin rev
 const SEG = '(?:s|seg|segundos?|seconds?|sec)\\b'
 const MIN = '(?:min|minutos?|minutes?)\\b'
 const A = ' ?(?:-|a|y|to) ?'
-const DE_C = '(?:s|sec|seg)\\s*(?:²|\\^ ?2|2)\\s*/\\s*(?:ft|pies?)'
-const FT = '(?:ft|pies?|feet)\\b'
+const DE_C = '(?:s|sec|seg|segundos?)\\s*(?:²|\\^ ?\\{?2\\}?|2)\\s*/\\s*(?:ft|pies?)'
+const FT = '(?:ft|pies?|feet|foot)\\b'
 const HORAS = '(?:h|horas?|hours?)\\b'
 // qwen2.5:7b llamó a la escalonada «prueba en etapas» y a la de caudal constante «prueba continua».
 const ESCALONADA = '(?:escalonad|step|etapas|escalones|caudal variable)'
@@ -39,7 +39,8 @@ const CONSTANTE = '(?:constante|constant|continu)'
 const CQ2 = 's ?[_{]?\\{?w\\}? ?= ?c ?[·*×]? ?q ?(?:²|\\^ ?\\{?2|2)'
 
 const texto = (patron: string): Comprobacion => ({ patron })
-const cifra = (valor: number, tolerancia: number, junto?: string): Comprobacion => ({ cifra: valor, tolerancia, ...(junto ? { junto } : {}) })
+const cifra = (valor: number, tolerancia: number, unidad?: string): Comprobacion => ({ cifra: valor, tolerancia, ...(unidad ? { unidad } : {}) })
+const METROS = 'm\\b|metros?'
 
 const UNIDADES = { s: SEG, min: MIN, h: '(?:h|horas?|hours?)\\b' }
 
@@ -233,14 +234,14 @@ export const CASOS: CasoRAG[] = [
       {
         id: 'c-menor-10',
         descripcion: 'C suele ser menor que 10 s²/ft⁵',
-        enRespuesta: [cifra(10, 0, `${DE_C}|menor|inferior|less|<`)],
+        enRespuesta: [cifra(10, 0, DE_C)],
         enFuente: [texto('less than 10 sec 2 /ft 5')],
         origen: 'p. 78',
       },
       {
         id: 'c-cerca-de-2',
         descripcion: 'C es a menudo de unos 2,0 s²/ft⁵',
-        enRespuesta: [cifra(2, 0, `${DE_C}|aproximad|alrededor|t[ií]pic|about|often`)],
+        enRespuesta: [cifra(2, 0, DE_C)],
         enFuente: [texto('often about 2\\.0 sec 2 /ft 5')],
         origen: 'p. 78',
       },
@@ -256,14 +257,14 @@ export const CASOS: CasoRAG[] = [
       {
         id: 'c-2-0',
         descripcion: 'C medio = 2,0 s²/ft⁵',
-        enRespuesta: [cifra(2, 0.1, `${DE_C}|\\bc\\b`)],
+        enRespuesta: [cifra(2, 0.1, DE_C)],
         enFuente: [texto('average calculated value of well loss coefficient is 2\\.0')],
         origen: 'Ejemplo 4.1, p. 79',
       },
       {
         id: 'sw-0-23-ft',
         descripcion: 'Pérdida en el pozo a 151 gpm = 0,23 ft (≈ 0,07 m)',
-        enRespuesta: [cifra(0.23, 0.01, FT), cifra(0.07, 0.005, '\\bm\\b|metros?')],
+        enRespuesta: [cifra(0.23, 0.01, FT), cifra(0.07, 0.005, METROS)],
         enFuente: [texto('151 gpm discharge rate based on equation 4\\.1 is 0\\.23 ft')],
         origen: 'Ejemplo 4.1, p. 79',
       },
@@ -286,28 +287,28 @@ export const CASOS: CasoRAG[] = [
       {
         id: 'c12-0-04',
         descripcion: 'C de los escalones 1 y 2 = 0,04 s²/ft⁵',
-        enRespuesta: [cifra(0.04, 0.001)],
+        enRespuesta: [cifra(0.04, 0.001, DE_C)],
         enFuente: [texto('0\\.04 sec 2 /ft 5')],
         origen: 'Caso 5.7, p. 101',
       },
       {
         id: 'c23-0-11',
         descripcion: 'C de los escalones 2 y 3 = 0,11 s²/ft⁵',
-        enRespuesta: [cifra(0.11, 0.001)],
+        enRespuesta: [cifra(0.11, 0.001, DE_C)],
         enFuente: [texto('0\\.11 sec 2 /ft 5')],
         origen: 'Caso 5.7, pp. 101-102',
       },
       {
         id: 'c-medio-0-08',
         descripcion: 'C medio = 0,08 s²/ft⁵',
-        enRespuesta: [cifra(0.08, 0.001)],
+        enRespuesta: [cifra(0.08, 0.001, DE_C)],
         enFuente: [texto('average value of the well loss coefficient is 0\\.08')],
         origen: 'Caso 5.7, p. 102',
       },
       {
         id: 'sw-0-77-ft-1400-gpm',
         descripcion: 'Pérdida en el pozo a 1400 gpm = 0,77 ft',
-        enRespuesta: [cifra(0.77, 0.01, FT), cifra(0.23, 0.01, '\\bm\\b|metros?')],
+        enRespuesta: [cifra(0.77, 0.01, FT), cifra(0.23, 0.01, METROS)],
         enFuente: [texto('1400 gpm rate was calculated to be 0\\.77 ft')],
         origen: 'Caso 5.7, p. 102',
       },
@@ -388,7 +389,7 @@ export const CASOS: CasoRAG[] = [
       {
         id: '100-400-1000-ft',
         descripcion: 'Espaciado típico: 100, 400 y 1000 ft',
-        enRespuesta: [texto(`100 ?(?:${FT})?,? 400 ?(?:${FT})?,? (?:y|and) 1[.,]?000 ?${FT}`), cifra(122, 2, '\\bm\\b|metros?')],
+        enRespuesta: [texto(`100 ?(?:${FT})?,? 400 ?(?:${FT})?,? (?:y|and) 1[.,]?000 ?${FT}`), cifra(122, 2, METROS)],
         enFuente: [texto('typical spacing is 100, 400, and 1000 ft')],
         origen: 'p. 10',
       },
