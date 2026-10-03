@@ -1301,10 +1301,10 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     return (
       <div className="flex h-[calc(100vh-65px)] overflow-hidden bg-background">
         {/* Left Sidebar - Controls & Results */}
-        <div className={`flex-shrink-0 border-r bg-card flex flex-col h-full shadow-lg z-10 transition-all duration-300 ${isLeftSidebarCollapsed ? 'w-0 overflow-hidden' : 'w-[400px]'}`}>
+        <div className={`shrink-0 border-r bg-card flex flex-col h-full shadow-lg z-10 transition-all duration-300 ${isLeftSidebarCollapsed ? 'w-0 overflow-hidden' : 'w-[400px]'}`}>
           <div className="p-4 border-b flex items-center justify-between bg-muted/30">
             <div className="flex items-center gap-2 overflow-hidden">
-              <Database className="h-4 w-4 flex-shrink-0 text-primary" />
+              <Database className="h-4 w-4 shrink-0 text-primary" />
               <span className="font-semibold truncate" title={networkData.name}>{networkData.name}</span>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setNetworkData(null)} title={t('networkView.closeNetwork')}>
@@ -1350,7 +1350,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           min={0}
                           value={simulationDuration}
                           onChange={(e) => setSimulationDuration(sinNegativos(e.target.value))}
-                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         />
                       </div>
                       <div className="bg-background p-2 rounded border">
@@ -1360,7 +1360,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           min={0}
                           value={simulationTimestep}
                           onChange={(e) => setSimulationTimestep(sinNegativos(e.target.value))}
-                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         />
                       </div>
                     </div>
@@ -1374,7 +1374,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         <select
                           value={qualityParameter}
                           onChange={(e) => setQualityParameter(e.target.value as 'AGE' | 'TRACE' | 'CHEMICAL')}
-                          className="w-full bg-transparent text-sm border-b border-border focus:outline-none focus:border-primary"
+                          className="w-full bg-transparent text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         >
                           <option value="AGE">{t('networkView.waterAge')}</option>
                           <option value="TRACE" disabled={fuentesDeTrazado.length === 0}>
@@ -1389,7 +1389,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           <select
                             value={fuenteElegida}
                             onChange={(e) => setTraceNode(e.target.value)}
-                            className="w-full bg-transparent text-sm border-b border-border focus:outline-none focus:border-primary"
+                            className="w-full bg-transparent text-sm border-b border-border focus:outline-hidden focus:border-primary"
                           >
                             {fuentesDeTrazado.map(id => (
                               <option key={id} value={id}>{id}</option>
@@ -1674,7 +1674,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             {analysisResults.criticality.data.criticality_analysis?.top_critical_nodes?.slice(0, 3).map((n: any) => (
                               <Badge
                                 key={n[0]}
-                                variant={highlightedComponents.includes(n[0]) ? "default" : "outline"}
+                                variant={highlightedComponents.includes(n[0]) ? "default" : "outline-solid"}
                                 className="text-[10px] h-5 cursor-pointer hover:bg-primary/20"
                                 onClick={() => setHighlightedComponents(prev => prev.includes(n[0]) ? prev.filter(x => x !== n[0]) : [...prev, n[0]])}
                               >
@@ -1749,7 +1749,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         min={0}
                         value={skeletonizeThresholdMm}
                         onChange={(e) => setSkeletonizeThresholdMm(sinNegativos(e.target.value))}
-                        className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                       />
                     </div>
                     <Button size="sm" className="w-full" onClick={handlePreviewSkeletonize} disabled={isSkeletonizing}>
@@ -1814,7 +1814,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         value={failureComponentIds}
                         onChange={(e) => setFailureComponentIds(e.target.value)}
                         placeholder={t('networkView.idsExample')}
-                        className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                        className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -1825,7 +1825,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           min={0}
                           value={failureStartHours}
                           onChange={(e) => setFailureStartHours(sinNegativos(e.target.value))}
-                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         />
                       </div>
                       <div className="bg-background p-2 rounded border">
@@ -1836,7 +1836,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           value={failureRestoreHours}
                           onChange={(e) => setFailureRestoreHours(e.target.value === '' ? '' : String(sinNegativos(e.target.value)))}
                           placeholder={t('networkView.permanent')}
-                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         />
                       </div>
                       <SelectorVentana
@@ -1852,7 +1852,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           min={0}
                           value={minPressureThreshold}
                           onChange={(e) => setMinPressureThreshold(sinNegativos(e.target.value))}
-                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         />
                       </div>
                       <div className="bg-background p-2 rounded border">
@@ -1862,7 +1862,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           min={0}
                           value={demandModuleLphd}
                           onChange={(e) => setDemandModuleLphd(sinNegativos(e.target.value))}
-                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         />
                       </div>
                       <div className="bg-background p-2 rounded border">
@@ -1874,7 +1874,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           step="0.05"
                           value={availabilityThreshold}
                           onChange={(e) => setAvailabilityThreshold(Math.min(1, sinNegativos(e.target.value)))}
-                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         />
                       </div>
                       <div className="bg-background p-2 rounded border">
@@ -1884,7 +1884,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           min={0}
                           value={requiredPressure}
                           onChange={(e) => setRequiredPressure(sinNegativos(e.target.value))}
-                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         />
                       </div>
                       <div className="bg-background p-2 rounded border">
@@ -1895,7 +1895,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           value={personsPerConnection}
                           onChange={(e) => setPersonsPerConnection(e.target.value === '' ? '' : String(sinNegativos(e.target.value)))}
                           placeholder={t('networkView.noCustomers')}
-                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         />
                       </div>
                     </div>
@@ -1949,7 +1949,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             {failureResult.affected_nodes.slice(0, 8).map((n: any) => (
                               <Badge
                                 key={n.id}
-                                variant={highlightedComponents.includes(n.id) ? "default" : "outline"}
+                                variant={highlightedComponents.includes(n.id) ? "default" : "outline-solid"}
                                 className="text-[10px] h-5 cursor-pointer hover:bg-primary/20"
                                 onClick={() => setHighlightedComponents(prev => prev.includes(n.id) ? prev.filter(x => x !== n.id) : [...prev, n.id])}
                                 title={t('networkView.residualPressure', { presion: n.min_pressure.toFixed(2), horas: impacto(n.outage_hours).toFixed(1) })}
@@ -2205,7 +2205,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         <select
                           value={fragilityMaterial}
                           onChange={(e) => setFragilityMaterial(e.target.value)}
-                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         >
                           <option value="PVC">PVC</option>
                           <option value="HDPE">{t('networkView.matHdpe')}</option>
@@ -2222,7 +2222,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                         <select
                           value={fragilityModel}
                           onChange={(e) => setFragilityModel(e.target.value as typeof fragilityModel)}
-                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         >
                           {/* Nombres de norma: no se traducen. */}
                           <option value="HAZUS_MH">FEMA/HAZUS-MH (2003)</option>
@@ -2239,7 +2239,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             // El tope va en las unidades del eje: 100 cm/s o 1,2 g.
                             setFragilityMaxIntensity(h === 'seismic_pga' ? 1.2 : 100);
                           }}
-                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         >
                           {/* Siglas de la magnitud, iguales en los tres idiomas. */}
                           <option value="seismic_pgv">PGV (cm/s)</option>
@@ -2252,7 +2252,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           <select
                             value={fragilitySoil}
                             onChange={(e) => setFragilitySoil(e.target.value as typeof fragilitySoil)}
-                            className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                            className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                           >
                             <option value="rock">{t('networkView.soilRock')}</option>
                             <option value="stiff_soil">{t('networkView.soilStiff')}</option>
@@ -2269,7 +2269,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           min={0}
                           value={fragilityMaxIntensity}
                           onChange={(e) => setFragilityMaxIntensity(sinNegativos(e.target.value))}
-                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         />
                       </div>
                     </div>
@@ -2298,7 +2298,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               type="number" step="0.01" min={0} placeholder="—"
                               value={coefTanqueDS1}
                               onChange={(e) => setCoefTanqueDS1(e.target.value)}
-                              className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                              className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                             />
                           </label>
                           <label className="text-[10px] text-muted-foreground">
@@ -2307,7 +2307,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               type="number" step="0.01" min={0} placeholder="—"
                               value={coefTanqueDS2}
                               onChange={(e) => setCoefTanqueDS2(e.target.value)}
-                              className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                              className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                             />
                           </label>
                           <label className="text-[10px] text-muted-foreground">
@@ -2316,7 +2316,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               type="number" step="0.01" min={0} placeholder="—"
                               value={coefBomba}
                               onChange={(e) => setCoefBomba(e.target.value)}
-                              className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                              className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                             />
                           </label>
                           <label className="text-[10px] text-muted-foreground">
@@ -2325,7 +2325,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                               type="number" step="0.05" min={0}
                               value={coefBeta}
                               onChange={(e) => setCoefBeta(e.target.value)}
-                              className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-none focus:border-primary"
+                              className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                             />
                           </label>
                         </div>

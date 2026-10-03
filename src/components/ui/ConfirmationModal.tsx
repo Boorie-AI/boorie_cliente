@@ -47,7 +47,7 @@ export function ConfirmationModal({
         <div className="flex items-center justify-between p-6 pb-4">
           <div className="flex items-center space-x-3">
             {variant === 'destructive' && (
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <AlertTriangle className="h-6 w-6 text-destructive" />
               </div>
             )}
@@ -74,7 +74,7 @@ export function ConfirmationModal({
               className={cn(
                 "px-4 py-2 text-sm font-medium rounded-md border border-border",
                 "text-foreground bg-background hover:bg-accent hover:text-accent-foreground",
-                "transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                "transition-colors focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
               )}
             >
               {cancelText}
@@ -83,7 +83,7 @@ export function ConfirmationModal({
               onClick={handleConfirm}
               className={cn(
                 "px-4 py-2 text-sm font-medium rounded-md transition-colors",
-                "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                "focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2",
                 variant === 'destructive' 
                   ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   : "bg-primary text-primary-foreground hover:bg-primary/90"

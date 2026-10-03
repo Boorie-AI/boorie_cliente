@@ -34,7 +34,7 @@ export function SettingsPanel() {
                 value="general"
                 className={cn(
                   "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs",
                   "data-[state=inactive]:text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -44,7 +44,7 @@ export function SettingsPanel() {
                 value="ai-config"
                 className={cn(
                   "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs",
                   "data-[state=inactive]:text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -54,7 +54,7 @@ export function SettingsPanel() {
                 value="accounts"
                 className={cn(
                   "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs",
                   "data-[state=inactive]:text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -64,7 +64,7 @@ export function SettingsPanel() {
                 value="system-prompt"
                 className={cn(
                   "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs",
                   "data-[state=inactive]:text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -74,7 +74,7 @@ export function SettingsPanel() {
                 value="milvus"
                 className={cn(
                   "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs",
                   "data-[state=inactive]:text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -84,7 +84,7 @@ export function SettingsPanel() {
                 value="guardrails"
                 className={cn(
                   "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs",
                   "data-[state=inactive]:text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -94,7 +94,7 @@ export function SettingsPanel() {
                 value="about"
                 className={cn(
                   "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+                  "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs",
                   "data-[state=inactive]:text-muted-foreground hover:text-foreground"
                 )}
               >

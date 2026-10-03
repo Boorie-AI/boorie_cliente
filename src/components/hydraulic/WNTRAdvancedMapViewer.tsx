@@ -383,7 +383,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
       </div>
 
       {/* Right Sidebar Panel */}
-      <div className={`relative flex-shrink-0 border-l border-border bg-background transition-all duration-300 ease-in-out ${isRightSidebarCollapsed ? 'w-0' : 'w-80'}`}>
+      <div className={`relative shrink-0 border-l border-border bg-background transition-all duration-300 ease-in-out ${isRightSidebarCollapsed ? 'w-0' : 'w-80'}`}>
 
         {/* Toggle Button */}
         <Button

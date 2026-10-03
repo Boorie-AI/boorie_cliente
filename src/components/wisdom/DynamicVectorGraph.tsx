@@ -373,7 +373,7 @@ export function DynamicVectorGraph({
   return (
     <div className="relative w-full h-full bg-background border border-border rounded-lg overflow-hidden">
       {/* Controls Panel */}
-      <div className={`absolute top-4 left-4 z-10 bg-card/95 backdrop-blur border border-border rounded-lg p-3 transition-all duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      <div className={`absolute top-4 left-4 z-10 bg-card/95 backdrop-blur-sm border border-border rounded-lg p-3 transition-all duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}>
         <div className="flex flex-col gap-3">
           {/* Layout Controls */}
@@ -488,13 +488,13 @@ export function DynamicVectorGraph({
       {/* Controls Toggle */}
       <button
         onClick={() => setShowControls(!showControls)}
-        className="absolute top-4 right-4 z-10 p-2 bg-card/95 backdrop-blur border border-border rounded transition-colors hover:bg-card"
+        className="absolute top-4 right-4 z-10 p-2 bg-card/95 backdrop-blur-sm border border-border rounded transition-colors hover:bg-card"
       >
         {showControls ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
       </button>
 
       {/* Stats Panel */}
-      <div className="absolute bottom-4 left-4 z-10 bg-card/95 backdrop-blur border border-border rounded-lg p-3">
+      <div className="absolute bottom-4 left-4 z-10 bg-card/95 backdrop-blur-sm border border-border rounded-lg p-3">
         <div className="text-xs space-y-1">
           <div className="flex items-center gap-2">
             <NetworkIcon className="w-3 h-3" />

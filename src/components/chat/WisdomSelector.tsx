@@ -121,7 +121,7 @@ export function WisdomSelector({ selectedConfig, onConfigChange, className }: Wi
           selectedConfig?.enabled
             ? "border-primary/50 bg-primary/10 text-primary hover:bg-primary/20"
             : "border-border/50 bg-card/50 text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-          "hover:border-border min-w-0 flex-shrink-0"
+          "hover:border-border min-w-0 shrink-0"
         )}
         title={selectedConfig?.enabled ? t('chatInput.wisdomEnabled') : t('chatInput.wisdomDisabled')}
       >

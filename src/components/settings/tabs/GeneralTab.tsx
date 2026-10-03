@@ -244,7 +244,7 @@ export function GeneralTab() {
                 <Select.Trigger className={cn(
                   "flex items-center space-x-2 px-3 py-2 bg-input border border-border rounded-lg",
                   "hover:bg-accent transition-colors min-w-[140px]",
-                  "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  "focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 )}>
                   <Languages size={16} className="text-muted-foreground" />
                   <Select.Value />
@@ -264,7 +264,7 @@ export function GeneralTab() {
                           className={cn(
                             "flex items-center px-3 py-2 rounded-md cursor-pointer",
                             "hover:bg-accent hover:text-accent-foreground",
-                            "focus:bg-accent focus:text-accent-foreground focus:outline-none"
+                            "focus:bg-accent focus:text-accent-foreground focus:outline-hidden"
                           )}
                         >
                           <Select.ItemText>{option.label}</Select.ItemText>
@@ -306,11 +306,11 @@ export function GeneralTab() {
                 </p>
               </div>
               <Switch.Root
-                className="w-11 h-6 bg-muted rounded-full relative data-[state=checked]:bg-primary outline-none cursor-pointer transition-colors"
+                className="w-11 h-6 bg-muted rounded-full relative data-[state=checked]:bg-primary outline-hidden cursor-pointer transition-colors"
                 checked={autoSaveConversations}
                 onCheckedChange={(checked) => updatePreference('autoSaveConversations', checked)}
               >
-                <Switch.Thumb className="block w-5 h-5 bg-background rounded-full transition-transform duration-200 translate-x-0.5 will-change-transform data-[state=checked]:translate-x-[22px] shadow-sm" />
+                <Switch.Thumb className="block w-5 h-5 bg-background rounded-full transition-transform duration-200 translate-x-0.5 will-change-transform data-[state=checked]:translate-x-[22px] shadow-xs" />
               </Switch.Root>
             </div>
 
@@ -324,11 +324,11 @@ export function GeneralTab() {
                 </p>
               </div>
               <Switch.Root
-                className="w-11 h-6 bg-muted rounded-full relative data-[state=checked]:bg-primary outline-none cursor-pointer transition-colors"
+                className="w-11 h-6 bg-muted rounded-full relative data-[state=checked]:bg-primary outline-hidden cursor-pointer transition-colors"
                 checked={showTypingIndicators}
                 onCheckedChange={(checked) => updatePreference('showTypingIndicators', checked)}
               >
-                <Switch.Thumb className="block w-5 h-5 bg-background rounded-full transition-transform duration-200 translate-x-0.5 will-change-transform data-[state=checked]:translate-x-[22px] shadow-sm" />
+                <Switch.Thumb className="block w-5 h-5 bg-background rounded-full transition-transform duration-200 translate-x-0.5 will-change-transform data-[state=checked]:translate-x-[22px] shadow-xs" />
               </Switch.Root>
             </div>
 
@@ -381,7 +381,7 @@ export function GeneralTab() {
                   value={mapboxToken}
                   onChange={(e) => setMapboxToken(e.target.value)}
                   placeholder="pk.eyJ1Ijoi..."
-                  className="w-full px-3 py-2 pr-10 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none text-sm font-mono"
+                  className="w-full px-3 py-2 pr-10 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-hidden text-sm font-mono"
                 />
                 <button
                   type="button"
@@ -429,7 +429,7 @@ export function GeneralTab() {
                 min={0}
                 value={retencion}
                 onChange={(e) => setRetencion(e.target.value)}
-                className="w-32 px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:border-ring focus:outline-none text-sm"
+                className="w-32 px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:border-ring focus:outline-hidden text-sm"
               />
               <button
                 type="button"
@@ -569,7 +569,7 @@ export function GeneralTab() {
                         })
                       }
                       onBlur={() => guardarIndexacion({ umbrales: indexacion.umbrales })}
-                      className="block w-28 px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:border-ring focus:outline-none text-sm"
+                      className="block w-28 px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:border-ring focus:outline-hidden text-sm"
                     />
                   </div>
                 ))}
@@ -597,7 +597,7 @@ export function GeneralTab() {
                 value={pythonPath}
                 onChange={(e) => setPythonPath(e.target.value)}
                 placeholder={pythonDetected || (isWindows ? 'C:\\Python312\\python.exe' : '/usr/bin/python3')}
-                className="flex-1 min-w-0 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none text-sm font-mono"
+                className="flex-1 min-w-0 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-ring focus:outline-hidden text-sm font-mono"
               />
               <button
                 type="button"
@@ -627,7 +627,7 @@ export function GeneralTab() {
                     : 'border-yellow-500/30 bg-yellow-500/5 text-yellow-700 dark:text-yellow-400'
                 )}
               >
-                {pythonOk ? <Check size={16} className="mt-0.5 flex-shrink-0" /> : null}
+                {pythonOk ? <Check size={16} className="mt-0.5 shrink-0" /> : null}
                 <span className="whitespace-pre-wrap">{pythonMessage}</span>
               </div>
             )}

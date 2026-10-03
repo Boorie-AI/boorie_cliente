@@ -150,7 +150,7 @@ export function MilvusInspector() {
             {activeTab === 'inspector' ? (
                 <div className="flex h-full gap-6 overflow-hidden">
                     {/* Sidebar: Collection List */}
-                    <div className="w-64 bg-card rounded-lg border shadow-sm flex flex-col h-full">
+                    <div className="w-64 bg-card rounded-lg border shadow-xs flex flex-col h-full">
                         <div className="p-4 border-b flex justify-between items-center bg-muted/30">
                             <h2 className="font-semibold flex items-center gap-2">
                                 <Database className="h-4 w-4" />

@@ -306,7 +306,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
         const numberMatch = line.trim().match(/^(\d+)\.\s/)
         renderedLines.push(
           <div key={key} className="flex items-start my-1">
-            <span className="mr-2 mt-0.5 min-w-[1rem]">{numberMatch?.[1]}.</span>
+            <span className="mr-2 mt-0.5 min-w-4">{numberMatch?.[1]}.</span>
             <span>{parseInlineMarkdown(line.replace(/^\d+\.\s/, ''))}</span>
           </div>
         )
@@ -352,7 +352,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
   }
 
   return (
-    <div className={cn("whitespace-pre-wrap break-words", className)}>
+    <div className={cn("whitespace-pre-wrap wrap-break-word", className)}>
       {renderContent()}
     </div>
   )

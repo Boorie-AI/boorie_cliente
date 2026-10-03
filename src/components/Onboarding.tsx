@@ -59,7 +59,7 @@ export function Onboarding() {
     }
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -76,8 +76,8 @@ export function Onboarding() {
                     "flex flex-col"
                 )}
             >
-                <div className={cn("h-32 bg-gradient-to-br flex items-center justify-center", step.color)}>
-                    <div className="bg-background p-4 rounded-2xl shadow-sm border border-border/50">
+                <div className={cn("h-32 bg-linear-to-br flex items-center justify-center", step.color)}>
+                    <div className="bg-background p-4 rounded-2xl shadow-xs border border-border/50">
                         {step.icon}
                     </div>
                 </div>
@@ -116,7 +116,7 @@ export function Onboarding() {
 
                         <button
                             onClick={handleNext}
-                            className="flex items-center space-x-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
+                            className="flex items-center space-x-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-xs"
                         >
                             <span>{isLastStep ? t('common.finish') : t('common.next')}</span>
                             {isLastStep ? <CheckCircle2 className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}

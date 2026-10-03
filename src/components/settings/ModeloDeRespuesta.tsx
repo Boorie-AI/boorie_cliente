@@ -122,7 +122,7 @@ export function ModeloDeRespuesta({ modelosOllama }: { modelosOllama: string[] }
 
       {esExterno && actual && (
         <div className="flex items-start space-x-2 p-3 rounded-lg bg-accent/40 border border-border/50 text-xs text-muted-foreground">
-          <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <Info className="w-4 h-4 shrink-0 mt-0.5" />
           <span>{t('ai.modeloRespuesta.avisoExterno', { proveedor: actual.proveedor })}</span>
         </div>
       )}

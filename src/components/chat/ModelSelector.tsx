@@ -165,7 +165,7 @@ export function ModelSelector() {
         <Select.Trigger className={cn(
           "flex items-center justify-between w-full px-3 py-2 bg-card border border-border rounded-lg",
           "hover:bg-accent hover:text-accent-foreground transition-colors",
-          "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+          "focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2",
           "min-w-[180px] data-[state=open]:border-ring"
         )}>
           <div className="flex items-center space-x-2">
@@ -210,7 +210,7 @@ export function ModelSelector() {
                         className={cn(
                           "flex items-center space-x-3 px-3 py-2 rounded-md cursor-pointer",
                           "hover:bg-accent hover:text-accent-foreground",
-                          "focus:bg-accent focus:text-accent-foreground focus:outline-none"
+                          "focus:bg-accent focus:text-accent-foreground focus:outline-hidden"
                         )}
                       >
                         <Server size={16} className="text-green-600" />
@@ -263,7 +263,7 @@ export function ModelSelector() {
                       model.isAvailable
                         ? "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                         : "opacity-50 cursor-not-allowed",
-                      "focus:outline-none"
+                      "focus:outline-hidden"
                     )}
                   >
                     <Cloud size={16} className={model.isAvailable ? "text-blue-600" : "text-muted-foreground"} />

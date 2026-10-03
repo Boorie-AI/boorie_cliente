@@ -87,7 +87,7 @@ export function EditProjectDialog({ project, onClose, onProjectUpdated }: EditPr
               className={cn(
                 "w-full px-3 py-2 rounded-lg",
                 "bg-input border border-border",
-                "focus:outline-none focus:ring-2 focus:ring-ring",
+                "focus:outline-hidden focus:ring-2 focus:ring-ring",
                 "placeholder:text-muted-foreground"
               )}
               placeholder="Enter project name"
@@ -106,7 +106,7 @@ export function EditProjectDialog({ project, onClose, onProjectUpdated }: EditPr
               className={cn(
                 "w-full px-3 py-2 rounded-lg",
                 "bg-input border border-border",
-                "focus:outline-none focus:ring-2 focus:ring-ring",
+                "focus:outline-hidden focus:ring-2 focus:ring-ring",
                 "placeholder:text-muted-foreground",
                 "resize-none"
               )}
@@ -126,7 +126,7 @@ export function EditProjectDialog({ project, onClose, onProjectUpdated }: EditPr
               className={cn(
                 "w-full px-3 py-2 rounded-lg",
                 "bg-input border border-border",
-                "focus:outline-none focus:ring-2 focus:ring-ring"
+                "focus:outline-hidden focus:ring-2 focus:ring-ring"
               )}
             >
               <option value="design">Design</option>
@@ -147,7 +147,7 @@ export function EditProjectDialog({ project, onClose, onProjectUpdated }: EditPr
               className={cn(
                 "w-full px-3 py-2 rounded-lg",
                 "bg-input border border-border",
-                "focus:outline-none focus:ring-2 focus:ring-ring"
+                "focus:outline-hidden focus:ring-2 focus:ring-ring"
               )}
             >
               <option value="planning">Planning</option>
@@ -176,7 +176,7 @@ export function EditProjectDialog({ project, onClose, onProjectUpdated }: EditPr
                 className={cn(
                   "px-3 py-2 rounded-lg",
                   "bg-input border border-border",
-                  "focus:outline-none focus:ring-2 focus:ring-ring",
+                  "focus:outline-hidden focus:ring-2 focus:ring-ring",
                   "placeholder:text-muted-foreground"
                 )}
                 placeholder="Country"
@@ -192,7 +192,7 @@ export function EditProjectDialog({ project, onClose, onProjectUpdated }: EditPr
                 className={cn(
                   "px-3 py-2 rounded-lg",
                   "bg-input border border-border",
-                  "focus:outline-none focus:ring-2 focus:ring-ring",
+                  "focus:outline-hidden focus:ring-2 focus:ring-ring",
                   "placeholder:text-muted-foreground"
                 )}
                 placeholder="State/Region"
@@ -208,7 +208,7 @@ export function EditProjectDialog({ project, onClose, onProjectUpdated }: EditPr
                 className={cn(
                   "px-3 py-2 rounded-lg",
                   "bg-input border border-border",
-                  "focus:outline-none focus:ring-2 focus:ring-ring",
+                  "focus:outline-hidden focus:ring-2 focus:ring-ring",
                   "placeholder:text-muted-foreground"
                 )}
                 placeholder="City"

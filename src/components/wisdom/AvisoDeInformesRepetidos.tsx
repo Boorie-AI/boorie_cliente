@@ -74,7 +74,7 @@ export function AvisoDeInformesRepetidos({ alTerminar }: Props) {
   return (
     <div className="mb-4 rounded-lg border border-sky-500/50 bg-sky-50 dark:bg-sky-950/20 p-4">
       <div className="flex items-start gap-3">
-        <Layers className="w-5 h-5 text-sky-600 dark:text-sky-400 flex-shrink-0 mt-0.5" />
+        <Layers className="w-5 h-5 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <h4 className="font-medium text-sky-900 dark:text-sky-100">
             {t('wisdom.informesRepetidos.titulo', { documentos: sobrantes!.documentos })}

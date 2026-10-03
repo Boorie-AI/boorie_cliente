@@ -120,7 +120,7 @@ export function AccountsTab() {
 
           <div className="grid gap-4">
             {/* Microsoft 365 */}
-            <div className="group relative overflow-hidden rounded-xl border border-border bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 hover:shadow-md transition-all duration-200">
+            <div className="group relative overflow-hidden rounded-xl border border-border bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 hover:shadow-md transition-all duration-200">
               <div className="flex items-center justify-between p-6">
                 <div className="flex items-center space-x-4 flex-1">
                   <div className="relative">
@@ -184,7 +184,7 @@ export function AccountsTab() {
                     <button
                       onClick={() => handleConnect('microsoft')}
                       disabled={isLoading.microsoft}
-                      className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm disabled:opacity-50"
+                      className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-xs disabled:opacity-50"
                     >
                       {isLoading.microsoft ? t('accounts.connecting') : t('accounts.connect')}
                     </button>
@@ -194,7 +194,7 @@ export function AccountsTab() {
             </div>
 
             {/* Google Workspace */}
-            <div className="group relative overflow-hidden rounded-xl border border-border bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 hover:shadow-md transition-all duration-200">
+            <div className="group relative overflow-hidden rounded-xl border border-border bg-linear-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 hover:shadow-md transition-all duration-200">
               <div className="flex items-center justify-between p-6">
                 <div className="flex items-center space-x-4 flex-1">
                   <div className="relative">
@@ -258,7 +258,7 @@ export function AccountsTab() {
                     <button
                       onClick={() => handleConnect('google')}
                       disabled={isLoading.google}
-                      className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-sm disabled:opacity-50"
+                      className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-xs disabled:opacity-50"
                     >
                       {isLoading.google ? t('accounts.connecting') : t('accounts.connect')}
                     </button>

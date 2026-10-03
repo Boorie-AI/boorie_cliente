@@ -93,7 +93,7 @@ function App() {
     return (
       <div className={cn(
         "flex items-center justify-center h-screen",
-        "bg-gradient-to-br from-background via-background to-muted",
+        "bg-linear-to-br from-background via-background to-muted",
         "text-foreground"
       )}>
         <div className="text-center space-y-4">

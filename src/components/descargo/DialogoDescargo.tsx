@@ -67,9 +67,9 @@ export function DialogoDescargo({ onResuelto }: DialogoDescargoProps = {}) {
   return (
     <Dialog.Root open={abierto} modal>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/70 z-[100] animate-in fade-in-0" />
+        <Dialog.Overlay className="fixed inset-0 bg-black/70 z-100 animate-in fade-in-0" />
         <Dialog.Content
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[101]
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-101
                      w-[min(38rem,calc(100vw-2rem))] max-h-[85vh] overflow-y-auto
                      bg-card border border-border rounded-lg shadow-xl p-6
                      animate-in fade-in-0 zoom-in-95"
