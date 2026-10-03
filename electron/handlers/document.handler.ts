@@ -2,73 +2,15 @@ import { ipcMain, dialog, app } from 'electron'
 import { claveUtilizable } from '../../backend/services/security/clavesProveedor'
 import * as fs from 'fs/promises'
 import * as path from 'path'
-import pdf from 'pdf-parse'
-import mammoth from 'mammoth'
 import { HydraulicRAGService } from '../../backend/services/hydraulic/ragService'
 import { duenoVectorial, duenosPermitidos, filtroPrisma, type Ambito } from '../../backend/services/hydraulic/ambitos'
 import { Prisma, PrismaClient } from '@prisma/client'
 
 import { EmbeddingService } from '../../backend/services/embedding.service'
-import {
-  claveDelProblema,
-  condicionSinContenido,
-  formatoNoSoportado,
-  textoIlegible,
-  textoLeido,
-  type TextoDeDocumento,
-} from '../../backend/services/textoDeDocumento'
-import { leerEscaneado, type AlProgresoOcr } from '../../backend/services/ocrDeEscaneados'
+import { claveDelProblema, condicionSinContenido } from '../../backend/services/textoDeDocumento'
+import { extraerTextoDeFichero } from '../../backend/services/textoDeFichero'
 import { VectoresDeAdjunto } from '../../backend/services/vectoresDeAdjunto'
 import { dimensionDeModelo, dimensionEsperada, marcaDeFragmento, modeloEmbeddingsOllama, DIMENSION_DESCONOCIDA, CLAVE_MODELO_INDEXADO } from '../../backend/services/modeloEmbeddings'
-
-/**
- * Extract plain text from a document on disk. Shared by wisdom:upload
- * (persistent RAG indexing) and chat:pickAttachment (one-off chat context).
- */
-export async function extraerTextoDeFichero(
-  filePath: string,
-  alProgresoOcr?: AlProgresoOcr,
-): Promise<TextoDeDocumento> {
-  const fileName = path.basename(filePath)
-  const fileExtension = path.extname(fileName).toLowerCase()
-
-  if (fileExtension === '.pdf') {
-    try {
-      const pdfBuffer = await fs.readFile(filePath)
-      const pdfData = await pdf(pdfBuffer)
-      const leido = textoLeido(pdfData.text.replace(/\n\s*\n/g, '\n\n'))
-      // Sin capa de texto es un escaneado: se lee con OCR (#198).
-      if (leido.problema !== 'vacio') return leido
-      console.log(`[Document Handler] ${fileName} no tiene texto: se lee con OCR`)
-      return await leerEscaneado(pdfBuffer, alProgresoOcr)
-    } catch (error) {
-      console.warn(`Could not process PDF ${fileName}:`, error)
-      return textoIlegible(error)
-    }
-  }
-
-  if (fileExtension === '.docx') {
-    try {
-      const buffer = await fs.readFile(filePath)
-      const result = await mammoth.extractRawText({ buffer })
-      return textoLeido(result.value)
-    } catch (error) {
-      console.warn(`Could not process DOCX ${fileName}:`, error)
-      return textoIlegible(error)
-    }
-  }
-
-  if (fileExtension === '.doc') {
-    return formatoNoSoportado('.doc binario: hay que convertirlo a DOCX o PDF')
-  }
-
-  try {
-    return textoLeido(await fs.readFile(filePath, 'utf-8'))
-  } catch (error) {
-    console.warn(`Could not read ${fileName}:`, error)
-    return textoIlegible(error)
-  }
-}
 
 /**
  * Open a native file picker and extract text from the chosen document,
