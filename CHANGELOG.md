@@ -9,6 +9,25 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.47.0] - 2026-10-03
+
+La conversación entera se copia de un clic para pegarla en Word o en el Bloc de notas, y una respuesta de NVIDIA que se corta ya no se pierde.
+
+- **Copiar la conversación entera, para pegarla en Word.** Copiar el chat estaba escondido en el
+  menú ⋯ de la cabecera, y lo que se pegaba era el markdown en bruto, con «User» y «Assistant» en
+  inglés y el texto completo de los documentos adjuntos. Ahora hay un botón a la vista en la
+  cabecera del chat que dice «Copiado» al pulsarlo.
+  - En Word se pega con formato: negritas, listas, tablas con bordes y las fórmulas en texto
+    legible, como `C = (S_n/Q_n - S_(n-1)/Q_(n-1))/(2(Q_n + Q_(n-1)))`. En el Bloc de notas, como
+    texto limpio.
+  - Los autores van como «Usuario» y «Asistente», en el idioma de la aplicación; de un documento
+    adjunto sólo va el nombre, y al final el mismo aviso que lleva la exportación.
+- **Con NVIDIA, una respuesta que se corta ya no se pierde.** Si el modelo dejaba de responder a
+  mitad de una respuesta larga, se tiraba todo lo que ya había escrito y la pregunta se repetía
+  desde cero, con otra espera de varios minutos. Ahora se muestra lo que llegó hasta el corte, con
+  un aviso de que la respuesta quedó incompleta. Sólo se vuelve a intentar si no había llegado
+  nada.
+
 ## [1.46.0] - 2026-10-03
 
 Con NVIDIA responde Nemotron Ultra y cita lo que de verdad ha leído, las respuestas largas llegan enteras, las claves de la nube se guardan cifradas y nada sale a un modelo externo sin tu consentimiento.

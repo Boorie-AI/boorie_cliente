@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.46.0
+### 🚀 Latest Release - v1.47.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.46.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.46.0/Boorie-1.46.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.46.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.46.0/Boorie-Setup-1.46.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.46.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.46.0/Boorie-1.46.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.47.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.47.0/Boorie-1.47.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.47.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.47.0/Boorie-Setup-1.47.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.47.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.47.0/Boorie-1.47.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.47.0**: Copy the whole conversation in one click and paste it into Word or Notepad. The button sits in the chat header and says «Copied»; in Word it pastes with bold, lists, bordered tables and readable formulas, and in Notepad as clean text. Authors appear as «User» and «Assistant» in your language, attached documents only by name, and the disclaimer goes at the end, as in the export. And with NVIDIA, an answer that stops halfway is no longer lost: what arrived is shown with a notice that it is incomplete, instead of throwing it away and asking again from scratch. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.47.0).
 - **v1.46.0**: Cloud provider keys are now stored encrypted with the system keychain (Windows, macOS and, on Linux, GNOME Keyring or KWallet), and existing ones are encrypted the first time this version opens; Settings no longer shows the saved key, only whether there is one and its last four characters. Nothing goes to an external model without your consent: the first time you choose a cloud model, Boorie says what it will send —the question, the history, the attachment, fragments of your documents and the network and project context— and to whom, and if you decline the local model keeps answering. With NVIDIA, Nemotron Ultra now writes the answers and cites what it actually read: each fragment of an attached book carries its printed page, citations not found in what was read are flagged, and a second review checks the answer against the document. Long answers no longer stop halfway, a long NVIDIA answer is no longer cut off by a fixed timeout, and «Test» really checks the NVIDIA key. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.46.0).
 - **v1.45.0**: Report a problem or suggest an improvement from inside Boorie. «Help & feedback» sits at the foot of the sidebar on every screen, and in Settings → About; the form opens on top of what you are doing without losing it. «Open in GitHub» leaves the issue written with the team's template, and «Copy report» copies it for anyone without a GitHub account. Ticking «Include technical information» adds the version, system, Python, the screen you were on and the app's latest warnings —without personal paths or emails— and you can see exactly what will be sent first. About also shows the system and the Python version Boorie uses, and its version history now shows the right date —it showed the day before in the Americas— without the formatting asterisks. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.45.0).
 - **v1.44.0**: «Install dependencies» works again on first start. The «Getting Boorie ready» window opened at the same time as the «Before you start» notice and was drawn on top of it, but the notice stayed open underneath and took every click: the button did nothing, no progress appeared and `pymilvus` stayed pending, so the knowledge base could not index. The notice now comes first and the Python window appears once it is accepted. If the installation finishes and something still does not load, the window now says what is missing, why and where the log is, and the button becomes «Retry»; the progress bar no longer empties with every line pip writes. And on Linux the dock shows the Boorie logo instead of a cogwheel. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.44.0).
@@ -129,12 +130,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.46.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.46.0.AppImage`
-3. Run: `./Boorie-1.46.0.AppImage`
+1. Download `Boorie-1.47.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.47.0.AppImage`
+3. Run: `./Boorie-1.47.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.46.0.exe` from the link above
+1. Download `Boorie-Setup-1.47.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 
