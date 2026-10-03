@@ -773,7 +773,7 @@ export function AIConfigurationPanel() {
                     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                       {!provider.isActive && motivoParaNoActivar(provider) && (
                         <div className="flex items-start space-x-2 text-xs text-muted-foreground" data-testid={`motivo-${provider.id}`}>
-                          <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                          <Info className="w-4 h-4 shrink-0 mt-0.5" />
                           <span>{t(motivoParaNoActivar(provider)!)}</span>
                         </div>
                       )}
