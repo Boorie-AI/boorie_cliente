@@ -26,7 +26,7 @@ import * as Tabs from '@radix-ui/react-tabs'
 import * as Dialog from '@radix-ui/react-dialog'
 import * as Switch from '@radix-ui/react-switch'
 import { type CustomModel, validateCustomModel } from '@/services/ai/providers'
-import { useAIConfigStore, type AIProvider, type ProviderModel } from '@/stores/aiConfigStore'
+import { useAIConfigStore, motivoParaNoActivar, type AIProvider, type ProviderModel } from '@/stores/aiConfigStore'
 import { databaseService } from '@/services/database'
 import anthropicLogo from '@/assets/anthropic.png'
 import openaiLogo from '@/assets/openai.png'
@@ -45,7 +45,6 @@ export function AIConfigurationPanel() {
   const {
     providers,
     loadProviders,
-    saveProvider,
     toggleProvider,
     updateAPIKey,
     testProviderConnection,
@@ -113,54 +112,13 @@ export function AIConfigurationPanel() {
     databaseService.estadoCifrado().then(e => setCifradoDisponible(e ? e.disponible : null))
   }, [])
 
+  /**
+   * Los proveedores los crea el proceso principal al arrancar (#246). Aquí se
+   * creaban otra vez con otro nombre —«OpenAI» junto a «openai»—, y la base
+   * acababa con dos filas por proveedor; el arranque ya las une.
+   */
   const initializeProviders = async () => {
-    // First load existing providers from database
     await loadProviders()
-
-    // If no providers exist, create default ones
-    if (providers.length === 0) {
-      await createDefaultProviders()
-    }
-  }
-
-  const createDefaultProviders = async () => {
-    logger.debug('🆕 Creating default AI providers...')
-
-    const defaultProviders = [
-      {
-        name: 'OpenAI',
-        type: 'api' as const,
-        isActive: false,
-        isConnected: false
-      },
-      {
-        name: 'Anthropic',
-        type: 'api' as const,
-        isActive: false,
-        isConnected: false
-      },
-      {
-        name: 'Google',
-        type: 'api' as const,
-        isActive: false,
-        isConnected: false
-      },
-      {
-        name: 'OpenRouter',
-        type: 'api' as const,
-        isActive: false,
-        isConnected: false
-      }
-    ]
-
-    for (const providerData of defaultProviders) {
-      try {
-        await saveProvider(providerData)
-        logger.debug(`✅ Created default provider: ${providerData.name}`)
-      } catch (error) {
-        logger.error(`❌ Failed to create provider ${providerData.name}:`, error)
-      }
-    }
   }
 
   const checkOllamaInstallation = async () => {
@@ -798,7 +756,11 @@ export function AIConfigurationPanel() {
                         <Switch.Root
                           checked={provider.isActive}
                           onCheckedChange={(checked) => handleProviderToggle(provider.id, checked)}
-                          className="w-11 h-6 bg-gray-200 rounded-full data-[state=checked]:bg-primary relative flex-shrink-0"
+                          // Encender exige una clave que «Probar» haya aceptado; apagar, nunca está bloqueado.
+                          disabled={!provider.isActive && !!motivoParaNoActivar(provider)}
+                          aria-label={t('ai.activar.etiqueta', { proveedor: provider.name })}
+                          title={!provider.isActive && motivoParaNoActivar(provider) ? t(motivoParaNoActivar(provider)!) : undefined}
+                          className="w-11 h-6 bg-gray-200 rounded-full data-[state=checked]:bg-primary relative flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Switch.Thumb className="block w-5 h-5 bg-white rounded-full transition-transform duration-100 translate-x-0.5 data-[state=checked]:translate-x-[22px]" />
                         </Switch.Root>
@@ -806,9 +768,15 @@ export function AIConfigurationPanel() {
                     </div>
                   </div>
 
-                  {/* Provider Configuration */}
-                  {provider.isActive && (
+                  {/* Provider Configuration: también apagado, que es cuando hace falta pegar la clave */}
+                  {provider.type === 'api' && (
                     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                      {!provider.isActive && motivoParaNoActivar(provider) && (
+                        <div className="flex items-start space-x-2 text-xs text-muted-foreground" data-testid={`motivo-${provider.id}`}>
+                          <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                          <span>{t(motivoParaNoActivar(provider)!)}</span>
+                        </div>
+                      )}
                       {/* API Key Section */}
                       <div className="space-y-3">
                         <label className="text-sm font-medium text-card-foreground">
@@ -842,7 +810,7 @@ export function AIConfigurationPanel() {
                       </div>
 
                       {/* Models Section */}
-                      {provider.isConnected && provider.availableModels.length > 0 && (
+                      {provider.isActive && provider.availableModels.length > 0 && (
                         <div className="space-y-3">
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                             <label className="text-sm font-medium text-card-foreground">
@@ -949,7 +917,7 @@ export function AIConfigurationPanel() {
                       )}
 
                       {/* OpenRouter Special Message */}
-                      {provider.id === 'openrouter' && provider.isConnected && provider.availableModels.length === 0 && (
+                      {provider.id === 'openrouter' && provider.isActive && provider.availableModels.length === 0 && (
                         <div className="text-center py-6 border border-dashed border-border rounded-lg">
                           <Zap className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                           <p className="text-sm text-muted-foreground mb-3">

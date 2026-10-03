@@ -142,6 +142,21 @@
       "sinPrincipal": "Conectado, pero la clave no tiene acceso al modelo principal: sólo se puede usar el auxiliar.",
       "sinAuxiliar": "Conectado, pero la clave no tiene acceso al modelo auxiliar: sólo se puede usar el principal."
     },
+    "prueba": {
+      "claveNoValida": "Clave no válida: el proveedor la rechaza. Cópiala otra vez desde tu cuenta. El proveedor queda desactivado.",
+      "sinCredito": "La clave responde, pero se ha agotado el crédito o el límite de peticiones. Prueba más tarde o revisa tu cuenta.",
+      "sinRed": "No se pudo conectar con el proveedor. Revisa la conexión a internet.",
+      "noDisponible": "El servicio del proveedor no responde ahora mismo. Prueba más tarde.",
+      "sinModelos": "La clave responde, pero el proveedor no ofrece a esta clave ningún modelo con el que conversar.",
+      "noSoportado": "Boorie no sabe comprobar la clave de este proveedor, así que no se puede activar."
+    },
+    "activar": {
+      "etiqueta": "Activar {{proveedor}}",
+      "sinClave": "Para activarlo, pega su clave y pulsa «Probar». Sin una clave válida no se ofrece en ningún selector.",
+      "sinProbar": "Pulsa «Probar»: se activa en cuanto el proveedor acepte la clave.",
+      "claveIlegible": "La clave guardada no se puede leer en este equipo. Pégala otra vez y pulsa «Probar» para activarlo.",
+      "sinClaveValidada": "No se puede activar sin una clave que «Probar» haya aceptado."
+    },
     "localModels": "Modelos locales (Ollama)",
     "apiProviders": "Proveedores de API",
     "ollamaConfiguration": "Configuración de Ollama",
@@ -166,7 +181,7 @@
     "modelFijadoAviso": "El modelo que responde en el chat se elige arriba, en «Modelo que redacta las respuestas del chat». Aquí se configuran las claves y el catálogo de cada proveedor.",
     "checkingOllama": "Verificando instalación de Ollama…",
     "apiProviderConfig": "Configuración de proveedores de API",
-    "apiProviderConfigDesc": "Configura tus proveedores de API para acceder a modelos de IA en la nube. Todos los proveedores están deshabilitados por defecto.",
+    "apiProviderConfigDesc": "Configura tus proveedores de API para acceder a modelos de IA en la nube. Están desactivados hasta que «Probar» acepte su clave.",
     "installOllamaModel": "Instalar modelo de Ollama",
     "installing": "Instalando",
     "installationCompleted": "¡Instalación completada!",
@@ -1426,7 +1441,7 @@
     "measureFailed": "No se pudo verificar la medida",
     "sinProveedorDeEmbeddings": "No se pudo indexar: no hay ningún modelo de embeddings disponible. Instala Ollama con «bge-m3», o añade una clave de OpenAI en Configuración → Configuración de IA.",
     "chatSinConsentimiento": "**No se ha enviado nada.** El modelo elegido es de un proveedor externo y falta tu consentimiento para mandarle datos. Acéptalo en Configuración → Configuración de IA → «Modelo que redacta», o vuelve al modelo automático para responder en este equipo.",
-    "chatSinClave": "**No se ha enviado nada.** El proveedor elegido no tiene una clave que se pueda usar en este equipo. Pégala en Configuración → Configuración de IA → Proveedores API."
+    "chatSinClave": "**No se ha enviado nada.** El proveedor elegido está desactivado o no tiene una clave que se pueda usar en este equipo. Pega la clave y pulsa «Probar» en Configuración → Configuración de IA → Proveedores API."
   },
   "layers": {
     "junction": "Nudos de consumo",

@@ -44,7 +44,8 @@ export function ModeloDeRespuesta({ modelosOllama }: { modelosOllama: string[] }
   const idOllama = ollama?.id ?? 'ollama'
   const locales = modelosOllama.filter(m => !DE_EMBEDDINGS.test(m))
   const externos = useMemo(
-    () => providers.filter(p => p.type === 'api' && p.tieneClave && p.estadoClave !== 'ilegible' && p.availableModels.length > 0),
+    // Sólo los encendidos, que son los que tienen una clave que «Probar» aceptó (#246).
+    () => providers.filter(p => p.type === 'api' && p.isActive && p.tieneClave && p.estadoClave !== 'ilegible' && p.availableModels.length > 0),
     [providers]
   )
 
