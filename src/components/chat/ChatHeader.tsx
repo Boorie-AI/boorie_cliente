@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { logger } from '@/utils/logger'
 import { Conversation, useChatStore, type WisdomConfiguration } from '@/stores/chatStore'
-import { Edit2, MoreVertical, Trash2, Copy, Download, Plus, FolderPlus } from 'lucide-react'
+import { Edit2, MoreVertical, Trash2, Copy, Check, Download, Plus, FolderPlus } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useOnClickOutside } from '@/hooks/useOnClickOutside'
 import { cn } from '@/utils/cn'
@@ -14,6 +14,7 @@ import { MarcaDeNube } from '@/components/nube/MarcaDeNube'
 import { NewProjectDialog } from '@/components/hydraulic/NewProjectDialog'
 import * as Dialog from '@radix-ui/react-dialog'
 import { nombreDescarga } from '@/utils/nombreArchivo'
+import { contenidoDeLaConversacion, copiarAlPortapapeles } from './copiarConversacion'
 
 interface ChatHeaderProps {
   conversation: Conversation
@@ -26,6 +27,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false)
+  const [copia, setCopia] = useState<'hecha' | 'fallida' | null>(null)
   const { updateConversationTitle, deleteConversation, createNewConversation, updateConversation, wisdomConfig, setWisdomConfig, asegurarBaseDeConocimiento } = useChatStore()
 
   /**
@@ -110,17 +112,15 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
   }
 
   const handleCopyConversation = async () => {
+    setShowMenu(false)
     try {
-      const text = conversation.messages
-        .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
-        .join('\n\n')
-      
-      await navigator.clipboard.writeText(text)
-      // You could add a toast notification here
+      await copiarAlPortapapeles(contenidoDeLaConversacion(conversation, t))
+      setCopia('hecha')
     } catch (error) {
       logger.error('Failed to copy conversation:', error)
+      setCopia('fallida')
     }
-    setShowMenu(false)
+    setTimeout(() => setCopia(null), 2000)
   }
 
   const handleExportConversation = () => {
@@ -200,6 +200,26 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
           onConfigChange={handleWisdomConfigChange}
           className="flex-shrink-0"
         />
+        {/* A la vista y no solo en el menú ⋯: lo pidió el cliente sin saber que existía (#234). */}
+        <button
+          onClick={handleCopyConversation}
+          disabled={conversation.messages.length === 0}
+          data-testid="chat-copiar-conversacion"
+          aria-label={t('chatHeader.copiarConversacion')}
+          title={t('chatHeader.copiarConversacion')}
+          className={cn(
+            "p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg",
+            "transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+            "disabled:opacity-50 disabled:pointer-events-none"
+          )}
+        >
+          {copia === 'hecha' ? <Check size={18} className="text-green-600" /> : <Copy size={18} />}
+        </button>
+        {copia && (
+          <span role="status" className={cn("text-xs", copia === 'hecha' ? "text-green-600" : "text-destructive")}>
+            {copia === 'hecha' ? t('chatHeader.copiado') : t('chatHeader.copiaFallida')}
+          </span>
+        )}
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setShowMenu(!showMenu)}

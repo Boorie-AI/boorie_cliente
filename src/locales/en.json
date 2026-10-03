@@ -436,7 +436,15 @@
     "exportJson": "Export as JSON",
     "newProject": "Create new project",
     "delete": "Delete",
-    "deleteConversation": "Delete conversation"
+    "deleteConversation": "Delete conversation",
+    "copiarConversacion": "Copy conversation",
+    "copiado": "Copied",
+    "copiaFallida": "Couldn't copy",
+    "copiar": {
+      "usuario": "User",
+      "asistente": "Assistant",
+      "adjunto": "Attached document: {{nombre}}"
+    }
   },
   "calculator": {
     "title": "Hydraulic calculator",

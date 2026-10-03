@@ -436,7 +436,15 @@
     "exportJson": "Exporta com a JSON",
     "newProject": "Crea un projecte",
     "delete": "Esborra",
-    "deleteConversation": "Esborra la conversa"
+    "deleteConversation": "Esborra la conversa",
+    "copiarConversacion": "Copia la conversa",
+    "copiado": "Copiat",
+    "copiaFallida": "No s'ha pogut copiar",
+    "copiar": {
+      "usuario": "Usuari",
+      "asistente": "Assistent",
+      "adjunto": "Document adjunt: {{nombre}}"
+    }
   },
   "calculator": {
     "title": "Calculadora hidràulica",
