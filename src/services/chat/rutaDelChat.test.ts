@@ -174,6 +174,16 @@ describe('posprocesarRespuesta', () => {
     expect(r.revision).toEqual({ problemas: 0 })
   })
 
+  it('devuelve aparte el texto sin el apartado de la revisión', async () => {
+    const pedirRevision = async () => ({
+      success: true,
+      response: JSON.stringify([{ tipo: 'omite', sobre: 'intervalo', documento: 'Table 2.1 Time Intervals 2-5 minutes 30 seconds' }]),
+    })
+    const r = await posprocesarRespuesta({ ...posproceso, conRevision: true, escrita: 'Cada minuto.' }, { pedirRevision })
+    expect(r.sinRevision).toBe('Cada minuto.')
+    expect(r.texto.startsWith(r.sinRevision)).toBe(true)
+  })
+
   it('si la revisión falla, la respuesta sale igual', async () => {
     const r = await posprocesarRespuesta(
       { ...posproceso, conRevision: true, escrita: 'Cada 30 segundos.' },

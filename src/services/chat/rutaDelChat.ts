@@ -222,6 +222,8 @@ export interface DependenciasDePosproceso {
 
 export interface RespuestaPosprocesada {
   texto: string
+  /** El texto sin el apartado de la revisión, que cita al documento: es lo que se puntúa. */
+  sinRevision: string
   /** El modelo se calló a mitad (`FIN_POR_INACTIVIDAD`, #237). */
   cortada: boolean
   revision?: { problemas: number }
@@ -280,6 +282,7 @@ export async function posprocesarRespuesta(
    * nube —con un modelo local serían minutos— y cuando hay algo
    * leído contra lo que comparar. Si falla, la respuesta sale igual.
    */
+  const sinRevision = texto
   let revision: { problemas: number } | undefined
   if (entrada.conRevision && !cortada && leido.trim() && (entrada.hayAdjunto || fuentes.length)) {
     deps.alEmpezarLaRevision?.()
@@ -297,5 +300,5 @@ export async function posprocesarRespuesta(
     }
   }
 
-  return { texto, cortada, revision, quitadas, marcadas }
+  return { texto, sinRevision, cortada, revision, quitadas, marcadas }
 }
