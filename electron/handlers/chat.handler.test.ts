@@ -26,7 +26,7 @@ vi.mock('../../backend/services/security/consentimientoNube', async importOrigin
 // Sin esto, la consulta a /api/show se llevaría la primera respuesta simulada.
 vi.mock('../../backend/services/contextoDeOllama', () => ({ contextoDeOllama: async () => 8192 }))
 
-import { ChatHandler, unirContinuacion, pedirContinuacion, leerRespuestaEnStreaming } from './chat.handler'
+import { ChatHandler, unirContinuacion, pedirContinuacion, leerRespuestaEnStreaming, FIN_POR_INACTIVIDAD } from './chat.handler'
 
 const RED = {
   nodes: [
@@ -573,6 +573,119 @@ describe('NVIDIA en streaming, con límite por inactividad', () => {
       await vi.advanceTimersByTimeAsync(7 * 60_000)
       const r = await promesa
       expect(r.choices[0]).toMatchObject({ finish_reason: 'stop', message: { content: '01234' } })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('un corte por inactividad conserva lo que ya había llegado (#237)', () => {
+  const evento = (e: unknown) => new TextEncoder().encode(`data: ${JSON.stringify(e)}\n\n`)
+
+  /** Manda los trozos y después se calla hasta que la señal lo aborta; con `fallo`, en vez de callarse, se rompe. */
+  const lectorQueSeCalla = (trozos: Uint8Array[], signal: AbortSignal, fallo?: Error) => ({
+    read: () => trozos.length
+      ? Promise.resolve({ done: false, value: trozos.shift() })
+      : fallo
+        ? Promise.reject(fallo)
+        : new Promise((_, rechazar) => signal.addEventListener('abort', () => rechazar(new Error('aborted')))),
+  })
+
+  const nvidiaQueSeCalla = (trozos: Uint8Array[]) => async (_url: string, init: any) => ({
+    ok: true,
+    status: 200,
+    json: async () => ({}),
+    body: { getReader: () => lectorQueSeCalla(trozos, init.signal) },
+  })
+
+  it('con texto recibido, entrega lo parcial marcado en vez de lanzar', async () => {
+    vi.useFakeTimers()
+    try {
+      const controlador = new AbortController()
+      const lector = lectorQueSeCalla([
+        evento({ model: 'nemotron', created: 1, choices: [{ delta: { content: 'El golpe de ariete ' } }] }),
+        evento({ choices: [{ delta: { content: 'se calcula con la fórmula de' } }] }),
+      ], controlador.signal)
+      const promesa = leerRespuestaEnStreaming({ body: { getReader: () => lector } }, controlador, 90_000, 'parado')
+      await vi.advanceTimersByTimeAsync(91_000)
+      const r = await promesa
+      expect(r.model).toBe('nemotron')
+      expect(r.choices[0]).toMatchObject({
+        finish_reason: FIN_POR_INACTIVIDAD,
+        message: { content: 'El golpe de ariete se calcula con la fórmula de' },
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('un fallo de red a mitad sigue lanzando aunque haya texto', async () => {
+    const controlador = new AbortController()
+    const lector = lectorQueSeCalla([evento({ choices: [{ delta: { content: 'Medio' } }] })], controlador.signal, new Error('socket hang up'))
+
+    await expect(leerRespuestaEnStreaming({ body: { getReader: () => lector } }, controlador, 90_000, 'parado'))
+      .rejects.toThrow('socket hang up')
+  })
+
+  it('NVIDIA devuelve lo parcial con éxito, sin pedir que siga', async () => {
+    vi.useFakeTimers()
+    try {
+      new ChatHandler(baseDeDatos(false))
+      fetchSimulado.mockImplementationOnce(nvidiaQueSeCalla([
+        evento({ choices: [{ delta: { content: 'Primera mitad del informe' } }] }),
+      ]))
+
+      const promesa = enviar({ provider: 'nvidia' })
+      await vi.advanceTimersByTimeAsync(91_000)
+      const r = await promesa
+
+      expect(r.success).toBe(true)
+      expect(r.data.response).toBe('Primera mitad del informe')
+      expect(r.data.metadata.finish_reason).toBe(FIN_POR_INACTIVIDAD)
+      expect(fetchSimulado).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('sin texto recibido, NVIDIA sigue devolviendo el error que el chat reintenta', async () => {
+    vi.useFakeTimers()
+    try {
+      new ChatHandler(baseDeDatos(false))
+      fetchSimulado.mockImplementationOnce(nvidiaQueSeCalla([
+        evento({ choices: [{ delta: { reasoning_content: 'pienso…' } }] }),
+      ]))
+
+      const promesa = enviar({ provider: 'nvidia' })
+      await vi.advanceTimersByTimeAsync(91_000)
+      const r = await promesa
+
+      expect(r.success).toBe(false)
+      expect(r.error).toBe('Nvidia timed out: 90 s sin enviar nada')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('si la continuación se queda muda, entrega lo que ya tenía', async () => {
+    vi.useFakeTimers()
+    try {
+      new ChatHandler(baseDeDatos(false))
+      fetchSimulado
+        .mockResolvedValueOnce(respuesta({
+          created: 1_700_000_002,
+          usage: { total_tokens: 8192 },
+          choices: [{ finish_reason: 'length', message: { role: 'assistant', content: 'Primera parte' } }],
+        }))
+        .mockImplementationOnce(nvidiaQueSeCalla([]))
+
+      const promesa = enviar({ provider: 'nvidia' })
+      await vi.advanceTimersByTimeAsync(91_000)
+      const r = await promesa
+
+      expect(r.success).toBe(true)
+      expect(r.data.response).toBe('Primera parte')
+      expect(fetchSimulado).toHaveBeenCalledTimes(2)
     } finally {
       vi.useRealTimers()
     }

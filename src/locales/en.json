@@ -52,7 +52,8 @@
       "contradice": "The document says otherwise about",
       "omite": "Missing:",
       "pagina": "(p. {{pagina}})"
-    }
+    },
+    "cortadaPorInactividad": "Incomplete answer: the model stopped sending text and it was cut off here. This is what arrived; if something is missing, ask again."
   },
   "settings": {
     "title": "Settings",

@@ -52,7 +52,8 @@
       "contradice": "El documento dice otra cosa sobre",
       "omite": "Falta:",
       "pagina": "(p. {{pagina}})"
-    }
+    },
+    "cortadaPorInactividad": "Respuesta incompleta: el modelo dejó de enviar texto y se ha cortado aquí. Esto es lo que llegó; si falta algo, vuelve a preguntar."
   },
   "settings": {
     "title": "Configuración",

@@ -179,8 +179,19 @@ describe.skipIf(!puedeCorrer)('la batería contra las herramientas reales', { ti
   let cache: Map<string, RedGuardada> | null = null
   const leerRedes = () => (cache ??= leerDeLaBase())
 
-  it('todos los casos ejecutables aciertan', async () => {
+  it('todos los casos ejecutables aciertan', async (ctx) => {
     const redes = leerRedes()
+    /**
+     * Una base sin **ninguna** red de la batería no es una base rota: es otra
+     * base. La de trabajo es copia de la de un cliente, y fallar ahí ponía
+     * `npm test` en rojo en cada release sin nada roto (#238). Sembrarle las
+     * redes ensuciaría la copia que sirve para reproducir sus fallos. Con
+     * **algunas** sí se falla abajo: una base a medias es sospechosa.
+     */
+    const necesarias = [...new Set(CASOS.filter(c => !c.pendiente).map(c => c.red))]
+    if (!necesarias.some(n => redes.has(n)) && !process.env.BOORIE_BATERIA_ESTRICTA) {
+      ctx.skip(`la base no tiene ninguna red de la batería (${necesarias.join(', ')}): ver test-files/REDES_DE_LA_BATERIA.md, o BOORIE_BATERIA_ESTRICTA=1 para que falle`)
+    }
     const resultados = await Promise.all(CASOS.map(async caso => {
       if (caso.pendiente) return comprobarCaso(caso, null)
       const red = redes.get(caso.red)

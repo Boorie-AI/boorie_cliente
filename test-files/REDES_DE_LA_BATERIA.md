@@ -32,6 +32,9 @@ renombrarlos**: los casos buscan exactamente `Net3 2.inp` —con el espacio— y
 - **La batería determinista** (`bateria.test.ts`) comprueba las cifras que devuelven las
   herramientas contra los valores esperados, así que necesita estas redes **y** que la
   importación produzca el mismo `networkData`.
+  Si la base no tiene **ninguna** de las dos —la de trabajo es copia de la de un cliente—,
+  se salta con el motivo en lugar de fallar; con sólo una, falla. `BOORIE_BATERIA_ESTRICTA=1`
+  la hace fallar también sin ninguna, para cuando se lanza a propósito.
 - **Las medidas contra un modelo** (`modelo.test.ts`, `disciplinaDelModelo.test.ts`) sólo
   necesitan que las redes **existan**: miden qué elige y qué escribe el agente, no si la
   cifra de la herramienta es la esperada. Para el #133 basta con importarlas.
