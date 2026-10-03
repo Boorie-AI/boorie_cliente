@@ -53,7 +53,7 @@
 - Les claus dels proveïdors al núvol es desen xifrades amb el clauer del sistema (Windows, macOS i, a Linux, GNOME Keyring o KWallet), i les que ja hi havia es xifren soles la primera vegada que s'obre aquesta versió. Configuració ja no mostra la clau: només si n'hi ha una i els seus quatre últims caràcters.
 - Res no surt cap a un model extern sense el teu consentiment. La primera vegada que tries un model al núvol, Boorie diu quines dades li enviarà —la pregunta, l'historial, l'adjunt, fragments dels teus documents i el context de la xarxa i del projecte— i a qui. Si no ho acceptes, continua responent el model local.
 - Amb NVIDIA respon Nemotron Ultra i cita el que de debò ha llegit: cada fragment d'un llibre adjunt porta la seva pàgina impresa, les cites que no són en allò llegit es marquen i una segona revisió comprova la resposta contra el document.
-- Les respostes llargues ja no es queden a mitges ni es tallen per un temps fix, i «Prova» comprova de debò la clau de NVIDIA.
+- Les respostes llargues ja no es queden a mitges, amb NVIDIA ja no es tallen per un temps fix, i «Prova» comprova de debò la clau de NVIDIA.
 - Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.46.0).
 
 ### 📝 Novetats a v1.45.0

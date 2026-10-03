@@ -53,7 +53,7 @@
 - Las claves de los proveedores en la nube se guardan cifradas con el llavero del sistema (Windows, macOS y, en Linux, GNOME Keyring o KWallet), y las que ya había se cifran solas la primera vez que se abre esta versión. Configuración ya no enseña la clave: sólo si hay una y sus cuatro últimos caracteres.
 - Nada sale a un modelo externo sin tu consentimiento. La primera vez que eliges un modelo en la nube, Boorie dice qué datos le enviará —la pregunta, el historial, el adjunto, fragmentos de tus documentos y el contexto de la red y del proyecto— y a quién. Si no lo aceptas, sigue respondiendo el modelo local.
 - Con NVIDIA responde Nemotron Ultra y cita lo que de verdad ha leído: cada fragmento de un libro adjunto lleva su página impresa, las citas que no están en lo leído se marcan y una segunda revisión comprueba la respuesta contra el documento.
-- Las respuestas largas ya no se quedan a medias ni se cortan por un tiempo fijo, y «Probar» comprueba de verdad la clave de NVIDIA.
+- Las respuestas largas ya no se quedan a medias, con NVIDIA ya no se cortan por un tiempo fijo, y «Probar» comprueba de verdad la clave de NVIDIA.
 - Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.46.0).
 
 ### 📝 Novedades en v1.45.0
