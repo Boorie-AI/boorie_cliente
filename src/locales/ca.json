@@ -42,7 +42,17 @@
       "detalle": "{{nudos}} nusos · {{tuberias}} canonades · {{km}} km de canonada"
     },
     "fueraDeDominio": "Això queda fora del que Boorie sap: és un assistent d'enginyeria hidràulica. Pregunta'm per xarxes d'aigua, pressions, cabals, bombes, normativa o resultats de simulació.",
-    "fueraDeDominioConMotivo": "Això queda fora del que Boorie sap ({{motivo}}). És un assistent d'enginyeria hidràulica: pregunta'm per xarxes d'aigua, pressions, cabals, bombes, normativa o resultats de simulació."
+    "fueraDeDominioConMotivo": "Això queda fora del que Boorie sap ({{motivo}}). És un assistent d'enginyeria hidràulica: pregunta'm per xarxes d'aigua, pressions, cabals, bombes, normativa o resultats de simulació.",
+    "citas": {
+      "noEstaEnLoLeido": "[no és en el que s'ha llegit del document]"
+    },
+    "revision": {
+      "enCurso": "Revisant la resposta amb el document…",
+      "titulo": "Revisió amb el document",
+      "contradice": "El document diu una altra cosa sobre",
+      "omite": "Hi falta:",
+      "pagina": "(p. {{pagina}})"
+    }
   },
   "settings": {
     "title": "Configuració",
@@ -122,6 +132,15 @@
     "systemPrompt": "Instruccions del sistema"
   },
   "ai": {
+    "nvidia": {
+      "claveNoValida": "Clau no vàlida: NVIDIA la rebutja. Copia-la de nou des de build.nvidia.com.",
+      "sinCredito": "La clau funciona, però s’ha esgotat el crèdit o el límit de peticions de NVIDIA. Torna-ho a provar més tard o revisa el teu compte a build.nvidia.com.",
+      "sinRed": "No s’ha pogut connectar amb NVIDIA. Revisa la connexió a internet.",
+      "noDisponible": "El servei de NVIDIA no respon ara mateix. Torna-ho a provar més tard.",
+      "sinAccesoATodos": "NVIDIA no ofereix a aquesta clau cap dels models amb què respon Boorie.",
+      "sinPrincipal": "Connectat, però la clau no té accés al model principal: només es pot fer servir l’auxiliar.",
+      "sinAuxiliar": "Connectat, però la clau no té accés al model auxiliar: només es pot fer servir el principal."
+    },
     "localModels": "Models locals (Ollama)",
     "apiProviders": "Proveïdors d’API",
     "ollamaConfiguration": "Configuració d’Ollama",

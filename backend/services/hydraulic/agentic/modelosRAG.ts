@@ -53,9 +53,15 @@ export const PAREJAS: Record<BackendRAG, Pareja> = {
     principal: 'nemotron-mini',
     auxiliar: 'nemotron-mini',
   },
+  // La pareja anterior (llama-3.1-nemotron-ultra-253b y -70b) da 404 «Not
+  // found for account» con la clave del equipo: el catálogo la lista, pero la
+  // cuenta no puede usarla. El principal pasa de nemotron-3-super a -ultra:
+  // con la misma pregunta sobre el libro de Walton y los mismos fragmentos,
+  // super se equivocaba en la fórmula de C y en el criterio de eficiencia, y
+  // ultra los daba bien, en 122 s frente a 68. Falta la batería del #226.
   nvidia: {
-    principal: 'nvidia/llama-3.1-nemotron-ultra-253b-v1',
-    auxiliar: 'nvidia/llama-3.1-nemotron-70b-instruct',
+    principal: 'nvidia/nemotron-3-ultra-550b-a55b',
+    auxiliar: 'nvidia/nemotron-3.5-lightning-30b-a3b',
   },
 }
 

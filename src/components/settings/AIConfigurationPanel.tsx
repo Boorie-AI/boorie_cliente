@@ -795,8 +795,8 @@ export function AIConfigurationPanel() {
                         {provider.testStatus !== 'idle' && (
                           <div className="flex items-center space-x-2 min-w-0">
                             {getStatusIcon(provider.testStatus)}
-                            <span className="text-sm text-muted-foreground truncate">
-                              {provider.testMessage}
+                            <span className="text-sm text-muted-foreground">
+                              {provider.testMessage.startsWith('ai.') ? t(provider.testMessage) : provider.testMessage}
                             </span>
                           </div>
                         )}
@@ -922,6 +922,12 @@ export function AIConfigurationPanel() {
                                     <div className="font-medium text-card-foreground truncate text-sm sm:text-base">
                                       {model.modelName}
                                     </div>
+                                    {/* «Nemotron (principal)» no dice qué modelo hay detrás. */}
+                                    {model.modelId !== model.modelName && (
+                                      <div className="font-mono text-[11px] text-muted-foreground truncate" title={model.modelId}>
+                                        {model.modelId}
+                                      </div>
+                                    )}
                                     <div className="text-xs text-muted-foreground line-clamp-2 mt-1">
                                       {model.description}
                                     </div>

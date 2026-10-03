@@ -20,7 +20,7 @@ vi.mock('electron', () => ({
 // Sin esto, la consulta a /api/show se llevaría la primera respuesta simulada.
 vi.mock('../../backend/services/contextoDeOllama', () => ({ contextoDeOllama: async () => 8192 }))
 
-import { ChatHandler } from './chat.handler'
+import { ChatHandler, unirContinuacion, pedirContinuacion, leerRespuestaEnStreaming } from './chat.handler'
 
 const RED = {
   nodes: [
@@ -43,10 +43,29 @@ const baseDeDatos = (conRed: boolean) => ({
   },
 }) as any
 
+/** Lo que manda el servidor en streaming: el mismo cuerpo, en eventos SSE. */
+function eventos(cuerpo: any): string[] {
+  const eleccion = cuerpo?.choices?.[0]
+  const contenido: string = eleccion?.message?.content ?? ''
+  const mitad = Math.ceil(contenido.length / 2)
+  return [
+    { model: cuerpo?.model, created: cuerpo?.created, choices: [{ delta: { reasoning_content: 'pienso' } }] },
+    ...[contenido.slice(0, mitad), contenido.slice(mitad)].filter(Boolean).map(c => ({ choices: [{ delta: { content: c } }] })),
+    { choices: [{ delta: {}, finish_reason: eleccion?.finish_reason }] },
+    { choices: [], usage: cuerpo?.usage },
+  ].map(e => `data: ${JSON.stringify(e)}\n\n`).concat('data: [DONE]\n\n')
+}
+
+const lectorDe = (trozos: string[]) => {
+  const cola = trozos.map(t => new TextEncoder().encode(t))
+  return { read: async () => (cola.length ? { done: false, value: cola.shift() } : { done: true, value: undefined }) }
+}
+
 const respuesta = (cuerpo: unknown, status = 200) => ({
   ok: status >= 200 && status < 300,
   status,
   json: async () => cuerpo,
+  body: { getReader: () => lectorDe(eventos(cuerpo)) },
 })
 
 const anthropicPideHerramienta = {
@@ -242,6 +261,108 @@ describe('bucle de herramientas con los compatibles con OpenAI', () => {
   })
 })
 
+describe('respuesta cortada por longitud', () => {
+  const cortada = (texto: string) => ({
+    created: 1_700_000_002,
+    usage: { total_tokens: 4096 },
+    choices: [{ finish_reason: 'length', message: { role: 'assistant', content: texto } }],
+  })
+  const termina = (texto: string) => ({
+    created: 1_700_000_003,
+    usage: { total_tokens: 500 },
+    choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: texto } }],
+  })
+
+  it('pide que siga y une los trozos', async () => {
+    new ChatHandler(baseDeDatos(false))
+    fetchSimulado
+      .mockResolvedValueOnce(respuesta(cortada('El coeficiente C se obtiene')))
+      .mockResolvedValueOnce(respuesta(termina(' de la ecuación de Jacob.')))
+
+    const r = await enviar({ provider: 'nvidia' })
+
+    expect(r.data.response).toBe('El coeficiente C se obtiene de la ecuación de Jacob.')
+    expect(r.data.metadata).toMatchObject({ continuaciones: 1, finish_reason: 'stop', tokens: 4596 })
+    const segundo = cuerpoDe(1).messages
+    expect(segundo.at(-2)).toEqual({ role: 'assistant', content: 'El coeficiente C se obtiene' })
+    expect(segundo.at(-1).role).toBe('user')
+  })
+
+  it('sin razonar, NVIDIA recibe el interruptor de su plantilla', async () => {
+    new ChatHandler(baseDeDatos(false))
+    fetchSimulado.mockResolvedValue(respuesta(termina('{"problemas":[]}')))
+
+    await enviar({ provider: 'nvidia', sinRazonar: true })
+    expect(cuerpoDe(0).chat_template_kwargs).toEqual({ enable_thinking: false })
+
+    await enviar({ provider: 'nvidia' })
+    expect(cuerpoDe(1).chat_template_kwargs).toBeUndefined()
+  })
+
+  it('quita lo que el modelo repite al retomar', () => {
+    expect(unirContinuacion(
+      'Si no se dispone de medidor de potencia,',
+      '…medidor de potencia, se puede estimar con V·I.'
+    )).toBe('Si no se dispone de medidor de potencia, se puede estimar con V·I.')
+    expect(unirContinuacion('Se obtiene de la ecua', 'ción de Jacob.')).toBe('Se obtiene de la ecuación de Jacob.')
+    expect(unirContinuacion('El resultado es', '... 2,0 sec²/ft⁵.')).toBe('El resultado es 2,0 sec²/ft⁵.')
+  })
+
+  it('quita el título de «Continuación» con el que el modelo vuelve a empezar', () => {
+    expect(unirContinuacion(
+      'Un *Sₖ* positivo indica daño',
+      '**Continuación del procedimiento de cálculo y fórmulas**\n\n en la pantalla del pozo.'
+    )).toBe('Un *Sₖ* positivo indica daño en la pantalla del pozo.')
+    expect(unirContinuacion('Fin de la parte', '## Continuación\n\n y sigue')).toBe('Fin de la parte y sigue')
+  })
+
+  it('la petición de continuar cita el final exacto', async () => {
+    new ChatHandler(baseDeDatos(false))
+    fetchSimulado
+      .mockResolvedValueOnce(respuesta(cortada('Un Sk positivo indica daño')))
+      .mockResolvedValueOnce(respuesta(termina(' en la pantalla.')))
+
+    await enviar({ provider: 'nvidia' })
+
+    expect(cuerpoDe(1).messages.at(-1).content).toBe(pedirContinuacion('Un Sk positivo indica daño'))
+    expect(pedirContinuacion('Un Sk positivo indica daño')).toContain('«…Un Sk positivo indica daño»')
+  })
+
+  it('no pide más de dos continuaciones', async () => {
+    new ChatHandler(baseDeDatos(false))
+    fetchSimulado.mockResolvedValue(respuesta(cortada('a')))
+
+    const r = await enviar({ provider: 'openai' })
+
+    expect(fetchSimulado).toHaveBeenCalledTimes(3)
+    expect(r.data.response).toBe('aaa')
+    expect(r.data.metadata.finish_reason).toBe('length')
+  })
+
+  it('si falla la continuación entrega lo que ya tenía', async () => {
+    new ChatHandler(baseDeDatos(false))
+    fetchSimulado
+      .mockResolvedValueOnce(respuesta(cortada('Primera parte')))
+      .mockResolvedValueOnce(respuesta({ detail: 'Too many requests' }, 429))
+
+    const r = await enviar({ provider: 'nvidia' })
+
+    expect(r.data.response).toBe('Primera parte')
+  })
+
+  it('la continuación va sin herramientas', async () => {
+    new ChatHandler(baseDeDatos(true))
+    fetchSimulado
+      .mockResolvedValueOnce(respuesta(cortada('Parte')))
+      .mockResolvedValueOnce(respuesta(termina(' final')))
+
+    await enviar({ provider: 'openrouter' })
+
+    expect(cuerpoDe(0).tools).toBeDefined()
+    expect(cuerpoDe(1).tools).toBeUndefined()
+  })
+})
+
 describe('bucle de herramientas con Ollama', () => {
   const ollamaPide = {
     prompt_eval_count: 90,
@@ -371,5 +492,83 @@ describe('tope de vueltas', () => {
       (m: any) => Array.isArray(m.content) && m.content[0]?.type === 'tool_result'
     ).length
     expect(asistentes).toBe(resultados)
+  })
+})
+
+describe('NVIDIA en streaming, con límite por inactividad', () => {
+  const termina = (texto: string) => ({
+    created: 1_700_000_003,
+    usage: { total_tokens: 500 },
+    choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: texto } }],
+  })
+
+  it('sin herramientas pide streaming y monta la respuesta de los trozos', async () => {
+    new ChatHandler(baseDeDatos(false))
+    fetchSimulado.mockResolvedValueOnce(respuesta(termina('La eficiencia es BQ/(BQ+CQ²).')))
+
+    const r = await enviar({ provider: 'nvidia' })
+
+    expect(cuerpoDe(0)).toMatchObject({ stream: true, stream_options: { include_usage: true } })
+    expect(r.data.response).toBe('La eficiencia es BQ/(BQ+CQ²).')
+    expect(r.data.metadata).toMatchObject({ finish_reason: 'stop', tokens: 500 })
+  })
+
+  it('con herramientas sigue sin streaming', async () => {
+    new ChatHandler(baseDeDatos(true))
+    fetchSimulado.mockResolvedValueOnce(respuesta(openaiResponde))
+
+    await enviar({ provider: 'nvidia' })
+    expect(cuerpoDe(0).stream).toBe(false)
+  })
+
+  it('OpenAI no cambia: sin streaming', async () => {
+    new ChatHandler(baseDeDatos(false))
+    fetchSimulado.mockResolvedValueOnce(respuesta(termina('ok')))
+
+    await enviar({ provider: 'openai' })
+    expect(cuerpoDe(0).stream).toBe(false)
+  })
+
+  it('se corta si el servidor deja de mandar datos, con un mensaje que se reintenta', async () => {
+    vi.useFakeTimers()
+    try {
+      const controlador = new AbortController()
+      // El servidor manda un trozo de razonamiento y se calla.
+      let primera = true
+      const lector = {
+        read: () => primera
+          ? (primera = false, Promise.resolve({ done: false, value: new TextEncoder().encode('data: {"choices":[{"delta":{"reasoning_content":"..."}}]}\n\n') }))
+          : new Promise((_, rechazar) => controlador.signal.addEventListener('abort', () => rechazar(new Error('aborted')))),
+      }
+      const promesa = leerRespuestaEnStreaming({ body: { getReader: () => lector } }, controlador, 90_000, 'Nvidia timed out: 90 s sin enviar nada')
+      const fallo = expect(promesa).rejects.toThrow('Nvidia timed out: 90 s sin enviar nada')
+      await vi.advanceTimersByTimeAsync(89_000)
+      expect(controlador.signal.aborted).toBe(false)
+      await vi.advanceTimersByTimeAsync(2_000)
+      await fallo
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('cada trozo que llega reinicia la espera: tardar mucho no es estar parado', async () => {
+    vi.useFakeTimers()
+    try {
+      const controlador = new AbortController()
+      const trozos = Array.from({ length: 5 }, (_, i) => `data: {"choices":[{"delta":{"content":"${i}"}}]}\n\n`)
+      trozos.push('data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n')
+      const lector = {
+        read: () => new Promise(resolver => setTimeout(() => {
+          const t = trozos.shift()
+          resolver(t ? { done: false, value: new TextEncoder().encode(t) } : { done: true, value: undefined })
+        }, 60_000)),
+      }
+      const promesa = leerRespuestaEnStreaming({ body: { getReader: () => lector } }, controlador, 90_000, 'parado')
+      await vi.advanceTimersByTimeAsync(7 * 60_000)
+      const r = await promesa
+      expect(r.choices[0]).toMatchObject({ finish_reason: 'stop', message: { content: '01234' } })
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

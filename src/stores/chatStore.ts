@@ -1,6 +1,6 @@
 import { logger } from '@/utils/logger'
 import { contextoDeConocimiento, cierreDeIdioma, hayQueTraducir } from '@/services/contextoConocimiento'
-import { limpiarCitasSinRespaldo } from '@/../backend/services/hydraulic/citasSinRespaldo'
+import { limpiarCitasSinRespaldo, paginasQueAparecenEn, marcarReferenciasSinRespaldo, marcarNormasSinRespaldo, type RespaldoDeFuente } from '@/../backend/services/hydraulic/citasSinRespaldo'
 import { componerPromptDeSistema } from '@/../backend/services/hydraulic/promptDelAgente'
 import { marcarLoTraducido } from '@/services/avisoDeTraduccion'
 import { compruebaLaEntrada } from '@/services/guardianDeEntrada'
@@ -16,6 +16,7 @@ import {
   separarDocumentoPegado,
 } from '@/services/chat/adjunto'
 import { similitudesDelAdjunto } from '@/services/chat/similitudDelAdjunto'
+import { promptDeRevision, problemasComprobados, apartadoDeRevision } from '@/services/chat/revisionContraElDocumento'
 import { consultasEnElIdiomaDelDocumento } from '@/services/chat/consultasDelAdjunto'
 import { contextoDeOllama } from '@/../backend/services/contextoDeOllama'
 import {
@@ -545,6 +546,8 @@ export const useChatStore = create<ChatState>()(
             const historial = conversation.messages.map(msg => ({ ...msg, content: separarDocumentoPegado(msg.content).pregunta }))
             const vigente = [...conversation.messages].reverse().find(msg => msg.metadata?.adjunto)?.metadata?.adjunto
             let adjuntoUsado: UsoDelAdjunto | undefined
+            let leidoDelAdjunto = ''
+            let paginasDelAdjunto: RespaldoDeFuente[] = []
             if (vigente) {
               /**
                * El adjunto antes que el RAG (#201): su presupuesto se calcula sin
@@ -577,6 +580,15 @@ export const useChatStore = create<ChatState>()(
                 ({ texto, similitudes: await similitudesDelAdjunto(vigente.texto, texto) })))
               const seleccion = seleccionarFragmentos(vigente.texto, content, presupuesto, { similitudes, consultas })
               const bloqueAdjunto = bloqueParaElModelo(vigente, seleccion)
+              leidoDelAdjunto = seleccion.texto
+              /**
+               * Con las páginas marcadas, sólo valen las de lo que se leyó. Sin
+               * mapa —un documento sin cabeceras—, cualquier número que aparezca
+               * en lo leído, que es lo único que se puede comprobar.
+               */
+              paginasDelAdjunto = seleccion.paginas
+                ? seleccion.paginas.map(page => ({ page }))
+                : paginasQueAparecenEn(seleccion.texto)
               adjuntoUsado = {
                 nombre: vigente.nombre, incluidos: seleccion.incluidos, total: seleccion.total, completo: seleccion.completo,
                 ...(similitudes ? { porSignificado: true } : {}),
@@ -621,6 +633,16 @@ export const useChatStore = create<ChatState>()(
 
             // Send with retry logic (1 retry for transient errors)
             const MAX_RETRIES = 1
+            /**
+             * Lo que vale la pena reintentar. Un límite de tiempo también: con
+             * NVIDIA cargado, «The operation was aborted due to timeout» no se
+             * reintentaba porque sólo se miraba «timed out», y en el camino del
+             * error que devuelve el handler no se miraba ningún tiempo.
+             */
+            const esTransitorio = (msg: string) =>
+              msg.includes('temporarily unavailable') ||
+              msg.includes('502') || msg.includes('503') || msg.includes('504') ||
+              msg.includes('timed out') || msg.includes('aborted due to timeout')
             let lastError: Error | null = null
 
             // Ollama va por streaming salvo cuando hay red que consultar: las
@@ -674,10 +696,7 @@ export const useChatStore = create<ChatState>()(
                 if (!result.success) {
                   const err = new Error(result.error || 'Failed to send message')
                   // Only retry on transient server errors
-                  if (attempt < MAX_RETRIES && result.error &&
-                      (result.error.includes('temporarily unavailable') ||
-                       result.error.includes('502') || result.error.includes('503') ||
-                       result.error.includes('504'))) {
+                  if (attempt < MAX_RETRIES && result.error && esTransitorio(result.error)) {
                     lastError = err
                     continue
                   }
@@ -694,12 +713,21 @@ export const useChatStore = create<ChatState>()(
                  * fuentes que de verdad se recuperaron.
                  */
                 const escrita = result.data?.response || ''
-                const { texto: response, quitadas } = limpiarCitasSinRespaldo(
+                const { texto: sinPaginasFalsas, quitadas } = limpiarCitasSinRespaldo(
                   escrita,
-                  ragSources.map((f: any) => ({ page: f?.page }))
+                  [...ragSources.map((f: any) => ({ page: f?.page })), ...paginasDelAdjunto]
                 )
                 if (quitadas.length > 0) {
                   logger.warn('Se han quitado referencias a páginas sin respaldo en las fuentes:', quitadas)
+                }
+                // Y las ecuaciones y tablas citadas que no están en nada de lo leído.
+                const leido = [leidoDelAdjunto, ...ragSources.map((f: any) => f?.content ?? '')].join('\n')
+                const nota = i18n.t('chat.citas.noEstaEnLoLeido')
+                const conReferencias = marcarReferenciasSinRespaldo(sinPaginasFalsas, leido, nota)
+                const { texto: response, marcadas: normas } = marcarNormasSinRespaldo(conReferencias.texto, leido, nota)
+                const marcadas = [...conReferencias.marcadas, ...normas]
+                if (marcadas.length > 0) {
+                  logger.warn('Referencias a ecuaciones, tablas o normas que no están en lo leído:', marcadas)
                 }
                 /**
                  * Y si lo citado venía de otro idioma, se dice (#160). La regla
@@ -712,11 +740,46 @@ export const useChatStore = create<ChatState>()(
                   usePreferencesStore.getState().language,
                   { hayAdjunto: !!vigente }
                 )
+                /**
+                 * La segunda pasada (`revisionContraElDocumento`): sólo en la
+                 * nube —con un modelo local serían minutos— y cuando hay algo
+                 * leído contra lo que comparar. Si falla, la respuesta sale igual.
+                 */
+                let respuestaFinal = respuesta
+                let revision: { problemas: number } | undefined
+                if (!isOllama && leido.trim() && (vigente || ragSources.length)) {
+                  get().setStreamingMessage(i18n.t('chat.revision.enCurso'))
+                  try {
+                    const r = await window.electronAPI.chat.sendMessage({
+                      provider: proveedor,
+                      model: modelo,
+                      messages: [{ role: 'user', content: promptDeRevision(content, leido, respuesta) }],
+                      apiKey,
+                      sinRazonar: true,
+                    })
+                    if (r?.success) {
+                      const problemas = problemasComprobados(r.data?.response ?? '', leido, respuesta, nota)
+                      respuestaFinal = respuesta + apartadoDeRevision(problemas, {
+                        titulo: i18n.t('chat.revision.titulo'),
+                        contradice: i18n.t('chat.revision.contradice'),
+                        omite: i18n.t('chat.revision.omite'),
+                        pagina: p => i18n.t('chat.revision.pagina', { pagina: p }),
+                      })
+                      revision = { problemas: problemas.length }
+                    } else {
+                      logger.warn('La revisión contra el documento falló:', r?.error)
+                    }
+                  } catch (error) {
+                    logger.warn('La revisión contra el documento falló:', error)
+                  }
+                }
+
                 const metadata = result.data?.metadata || {
                   model: modelo,
                   provider: proveedor,
                   tokens: 0
                 }
+                if (revision) metadata.revision = revision
 
                 // Que respondiera el auxiliar no puede quedar sólo en el log:
                 // las respuestas salen más cortas y menos cuidadas, y el
@@ -747,7 +810,7 @@ export const useChatStore = create<ChatState>()(
                 // Add assistant message
                 await get().addMessageToConversation(conversationId, {
                   role: 'assistant',
-                  content: respuesta,
+                  content: respuestaFinal,
                   metadata
                 })
 
@@ -756,10 +819,7 @@ export const useChatStore = create<ChatState>()(
                 lastError = retryError instanceof Error ? retryError : new Error(String(retryError))
                 if (attempt >= MAX_RETRIES) throw lastError
                 // Check if error is retryable
-                const msg = lastError.message
-                if (!(msg.includes('temporarily unavailable') ||
-                      msg.includes('502') || msg.includes('503') || msg.includes('504') ||
-                      msg.includes('timed out'))) {
+                if (!esTransitorio(lastError.message)) {
                   throw lastError // Non-retryable error
                 }
               }
@@ -779,7 +839,7 @@ export const useChatStore = create<ChatState>()(
             userFacingMessage = i18n.t('messages.chatNoOllama')
           } else if (errorMessage.includes('not found') && errorMessage.includes('ollama pull')) {
             userFacingMessage = i18n.t('messages.chatNoModel', { motivo: errorMessage })
-          } else if (errorMessage.includes('timed out')) {
+          } else if (errorMessage.includes('timed out') || errorMessage.includes('aborted due to timeout')) {
             userFacingMessage = i18n.t('messages.chatSlowModel')
           } else if (errorMessage.includes('API key') || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
             userFacingMessage = i18n.t('messages.chatBadKey')

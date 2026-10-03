@@ -167,7 +167,7 @@ export function GuardrailsPanel() {
               type="text"
               value={settings.judgeModel}
               onChange={(e) => update({ judgeModel: e.target.value })}
-              placeholder={settings.judgeProvider === 'ollama' ? 'nemotron-mini' : 'meta/llama-3.1-nemotron-70b-instruct'}
+              placeholder={settings.judgeProvider === 'ollama' ? 'nemotron-mini' : 'nvidia/nemotron-3.5-lightning-30b-a3b'}
               className="mt-1 w-full px-3 py-2 rounded-lg bg-background border border-border text-sm"
             />
           </div>

@@ -90,7 +90,9 @@ export function ModeloDeRespuesta({ modelosOllama }: { modelosOllama: string[] }
         {externos.map(p => (
           <optgroup key={p.id} label={p.name}>
             {p.availableModels.map(m => (
-              <option key={m.modelId} value={`${p.id}::${m.modelId}`}>{m.modelName || m.modelId}</option>
+              <option key={m.modelId} value={`${p.id}::${m.modelId}`}>
+                {m.modelName && m.modelName !== m.modelId ? `${m.modelName} — ${m.modelId}` : m.modelId}
+              </option>
             ))}
           </optgroup>
         ))}

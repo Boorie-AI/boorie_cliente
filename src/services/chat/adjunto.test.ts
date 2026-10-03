@@ -17,6 +17,7 @@ import {
   referenciasALaEstructura,
   relevanciaSemantica,
   trocear,
+  finDeLaFrase,
 } from './adjunto'
 
 /** Una memoria de cálculo como la de la prueba en la aplicación: 120 tramos de 15 tuberías. */
@@ -307,5 +308,70 @@ describe('las referencias a la estructura, con el texto de pdf-parse (#204)', ()
 
   it('la cabecera de página con su número no pasa por capítulo', () => {
     expect(seleccionarFragmentos(libroDePdfParse(), 'resume el capítulo 1', 600).texto).toContain('Chapter 1 opens')
+  })
+})
+
+describe('la frase que sigue en el fragmento siguiente', () => {
+  it('se acaba la frase, y no se toma el punto de «2.0» por un final', () => {
+    expect(finDeLaFrase('2 /Q 2 )/(Q 2 + Q 3 ) (4.3)\nValues of C are often about 2.0 sec 2 /ft 5 . Calculation of')).toBe(
+      '2 /Q 2 )/(Q 2 + Q 3 ) (4.3)\nValues of C are often about 2.0 sec 2 /ft 5 .')
+  })
+
+  it('si la frase no acaba pronto, no se añade nada', () => {
+    expect(finDeLaFrase('palabra '.repeat(300) + 'fin.')).toBe('')
+    expect(finDeLaFrase(undefined)).toBe('')
+  })
+
+  it('un fragmento elegido llega con el final de su frase aunque el siguiente no entre', () => {
+    // Se rellena por delante hasta que la frase quede partida entre dos fragmentos.
+    const montar = (relleno: number) => {
+      const lineas = ['INFORME']
+      for (let i = 0; i < relleno; i++) lineas.push(`Párrafo ${i} sobre drenaje urbano y colectores, sin relación con la pregunta.`)
+      lineas.push('La ecuación de Jacob para la pérdida del pozo es s = BQ + CQ², y el coeficiente C')
+      lineas.push('del pozo bien desarrollado suele ser menor que 10 sec²/ft⁵. Luego sigue otra cosa')
+      for (let i = 0; i < 60; i++) lineas.push(`Más párrafos ${i} sobre drenaje urbano y colectores que no vienen al caso.`)
+      return lineas.join('\n')
+    }
+    let relleno = 0
+    while (trocear(montar(relleno)).some(f => f.includes('ecuación de Jacob') && f.includes('menor que 10'))) relleno++
+    const texto = montar(relleno)
+    const fragmentos = trocear(texto)
+    const k = fragmentos.findIndex(f => f.includes('ecuación de Jacob'))
+    expect(fragmentos[k + 1]).toContain('menor que 10')
+
+    const s = seleccionarFragmentos(texto, '¿Qué dice la ecuación de Jacob del coeficiente?', estimarTokens(fragmentos[k]) + 80)
+    expect(s.texto).toContain('ecuación de Jacob')
+    expect(s.texto).toContain('menor que 10 sec²/ft⁵.')
+  })
+})
+
+describe('las páginas en lo que lee el modelo', () => {
+  function libroConCabeceras(): string {
+    const lineas: string[] = []
+    for (let p = 10; p <= 60; p++) {
+      lineas.push(p % 2 === 0 ? `${p} GROUNDWATER PUMPING TESTS` : `DESIGN AND FIELD OBSERVATION ${p}`)
+      for (let l = 0; l < 14; l++) lineas.push(p === 42 && l === 3 ? 'The well loss coefficient C is generally less than 10.' : `Página ${p}, texto corriente número ${l} sin nada especial.`)
+    }
+    return lineas.join('\n')
+  }
+
+  it('cada fragmento lleva su página, y la selección dice cuáles leyó', () => {
+    const s = seleccionarFragmentos(libroConCabeceras(), '¿Qué valor tiene el well loss coefficient?', 400)
+    expect(s.paginado).toBe(true)
+    expect(s.texto).toMatch(/\[pp?\. (41-)?42\]\n[\s\S]*well loss coefficient/)
+    expect(s.paginas).toContain(42)
+    expect(s.paginas).not.toContain(20)
+  })
+
+  it('se le dice al modelo qué son las marcas', () => {
+    const s = seleccionarFragmentos(libroConCabeceras(), '¿Qué valor tiene el well loss coefficient?', 400)
+    expect(bloqueParaElModelo({ nombre: 'walton.pdf' }, s)).toContain('copia una de esas')
+  })
+
+  it('sin cabeceras no hay marcas ni páginas', () => {
+    const s = seleccionarFragmentos(memoria(), '¿Qué diámetro tiene la tubería P-064-07?', 1200)
+    expect(s.paginado).toBeUndefined()
+    expect(s.paginas).toBeUndefined()
+    expect(bloqueParaElModelo({ nombre: 'memoria.pdf' }, s)).not.toContain('copia una de esas')
   })
 })

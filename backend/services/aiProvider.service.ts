@@ -13,10 +13,13 @@ import { DatabaseService } from './database.service'
 import { aiProviderLogger } from '../utils/logger'
 import { validateString, validateBoolean, validateRequired } from '../utils/validation'
 import { PAREJAS } from './hydraulic/agentic/modelosRAG'
+import { probarClaveNvidia, type ResultadoPruebaNvidia } from './ai/pruebaNvidia'
 
 export class AIProviderService {
   private databaseService: DatabaseService
   private logger = aiProviderLogger
+  /** La prueba y la carga de modelos van seguidas: así la segunda no repite las peticiones. */
+  private ultimaPruebaNvidia: { apiKey: string; resultado: ResultadoPruebaNvidia } | null = null
 
   constructor(databaseService: DatabaseService) {
     this.databaseService = databaseService
@@ -247,6 +250,10 @@ export class AIProviderService {
         if (provider.type === 'local') {
           testResult = await this.testLocalProvider(provider)
           testMessage = testResult ? 'Local provider connection successful' : 'Local provider connection failed'
+        } else if (provider.name.toLowerCase() === 'nvidia') {
+          const resultado = await this.probarNvidia(provider)
+          testResult = resultado.ok
+          testMessage = resultado.mensaje ?? 'API provider connection successful'
         } else {
           testResult = await this.testAPIProvider(provider)
           testMessage = testResult ? 'API provider connection successful' : 'API provider connection failed'
@@ -1011,9 +1018,26 @@ export class AIProviderService {
    * pareja se lee de donde la usa el agente, para que no haya dos listas que
    * puedan separarse.
    */
-  private async fetchNvidiaModels(_provider: IAIProvider): Promise<any[]> {
-    const { principal, auxiliar } = PAREJAS.nvidia
+  private async probarNvidia(provider: IAIProvider): Promise<ResultadoPruebaNvidia> {
+    if (!provider.apiKey) {
+      throw new AIProviderError('API key is required for API providers', provider.name)
+    }
+    const resultado = await probarClaveNvidia(provider.apiKey, PAREJAS.nvidia)
+    this.ultimaPruebaNvidia = { apiKey: provider.apiKey, resultado }
+    this.logger.debug('NVIDIA key test', { ok: resultado.ok, modelos: resultado.modelos, mensaje: resultado.mensaje })
+    return resultado
+  }
 
+  private async fetchNvidiaModels(provider: IAIProvider): Promise<any[]> {
+    const { principal, auxiliar } = PAREJAS.nvidia
+    const previa = this.ultimaPruebaNvidia
+    const prueba = previa && previa.apiKey === provider.apiKey ? previa.resultado : await this.probarNvidia(provider)
+    if (!prueba.ok) {
+      throw new AIProviderError(prueba.mensaje ?? 'NVIDIA key test failed', provider.name)
+    }
+
+    // Sólo se ofrecen los que la clave puede usar: elegir uno sin acceso
+    // dejaría el chat sin respuesta.
     return [
       {
         modelId: principal,
@@ -1031,6 +1055,6 @@ export class AIProviderService {
         isSelected: false,
         description: 'Reformulación de consultas y graduación de relevancia',
       },
-    ]
+    ].filter(m => prueba.modelos[m.modelId] === 'acceso')
   }
 }

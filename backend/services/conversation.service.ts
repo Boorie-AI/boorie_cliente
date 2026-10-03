@@ -13,6 +13,7 @@ import { conversationLogger } from '../utils/logger'
 import { validateString, validateArray } from '../utils/validation'
 import { EmbeddingService } from './embedding.service'
 import { MilvusService } from './milvus.service'
+import { fragmentosParaMilvus } from './fragmentosParaMilvus'
 import * as crypto from 'crypto'
 
 export class ConversationService {
@@ -266,24 +267,27 @@ export class ConversationService {
     try {
       if (!message.content || !message.content.trim()) return;
 
-      const vector = await this.embeddingService.generateEmbedding(message.content);
-
       // El texto del adjunto (#194) puede pasar de cien mil caracteres y no
       // cabe en el campo JSON de Milvus; basta con su nombre.
       const { adjunto, ...metadata } = (message.metadata ?? {}) as { adjunto?: { nombre?: string } } & Record<string, unknown>
 
-      await this.milvusService.insert(MilvusService.COLLECTIONS.CONVERSATIONS, [{
-        id: message.id,
-        vector: vector,
-        content: message.content,
+      // El primer trozo conserva el id del mensaje; los demás llevan su número.
+      const trozos = fragmentosParaMilvus(message.content);
+      const filas = await Promise.all(trozos.map(async (content, n) => ({
+        id: n === 0 ? message.id : `${message.id}#${n}`,
+        vector: await this.embeddingService.generateEmbedding(content),
+        content,
         metadata: {
           conversationId: conversationId,
           role: message.role,
           ...metadata,
-          ...(adjunto ? { adjunto: { nombre: adjunto.nombre } } : {})
+          ...(adjunto ? { adjunto: { nombre: adjunto.nombre } } : {}),
+          ...(trozos.length > 1 ? { fragmento: n + 1, fragmentos: trozos.length } : {})
         },
         timestamp: new Date(message.timestamp).getTime()
-      }]);
+      })));
+
+      await this.milvusService.insert(MilvusService.COLLECTIONS.CONVERSATIONS, filas);
 
       this.logger.debug(`Synced message ${message.id} to Milvus`);
     } catch (error) {

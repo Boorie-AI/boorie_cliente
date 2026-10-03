@@ -163,7 +163,7 @@ describe('modelos de la ruta del RAG', () => {
 
     const [url, cuerpo] = vi.mocked(axios.post).mock.calls[0] as [string, any]
     expect(url).toContain('/chat/completions')
-    expect(cuerpo.model).toBe('nvidia/llama-3.1-nemotron-ultra-253b-v1')
+    expect(cuerpo.model).toBe('nvidia/nemotron-3-ultra-550b-a55b')
     // Y no se pregunta a Ollama por un inventario que no pinta nada aquí.
     expect(axios.get).not.toHaveBeenCalled()
   })

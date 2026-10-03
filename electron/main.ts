@@ -291,7 +291,7 @@ async function initializePrisma(): Promise<any> {
 
     // Initialize database path if not using a specific DATABASE_URL
     const databasePath = initializeDatabasePath()
-    const databaseUrl = process.env.DATABASE_URL || `file:${databasePath}`
+    const databaseUrl = urlConEspera(process.env.DATABASE_URL || `file:${databasePath}`)
 
     console.log(`Using database at: ${databasePath}`)
 
@@ -338,6 +338,8 @@ async function initializePrisma(): Promise<any> {
     // Run a simple test query to ensure everything works
     await globalPrismaClient.$queryRaw`SELECT 1 as test`
     console.log('Prisma client test query successful')
+
+    console.log(`SQLite journal_mode: ${await activarWAL(globalPrismaClient, databaseUrl)}`)
 
     return globalPrismaClient
 
@@ -401,6 +403,7 @@ import { findPythonForMilvus } from '../backend/services/hydraulic/pythonDetecto
 import { reconstruirSiHaceFalta } from '../backend/services/hydraulic/hybridSearch'
 import { startMilvusServer, stopMilvusServer } from './services/milvusProcess'
 import { ensureProductionSchema } from './esquemaProduccion'
+import { urlConEspera, activarWAL } from './baseSqlite'
 import { instalarEntradaEscritorio } from './integracionEscritorio'
 import { capturarConsolaDelMain } from '../backend/services/feedback/registroReciente'
 import { escucharConsolaDelRenderer, registerFeedbackHandlers } from './handlers/feedback.handler'
