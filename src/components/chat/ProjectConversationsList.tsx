@@ -128,7 +128,7 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
                 <div className="flex items-start justify-between gap-2 pr-6">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <MessageSquare size={14} className="text-muted-foreground flex-shrink-0" />
+                      <MessageSquare size={14} className="text-muted-foreground shrink-0" />
                       <h4 className="text-sm font-medium truncate text-foreground">
                         {conversation.title}
                       </h4>
@@ -152,7 +152,7 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
                         className={cn(
                           "p-1 rounded opacity-0 group-hover:opacity-100",
                           "hover:bg-accent transition-all",
-                          "focus:opacity-100 focus:outline-none"
+                          "focus:opacity-100 focus:outline-hidden"
                         )}
                       >
                         <MoreVertical size={14} />
@@ -171,7 +171,7 @@ export function ProjectConversationsList({ projectId, currentConversationId }: P
                           onClick={() => handleMoveConversation(conversation.id)}
                           className={cn(
                             "flex items-center gap-2 px-3 py-2 rounded",
-                            "text-sm cursor-pointer outline-none",
+                            "text-sm cursor-pointer outline-hidden",
                             "hover:bg-accent hover:text-accent-foreground"
                           )}
                         >

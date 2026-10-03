@@ -15,12 +15,15 @@ import { validateString, validateBoolean, validateRequired } from '../utils/vali
 import { PAREJAS } from './hydraulic/agentic/modelosRAG'
 import { probarClaveNvidia, type ResultadoPruebaNvidia } from './ai/pruebaNvidia'
 import { claveUtilizable, type EstadoPublicoClave, estadoPublico } from './security/clavesProveedor'
+import { probarClaveExterna, rechazaLaClave, tienePrueba, type ResultadoPrueba } from './ai/pruebaProveedores'
+import { olvidarModeloElegidoDe, puedeActivarse, SIN_CLAVE_VALIDADA } from './security/proveedoresActivos'
 
 export class AIProviderService {
   private databaseService: DatabaseService
   private logger = aiProviderLogger
   /** La prueba y la carga de modelos van seguidas: así la segunda no repite las peticiones. */
   private ultimaPruebaNvidia: { apiKey: string; resultado: ResultadoPruebaNvidia } | null = null
+  private ultimaPrueba = new Map<string, { apiKey: string; resultado: ResultadoPrueba }>()
 
   constructor(databaseService: DatabaseService) {
     this.databaseService = databaseService
@@ -55,6 +58,18 @@ export class AIProviderService {
           type: 'api',
           apiKey: process.env.NVIDIA_API_KEY,
           config: { baseUrl: 'https://integrate.api.nvidia.com/v1' }
+        },
+        {
+          name: 'google',
+          type: 'api',
+          apiKey: process.env.GOOGLE_API_KEY,
+          config: { baseUrl: 'https://generativelanguage.googleapis.com/v1beta' }
+        },
+        {
+          name: 'openrouter',
+          type: 'api',
+          apiKey: process.env.OPENROUTER_API_KEY,
+          config: { baseUrl: 'https://openrouter.ai/api/v1' }
         }
       ]
 
@@ -67,7 +82,8 @@ export class AIProviderService {
             name: p.name,
             type: p.type,
             apiKey: '',
-            isActive: true,
+            // Uno externo nace apagado: se enciende al validar su clave (#246).
+            isActive: p.type === 'local',
             isConnected: false,
             config: JSON.stringify(p.config)
           }
@@ -77,7 +93,7 @@ export class AIProviderService {
         if (p.apiKey && claveUtilizable(fila.name, fila.apiKey) !== p.apiKey) {
           await this.databaseService.escribirClave(fila.id, p.apiKey)
         }
-        this.logger.debug(`Ensured provider ${p.name} is active`)
+        this.logger.debug(`Ensured provider ${p.name} exists`)
       }
 
       this.logger.success('Default AI providers initialized')
@@ -191,6 +207,11 @@ export class AIProviderService {
         throw new ServiceError('AI provider not found', 'NOT_FOUND', 404)
       }
 
+      const actual = existingResult.data!
+      if (updates.isActive === true && !actual.isActive && !puedeActivarse(actual, actual.apiKey ?? null)) {
+        throw new ServiceError(SIN_CLAVE_VALIDADA, 'VALIDATION_ERROR', 400)
+      }
+
       // Check for name conflicts if name is being updated
       if (updates.name && updates.name !== existingResult.data?.name) {
         const allProviders = await this.databaseService.getAIProviders()
@@ -212,6 +233,8 @@ export class AIProviderService {
       if (!result.success) {
         throw new ServiceError(result.error || 'Failed to update AI provider', 'DATABASE_ERROR')
       }
+
+      if (updates.isActive === false && actual.isActive) await this.olvidarModeloElegido(actual.name)
 
       this.logger.success('Updated AI provider', {
         id: result.data?.id,
@@ -238,13 +261,17 @@ export class AIProviderService {
   ): Promise<IServiceResponse<EstadoPublicoClave>> {
     try {
       validateString(id, 'Provider ID')
+      // Una clave nueva todavía no está validada: el proveedor se apaga hasta
+      // que «Probar» la acepte (#246).
       const fila = await this.databaseService.escribirClave(
         id,
         clave.trim(),
-        { isConnected: false, lastTestResult: null, lastTestMessage: null },
+        { isActive: false, isConnected: false, lastTestResult: null, lastTestMessage: null },
         opciones
       )
       this.ultimaPruebaNvidia = null
+      this.ultimaPrueba.delete(fila.name.toLowerCase())
+      if (fila.type === 'api') await this.olvidarModeloElegido(fila.name)
       return { success: true, data: estadoPublico(fila.name, fila.apiKey) }
     } catch (error) {
       this.logger.error('Failed to save API key', error as Error, { id })
@@ -272,25 +299,42 @@ export class AIProviderService {
         if (provider.type === 'local') {
           testResult = await this.testLocalProvider(provider)
           testMessage = testResult ? 'Local provider connection successful' : 'Local provider connection failed'
+        } else if (!provider.apiKey) {
+          testResult = false
+          testMessage = 'ai.prueba.claveNoValida'
         } else if (provider.name.toLowerCase() === 'nvidia') {
           const resultado = await this.probarNvidia(provider)
           testResult = resultado.ok
           testMessage = resultado.mensaje ?? 'API provider connection successful'
+        } else if (tienePrueba(provider.name)) {
+          const resultado = await this.probarExterno(provider)
+          testResult = resultado.ok
+          testMessage = resultado.mensaje ?? 'API provider connection successful'
         } else {
-          testResult = await this.testAPIProvider(provider)
-          testMessage = testResult ? 'API provider connection successful' : 'API provider connection failed'
+          // Sin una prueba contra su API no hay forma de saber si la clave vale.
+          testResult = false
+          testMessage = 'ai.prueba.noSoportado'
         }
       } catch (error) {
         testResult = false
         testMessage = error instanceof Error ? error.message : 'Connection test failed'
       }
 
-      // Update provider with test results
+      /**
+       * El interruptor sigue a la prueba (#246): aceptada, se enciende;
+       * rechazada la clave, se apaga. Sin red o con el servicio caído no se
+       * sabe nada de la clave, así que se queda como estaba.
+       */
+      const esExterno = provider.type === 'api'
+      const apagar = esExterno && !testResult && rechazaLaClave(testMessage)
       await this.databaseService.updateAIProvider(id, {
         isConnected: testResult,
         lastTestResult: testResult ? 'success' : 'error',
-        lastTestMessage: testMessage
+        lastTestMessage: testMessage,
+        ...(esExterno && testResult ? { isActive: true } : {}),
+        ...(apagar ? { isActive: false } : {}),
       })
+      if (apagar) await this.olvidarModeloElegido(provider.name)
 
       // If test was successful, automatically fetch models
       if (testResult) {
@@ -609,134 +653,6 @@ export class AIProviderService {
     }
   }
 
-  private async testAPIProvider(provider: IAIProvider): Promise<boolean> {
-    try {
-      if (!provider.apiKey) {
-        throw new AIProviderError('API key is required for API providers', provider.name)
-      }
-
-      // Basic API key validation - could be expanded for specific providers
-      switch (provider.name.toLowerCase()) {
-        case 'openai':
-          return await this.testOpenAI(provider)
-        case 'anthropic':
-          return await this.testAnthropic(provider)
-        case 'google':
-          return await this.testGoogleAI(provider)
-        default:
-          // Generic test - just check if API key is provided
-          return !!provider.apiKey
-      }
-    } catch (error) {
-      this.logger.warn('API provider test failed', { provider: provider.name, error })
-      return false
-    }
-  }
-
-  private async testOpenAI(provider: IAIProvider): Promise<boolean> {
-    try {
-      const response = await fetch('https://api.openai.com/v1/models', {
-        headers: {
-          'Authorization': `Bearer ${provider.apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      return response.ok
-    } catch {
-      return false
-    }
-  }
-
-  private async testAnthropic(provider: IAIProvider): Promise<boolean> {
-    try {
-      if (!provider.apiKey) {
-        throw new Error('API key is required')
-      }
-
-      if (!provider.apiKey.startsWith('sk-ant-')) {
-        throw new Error('Invalid API key format. Anthropic API keys should start with "sk-ant-"')
-      }
-
-      // Test the API key by making a request to the models endpoint (doesn't require credits)
-      let response: Response
-      try {
-        this.logger.debug('Attempting to connect to Anthropic API...', {
-          url: 'https://api.anthropic.com/v1/models',
-          hasApiKey: !!provider.apiKey
-        })
-
-        response = await fetch('https://api.anthropic.com/v1/models', {
-          method: 'GET',
-          headers: {
-            'x-api-key': provider.apiKey,
-            'anthropic-version': '2023-06-01',
-            'Content-Type': 'application/json'
-          },
-          // Add timeout to prevent hanging
-          signal: AbortSignal.timeout(15000) // 15 second timeout
-        })
-
-        this.logger.debug('Anthropic API response received', {
-          status: response.status,
-          ok: response.ok
-        })
-      } catch (fetchError) {
-        this.logger.error('Anthropic API connection failed', fetchError as Error)
-
-        if (fetchError instanceof Error) {
-          if (fetchError.name === 'AbortError') {
-            throw new Error('Anthropic API request timed out. Please check your internet connection and try again.')
-          }
-          if (fetchError.message.includes('fetch') || fetchError.message.includes('network')) {
-            throw new Error('Unable to connect to Anthropic API. Please check your internet connection, firewall settings, or try using a VPN.')
-          }
-        }
-        throw new Error(`Network error: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`)
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({})) as any
-        const errorMessage = errorData.error?.message || 'Unknown error'
-
-        switch (response.status) {
-          case 401:
-            throw new Error('Invalid API key')
-          case 403:
-            // For models endpoint, 403 usually means invalid API key, not credits
-            throw new Error('Access denied - check your API key permissions')
-          case 429:
-            throw new Error('Rate limit exceeded - please try again later')
-          case 500:
-          case 502:
-          case 503:
-          case 504:
-            throw new Error('Anthropic API is temporarily unavailable')
-          default:
-            throw new Error(`API error: ${errorMessage}`)
-        }
-      }
-
-      this.logger.success('Anthropic API key test successful')
-      return true
-    } catch (error) {
-      if (error instanceof Error) {
-        this.logger.warn('Anthropic API key test failed', { error: error.message })
-        throw error
-      }
-      this.logger.warn('Anthropic API key test failed with unknown error')
-      throw new Error('Connection test failed')
-    }
-  }
-
-  private async testGoogleAI(provider: IAIProvider): Promise<boolean> {
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${provider.apiKey}`)
-      return response.ok
-    } catch {
-      return false
-    }
-  }
-
   private async fetchLocalModels(provider: IAIProvider): Promise<any[]> {
     try {
       const ollamaUrl = provider.config?.baseUrl || 'http://127.0.0.1:11434'
@@ -785,248 +701,44 @@ export class AIProviderService {
         originalName: provider.name
       })
 
-      switch (lowerCaseName) {
-        case 'openai':
-          this.logger.debug('Matched OpenAI case, calling fetchOpenAIModels')
-          return await this.fetchOpenAIModels(provider)
-        case 'anthropic':
-          this.logger.debug('Matched Anthropic case, calling fetchAnthropicModels')
-          return await this.fetchAnthropicModels(provider)
-        case 'google':
-          this.logger.debug('Matched Google case, calling fetchGoogleAIModels')
-          return await this.fetchGoogleAIModels(provider)
-        case 'openrouter':
-          this.logger.debug('Matched OpenRouter case, calling fetchOpenRouterModels')
-          return await this.fetchOpenRouterModels(provider)
-        case 'nvidia':
-          this.logger.debug('Matched Nvidia case, calling fetchNvidiaModels')
-          return await this.fetchNvidiaModels(provider)
-        default:
-          this.logger.warn('❌ API model fetching not implemented for provider', {
-            provider: provider.name,
-            providerLowerCase: provider.name.toLowerCase(),
-            receivedLowerCase: lowerCaseName,
-            exactMatch: lowerCaseName === 'openai',
-            availableCases: ['openai', 'anthropic', 'google', 'openrouter']
-          })
-          return []
+      if (lowerCaseName === 'nvidia') return await this.fetchNvidiaModels(provider)
+      if (!tienePrueba(lowerCaseName)) {
+        this.logger.warn('API model fetching not implemented for provider', { provider: provider.name })
+        return []
       }
+      // La lista sale de la misma petición que valida la clave.
+      const previa = this.ultimaPrueba.get(lowerCaseName)
+      const prueba = previa && previa.apiKey === provider.apiKey ? previa.resultado : await this.probarExterno(provider)
+      if (!prueba.ok) throw new AIProviderError(prueba.mensaje ?? 'Key test failed', provider.name)
+      return prueba.modelos.map(m => ({
+        ...m,
+        isDefault: false,
+        isAvailable: true,
+        isSelected: false,
+      }))
     } catch (error) {
       this.logger.error('Failed to fetch API models', error as Error, { provider: provider.name })
       return []
     }
   }
 
-  private async fetchOpenAIModels(provider: IAIProvider): Promise<any[]> {
-    try {
-      const response = await fetch('https://api.openai.com/v1/models', {
-        headers: {
-          'Authorization': `Bearer ${provider.apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`)
-      }
-
-      const data = await response.json() as { data?: any[] }
-      return data.data?.filter((model: any) => {
-        // Only include chat models, exclude embedding/other models
-        const chatModels = ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo', 'gpt-4o']
-        return chatModels.some(cm => model.id.includes(cm))
-      }).map((model: any) => ({
-        modelId: model.id,
-        modelName: model.id,
-        isDefault: model.id === 'gpt-3.5-turbo',
-        isAvailable: true,
-        isSelected: false,
-        description: `OpenAI model: ${model.id}`,
-        metadata: {
-          owned_by: model.owned_by,
-          created: model.created
-        }
-      })) || []
-    } catch (error) {
-      this.logger.error('Failed to fetch OpenAI models', error as Error)
-      return []
+  private async probarExterno(provider: IAIProvider): Promise<ResultadoPrueba> {
+    const nombre = provider.name.toLowerCase()
+    if (!provider.apiKey || !tienePrueba(nombre)) {
+      throw new AIProviderError('API key is required for API providers', provider.name)
     }
+    const resultado = await probarClaveExterna(nombre, provider.apiKey)
+    this.ultimaPrueba.set(nombre, { apiKey: provider.apiKey, resultado })
+    this.logger.debug('Key test', { provider: nombre, ok: resultado.ok, modelos: resultado.modelos.length, mensaje: resultado.mensaje })
+    return resultado
   }
 
-  private async fetchAnthropicModels(provider: IAIProvider): Promise<any[]> {
+  /** Un proveedor que se apaga deja de redactar: el chat vuelve al automático. */
+  private async olvidarModeloElegido(nombre: string): Promise<void> {
     try {
-      this.logger.debug('🚀 STARTING: Fetching Anthropic models from API', {
-        provider: provider.name,
-        hasApiKey: !!provider.apiKey
-      })
-
-      const response = await fetch('https://api.anthropic.com/v1/models', {
-        headers: {
-          'x-api-key': provider.apiKey!,
-          'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json'
-        }
-      })
-
-      this.logger.debug('📡 Anthropic API Response received', {
-        status: response.status,
-        ok: response.ok
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        this.logger.warn('❌ Anthropic models API failed, falling back to known models', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText
-        })
-        return this.getKnownAnthropicModels()
-      }
-
-      const data = await response.json() as { data?: any[] }
-      this.logger.debug('📋 Anthropic API data received', {
-        hasData: !!data.data,
-        dataLength: data.data?.length,
-        rawData: data
-      })
-
-      if (!data.data || !Array.isArray(data.data)) {
-        this.logger.warn('Invalid response from Anthropic models API, falling back to known models')
-        return this.getKnownAnthropicModels()
-      }
-
-      const models = data.data.map((model: any) => ({
-        modelId: model.id,
-        modelName: model.display_name || model.id,
-        isDefault: model.id.includes('claude-3-5-sonnet') || model.id.includes('claude-sonnet-4'),
-        isAvailable: true,
-        isSelected: false,
-        description: this.getAnthropicModelDescription(model.id),
-        metadata: {
-          created_at: model.created_at,
-          type: model.type,
-          display_name: model.display_name
-        }
-      }))
-
-      this.logger.success('Successfully fetched Anthropic models from API', {
-        modelCount: models.length
-      })
-
-      return models
+      await olvidarModeloElegidoDe(this.databaseService.prisma, n => n === nombre.toLowerCase())
     } catch (error) {
-      this.logger.warn('Failed to fetch Anthropic models from API, falling back to known models', error as Error)
-      return this.getKnownAnthropicModels()
-    }
-  }
-
-  private getKnownAnthropicModels(): any[] {
-    // Fallback to known models if API fails
-    return [
-      {
-        modelId: 'claude-3-5-sonnet-20241022',
-        modelName: 'Claude 3.5 Sonnet',
-        isDefault: true,
-        isAvailable: true,
-        isSelected: false,
-        description: 'Most intelligent model, ideal for complex tasks',
-        metadata: { version: '20241022' }
-      },
-      {
-        modelId: 'claude-3-haiku-20240307',
-        modelName: 'Claude 3 Haiku',
-        isDefault: false,
-        isAvailable: true,
-        isSelected: false,
-        description: 'Fastest model, ideal for simple tasks',
-        metadata: { version: '20240307' }
-      },
-      {
-        modelId: 'claude-3-opus-20240229',
-        modelName: 'Claude 3 Opus',
-        isDefault: false,
-        isAvailable: true,
-        isSelected: false,
-        description: 'Most powerful model for complex reasoning',
-        metadata: { version: '20240229' }
-      }
-    ]
-  }
-
-  private getAnthropicModelDescription(modelId: string): string {
-    const descriptions: Record<string, string> = {
-      'claude-sonnet-4-20250514': 'Latest and most advanced Claude model',
-      'claude-3-5-sonnet-20241022': 'Most intelligent model, ideal for complex tasks',
-      'claude-3-5-sonnet-20240620': 'Most intelligent model, ideal for complex tasks',
-      'claude-3-haiku-20240307': 'Fastest model, ideal for simple tasks',
-      'claude-3-opus-20240229': 'Most powerful model for complex reasoning',
-      'claude-3-sonnet-20240229': 'Balanced model for most tasks'
-    }
-
-    return descriptions[modelId] || `Anthropic Claude model: ${modelId}`
-  }
-
-  private async fetchGoogleAIModels(provider: IAIProvider): Promise<any[]> {
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${provider.apiKey}`)
-
-      if (!response.ok) {
-        throw new Error(`Google AI API error: ${response.status} ${response.statusText}`)
-      }
-
-      const data = await response.json() as { models?: any[] }
-      return data.models?.filter((model: any) => {
-        // Only include generateContent models
-        return model.supportedGenerationMethods?.includes('generateContent')
-      }).map((model: any) => ({
-        modelId: model.name.split('/').pop(),
-        modelName: model.displayName || model.name.split('/').pop(),
-        isDefault: model.name.includes('gemini-pro'),
-        isAvailable: true,
-        isSelected: false,
-        description: model.description || `Google AI model: ${model.displayName}`,
-        metadata: {
-          version: model.version,
-          inputTokenLimit: model.inputTokenLimit,
-          outputTokenLimit: model.outputTokenLimit
-        }
-      })) || []
-    } catch (error) {
-      this.logger.error('Failed to fetch Google AI models', error as Error)
-      return []
-    }
-  }
-
-  private async fetchOpenRouterModels(provider: IAIProvider): Promise<any[]> {
-    try {
-      const response = await fetch('https://openrouter.ai/api/v1/models', {
-        headers: {
-          'Authorization': `Bearer ${provider.apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`)
-      }
-
-      const data = await response.json() as { data?: any[] }
-      return data.data?.map((model: any) => ({
-        modelId: model.id,
-        modelName: model.name || model.id,
-        isDefault: false,
-        isAvailable: true,
-        isSelected: false,
-        description: model.description || `${model.name} - Context: ${model.context_length}`,
-        metadata: {
-          context_length: model.context_length,
-          pricing: model.pricing,
-          architecture: model.architecture
-        }
-      })) || []
-    } catch (error) {
-      this.logger.error('Failed to fetch OpenRouter models', error as Error)
-      return []
+      this.logger.warn('No se pudo devolver el modelo que redacta al automático', error as Error)
     }
   }
 

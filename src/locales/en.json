@@ -142,6 +142,21 @@
       "sinPrincipal": "Connected, but the key has no access to the main model: only the auxiliary one can be used.",
       "sinAuxiliar": "Connected, but the key has no access to the auxiliary model: only the main one can be used."
     },
+    "prueba": {
+      "claveNoValida": "Invalid key: the provider rejects it. Copy it again from your account. The provider stays disabled.",
+      "sinCredito": "The key works, but the credit or request limit has run out. Try again later or check your account.",
+      "sinRed": "Could not connect to the provider. Check your internet connection.",
+      "noDisponible": "The provider’s service is not responding right now. Try again later.",
+      "sinModelos": "The key works, but the provider offers this key no model to chat with.",
+      "noSoportado": "Boorie cannot check this provider’s key, so it cannot be enabled."
+    },
+    "activar": {
+      "etiqueta": "Enable {{proveedor}}",
+      "sinClave": "To enable it, paste its key and press “Test”. Without a valid key it is not offered in any selector.",
+      "sinProbar": "Press “Test”: it is enabled as soon as the provider accepts the key.",
+      "claveIlegible": "The saved key cannot be read on this computer. Paste it again and press “Test” to enable it.",
+      "sinClaveValidada": "It cannot be enabled without a key that “Test” has accepted."
+    },
     "localModels": "Local models (Ollama)",
     "apiProviders": "API providers",
     "ollamaConfiguration": "Ollama configuration",
@@ -166,7 +181,7 @@
     "modelFijadoAviso": "The model that answers in the chat is chosen above, in “Model that writes the chat answers”. This is where each provider’s keys and catalogue are set up.",
     "checkingOllama": "Checking Ollama installation…",
     "apiProviderConfig": "API provider configuration",
-    "apiProviderConfigDesc": "Configure your API providers to access cloud-based AI models. All providers are disabled by default.",
+    "apiProviderConfigDesc": "Configure your API providers to access cloud-based AI models. They stay disabled until “Test” accepts their key.",
     "installOllamaModel": "Install Ollama model",
     "installing": "Installing",
     "installationCompleted": "Installation completed!",
@@ -1426,7 +1441,7 @@
     "measureFailed": "The measure could not be checked",
     "sinProveedorDeEmbeddings": "Could not index: no embedding model is available. Install Ollama with “bge-m3”, or add an OpenAI key under Settings → AI configuration.",
     "chatSinConsentimiento": "**Nothing was sent.** The selected model belongs to an external provider and your consent to send it data is missing. Accept it in Settings → AI Configuration → “Model that writes the answers”, or go back to the automatic model to answer on this computer.",
-    "chatSinClave": "**Nothing was sent.** The selected provider has no key that can be used on this computer. Paste it in Settings → AI Configuration → API Providers."
+    "chatSinClave": "**Nothing was sent.** The selected provider is disabled or has no key that can be used on this computer. Paste the key and press “Test” in Settings → AI Configuration → API Providers."
   },
   "layers": {
     "junction": "Demand junctions",

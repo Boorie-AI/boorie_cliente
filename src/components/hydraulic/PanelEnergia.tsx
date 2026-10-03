@@ -442,7 +442,7 @@ export function PanelEnergia({ projectId, redId, hayRed, horasFichero }: Props) 
           <CardContent className="p-3 space-y-2">
             <div className="flex items-start justify-between gap-2">
               <div className="text-xs font-semibold">{decirTexto(t, r.candidata.titulo)}</div>
-              <Badge variant={r.candidata.naturaleza === 'operativa' ? 'secondary' : 'outline'} className="text-[9px] flex-shrink-0">
+              <Badge variant={r.candidata.naturaleza === 'operativa' ? 'secondary' : 'outline'} className="text-[9px] shrink-0">
                 {t(r.candidata.naturaleza === 'operativa' ? 'energy.operational' : 'energy.needsEquipment')}
               </Badge>
             </div>

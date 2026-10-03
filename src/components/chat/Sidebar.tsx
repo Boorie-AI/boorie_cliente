@@ -104,7 +104,7 @@ export function Sidebar() {
               "hover:bg-accent hover:text-accent-foreground",
               item.hijoDelProyecto && !sidebarCollapsed ? "py-2 pl-6 pr-3" : "p-3",
               activo
-                ? "bg-primary text-primary-foreground shadow-sm"
+                ? "bg-primary text-primary-foreground shadow-xs"
                 : "text-muted-foreground",
               bloqueada && !activo && "opacity-50",
               sidebarCollapsed && "justify-center"
@@ -140,7 +140,7 @@ export function Sidebar() {
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border/50 flex-shrink-0">
+        <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
           {!sidebarCollapsed && (
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center">
@@ -183,7 +183,7 @@ export function Sidebar() {
 
         {/* Navegación en tres bloques: lo que pertenece al proyecto, lo que es
             independiente de él y lo que es del sistema (#35). */}
-        <div className="p-3 space-y-4 flex-shrink-0">
+        <div className="p-3 space-y-4 shrink-0">
           {BLOQUES.map(bloque => (
             <div key={bloque.id} className="space-y-1">
               {!sidebarCollapsed && (
@@ -226,7 +226,7 @@ export function Sidebar() {
         {/* Conversaciones del ámbito en el que está el chat */}
         {currentView === 'chat' && !sidebarCollapsed && (
           <div className="flex-1 flex flex-col p-3 overflow-hidden border-t border-border/50">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-3 mb-3 mt-2 flex-shrink-0">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-3 mb-3 mt-2 shrink-0">
               {t(ambitoChat === 'proyecto' ? 'sidebar.chatsDelProyecto' : 'sidebar.recentChats')}
             </h3>
             <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-border">
@@ -268,7 +268,7 @@ export function Sidebar() {
 
         {/* No es una vista sino una acción: abre el formulario encima de la
             pantalla actual, así que no va en NAVEGACION (#217). */}
-        <div className="mt-auto p-3 border-t border-border/50 flex-shrink-0">
+        <div className="mt-auto p-3 border-t border-border/50 shrink-0">
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
               <button

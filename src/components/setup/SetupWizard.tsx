@@ -125,10 +125,10 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
     : (progress?.stage === 'done' ? 100 : 0)
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-background/95 backdrop-blur-md flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-9999 bg-background/95 backdrop-blur-md flex items-center justify-center p-6">
       <div className="w-full max-w-2xl bg-card rounded-2xl border border-border shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="px-8 py-6 border-b border-border bg-gradient-to-r from-primary/5 to-purple-500/5">
+        <div className="px-8 py-6 border-b border-border bg-linear-to-r from-primary/5 to-purple-500/5">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
               <Cpu className="w-6 h-6 text-primary" />
@@ -184,7 +184,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
               )}
               {(!status.pythonPath || (status.venvPythonUnsupported && !status.canRecreateVenv)) && (
                 <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4 text-sm text-yellow-700 dark:text-yellow-400 flex gap-3 items-start">
-                  <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                  <AlertTriangle className="w-5 h-5 shrink-0" />
                   <div>
                     {t('setup.noPython')}{' '}
                     <a className="underline" href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer">
@@ -235,7 +235,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
               </div>
               {status.optionalMissing.length > 0 && (
                 <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 text-xs text-yellow-700 dark:text-yellow-400 flex gap-2 items-start">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                   <div>
                     {t('setup.guardrailsOff', { faltan: status.optionalMissing.join(', ') })} <strong>{t('setup.guardrailsNo')}</strong> {t('setup.guardrailsRest')}
                   </div>
@@ -248,7 +248,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
             <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4 text-sm text-yellow-700 dark:text-yellow-400 space-y-2">
               {warnings.map((w, i) => (
                 <div key={i} className="flex gap-3 items-start">
-                  <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                  <AlertTriangle className="w-5 h-5 shrink-0" />
                   <div>{w}</div>
                 </div>
               ))}
@@ -257,8 +257,8 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
           {errorMsg && (
             <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-700 dark:text-red-400 flex gap-3 items-start">
-              <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-              <div className="whitespace-pre-wrap break-words">{errorMsg}</div>
+              <AlertTriangle className="w-5 h-5 shrink-0" />
+              <div className="whitespace-pre-wrap wrap-break-word">{errorMsg}</div>
             </div>
           )}
         </div>

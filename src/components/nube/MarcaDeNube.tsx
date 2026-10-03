@@ -25,7 +25,7 @@ export function MarcaDeNube({ proveedorDeLaConversacion }: { proveedorDeLaConver
 
   return (
     <span
-      className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-300 flex-shrink-0"
+      className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-300 shrink-0"
       title={t('nube.marca.detalle', { proveedor })}
       data-testid="marca-nube"
     >

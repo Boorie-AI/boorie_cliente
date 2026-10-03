@@ -97,3 +97,6 @@ data/data/
 # Cache de Python: lo genera el import entre servicios (#42)
 __pycache__/
 *.pyc
+
+# Batería de evaluación del RAG (#226): informes y vectores en local
+.eval-rag/

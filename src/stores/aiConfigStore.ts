@@ -2,6 +2,7 @@ import { logger } from '@/utils/logger'
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { databaseService, type EstadoClave } from '@/services/database'
+import { refrescarModelosRAG } from '@/config/modelosRAG'
 
 export interface ProviderModel {
   modelId: string
@@ -50,6 +51,19 @@ interface AIConfigState {
   getProviderDescription: (name: string) => string
   getProviderColor: (name: string) => string
   getProviderOrder: (name: string) => number
+}
+
+/**
+ * Por qué no se puede encender un proveedor, o `null` si se puede (#246). El
+ * proceso principal aplica la misma regla; esto es para explicarlo en la
+ * interfaz en lugar de dejar un interruptor que no responde.
+ */
+export function motivoParaNoActivar(p: Pick<AIProvider, 'type' | 'tieneClave' | 'estadoClave' | 'testStatus'>): string | null {
+  if (p.type !== 'api') return null
+  if (p.estadoClave === 'ilegible') return 'ai.activar.claveIlegible'
+  if (!p.tieneClave) return 'ai.activar.sinClave'
+  if (p.testStatus !== 'success') return 'ai.activar.sinProbar'
+  return null
 }
 
 export const useAIConfigStore = create<AIConfigState>()(
@@ -199,6 +213,8 @@ export const useAIConfigStore = create<AIConfigState>()(
       },
 
       toggleProvider: async (providerId, isActive) => {
+        const provider = get().providers.find(p => p.id === providerId)
+        if (!provider || (isActive && motivoParaNoActivar(provider))) return
         await get().updateProvider(providerId, {
           isActive,
           // Reset connection state when deactivating
@@ -208,6 +224,8 @@ export const useAIConfigStore = create<AIConfigState>()(
             testMessage: ''
           })
         })
+        // Apagado, deja de redactar: el proceso principal ya ha vuelto al automático.
+        if (!isActive) refrescarModelosRAG()
       },
 
       updateAPIKey: async (providerId, apiKey, opciones = {}) => {
@@ -221,9 +239,11 @@ export const useAIConfigStore = create<AIConfigState>()(
         const estado = r.data
         set(state => ({
           providers: state.providers.map(p => p.id === providerId
-            ? { ...p, ...estado, isConnected: false, testStatus: 'idle' as const, testMessage: '' }
+            ? { ...p, ...estado, isActive: p.type === 'api' ? false : p.isActive, isConnected: false, testStatus: 'idle' as const, testMessage: '' }
             : p)
         }))
+        // Una clave nueva apaga el proveedor hasta que «Probar» la acepte (#246).
+        if (provider.type === 'api') refrescarModelosRAG()
         return true
       },
 
@@ -253,21 +273,17 @@ export const useAIConfigStore = create<AIConfigState>()(
           // Test connection via IPC using the actual database ID
           const result = await window.electronAPI.database.testAIProvider?.(dbProvider.id)
 
-          if (result?.success) {
-            // Fetch models after successful connection
-            await get().refreshProviderModels(providerId)
-            // Una prueba que pasa también puede traer un aviso (p. ej. NVIDIA sin
-            // acceso a uno de los modelos), que no debe tapar el «conectado» genérico.
-            if (result.message?.startsWith('ai.')) {
-              set(state => ({
-                providers: state.providers.map(p => p.id === providerId ? { ...p, testMessage: result.message } : p)
-              }))
-            }
-            return true
-          } else {
-            get().updateProviderConnection(providerId, false, 'error', result?.message || 'Connection failed')
-            return false
-          }
+          // La prueba enciende o apaga el proveedor y guarda sus modelos en el
+          // proceso principal (#246): se vuelve a leer de allí en vez de suponerlo.
+          await get().loadProviders()
+          const mensaje = result?.message || (result?.success ? 'Connected successfully' : 'Connection failed')
+          set(state => ({
+            providers: state.providers.map(p => p.id === providerId
+              ? { ...p, testStatus: result?.success ? 'success' as const : 'error' as const, testMessage: mensaje }
+              : p)
+          }))
+          refrescarModelosRAG()
+          return !!result?.success
         } catch (error) {
           logger.error('Provider connection test error:', error)
           get().updateProviderConnection(providerId, false, 'error', 'Connection test failed')

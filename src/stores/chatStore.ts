@@ -1,23 +1,10 @@
 import { logger } from '@/utils/logger'
-import { contextoDeConocimiento, cierreDeIdioma, hayQueTraducir } from '@/services/contextoConocimiento'
-import { limpiarCitasSinRespaldo, paginasQueAparecenEn, marcarReferenciasSinRespaldo, marcarNormasSinRespaldo, type RespaldoDeFuente } from '@/../backend/services/hydraulic/citasSinRespaldo'
 import { componerPromptDeSistema } from '@/../backend/services/hydraulic/promptDelAgente'
-import { marcarLoTraducido } from '@/services/avisoDeTraduccion'
 import { compruebaLaEntrada } from '@/services/guardianDeEntrada'
-import {
-  type Adjunto,
-  type UsoDelAdjunto,
-  bloqueParaElModelo,
-  estimarTokens,
-  fuentesQueCaben,
-  presupuestoDelAdjunto,
-  CONTEXTO_EN_LA_NUBE,
-  seleccionarFragmentos,
-  separarDocumentoPegado,
-} from '@/services/chat/adjunto'
+import { type Adjunto, type UsoDelAdjunto } from '@/services/chat/adjunto'
 import { similitudesDelAdjunto } from '@/services/chat/similitudDelAdjunto'
-import { promptDeRevision, problemasComprobados, apartadoDeRevision } from '@/services/chat/revisionContraElDocumento'
 import { consultasEnElIdiomaDelDocumento } from '@/services/chat/consultasDelAdjunto'
+import { componerPeticion, posprocesarRespuesta, promptConFuentes } from '@/services/chat/rutaDelChat'
 import { contextoDeOllama } from '@/../backend/services/contextoDeOllama'
 import {
   configuracionInicialDeConocimiento,
@@ -529,101 +516,28 @@ export const useChatStore = create<ChatState>()(
               }
             }
 
-            /**
-             * El adjunto vigente entra con lo que quepa después de todo lo demás
-             * (#194). Es el de este mensaje o el último de la conversación, para
-             * que se pueda seguir preguntando por él sin volver a adjuntarlo; y
-             * los fragmentos se eligen otra vez con cada pregunta.
-             *
-             * El historial va sin el documento que pegaban los mensajes de antes
-             * de #194: con él, cada turno de esas conversaciones desbordaba el
-             * contexto aunque ya no se preguntara por el documento.
-             */
-            const historial = conversation.messages.map(msg => ({ ...msg, content: separarDocumentoPegado(msg.content).pregunta }))
-            const vigente = [...conversation.messages].reverse().find(msg => msg.metadata?.adjunto)?.metadata?.adjunto
-            let adjuntoUsado: UsoDelAdjunto | undefined
-            let leidoDelAdjunto = ''
-            let paginasDelAdjunto: RespaldoDeFuente[] = []
-            if (vigente) {
-              /**
-               * El adjunto antes que el RAG (#201): su presupuesto se calcula sin
-               * contar las fuentes, y las fuentes entran después en lo que quede.
-               * Es lo que el usuario ha puesto delante para esta pregunta.
-               */
-              // Solo se descuenta el bloque que se puede recortar: el aviso de una
-              // búsqueda fallida no tiene fuentes que quitar y se queda entero.
-              const recortable = bloqueConocimiento && ragSources.length ? bloqueConocimiento : ''
-              const resto = estimarTokens(enhancedPrompt) - (recortable ? estimarTokens(recortable) : 0)
-                + historial.reduce((n, msg) => n + estimarTokens(msg.content), 0)
-              const esOllama = proveedor.toLowerCase() === 'ollama'
-              const modeloOllama = modelo.replace(/^ollama-/, '')
-              const numCtx = esOllama ? await contextoDeOllama(getOllamaBaseUrl(), modeloOllama) : CONTEXTO_EN_LA_NUBE
-              const presupuesto = presupuestoDelAdjunto(numCtx, resto)
-              // El significado y las consultas solo hacen falta si hay que elegir: un documento que cabe va entero (#205).
-              const hayQueElegir = estimarTokens(vigente.texto) > presupuesto
-              const [similitudes, textosDeConsultas] = hayQueElegir
-                ? await Promise.all([
-                    similitudesDelAdjunto(vigente.texto, content),
-                    esOllama
-                      ? consultasEnElIdiomaDelDocumento({
-                          documento: vigente.texto, pregunta: content, idiomaDeLaApp: idioma,
-                          baseUrl: getOllamaBaseUrl(), modelo: modeloOllama, numCtx,
-                        })
-                      : Promise.resolve([]),
-                  ])
-                : [undefined, []]
-              const consultas = await Promise.all(textosDeConsultas.map(async texto =>
-                ({ texto, similitudes: await similitudesDelAdjunto(vigente.texto, texto) })))
-              const seleccion = seleccionarFragmentos(vigente.texto, content, presupuesto, { similitudes, consultas })
-              const bloqueAdjunto = bloqueParaElModelo(vigente, seleccion)
-              leidoDelAdjunto = seleccion.texto
-              /**
-               * Con las páginas marcadas, sólo valen las de lo que se leyó. Sin
-               * mapa —un documento sin cabeceras—, cualquier número que aparezca
-               * en lo leído, que es lo único que se puede comprobar.
-               */
-              paginasDelAdjunto = seleccion.paginas
-                ? seleccion.paginas.map(page => ({ page }))
-                : paginasQueAparecenEn(seleccion.texto)
-              adjuntoUsado = {
-                nombre: vigente.nombre, incluidos: seleccion.incluidos, total: seleccion.total, completo: seleccion.completo,
-                ...(similitudes ? { porSignificado: true } : {}),
-              }
-
-              if (recortable) {
-                const caben = fuentesQueCaben(ragSources, presupuesto - estimarTokens(bloqueAdjunto),
-                  fuentes => contextoDeConocimiento(fuentes, idioma, { busquedaFallida }))
-                if (caben.length < ragSources.length) {
-                  // Sin ninguna, el bloque se quita entero: el de «no se encontró
-                  // nada» le diría al modelo algo que no es verdad. Y la función
-                  // de reemplazo evita que un «$&» del contenido se interprete.
-                  const nuevo = caben.length ? contextoDeConocimiento(caben, idioma, { busquedaFallida }) : ''
-                  enhancedPrompt = enhancedPrompt.replace(bloqueConocimiento, () => nuevo)
-                  adjuntoUsado.fuentesOmitidas = ragSources.length - caben.length
-                  ragSources = caben
-                }
-              }
-              enhancedPrompt = bloqueAdjunto + enhancedPrompt
-              if (!seleccion.completo || adjuntoUsado.fuentesOmitidas) logger.info('Adjunto ajustado al contexto', adjuntoUsado)
-            }
-
-            // Después del adjunto, porque puede haber quitado las fuentes que pedían traducir (#201).
-            enhancedPrompt += cierreDeIdioma(idioma, hayQueTraducir(ragSources, idioma))
+            const peticion = await componerPeticion({
+              pregunta: content,
+              idioma,
+              modelo,
+              proveedor,
+              conversacion: conversation.messages,
+              prompt: enhancedPrompt,
+              fuentes: ragSources,
+              bloqueConocimiento,
+              busquedaFallida,
+            }, {
+              contextoDeOllama: m => contextoDeOllama(getOllamaBaseUrl(), m),
+              similitudes: (texto, consulta) => similitudesDelAdjunto(texto, consulta),
+              consultasEnElIdioma: a => consultasEnElIdiomaDelDocumento({ ...a, baseUrl: getOllamaBaseUrl() }),
+            })
+            enhancedPrompt = peticion.prompt
+            ragSources = peticion.fuentes
+            const { historial, mensajes: messages, adjuntoUsado, leidoDelAdjunto, paginasDelAdjunto } = peticion
+            const vigente = peticion.adjunto
 
             // Clear any previous streaming message
             get().clearStreamingMessage()
-
-            // Prepare messages for chat handler (includes system prompt automatically)
-            const messages: ChatMessage[] = historial.map(msg => ({
-              role: msg.role,
-              content: msg.content
-            }))
-
-            // Add the current user message (use enhanced prompt if RAG is enabled)
-            messages.push({
-              role: 'user',
-              content: enhancedPrompt
-            })
 
             // Send with retry logic (1 retry for transient errors)
             const MAX_RETRIES = 1
@@ -697,82 +611,40 @@ export const useChatStore = create<ChatState>()(
                   throw err
                 }
 
-                /**
-                 * Las páginas que el modelo se invente no salen de aquí (#165).
-                 *
-                 * El chat no usa la respuesta que escribe el RAG —pide sólo las
-                 * fuentes, con `soloRecuperacion`— así que la limpieza que hace
-                 * el nodo de generación no le llega: la respuesta se escribe en
-                 * esta misma ruta y hay que comprobarla aquí, contra las
-                 * fuentes que de verdad se recuperaron.
-                 */
-                const escrita = result.data?.response || ''
-                const { texto: sinPaginasFalsas, quitadas } = limpiarCitasSinRespaldo(
-                  escrita,
-                  [...ragSources.map((f: any) => ({ page: f?.page })), ...paginasDelAdjunto]
-                )
-                if (quitadas.length > 0) {
-                  logger.warn('Se han quitado referencias a páginas sin respaldo en las fuentes:', quitadas)
-                }
-                // Y las ecuaciones y tablas citadas que no están en nada de lo leído.
-                const leido = [leidoDelAdjunto, ...ragSources.map((f: any) => f?.content ?? '')].join('\n')
-                const nota = i18n.t('chat.citas.noEstaEnLoLeido')
-                const conReferencias = marcarReferenciasSinRespaldo(sinPaginasFalsas, leido, nota)
-                const { texto: response, marcadas: normas } = marcarNormasSinRespaldo(conReferencias.texto, leido, nota)
-                const marcadas = [...conReferencias.marcadas, ...normas]
-                if (marcadas.length > 0) {
-                  logger.warn('Referencias a ecuaciones, tablas o normas que no están en lo leído:', marcadas)
-                }
-                /**
-                 * Y si lo citado venía de otro idioma, se dice (#160). La regla
-                 * está en el prompt y nemotron-mini la ignora, así que se
-                 * resuelve aquí en vez de pidiéndoselo otra vez.
-                 */
-                const respuesta = marcarLoTraducido(
-                  response,
-                  ragSources,
-                  usePreferencesStore.getState().language,
-                  { hayAdjunto: !!vigente }
-                )
-                /**
-                 * El modelo se calló a mitad y el handler entrega lo que llegó
-                 * (`FIN_POR_INACTIVIDAD`, #237). Se dice justo después del
-                 * texto, y no se revisa: la revisión daría por omitido lo que
-                 * simplemente no llegó.
-                 */
-                const cortada = result.data?.metadata?.finish_reason === 'inactividad'
-                let respuestaFinal = cortada ? `${respuesta}\n\n---\n\n*${i18n.t('chat.cortadaPorInactividad')}*` : respuesta
-                /**
-                 * La segunda pasada (`revisionContraElDocumento`): sólo en la
-                 * nube —con un modelo local serían minutos— y cuando hay algo
-                 * leído contra lo que comparar. Si falla, la respuesta sale igual.
-                 */
-                let revision: { problemas: number } | undefined
-                if (!isOllama && !cortada && leido.trim() && (vigente || ragSources.length)) {
-                  get().setStreamingMessage(i18n.t('chat.revision.enCurso'))
-                  try {
+                const final = await posprocesarRespuesta({
+                  pregunta: content,
+                  escrita: result.data?.response || '',
+                  finishReason: result.data?.metadata?.finish_reason,
+                  fuentes: ragSources,
+                  paginasDelAdjunto,
+                  leidoDelAdjunto,
+                  idioma: usePreferencesStore.getState().language,
+                  hayAdjunto: !!vigente,
+                  conRevision: !isOllama,
+                  textos: {
+                    noEstaEnLoLeido: i18n.t('chat.citas.noEstaEnLoLeido'),
+                    cortadaPorInactividad: i18n.t('chat.cortadaPorInactividad'),
+                    revision: {
+                      titulo: i18n.t('chat.revision.titulo'),
+                      contradice: i18n.t('chat.revision.contradice'),
+                      omite: i18n.t('chat.revision.omite'),
+                      pagina: p => i18n.t('chat.revision.pagina', { pagina: p }),
+                    },
+                  },
+                }, {
+                  alEmpezarLaRevision: () => get().setStreamingMessage(i18n.t('chat.revision.enCurso')),
+                  pedirRevision: async prompt => {
                     const r = await window.electronAPI.chat.sendMessage({
                       provider: proveedor,
                       model: modelo,
-                      messages: [{ role: 'user', content: promptDeRevision(content, leido, respuesta) }],
+                      messages: [{ role: 'user', content: prompt }],
                       sinRazonar: true,
                     })
-                    if (r?.success) {
-                      const problemas = problemasComprobados(r.data?.response ?? '', leido, respuesta, nota)
-                      respuestaFinal += apartadoDeRevision(problemas, {
-                        titulo: i18n.t('chat.revision.titulo'),
-                        contradice: i18n.t('chat.revision.contradice'),
-                        omite: i18n.t('chat.revision.omite'),
-                        pagina: p => i18n.t('chat.revision.pagina', { pagina: p }),
-                      })
-                      revision = { problemas: problemas.length }
-                    } else {
-                      logger.warn('La revisión contra el documento falló:', r?.error)
-                    }
-                  } catch (error) {
-                    logger.warn('La revisión contra el documento falló:', error)
-                  }
-                }
+                    return { success: !!r?.success, response: r?.data?.response, error: r?.error }
+                  },
+                })
+                const respuestaFinal = final.texto
+                const revision = final.revision
 
                 const metadata = result.data?.metadata || {
                   model: modelo,
@@ -1196,14 +1068,6 @@ export const useChatStore = create<ChatState>()(
           const sources = ragResult.data.sources || []
           const busquedaFallida = ragResult.data.busquedaFallida === true
 
-          // Build enhanced prompt with context
-          let enhancedPrompt = ''
-
-          // Add system prompt if available
-          if (systemPrompt) {
-            enhancedPrompt += `${systemPrompt}\n\n`
-          }
-
           /**
            * El bloque y sus reglas los arma `contextoConocimiento`, que es puro
            * y está probado aparte (#119, fase 2). Aquí se tiraban la sección y
@@ -1221,10 +1085,9 @@ export const useChatStore = create<ChatState>()(
            * como «es-ES»; `contextoDeConocimiento` se queda con la raíz.
            */
           const idiomaDelUsuario = usePreferencesStore.getState().language
-          // Se devuelve aparte para poder recortarlo si hay un adjunto que tiene prioridad (#201).
-          const bloqueConocimiento = contextoDeConocimiento(sources, idiomaDelUsuario, { busquedaFallida })
-          enhancedPrompt += bloqueConocimiento
-          enhancedPrompt += originalPrompt
+          const { prompt: enhancedPrompt, bloqueConocimiento } = promptConFuentes(
+            originalPrompt, sources, idiomaDelUsuario, { busquedaFallida, promptPropio: systemPrompt }
+          )
 
           // El cierre de idioma no se pone aquí: va al final de *todos* los
           // caminos, y por esta función sólo pasa uno (#160).

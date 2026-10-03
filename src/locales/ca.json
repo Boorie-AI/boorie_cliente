@@ -142,6 +142,21 @@
       "sinPrincipal": "Connectat, però la clau no té accés al model principal: només es pot fer servir l’auxiliar.",
       "sinAuxiliar": "Connectat, però la clau no té accés al model auxiliar: només es pot fer servir el principal."
     },
+    "prueba": {
+      "claveNoValida": "Clau no vàlida: el proveïdor la rebutja. Copia-la de nou des del teu compte. El proveïdor queda desactivat.",
+      "sinCredito": "La clau respon, però s’ha esgotat el crèdit o el límit de peticions. Torna-ho a provar més tard o revisa el teu compte.",
+      "sinRed": "No s’ha pogut connectar amb el proveïdor. Revisa la connexió a internet.",
+      "noDisponible": "El servei del proveïdor no respon ara mateix. Torna-ho a provar més tard.",
+      "sinModelos": "La clau respon, però el proveïdor no ofereix a aquesta clau cap model amb què conversar.",
+      "noSoportado": "Boorie no sap comprovar la clau d’aquest proveïdor, així que no es pot activar."
+    },
+    "activar": {
+      "etiqueta": "Activa {{proveedor}}",
+      "sinClave": "Per activar-lo, enganxa’n la clau i prem «Provar». Sense una clau vàlida no s’ofereix a cap selector.",
+      "sinProbar": "Prem «Provar»: s’activa tan bon punt el proveïdor accepti la clau.",
+      "claveIlegible": "La clau desada no es pot llegir en aquest equip. Enganxa-la de nou i prem «Provar» per activar-lo.",
+      "sinClaveValidada": "No es pot activar sense una clau que «Provar» hagi acceptat."
+    },
     "localModels": "Models locals (Ollama)",
     "apiProviders": "Proveïdors d’API",
     "ollamaConfiguration": "Configuració d’Ollama",
@@ -167,7 +182,7 @@
     "modelFijadoAviso": "El model que respon al xat es tria a dalt, a «Model que redacta les respostes del xat». Aquí es configuren les claus i el catàleg de cada proveïdor.",
     "checkingOllama": "S’està verificant la instal·lació d’Ollama…",
     "apiProviderConfig": "Configuració de proveïdors d’API",
-    "apiProviderConfigDesc": "Configura els teus proveïdors d’API per accedir a models d’IA al núvol. Tots els proveïdors estan deshabitats per defecte.",
+    "apiProviderConfigDesc": "Configura els teus proveïdors d’API per accedir a models d’IA al núvol. Estan desactivats fins que «Provar» n’accepti la clau.",
     "installOllamaModel": "Instal·la un model d’Ollama",
     "installationCompleted": "Instal·lació completada!",
     "progress": "Progrés",
@@ -1426,7 +1441,7 @@
     "measureFailed": "No s’ha pogut verificar la mesura",
     "sinProveedorDeEmbeddings": "No s’ha pogut indexar: no hi ha cap model d’embeddings disponible. Instal·la Ollama amb «bge-m3», o afegeix una clau d’OpenAI a Configuració → Configuració d’IA.",
     "chatSinConsentimiento": "**No s'ha enviat res.** El model triat és d'un proveïdor extern i falta el teu consentiment per enviar-li dades. Accepta'l a Configuració → Configuració d'IA → «Model que redacta», o torna al model automàtic per respondre en aquest equip.",
-    "chatSinClave": "**No s'ha enviat res.** El proveïdor triat no té cap clau que es pugui fer servir en aquest equip. Enganxa-la a Configuració → Configuració d'IA → Proveïdors API."
+    "chatSinClave": "**No s'ha enviat res.** El proveïdor triat està desactivat o no té cap clau que es pugui fer servir en aquest equip. Enganxa la clau i prem «Provar» a Configuració → Configuració d'IA → Proveïdors API."
   },
   "layers": {
     "junction": "Nusos de consum",

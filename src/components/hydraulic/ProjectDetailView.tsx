@@ -386,7 +386,7 @@ export function ProjectDetailView({ projectId, onBack }: ProjectDetailViewProps)
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <MessageSquare className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0" />
                           <h4 className="font-medium text-foreground truncate">{conv.title}</h4>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">

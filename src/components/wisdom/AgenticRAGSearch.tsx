@@ -257,7 +257,7 @@ export function AgenticRAGSearch({
       {result && (
         <div className="space-y-4">
           {/* Answer Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xs border border-gray-200 dark:border-gray-700">
             {/* Confidence Indicator */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">{t('wisdom.result.answer')}</h3>

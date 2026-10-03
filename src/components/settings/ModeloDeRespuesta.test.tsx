@@ -34,11 +34,13 @@ describe('elegir el modelo que redacta', () => {
         proveedor({ id: 'p-openai', name: 'OpenAI', type: 'api', availableModels: [{ modelId: 'gpt-x', modelName: 'GPT X', description: '', isSelected: true }] }),
         // Con una clave de otro equipo tampoco: no se puede usar (#225).
         proveedor({ id: 'p-nvidia', name: 'nvidia', type: 'api', tieneClave: false, estadoClave: 'ilegible', availableModels: [{ modelId: 'nv-x', modelName: 'NV X', description: '', isSelected: true }] }),
+        // Con clave y modelos, pero apagado: la clave no la ha aceptado «Probar» (#246).
+        proveedor({ id: 'p-google', name: 'google', type: 'api', isActive: false, tieneClave: true, estadoClave: 'ok', finClave: 'wxyz', availableModels: [{ modelId: 'gemini-x', modelName: 'Gemini X', description: '', isSelected: true }] }),
       ] as any,
     })
   })
 
-  it('ofrece los locales de chat y los externos con clave, no los de embeddings ni los sin clave', async () => {
+  it('ofrece los locales de chat y los externos activos con clave, no los de embeddings, ni los sin clave, ni los apagados', async () => {
     render(<ModeloDeRespuesta modelosOllama={['qwen2.5:7b', 'granite-embedding:278m', 'bge-m3:latest', 'nomic-embed-text:latest', 'llama3.2:latest']} />)
     await waitFor(() => expect(screen.getByRole('option', { name: /Automático.*nemotron-mini/ })).toBeInTheDocument())
 

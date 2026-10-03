@@ -170,7 +170,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                                     value={newName}
                                     onChange={(e) => setNewName(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                     placeholder={t('projects.nameExample')}
                                     autoFocus
                                 />
@@ -180,7 +180,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                                 <textarea
                                     value={newDesc}
                                     onChange={(e) => setNewDesc(e.target.value)}
-                                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                     placeholder={t('projects.descriptionHint')}
                                     rows={3}
                                 />
@@ -259,7 +259,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                                     </CardDescription>
                                 </CardHeader>
 
-                                <CardContent className="flex-grow">
+                                <CardContent className="grow">
                                     <div className="grid grid-cols-3 gap-2 py-4 border-y border-border">
                                         <div className="text-center">
                                             <div className="flex justify-center mb-1 text-blue-600 dark:text-blue-400"><Database className="h-4 w-4" /></div>

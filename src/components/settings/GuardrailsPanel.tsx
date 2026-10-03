@@ -78,7 +78,7 @@ export function GuardrailsPanel() {
   // La clave es la del proveedor NVIDIA (#225): aquí sólo se dice si la hay.
   useEffect(() => {
     databaseService.getAIProviders()
-      .then(ps => setNvidiaConClave(ps.some(p => p.name.toLowerCase() === 'nvidia' && p.tieneClave && p.estadoClave !== 'ilegible')))
+      .then(ps => setNvidiaConClave(ps.some(p => p.name.toLowerCase() === 'nvidia' && p.isActive && p.tieneClave && p.estadoClave !== 'ilegible')))
       .catch(() => setNvidiaConClave(null))
   }, [])
 
@@ -115,7 +115,7 @@ export function GuardrailsPanel() {
     <div className="overflow-y-auto h-full pb-12">
       {/* Header */}
       <div className="flex items-start gap-3 mb-6">
-        <Shield className="w-7 h-7 text-primary flex-shrink-0 mt-1" />
+        <Shield className="w-7 h-7 text-primary shrink-0 mt-1" />
         <div className="flex-1">
           <h2 className="text-xl font-semibold text-foreground">NVIDIA NeMo Guardrails</h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -140,8 +140,8 @@ export function GuardrailsPanel() {
           : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-900',
       )}>
         {pingStatus?.ok
-          ? <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0" />
-          : <ShieldAlert className="w-5 h-5 text-yellow-600 flex-shrink-0" />}
+          ? <ShieldCheck className="w-5 h-5 text-green-600 shrink-0" />
+          : <ShieldAlert className="w-5 h-5 text-yellow-600 shrink-0" />}
         <div className="text-sm">
           {pingStatus?.ok ? (
             <>
@@ -223,7 +223,7 @@ export function GuardrailsPanel() {
           onCheckedChange={(v) => update({ advisoryMode: v })}
           className="w-11 h-6 rounded-full bg-muted data-[state=checked]:bg-primary relative"
         >
-          <Switch.Thumb className="block w-5 h-5 rounded-full bg-white shadow translate-x-0.5 data-[state=checked]:translate-x-[22px] transition-transform" />
+          <Switch.Thumb className="block w-5 h-5 rounded-full bg-white shadow-sm translate-x-0.5 data-[state=checked]:translate-x-[22px] transition-transform" />
         </Switch.Root>
       </div>
 
@@ -239,9 +239,9 @@ export function GuardrailsPanel() {
             <Switch.Root
               checked={settings.enabled[rail]}
               onCheckedChange={(v) => toggleRail(rail, v)}
-              className="w-11 h-6 rounded-full bg-muted data-[state=checked]:bg-primary relative flex-shrink-0"
+              className="w-11 h-6 rounded-full bg-muted data-[state=checked]:bg-primary relative shrink-0"
             >
-              <Switch.Thumb className="block w-5 h-5 rounded-full bg-white shadow translate-x-0.5 data-[state=checked]:translate-x-[22px] transition-transform" />
+              <Switch.Thumb className="block w-5 h-5 rounded-full bg-white shadow-sm translate-x-0.5 data-[state=checked]:translate-x-[22px] transition-transform" />
             </Switch.Root>
           </div>
         ))}
@@ -262,8 +262,8 @@ export function GuardrailsPanel() {
             {violations.map((v) => (
               <div key={v.id} className="p-3 flex items-start gap-3 text-sm">
                 {v.blocked
-                  ? <XCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                  : <CheckCircle2 className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />}
+                  ? <XCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  : <CheckCircle2 className="w-4 h-4 text-yellow-600 shrink-0 mt-0.5" />}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-foreground capitalize">{v.rail}</span>
@@ -281,7 +281,7 @@ export function GuardrailsPanel() {
                       <span className="text-xs px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30">advisory</span>
                     )}
                   </div>
-                  <div className="text-muted-foreground mt-0.5 break-words">{v.reason}</div>
+                  <div className="text-muted-foreground mt-0.5 wrap-break-word">{v.reason}</div>
                   <div className="text-xs text-muted-foreground/70 mt-0.5">
                     {new Date(v.createdAt).toLocaleString()}
                     {v.judgeModel && ` · ${v.judgeModel} (${v.judgeProvider})`}

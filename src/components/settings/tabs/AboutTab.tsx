@@ -50,7 +50,7 @@ export function AboutTab() {
     <div className="h-full overflow-y-auto p-6 space-y-6">
       <div className="rounded-xl border border-border bg-card p-6">
         <div className="flex items-center gap-4">
-          <div className="h-14 w-14 shrink-0 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-2xl font-extrabold text-amber-950">
+          <div className="h-14 w-14 shrink-0 rounded-xl bg-linear-to-br from-amber-400 to-amber-600 flex items-center justify-center text-2xl font-extrabold text-amber-950">
             B
           </div>
           <div className="min-w-0">

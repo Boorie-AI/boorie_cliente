@@ -75,10 +75,9 @@ export class DatabaseService {
 
     async getAIProviders() {
         try {
+            // También los apagados (#246): Configuración tiene que enseñarlos para
+            // pegarles la clave. Los selectores filtran por `isActive`.
             const providers = await this.prisma.aIProvider.findMany({
-                where: {
-                    isActive: true
-                },
                 include: {
                     models: true
                 }
@@ -94,7 +93,9 @@ export class DatabaseService {
                 ...estadoPublico(provider.name, provider.apiKey),
                 isActive: provider.isActive,
                 enabled: provider.isActive,
-                isConnected: false,
+                isConnected: provider.isConnected,
+                lastTestResult: provider.lastTestResult as "success" | "error" | null,
+                lastTestMessage: provider.lastTestMessage,
                 createdAt: new Date(),
                 updatedAt: new Date(),
                 baseUrl: provider.config ? (JSON.parse(provider.config as string)).baseUrl : undefined,
@@ -192,12 +193,14 @@ export class DatabaseService {
     /**
      * La clave de un proveedor por su nombre, ya descifrada, para el proceso principal.
      *
-     * En la base conviven «openai» y «OpenAI»: vale la primera que tenga una clave legible.
+     * Sólo de un proveedor activo (#246): uno apagado no se usa aunque guarde
+     * clave. Las bases antiguas pueden tener «openai» y «OpenAI» hasta que pase
+     * `corregirProveedores`: vale la primera que tenga una clave legible.
      */
     async claveDeProveedor(nombre: string): Promise<string | null> {
-        const filas = await this.prisma.aIProvider.findMany({ select: { name: true, apiKey: true } });
+        const filas = await this.prisma.aIProvider.findMany({ select: { name: true, apiKey: true, isActive: true } });
         for (const fila of filas) {
-            if (fila.name.toLowerCase() !== nombre.toLowerCase()) continue;
+            if (fila.name.toLowerCase() !== nombre.toLowerCase() || !fila.isActive) continue;
             const clave = claveUtilizable(fila.name, fila.apiKey);
             if (clave) return clave;
         }

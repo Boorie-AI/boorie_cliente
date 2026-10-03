@@ -84,7 +84,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
       )}>
         <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[85vh]">
           {/* Header - Fixed */}
-          <div className="flex items-center justify-between p-6 border-b border-border flex-shrink-0">
+          <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
             <Dialog.Title className="text-xl font-semibold text-foreground">
               {t('newProject.title')}
             </Dialog.Title>
@@ -127,7 +127,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                   className={cn(
                     "w-full px-4 py-2 rounded-lg",
                     "bg-input border border-border",
-                    "focus:outline-none focus:ring-2 focus:ring-ring",
+                    "focus:outline-hidden focus:ring-2 focus:ring-ring",
                     "placeholder:text-muted-foreground"
                   )}
                   placeholder={t('newProject.placeholders.name')}
@@ -145,7 +145,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                   className={cn(
                     "w-full px-4 py-2 rounded-lg",
                     "bg-input border border-border",
-                    "focus:outline-none focus:ring-2 focus:ring-ring",
+                    "focus:outline-hidden focus:ring-2 focus:ring-ring",
                     "placeholder:text-muted-foreground",
                     "resize-none"
                   )}
@@ -221,7 +221,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                     className={cn(
                       "w-full px-4 py-2 rounded-lg",
                       "bg-input border border-border",
-                      "focus:outline-none focus:ring-2 focus:ring-ring"
+                      "focus:outline-hidden focus:ring-2 focus:ring-ring"
                     )}
                   >
                     <option value="">{t('newProject.placeholders.country')}</option>
@@ -247,7 +247,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                     className={cn(
                       "w-full px-4 py-2 rounded-lg",
                       "bg-input border border-border",
-                      "focus:outline-none focus:ring-2 focus:ring-ring",
+                      "focus:outline-hidden focus:ring-2 focus:ring-ring",
                       "placeholder:text-muted-foreground"
                     )}
                     placeholder={t('newProject.placeholders.region')}
@@ -268,7 +268,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                     className={cn(
                       "w-full px-4 py-2 rounded-lg",
                       "bg-input border border-border",
-                      "focus:outline-none focus:ring-2 focus:ring-ring",
+                      "focus:outline-hidden focus:ring-2 focus:ring-ring",
                       "placeholder:text-muted-foreground"
                     )}
                     placeholder={t('newProject.placeholders.city')}
@@ -295,7 +295,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                   className={cn(
                     "w-full px-4 py-2 rounded-lg",
                     "bg-input border border-border",
-                    "focus:outline-none focus:ring-2 focus:ring-ring"
+                    "focus:outline-hidden focus:ring-2 focus:ring-ring"
                   )}
                 >
                   <option value="planning">{t('newProject.status.planning')}</option>
@@ -316,7 +316,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                   className={cn(
                     "w-full px-4 py-2 rounded-lg",
                     "bg-input border border-border",
-                    "focus:outline-none focus:ring-2 focus:ring-ring"
+                    "focus:outline-hidden focus:ring-2 focus:ring-ring"
                   )}
                 />
               </div>
@@ -331,7 +331,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                   className={cn(
                     "w-full px-4 py-2 rounded-lg",
                     "bg-input border border-border",
-                    "focus:outline-none focus:ring-2 focus:ring-ring",
+                    "focus:outline-hidden focus:ring-2 focus:ring-ring",
                     "placeholder:text-muted-foreground"
                   )}
                 />
@@ -347,7 +347,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                   className={cn(
                     "w-full px-4 py-2 rounded-lg",
                     "bg-input border border-border",
-                    "focus:outline-none focus:ring-2 focus:ring-ring",
+                    "focus:outline-hidden focus:ring-2 focus:ring-ring",
                     "placeholder:text-muted-foreground"
                   )}
                 />
@@ -363,7 +363,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                   className={cn(
                     "w-full px-4 py-2 rounded-lg",
                     "bg-input border border-border",
-                    "focus:outline-none focus:ring-2 focus:ring-ring",
+                    "focus:outline-hidden focus:ring-2 focus:ring-ring",
                     "placeholder:text-muted-foreground",
                     "resize-none"
                   )}
@@ -373,7 +373,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
           </div>
           
           {/* Footer - Fixed */}
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-border flex-shrink-0">
+          <div className="flex items-center justify-end gap-3 p-6 border-t border-border shrink-0">
             <button
               type="button"
               onClick={onClose}
