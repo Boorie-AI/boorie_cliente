@@ -52,7 +52,8 @@
       "contradice": "El document diu una altra cosa sobre",
       "omite": "Hi falta:",
       "pagina": "(p. {{pagina}})"
-    }
+    },
+    "cortadaPorInactividad": "Resposta incompleta: el model ha deixat d'enviar text i s'ha tallat aquí. Això és el que ha arribat; si hi falta alguna cosa, torna a preguntar."
   },
   "settings": {
     "title": "Configuració",

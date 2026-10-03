@@ -735,13 +735,20 @@ export const useChatStore = create<ChatState>()(
                   { hayAdjunto: !!vigente }
                 )
                 /**
+                 * El modelo se calló a mitad y el handler entrega lo que llegó
+                 * (`FIN_POR_INACTIVIDAD`, #237). Se dice justo después del
+                 * texto, y no se revisa: la revisión daría por omitido lo que
+                 * simplemente no llegó.
+                 */
+                const cortada = result.data?.metadata?.finish_reason === 'inactividad'
+                let respuestaFinal = cortada ? `${respuesta}\n\n---\n\n*${i18n.t('chat.cortadaPorInactividad')}*` : respuesta
+                /**
                  * La segunda pasada (`revisionContraElDocumento`): sólo en la
                  * nube —con un modelo local serían minutos— y cuando hay algo
                  * leído contra lo que comparar. Si falla, la respuesta sale igual.
                  */
-                let respuestaFinal = respuesta
                 let revision: { problemas: number } | undefined
-                if (!isOllama && leido.trim() && (vigente || ragSources.length)) {
+                if (!isOllama && !cortada && leido.trim() && (vigente || ragSources.length)) {
                   get().setStreamingMessage(i18n.t('chat.revision.enCurso'))
                   try {
                     const r = await window.electronAPI.chat.sendMessage({
@@ -752,7 +759,7 @@ export const useChatStore = create<ChatState>()(
                     })
                     if (r?.success) {
                       const problemas = problemasComprobados(r.data?.response ?? '', leido, respuesta, nota)
-                      respuestaFinal = respuesta + apartadoDeRevision(problemas, {
+                      respuestaFinal += apartadoDeRevision(problemas, {
                         titulo: i18n.t('chat.revision.titulo'),
                         contradice: i18n.t('chat.revision.contradice'),
                         omite: i18n.t('chat.revision.omite'),
