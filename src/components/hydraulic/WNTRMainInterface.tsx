@@ -1674,7 +1674,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             {analysisResults.criticality.data.criticality_analysis?.top_critical_nodes?.slice(0, 3).map((n: any) => (
                               <Badge
                                 key={n[0]}
-                                variant={highlightedComponents.includes(n[0]) ? "default" : "outline-solid"}
+                                variant={highlightedComponents.includes(n[0]) ? "default" : "outline"}
                                 className="text-[10px] h-5 cursor-pointer hover:bg-primary/20"
                                 onClick={() => setHighlightedComponents(prev => prev.includes(n[0]) ? prev.filter(x => x !== n[0]) : [...prev, n[0]])}
                               >
@@ -1949,7 +1949,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                             {failureResult.affected_nodes.slice(0, 8).map((n: any) => (
                               <Badge
                                 key={n.id}
-                                variant={highlightedComponents.includes(n.id) ? "default" : "outline-solid"}
+                                variant={highlightedComponents.includes(n.id) ? "default" : "outline"}
                                 className="text-[10px] h-5 cursor-pointer hover:bg-primary/20"
                                 onClick={() => setHighlightedComponents(prev => prev.includes(n.id) ? prev.filter(x => x !== n.id) : [...prev, n.id])}
                                 title={t('networkView.residualPressure', { presion: n.min_pressure.toFixed(2), horas: impacto(n.outage_hours).toFixed(1) })}
