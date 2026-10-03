@@ -39,13 +39,15 @@ export function texLegible(tex: string): string {
   for (let i = 0; i < 5; i++) {
     const antes = s
     s = s
+      // Antes que \frac, que no ve dentro de llaves anidadas: «\frac{S_{n-1}}{…}» se quedaba
+      // sin convertir. Con paréntesis, «S_(n-1)» no se lee como «S_n menos 1».
+      .replace(/_\{([^{}]*)\}/g, (_, sub: string) => (sub.trim().length > 1 ? `_(${sub.trim()})` : `_${sub.trim()}`))
       .replace(/\\[dt]?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, (_, a: string, b: string) => `${envolver(a)}/${envolver(b)}`)
       .replace(/\\sqrt\s*\{([^{}]*)\}/g, '√($1)')
       .replace(/\\(?:text|mathrm|mathbf|mathit|operatorname)\s*\{([^{}]*)\}/g, '$1')
     if (s === antes) break
   }
   return s
-    .replace(/_\{([^{}]*)\}/g, '_$1')
     .replace(/[{}]/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim()
@@ -54,7 +56,18 @@ export function texLegible(tex: string): string {
 // «2g» va entre paréntesis: «v²/2g» se puede leer como (v²/2)·g.
 const envolver = (s: string) => {
   const limpio = s.trim()
-  return /^(\d+(\.\d+)?|[^\W\d][\w⁰¹²³⁴⁵⁶⁷⁸⁹⁻]*)$/u.test(limpio) ? limpio : `(${limpio})`
+  return /^(\d+(\.\d+)?|[^\W\d][\w⁰¹²³⁴⁵⁶⁷⁸⁹⁻]*)$/u.test(limpio) || entreParentesis(limpio) ? limpio : `(${limpio})`
+}
+
+// El modelo suele escribir ya «\frac{(a - b)}{c}»: envolverlo otra vez daba «((a - b))».
+const entreParentesis = (s: string) => {
+  if (!s.startsWith('(') || !s.endsWith(')')) return false
+  let nivel = 0
+  for (let i = 0; i < s.length; i++) {
+    nivel += s[i] === '(' ? 1 : s[i] === ')' ? -1 : 0
+    if (nivel === 0 && i < s.length - 1) return false
+  }
+  return true
 }
 
 const BORDE = 'border:1px solid #808080;padding:4px 8px;vertical-align:top'

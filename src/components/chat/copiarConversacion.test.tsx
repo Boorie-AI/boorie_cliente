@@ -73,6 +73,17 @@ describe('texLegible', () => {
     expect(texLegible('\\sqrt{2 g h}')).toBe('√(2 g h)')
     expect(texLegible('Q = \\frac{\\pi D^2}{4} v')).toBe('Q = (π D²)/4 v')
   })
+
+  it('convierte fracciones con subíndices dentro y no dobla los paréntesis', () => {
+    // Las tres, tal cual las escribió el modelo en la prueba de bombeo de Walton.
+    expect(texLegible('C = \\frac{(S_n/Q_n - S_{n-1}/Q_{n-1})}{(2(Q_n + Q_{n-1}))}'))
+      .toBe('C = (S_n/Q_n - S_(n-1)/Q_(n-1))/(2(Q_n + Q_(n-1)))')
+    expect(texLegible('C = \\frac{(5.14/151 - 3.35/100)}{2(151 + 100)}'))
+      .toBe('C = (5.14/151 - 3.35/100)/(2(151 + 100))')
+    expect(texLegible('C = \\frac{(0.03408 - 0.0335)}{502} = \\frac{0.00058}{502} = 0.001156 sec^2/ft^5'))
+      .toBe('C = (0.03408 - 0.0335)/502 = 0.00058/502 = 0.001156 sec²/ft⁵')
+    expect(texLegible('\\frac{(a)+(b)}{2}')).toBe('((a)+(b))/2')
+  })
 })
 
 describe('copiarAlPortapapeles', () => {
