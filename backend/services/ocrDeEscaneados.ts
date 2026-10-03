@@ -108,7 +108,10 @@ export async function leerConOcr(pdfBuffer: Buffer, alProgreso?: AlProgresoOcr):
       // tesseract necesita para no confundir cifras, sin disparar la memoria.
       const vista = pagina.getViewport({ scale: 2 })
       const lienzo = createCanvas(Math.ceil(vista.width), Math.ceil(vista.height))
-      await pagina.render({ canvas: null, canvasContext: lienzo.getContext('2d'), viewport: vista }).promise
+      // pdfjs tipa el contexto con el del DOM; el de @napi-rs/canvas sirve igual.
+      // `never` compila con la lib DOM (el renderer, que lo ve por la batería del
+      // RAG) y sin ella (el proceso principal).
+      await pagina.render({ canvas: null, canvasContext: lienzo.getContext('2d') as never, viewport: vista }).promise
       const { data } = await worker.recognize(await lienzo.encode('png'))
       paginas.push({ texto: data.text, confianza: data.confidence })
       pagina.cleanup()

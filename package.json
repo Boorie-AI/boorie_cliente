@@ -26,7 +26,8 @@
     "db:migrate": "prisma migrate dev",
     "postinstall": "prisma generate",
     "typecheck:renderer": "tsc --noEmit",
-    "typecheck:electron": "tsc --noEmit -p tsconfig.electron.json"
+    "typecheck:electron": "tsc --noEmit -p tsconfig.electron.json",
+    "eval:rag": "node scripts/eval-rag.mjs"
   },
   "keywords": [
     "electron",
