@@ -35,6 +35,7 @@ export class GenerateNode {
       // es la única llamada por pregunta, así que aquí sí cabe el grande.
       const escrita = await llamarModeloRAG({
         rol: 'principal',
+        tarea: 'redactar',
         prompt,
         temperatura: this.config.temperature,
         maxTokens: this.config.maxTokens,

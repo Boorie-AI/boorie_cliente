@@ -10,7 +10,7 @@ import { DatabaseService } from './database.service'
 import { ConversationService } from './conversation.service'
 import { AIProviderService } from './aiProvider.service'
 import { appLogger } from '../utils/logger'
-import { PAREJAS, backendRAG } from './hydraulic/agentic/modelosRAG'
+import { PAREJAS, revisarMotorRAG, usarClaveNvidiaDe } from './hydraulic/agentic/modelosRAG'
 
 export class ServiceContainer {
   private databaseService: DatabaseService
@@ -35,11 +35,15 @@ export class ServiceContainer {
     // Initialize default providers (OpenAI, Anthropic, Nvidia, Ollama)
     await this.aiProviderService.initializeDefaultProviders()
 
+    // La clave de NVIDIA del RAG es la de Proveedores API, descifrada aquí y
+    // nunca en el renderer (#224). Antes de mirar el motor, o diría «sin clave».
+    usarClaveNvidiaDe(() => this.databaseService.claveDeProveedor('nvidia'))
+
     // Los modelos de la ruta del RAG (#49), leídos de donde se deciden para no
     // mantener dos listas. Hoy la pareja local es el mismo modelo en los dos
     // papeles, así que esto descarga uno; cuando dejen de serlo, descargará los
     // dos sin tocar nada aquí.
-    if (backendRAG() === 'ollama') {
+    if ((await revisarMotorRAG()).efectivo === 'ollama') {
       for (const modelo of new Set(Object.values(PAREJAS.ollama))) {
         this.logger.info(`Ensuring RAG model ${modelo} exists...`)
 

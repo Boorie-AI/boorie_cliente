@@ -472,6 +472,14 @@ const electronAPI = {
 
     modelos: () => ipcRenderer.invoke('agentic-rag-modelos'),
 
+    /** Dónde se procesa la búsqueda (#224): el estado y el ajuste de Configuración. */
+    motor: () => ipcRenderer.invoke('agentic-rag-motor'),
+    guardarMotor: (motor: 'ollama' | 'nvidia') => ipcRenderer.invoke('agentic-rag-guardar-motor', motor),
+
+    /** Consultas en el idioma del adjunto escritas en la nube; la clave se queda en el proceso principal. */
+    consultas: (peticion: { pregunta: string; idioma: string; proveedor: string; modelo: string }) =>
+      ipcRenderer.invoke('agentic-rag-consultas', peticion),
+
     getMetrics: () => ipcRenderer.invoke('agentic-rag-metrics'),
 
     resetMetrics: () => ipcRenderer.invoke('agentic-rag-reset-metrics'),

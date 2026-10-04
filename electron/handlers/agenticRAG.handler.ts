@@ -2,7 +2,16 @@ import { ipcMain } from 'electron'
 import { PrismaClient } from '@prisma/client'
 import { createAgenticRAGService } from '../../backend/services/hydraulic/agentic/agenticRAGService'
 import { guardrailsWrapper } from '../../backend/services/guardrails/guardrailsWrapper'
-import { estadoModelosRAG, usarClaveNvidiaDe } from '../../backend/services/hydraulic/agentic/modelosRAG'
+import {
+  cerrarRegistroRAG,
+  empezarRegistroRAG,
+  estadoModelosRAG,
+  guardarMotorRAG,
+  revisarMotorRAG,
+  usarClaveNvidiaDe,
+} from '../../backend/services/hydraulic/agentic/modelosRAG'
+import { consultasEnLaNube } from '../../backend/services/hydraulic/agentic/consultasEnLaNube'
+import { esIdioma } from '../../backend/services/hydraulic/consultasEnOtroIdioma'
 import { DatabaseService } from '../../backend/services/database.service'
 
 let ragService: any = null
@@ -46,8 +55,10 @@ async function auditViolation(
 export function registerAgenticRAGHandlers(prismaClient: PrismaClient) {
   console.log('[AgenticRAG Handler] Starting registration...')
 
+  // La misma fuente que fija `ServiceContainer.initialize`, para no depender del orden de arranque.
+  // `NVIDIA_API_KEY`, si está puesta, manda: eso lo decide `modelosRAG`.
   const proveedores = new DatabaseService(prismaClient)
-  usarClaveNvidiaDe(async () => (await proveedores.claveDeProveedor('nvidia')) ?? process.env.NVIDIA_API_KEY ?? null)
+  usarClaveNvidiaDe(() => proveedores.claveDeProveedor('nvidia'))
 
   // Initialize service
   if (!ragService) {
@@ -93,7 +104,15 @@ export function registerAgenticRAGHandlers(prismaClient: PrismaClient) {
         }
       }
 
-      const result = await ragService.query(question, options)
+      // La clave o el consentimiento pueden haber cambiado desde la última pregunta.
+      await revisarMotorRAG()
+      empezarRegistroRAG()
+      let result
+      try {
+        result = await ragService.query(question, options)
+      } finally {
+        cerrarRegistroRAG({ redacta: options.soloRecuperacion ? 'el modelo del chat («Processing chat message»)' : undefined })
+      }
 
       // Guardrail: retrieval rail (only if we have RAG sources)
       const sourceTexts: string[] = (result?.sources ?? [])
@@ -175,6 +194,37 @@ export function registerAgenticRAGHandlers(prismaClient: PrismaClient) {
         error: error instanceof Error ? error.message : 'No se pudo resolver el modelo del RAG',
       }
     }
+  })
+
+  ipcMain.handle('agentic-rag-motor', async () => {
+    try {
+      return { success: true, data: await revisarMotorRAG() }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  /**
+   * «Dónde se procesa la búsqueda» (#224). El consentimiento lo pide la
+   * interfaz antes; si no consta, esto guarda la elección igual y la búsqueda
+   * sigue en local, que es lo que el estado devuelto le dice a Configuración.
+   */
+  ipcMain.handle('agentic-rag-guardar-motor', async (_e, motor: unknown) => {
+    if (motor !== 'ollama' && motor !== 'nvidia') return { success: false, error: 'Motor no válido' }
+    try {
+      return { success: true, data: await guardarMotorRAG(prismaClient, motor) }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
+  ipcMain.handle('agentic-rag-consultas', async (_e, peticion: { pregunta?: unknown; idioma?: unknown; proveedor?: unknown; modelo?: unknown }) => {
+    const { pregunta, idioma, proveedor, modelo } = peticion ?? {}
+    if (typeof pregunta !== 'string' || !pregunta.trim() || !esIdioma(idioma)
+      || typeof proveedor !== 'string' || typeof modelo !== 'string' || !modelo.trim()) {
+      return { success: false, error: 'Petición de consultas no válida' }
+    }
+    return { success: true, ...(await consultasEnLaNube({ pregunta, idioma, proveedor, modelo })) }
   })
 
   ipcMain.handle('agentic-rag-metrics', async () => {

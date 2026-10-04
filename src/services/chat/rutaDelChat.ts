@@ -78,8 +78,12 @@ export interface DependenciasDePeticion {
   limitesDeLaApi?: (proveedor: string, modelo: string) => Promise<LimitesDeLaApi | undefined>
   /** Un coseno por fragmento del adjunto, o nada si no se pudo (`similitudesDelAdjunto`). */
   similitudes: (texto: string, consulta: string) => Promise<number[] | undefined>
-  /** Consultas en el idioma del documento (`consultasEnElIdiomaDelDocumento`); sólo con Ollama. */
-  consultasEnElIdioma: (a: { documento: string; pregunta: string; idiomaDeLaApp: IdiomaApp; modelo: string; numCtx: number }) => Promise<string[]>
+  /**
+   * Consultas en el idioma del documento (`consultasEnElIdiomaDelDocumento`). Se piden con
+   * cualquier proveedor: quién las escribe —Ollama, NVIDIA por IPC o sólo el glosario— lo decide
+   * quien da la dependencia (#224).
+   */
+  consultasEnElIdioma: (a: { documento: string; pregunta: string; idiomaDeLaApp: IdiomaApp; proveedor: string; modelo: string; numCtx: number }) => Promise<string[]>
 }
 
 export interface Peticion<M extends MensajeDelHistorial> {
@@ -180,11 +184,10 @@ export async function componerPeticion<M extends MensajeDelHistorial>(
       const [similitudes, textosDeConsultas] = hayQueElegir
         ? await Promise.all([
             deps.similitudes(vigente.texto, pregunta),
-            esOllama
-              ? deps.consultasEnElIdioma({
-                  documento: vigente.texto, pregunta, idiomaDeLaApp: idioma, modelo: modeloOllama, numCtx,
-                })
-              : Promise.resolve([]),
+            deps.consultasEnElIdioma({
+              documento: vigente.texto, pregunta, idiomaDeLaApp: idioma, proveedor,
+              modelo: esOllama ? modeloOllama : modelo, numCtx,
+            }),
           ])
         : [undefined, []]
       const consultas = await Promise.all(textosDeConsultas.map(async texto =>

@@ -11,6 +11,21 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 
 ## [Unreleased]
 
+- **La búsqueda en tus documentos también puede hacerse en NVIDIA, desde Configuración.** Antes
+  sólo la respuesta podía escribirla un modelo en la nube: reformular la pregunta y decidir qué
+  fragmentos sirven se hacía siempre en este equipo, y en un portátil sin GPU era la parte lenta
+  —más de dos minutos por pregunta—. Ahora, en Configuración → Configuración de IA, «Dónde se
+  procesa la búsqueda» permite elegir NVIDIA, con la misma clave que ya usa el chat y tras dar el
+  consentimiento para enviarle los datos. Si falta la clave o el consentimiento, Configuración lo
+  avisa y la búsqueda sigue en este equipo.
+- **Con un modelo de NVIDIA, las preguntas en castellano encuentran lo que buscan en un libro en
+  inglés.** Con el modelo local Boorie busca también con términos en el idioma del documento
+  —«step drawdown test» para una prueba escalonada—, pero con un modelo en la nube esa ayuda no se
+  usaba. Ahora también se usa con NVIDIA.
+- **Si NVIDIA pide esperar, Boorie espera y reintenta.** Cuando la API rechaza peticiones por ir
+  demasiado deprisa, la búsqueda espera lo que pide y lo vuelve a intentar; si aun así no puede
+  evaluar algún fragmento, lo conserva y queda anotado en el registro.
+
 - **Con los modelos en la nube, la respuesta se ve mientras se escribe.** Con NVIDIA, OpenAI,
   OpenRouter, Anthropic y Google había que esperar a que terminara entera —a veces varios
   minutos— sin ver nada. Ahora el texto aparece a medida que llega, como con el modelo local, y

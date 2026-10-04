@@ -208,13 +208,27 @@
     "tryDifferentSearch": "Prueba con un término de búsqueda diferente",
     "modeloRespuesta": {
       "titulo": "Modelo que redacta las respuestas del chat",
-      "descripcion": "Puede ser uno de este equipo o de un proveedor externo con clave. La búsqueda en tus documentos y la evaluación de las fuentes se siguen haciendo en local.",
+      "descripcion": "Puede ser uno de este equipo o de un proveedor externo con clave. Dónde se busca en tus documentos y se evalúan las fuentes se elige en «Dónde se procesa la búsqueda».",
       "automatico": "Automático (recomendado): {{modelo}}",
       "local": "En este equipo (Ollama)",
       "sinExternos": "Para elegir un modelo externo, añade la clave del proveedor en «Proveedores API» y carga sus modelos.",
       "avisoExterno": "Con un modelo de {{proveedor}}, tu pregunta y los fragmentos de tus documentos que la acompañan salen de este equipo hacia {{proveedor}}.",
       "guardado": "Guardado. Se aplica desde la próxima pregunta.",
       "sigueLocal": "No se ha cambiado: sin tu consentimiento no se envía nada a {{proveedor}} y sigue respondiendo el modelo de este equipo."
+    },
+    "motorBusqueda": {
+      "titulo": "Dónde se procesa la búsqueda",
+      "descripcion": "Reformular tu pregunta y decidir qué fragmentos de tus documentos sirven para responderla. En este equipo no sale nada; con NVIDIA va más rápido en un equipo sin GPU, pero la pregunta y los fragmentos salen hacia NVIDIA.",
+      "local": "En este equipo (Ollama)",
+      "nvidia": "NVIDIA (en la nube)",
+      "porEntorno": "Lo fija la variable de entorno BOORIE_RAG_BACKEND, que manda sobre este ajuste: {{motor}}.",
+      "sinClave": "No hay una clave de NVIDIA válida en «Proveedores API»: la búsqueda sigue en este equipo. Añade la clave de NVIDIA y pruébala para usarla.",
+      "sinConsentimiento": "Sin tu consentimiento para NVIDIA no se envía nada: la búsqueda sigue en este equipo.",
+      "darConsentimiento": "Revisar el consentimiento para NVIDIA",
+      "avisoNube": "Tu pregunta y los fragmentos de tus documentos salen de este equipo hacia NVIDIA para reformularla y evaluar cuáles sirven.",
+      "guardado": "Guardado. Se aplica desde la próxima pregunta.",
+      "sigueLocal": "No se ha cambiado: sin tu consentimiento no se envía nada a NVIDIA y la búsqueda sigue en este equipo.",
+      "error": "No se pudo guardar el ajuste."
     },
     "clave": {
       "estadoOk": "Guardada y cifrada con el llavero del sistema · termina en …{{fin}}",

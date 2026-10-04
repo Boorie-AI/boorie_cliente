@@ -4,10 +4,11 @@
  * qué pasa cuando el juez falla y cuándo se conserva lo recuperado.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest'
 import axios from 'axios'
 import { GradeNode } from './gradeNode'
-import { olvidarModelosRAG } from '../modelosRAG'
+import { cargarMotorRAG, guardarMotorRAG, olvidarModelosRAG, usarClaveNvidiaDe } from '../modelosRAG'
+import { aceptarConsentimiento, cargarConsentimientos } from '../../../security/consentimientoNube'
 
 vi.mock('axios')
 
@@ -100,6 +101,79 @@ describe('graduado de documentos', () => {
     const [, cuerpo] = vi.mocked(axios.post).mock.calls[0] as [string, any]
     expect(cuerpo.options.num_predict).toBeGreaterThan(0)
     expect(cuerpo.options.max_tokens).toBeUndefined()
+  })
+
+  describe('con NVIDIA (#224)', () => {
+    let avisos: MockInstance
+    const ajustes = () => {
+      const filas = new Map<string, string>()
+      return {
+        appSetting: {
+          findUnique: async ({ where }: { where: { key: string } }) => (filas.has(where.key) ? { value: filas.get(where.key)! } : null),
+          upsert: async ({ where, create, update }: { where: { key: string }; create: { value: string }; update: { value: string } }) => { filas.set(where.key, filas.has(where.key) ? update.value : create.value) },
+        },
+      }
+    }
+    const lista = (veredictos: Array<{ doc: number; relevant: boolean; score: number }>) =>
+      ({ data: { choices: [{ message: { content: JSON.stringify(veredictos.map(v => ({ ...v, reason: 'porque sí' }))) } }] } })
+
+    beforeEach(async () => {
+      delete process.env.BOORIE_RAG_MODELO_PRINCIPAL
+      delete process.env.BOORIE_RAG_MODELO_AUXILIAR
+      const a = ajustes()
+      await cargarConsentimientos(a)
+      await aceptarConsentimiento(a, 'nvidia')
+      usarClaveNvidiaDe(async () => 'nvapi-FAKEgrado0123456789abcdefghijklmnop')
+      await guardarMotorRAG(a, 'nvidia')
+      avisos = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      vi.spyOn(console, 'log').mockImplementation(() => {})
+    })
+
+    afterEach(async () => {
+      vi.useRealTimers()
+      vi.restoreAllMocks()
+      await cargarConsentimientos(ajustes())
+      await cargarMotorRAG(ajustes())
+      usarClaveNvidiaDe(async () => null)
+    })
+
+    it('gradúa de cinco en cinco: siete fragmentos son dos llamadas, no siete', async () => {
+      vi.mocked(axios.post)
+        .mockResolvedValueOnce(lista([1, 2, 3, 4, 5].map(doc => ({ doc, relevant: doc !== 2, score: 0.9 }))) as never)
+        .mockResolvedValueOnce(lista([{ doc: 1, relevant: true, score: 0.8 }, { doc: 2, relevant: false, score: 0.1 }]) as never)
+      const docs = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map(id => documento(id))
+      const r = await new GradeNode(config).execute(estado(docs), gestor())
+
+      expect(axios.post).toHaveBeenCalledTimes(2)
+      expect(r.metrics?.apiCalls).toBe(2)
+      expect(r.data.gradedDocuments.map(d => d.relevant)).toEqual([true, false, true, true, true, true, false])
+      const [, cuerpo] = vi.mocked(axios.post).mock.calls[0] as unknown as [string, { model: string; messages: Array<{ content: string }> }]
+      expect(cuerpo.model).toBe('nvidia/nemotron-3.5-lightning-30b-a3b')
+      expect(cuerpo.messages[0].content).toContain('[5] Fuente: Anomalías e')
+    })
+
+    it('lo que el juez no evalúa en el lote se conserva y se dice', async () => {
+      vi.mocked(axios.post).mockResolvedValueOnce(lista([{ doc: 1, relevant: false, score: 0 }]) as never)
+      const r = await new GradeNode(config).execute(estado([documento('a'), documento('b')]), gestor())
+
+      expect(r.data.gradedDocuments[1].relevant).toBe(true)
+      expect(r.data.gradedDocuments[1].reason).toMatch(/Sin graduar \(el juez no lo evaluó\)/)
+      expect(avisos).toHaveBeenCalledWith(expect.stringContaining('1 de 2 fragmentos sin graduar'))
+    })
+
+    it('con 429 espera y reintenta; si no cesa, conserva los fragmentos diciendo que fue el límite', async () => {
+      vi.useFakeTimers()
+      vi.mocked(axios.post).mockRejectedValue(Object.assign(new Error('429'), { response: { status: 429, headers: {} } }))
+      const ejecucion = new GradeNode(config).execute(estado([documento('a'), documento('b')]), gestor())
+      await vi.advanceTimersByTimeAsync(120_000)
+      const r = await ejecucion
+
+      expect(axios.post).toHaveBeenCalledTimes(5)
+      expect(r.data.gradedDocuments.every(d => d.relevant)).toBe(true)
+      expect(r.data.gradedDocuments[0].reason).toMatch(/límite de peticiones de la API/)
+      expect(avisos).toHaveBeenCalledWith(expect.stringContaining('2 de 2 fragmentos sin graduar (límite de peticiones de la API)'))
+    })
   })
 
   it('el prompt pone el documento antes que la pregunta', () => {

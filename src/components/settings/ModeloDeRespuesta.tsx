@@ -19,9 +19,8 @@ const separar = (valor: string) => {
 /**
  * Qué modelo redacta las respuestas del chat (#49 lo dejó fijo; aquí se vuelve a poder elegir).
  *
- * Local o de un proveedor externo con clave. Sólo cambia quién redacta: el auxiliar que gradúa las
- * fuentes fragmento a fragmento sigue siendo el local, porque se llama hasta veinte veces por
- * pregunta.
+ * Local o de un proveedor externo con clave. Sólo cambia quién redacta: el auxiliar que reformula y
+ * gradúa las fuentes va donde diga «Dónde se procesa la búsqueda» (`MotorDeBusqueda`, #224).
  */
 export function ModeloDeRespuesta({ modelosOllama }: { modelosOllama: string[] }) {
   const { t } = useTranslation()
