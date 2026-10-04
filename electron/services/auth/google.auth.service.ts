@@ -58,7 +58,7 @@ export class GoogleAuthService {
     }
 
     if (!this.config.clientId || !this.config.clientSecret) {
-      this.logger.warn('Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.')
+      this.logger.info('Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.')
     }
   }
 

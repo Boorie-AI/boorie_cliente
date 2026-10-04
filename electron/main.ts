@@ -404,6 +404,8 @@ import { reconstruirSiHaceFalta } from '../backend/services/hydraulic/hybridSear
 import { startMilvusServer, stopMilvusServer } from './services/milvusProcess'
 import { ensureProductionSchema } from './esquemaProduccion'
 import { urlConEspera, activarWAL } from './baseSqlite'
+import { protegerNavegacion } from './navegacionSegura'
+import { pathToFileURL } from 'url'
 import { instalarEntradaEscritorio } from './integracionEscritorio'
 import { capturarConsolaDelMain } from '../backend/services/feedback/registroReciente'
 import { escucharConsolaDelRenderer, registerFeedbackHandlers } from './handlers/feedback.handler'
@@ -612,18 +614,19 @@ function createWindow(): void {
 
   escucharConsolaDelRenderer(mainWindow.webContents)
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
-    return { action: 'deny' }
+  const devUrl = process.env.ELECTRON_START_URL || 'http://localhost:3000'
+  // For packaged apps, the HTML file is at ../index.html relative to the electron main.js
+  const htmlPath = path.join(__dirname, '../index.html')
+  protegerNavegacion(mainWindow.webContents, {
+    origenApp: isDev ? devUrl : pathToFileURL(path.dirname(htmlPath)).href,
+    abrirFuera: url => shell.openExternal(url),
+    avisar: (mensaje, url) => appLogger.warn(mensaje, { url: url.slice(0, 200) }),
   })
 
   if (isDev) {
-    const devUrl = process.env.ELECTRON_START_URL || 'http://localhost:3000'
     console.log(`Loading development URL: ${devUrl}`)
     mainWindow.loadURL(devUrl)
   } else {
-    // For packaged apps, the HTML file is at ../index.html relative to the electron main.js
-    const htmlPath = path.join(__dirname, '../index.html')
     console.log(`Loading HTML from: ${htmlPath}`)
     console.log(`__dirname is: ${__dirname}`)
     console.log(`Resolved path exists: ${fs.existsSync(htmlPath)}`)

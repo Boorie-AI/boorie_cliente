@@ -575,6 +575,26 @@ if (!validation.valid) {
 }
 ```
 
+## 🆘 Help & feedback
+
+You can report a problem or suggest an improvement without leaving the app.
+**Help & feedback** is in the sidebar and in **Settings → About**.
+
+1. Choose **Report a problem** or **Suggest an improvement** and fill in the form.
+2. Send it:
+   - **Open in GitHub** opens a new, pre-filled issue in your browser; review it
+     and press “Submit new issue”. You need a GitHub account. If the text does
+     not fit in the link, the full report is left in the clipboard to paste.
+   - **Copy report** puts it in the clipboard so you can send it through the
+     usual channel if you have no GitHub account.
+
+**Include technical information** adds the Boorie version, the operating
+system, the Python version, the screen you were on and the latest app warnings,
+without personal paths or emails (they are also removed from what you type).
+**See exactly what will be sent** shows the report as it is before sending it.
+The issue is public: do not include client data, network names or confidential
+information.
+
 ## 🚨 Troubleshooting Configuration
 
 ### Common Issues

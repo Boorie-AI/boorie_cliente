@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { capturarConsolaDelMain, MAX_ENTRADAS, registrar, ultimas, vaciarRegistro } from './registroReciente'
+import { capturarConsolaDelMain, esRuidoDeArranque, MAX_ENTRADAS, registrar, ultimas, vaciarRegistro } from './registroReciente'
 
 describe('registroReciente (#217, D5)', () => {
   beforeEach(() => vaciarRegistro())
@@ -36,5 +36,18 @@ describe('registroReciente (#217, D5)', () => {
       'main/warn/cuidado {"a":1}',
       'main/error/Error: roto',
     ])
+  })
+
+  it('descarta los avisos de arranque conocidos que no son fallos y guarda los demás (#267)', () => {
+    registrar('main', 'warn', '⚠️ [2026-10-04T10:00:00.000Z] [Database] [WARN] Microsoft Client ID not configured. Set MS_CLIENT_ID environment variable.')
+    registrar('main', 'warn', 'Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.')
+    registrar('main', 'warn', 'No se pudo conectar con Ollama en http://localhost:11434')
+    registrar('main', 'error', 'Microsoft OAuth token refresh failed')
+    expect(ultimas().map(e => e.texto)).toEqual([
+      'No se pudo conectar con Ollama en http://localhost:11434',
+      'Microsoft OAuth token refresh failed',
+    ])
+    expect(esRuidoDeArranque('Microsoft Client ID not configured. Set MS_CLIENT_ID environment variable.')).toBe(true)
+    expect(esRuidoDeArranque('Google OAuth window closed by user')).toBe(false)
   })
 })

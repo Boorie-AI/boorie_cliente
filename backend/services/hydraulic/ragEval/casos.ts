@@ -23,7 +23,10 @@ export const DOCUMENTOS: Record<string, { titulo: string; variable: string }> = 
   },
 }
 
-const BORRADOR = 'Borrador de Claude para revisar con Luis (3 oct 2026); sin revisar todavía.'
+// Rayne los dio por buenos el 3 oct 2026 sin la revisión de Luis (cierre del #226).
+// Si se corrige uno, `npm run eval:rag -- --repuntuar <informe.json>` vuelve a
+// puntuar las corridas guardadas sin repetirlas.
+const DADO_POR_BUENO = 'Redactado por Claude; dado por bueno por Rayne el 3 oct 2026 sin revisión de Luis (#226).'
 
 // Piezas de expresiones que se repiten. Las respuestas mezclan castellano,
 // inglés, Markdown y LaTeX: «10 s», «10 segundos», «10 seconds», «10 seg.».
@@ -80,7 +83,7 @@ export const CASOS: CasoRAG[] = [
       },
     ],
     prohibidos: [],
-    revision: BORRADOR,
+    revision: DADO_POR_BUENO,
   },
   {
     id: 'walton-calendario-4-dias',
@@ -124,7 +127,7 @@ export const CASOS: CasoRAG[] = [
       },
     ],
     prohibidos: [],
-    revision: BORRADOR,
+    revision: DADO_POR_BUENO,
   },
   {
     id: 'walton-tabla-2-2-pozo-16',
@@ -162,7 +165,7 @@ export const CASOS: CasoRAG[] = [
         comprobaciones: [cifra(45.9, 0.2, 'gpm|gal')],
       },
     ],
-    revision: BORRADOR,
+    revision: DADO_POR_BUENO,
   },
   {
     id: 'walton-ecuacion-4-1',
@@ -205,7 +208,7 @@ export const CASOS: CasoRAG[] = [
         comprobaciones: [texto('caudal te[oó]rico ?/ ?caudal (?:observado|real)')],
       },
     ],
-    revision: BORRADOR,
+    revision: DADO_POR_BUENO,
   },
   {
     id: 'walton-coeficiente-c',
@@ -247,7 +250,7 @@ export const CASOS: CasoRAG[] = [
       },
     ],
     prohibidos: [],
-    revision: BORRADOR,
+    revision: DADO_POR_BUENO,
   },
   {
     id: 'walton-ejemplo-4-1',
@@ -277,7 +280,7 @@ export const CASOS: CasoRAG[] = [
       },
     ],
     prohibidos: [],
-    revision: BORRADOR,
+    revision: DADO_POR_BUENO,
   },
   {
     id: 'walton-caso-5-7',
@@ -321,7 +324,7 @@ export const CASOS: CasoRAG[] = [
       },
     ],
     prohibidos: [],
-    revision: BORRADOR,
+    revision: DADO_POR_BUENO,
   },
   {
     id: 'walton-criterios-del-sitio',
@@ -365,7 +368,7 @@ export const CASOS: CasoRAG[] = [
       },
     ],
     prohibidos: [],
-    revision: BORRADOR,
+    revision: DADO_POR_BUENO,
   },
   {
     id: 'walton-pozos-de-observacion',
@@ -409,7 +412,7 @@ export const CASOS: CasoRAG[] = [
       },
     ],
     prohibidos: [],
-    revision: BORRADOR,
+    revision: DADO_POR_BUENO,
   },
   {
     id: 'walton-capacidad-especifica',
@@ -446,13 +449,13 @@ export const CASOS: CasoRAG[] = [
       },
     ],
     prohibidos: [],
-    revision: BORRADOR,
+    revision: DADO_POR_BUENO,
   },
   {
     id: 'luis-prueba-caudal-variable',
     // La pregunta de Luis tal como está en `glosarioHidraulico.test.ts`. La que
     // envió entera pedía además fórmulas de eficiencia y parámetros críticos del
-    // informe para 80 m y 20 l/s: que Luis la sustituya por la literal.
+    // informe para 80 m y 20 l/s; si llega la literal, se cambia aquí y se repuntúa.
     pregunta: 'Deseo planificar una prueba de bombeo a caudal variable para ver la eficiencia de un pozo para explotacion de agua subterranean con fines de abastecimiento urbano. El pozo se acaba de perforar y desarrollar, el nivel estatico esta a 20 metros, el diametro del poszo es de 16 pulgadas. Dame una tabla de tiempos, los escalones de caudales a considerar, las precauciones que debo tomar y los equipos de bombeo que debo y no debo utilizar.',
     documento: 'walton',
     hechos: [
@@ -517,6 +520,6 @@ export const CASOS: CasoRAG[] = [
         comprobaciones: [texto('caudal te[oó]rico ?/ ?caudal (?:observado|real)')],
       },
     ],
-    revision: 'Caso de Luis: pregunta suya, hechos sacados del informe enviado a Luis y Cristina (30 sep 2026). Borrador para revisar con Luis.',
+    revision: 'Caso de Luis: pregunta suya, hechos sacados del informe enviado a Luis y Cristina (30 sep 2026). Dado por bueno por Rayne el 3 oct 2026 sin revisión de Luis (#226).',
   },
 ]

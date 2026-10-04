@@ -80,6 +80,7 @@ Bienvenido a la documentación completa de **Boorie**, el cliente de escritorio 
 
 ## 📞 Soporte y Comunidad
 
+- **Desde la app**: **Ayuda y comentarios** (barra lateral o Configuración → Acerca de) prepara el reporte por ti; ver [Configuración](Configuracion.md#ayuda-y-comentarios)
 - **GitHub Issues**: [Reportar bugs y solicitudes de características](https://github.com/your-username/boorie_cliente/issues)
 - **Discusiones**: [Discusiones de la comunidad](https://github.com/your-username/boorie_cliente/discussions)
 - **Discord**: [Únete a nuestra comunidad](https://discord.gg/boorie)
