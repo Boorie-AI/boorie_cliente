@@ -52,6 +52,35 @@ type FinDeLectura = 'completa' | typeof FIN_POR_INACTIVIDAD | typeof FIN_POR_ERR
 /** Recibe el texto acumulado de la respuesta cada vez que crece, para enseñarlo mientras llega. */
 export type AlTexto = (texto: string) => void
 
+/** Una llamada a herramienta tal como la devuelve /chat/completions sin streaming. */
+export interface LlamadaOpenAI {
+  id: string
+  type: 'function'
+  function: { name: string; arguments: string }
+}
+
+/** Un trozo de `delta.tool_calls`: cada campo puede faltar o llegar a medias. */
+interface TrozoDeLlamada {
+  index?: number
+  id?: string
+  function?: { name?: string; arguments?: string }
+}
+
+/**
+ * Suma un trozo a su llamada, que se reconoce por `index`: con varias en
+ * paralelo los trozos de una y otra llegan intercalados. Los argumentos se
+ * concatenan; el id se queda con el primero, y el nombre se concatena salvo
+ * que llegue repetido entero, que algunos servidores lo mandan en cada trozo.
+ */
+function acumularLlamada(llamadas: Array<LlamadaOpenAI | undefined>, trozo: TrozoDeLlamada, posicion: number): void {
+  const i = trozo.index ?? posicion
+  const llamada = llamadas[i] ?? (llamadas[i] = { id: '', type: 'function', function: { name: '', arguments: '' } })
+  if (trozo.id && !llamada.id) llamada.id = trozo.id
+  const nombre = trozo.function?.name
+  if (nombre && nombre !== llamada.function.name) llamada.function.name += nombre
+  if (trozo.function?.arguments) llamada.function.arguments += trozo.function.arguments
+}
+
 /**
  * Una respuesta de /chat/completions recibida en streaming, con un límite por
  * inactividad en lugar de uno total.
@@ -64,13 +93,20 @@ export type AlTexto = (texto: string) => void
  * el servidor no para nunca.
  *
  * Devuelve lo mismo que la respuesta sin streaming, para que el resto del
- * bucle —continuación, tokens, metadatos— no cambie.
+ * bucle —continuación, tokens, metadatos, llamadas a herramientas— no cambie.
+ *
+ * Las llamadas a herramientas (#251) se acumulan hasta el final y salen en
+ * `message.tool_calls`. En cuanto llega la primera, se avisa a `alTexto` con
+ * `''` y no se manda más texto de esta respuesta: lo que el modelo escribiera
+ * antes («Voy a consultar el nudo…») no es la respuesta, y no puede quedarse a
+ * medias en pantalla mientras se ejecutan las herramientas.
  *
  * Si se calla después de haber mandado texto, lo recibido se entrega con
  * `finish_reason: FIN_POR_INACTIVIDAD` en vez de lanzar: con una respuesta
  * larga, tirarla y repetir la pregunta entera era perder minutos para volver
- * a esperar lo mismo (#237). Sin texto —sólo razonamiento o nada— sigue
- * lanzando, y el chat reintenta.
+ * a esperar lo mismo (#237). Sin texto —sólo razonamiento o nada—, o con una
+ * llamada a herramienta empezada, sigue lanzando, y el chat reintenta: una
+ * llamada con los argumentos a medias no se puede ejecutar.
  */
 export async function leerRespuestaEnStreaming(
   respuesta: { body: any },
@@ -84,29 +120,63 @@ export async function leerRespuestaEnStreaming(
   let usage: any
   let modelo: string | undefined
   let creado: number | undefined
+  const llamadas: Array<LlamadaOpenAI | undefined> = []
   const fin_ = await leerEventos(respuesta, controlador, inactividadMs, mensajeDeInactividad, evento => {
     modelo = evento.model ?? modelo
     creado = evento.created ?? creado
     if (evento.usage) usage = evento.usage
     const eleccion = evento.choices?.[0]
+    const trozos: TrozoDeLlamada[] | undefined = eleccion?.delta?.tool_calls
+    if (Array.isArray(trozos) && trozos.length > 0) {
+      if (llamadas.length === 0) alTexto?.('')
+      trozos.forEach((trozo, i) => acumularLlamada(llamadas, trozo, i))
+    }
     if (eleccion?.delta?.content) {
       contenido += eleccion.delta.content
-      alTexto?.(contenido)
+      if (llamadas.length === 0) alTexto?.(contenido)
     }
     if (eleccion?.finish_reason) fin = eleccion.finish_reason
-  }, () => !!contenido)
+  }, () => !!contenido && llamadas.length === 0)
+  const completas = llamadas.filter((l): l is LlamadaOpenAI => !!l)
+  const message = completas.length > 0
+    ? { role: 'assistant', content: contenido || null, tool_calls: completas }
+    : { role: 'assistant', content: contenido }
+  const finish_reason = fin_ !== 'completa' ? fin_ : (fin ?? (completas.length > 0 ? 'tool_calls' : undefined))
   return {
     model: modelo,
     created: creado,
     usage: usage ?? {},
-    choices: [{ finish_reason: fin_ === 'completa' ? fin : fin_, message: { role: 'assistant', content: contenido } }],
+    choices: [{ finish_reason, message }],
+  }
+}
+
+/** Un bloque de la respuesta de Anthropic mientras llega. */
+type BloqueEnCurso =
+  | { type: 'text'; text: string }
+  | { type: 'tool_use'; id: string; name: string; json: string }
+
+/** Los argumentos de un `tool_use`, que llegan como JSON troceado en `input_json_delta`. */
+function parsearEntrada(json: string): Record<string, unknown> {
+  if (!json.trim()) return {}
+  try {
+    const valor: unknown = JSON.parse(json)
+    return valor && typeof valor === 'object' ? valor as Record<string, unknown> : {}
+  } catch {
+    return {}
   }
 }
 
 /**
  * Lo mismo para `POST /v1/messages` de Anthropic con `stream: true` (#246).
- * Devuelve la forma de la respuesta sin streaming, con sólo los bloques de
- * texto: el streaming va en las vueltas sin herramientas.
+ * Devuelve la forma de la respuesta sin streaming.
+ *
+ * Con herramientas (#251), cada `tool_use` abre su bloque con el id y el
+ * nombre en `content_block_start`, y su entrada llega troceada en
+ * `input_json_delta` hasta `content_block_stop`; se parsea al final. El
+ * `content` devuelto lleva los bloques de texto y de herramienta en su orden,
+ * sin los de texto vacíos, que Anthropic rechaza al reenviarlos. El texto en
+ * vivo, como en `leerRespuestaEnStreaming`: al abrirse el primer `tool_use` se
+ * manda `''` y ya nada más.
  */
 export async function leerAnthropicEnStreaming(
   respuesta: { body: any },
@@ -119,29 +189,52 @@ export async function leerAnthropicEnStreaming(
   let fin: string | undefined
   let modelo: string | undefined
   const usage = { input_tokens: 0, output_tokens: 0 }
+  const bloques: Array<BloqueEnCurso | undefined> = []
+  let conHerramientas = false
   const fin_ = await leerEventos(respuesta, controlador, inactividadMs, mensajeDeInactividad, evento => {
     switch (evento.type) {
       case 'message_start':
         modelo = evento.message?.model ?? modelo
         usage.input_tokens = evento.message?.usage?.input_tokens ?? 0
         break
-      case 'content_block_delta':
-        if (evento.delta?.type === 'text_delta' && evento.delta.text) {
-          texto += evento.delta.text
-          alTexto?.(texto)
+      case 'content_block_start': {
+        const bloque = evento.content_block
+        if (bloque?.type === 'tool_use') {
+          if (!conHerramientas) alTexto?.('')
+          conHerramientas = true
+          bloques[evento.index] = { type: 'tool_use', id: String(bloque.id ?? ''), name: String(bloque.name ?? ''), json: '' }
+        } else if (bloque?.type === 'text') {
+          bloques[evento.index] = { type: 'text', text: '' }
         }
         break
+      }
+      case 'content_block_delta': {
+        const bloque = bloques[evento.index]
+        if (evento.delta?.type === 'text_delta' && evento.delta.text) {
+          texto += evento.delta.text
+          if (bloque?.type === 'text') bloque.text += evento.delta.text
+          if (!conHerramientas) alTexto?.(texto)
+        } else if (evento.delta?.type === 'input_json_delta' && bloque?.type === 'tool_use') {
+          bloque.json += evento.delta.partial_json ?? ''
+        }
+        break
+      }
       case 'message_delta':
         fin = evento.delta?.stop_reason ?? fin
         usage.output_tokens = evento.usage?.output_tokens ?? usage.output_tokens
         break
     }
-  }, () => !!texto)
+  }, () => !!texto && !conHerramientas)
+  const content = conHerramientas
+    ? bloques
+      .filter((b): b is BloqueEnCurso => !!b && (b.type === 'tool_use' || b.text !== ''))
+      .map(b => b.type === 'text' ? b : { type: 'tool_use', id: b.id, name: b.name, input: parsearEntrada(b.json) })
+    : [{ type: 'text', text: texto }]
   return {
     model: modelo,
-    stop_reason: fin_ === 'completa' ? fin : fin_,
+    stop_reason: fin_ !== 'completa' ? fin_ : (fin ?? (conHerramientas ? 'tool_use' : undefined)),
     usage,
-    content: [{ type: 'text', text: texto }],
+    content,
   }
 }
 

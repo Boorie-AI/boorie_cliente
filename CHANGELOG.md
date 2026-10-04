@@ -15,8 +15,13 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   OpenRouter, Anthropic y Google había que esperar a que terminara entera —a veces varios
   minutos— sin ver nada. Ahora el texto aparece a medida que llega, como con el modelo local, y
   ya limpio: las páginas que no respaldan las fuentes no llegan a mostrarse. Mientras se revisa
-  contra el documento, la respuesta se queda en pantalla y el «Revisando…» va debajo. Con una red
-  cargada en el proyecto la respuesta sigue llegando entera al final.
+  contra el documento, la respuesta se queda en pantalla y el «Revisando…» va debajo.
+- **Con un proyecto abierto, la respuesta también se ve mientras se escribe.** Con un proyecto
+  y su red cargada, el modelo puede consultar la red antes de responder, y en ese caso la
+  respuesta aparecía de golpe al final, aunque se usara un modelo en la nube. Ahora se ve crecer
+  igual que sin proyecto: mientras el modelo consulta la red no se muestra nada a medias, y en
+  cuanto empieza a responder el texto va apareciendo. Las preguntas de escenario o de ahorro de
+  energía, en las que Boorie propone simular antes de dar cifras, siguen apareciendo de una vez.
 - **Una respuesta cortada por largo o por tiempo se conserva y lo dice.** Si el modelo agotaba
   lo que puede escribir de una vez, la respuesta acababa a media frase sin ningún aviso; y si se
   pasaba el tiempo máximo con parte ya escrita, se tiraba y solo quedaba el mensaje de que había

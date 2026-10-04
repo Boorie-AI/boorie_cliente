@@ -27,6 +27,7 @@ vi.mock('../../backend/services/security/consentimientoNube', async importOrigin
 vi.mock('../../backend/services/contextoDeOllama', () => ({ contextoDeOllama: async () => 8192 }))
 
 import { ChatHandler, unirContinuacion, pedirContinuacion, leerRespuestaEnStreaming, FIN_POR_INACTIVIDAD } from './chat.handler'
+import type { LlamadaOpenAI } from '../../backend/services/ai/respuestaOpenAICompat'
 
 const RED = {
   nodes: [
@@ -50,17 +51,61 @@ const baseDeDatos = (conRed: boolean) => ({
   },
 }) as any
 
-/** Lo que manda el servidor en streaming: el mismo cuerpo, en eventos SSE. */
+type BloqueSimulado =
+  | { type: 'text'; text: string }
+  | { type: 'thinking'; thinking: string }
+  | { type: 'tool_use'; id: string; name: string; input: unknown }
+
+/** Un mensaje de los que se mandan al proveedor, para leerlo en las comprobaciones. */
+type MensajeEnviado = { role: string; content: string; tool_call_id?: string; tool_calls?: LlamadaOpenAI[] }
+
+/** Un texto en dos mitades, como llega troceado. */
+const mitades = (texto: string) => {
+  const mitad = Math.ceil(texto.length / 2)
+  return [texto.slice(0, mitad), texto.slice(mitad)].filter(Boolean)
+}
+
+/**
+ * Lo que manda el servidor en streaming: el mismo cuerpo, en eventos SSE. Las
+ * vueltas con herramientas también van en streaming (#251), así que las
+ * llamadas llegan troceadas como en la API: el id y el nombre en el primer
+ * trozo, y los argumentos partidos.
+ */
 function eventos(cuerpo: any): string[] {
+  const sse = (lista: unknown[]) => lista.map(e => `data: ${JSON.stringify(e)}\n\n`)
+  if (Array.isArray(cuerpo?.content)) {
+    const bloques = (cuerpo.content as BloqueSimulado[]).flatMap((b, index) => {
+      const inicio = b.type === 'tool_use' ? { ...b, input: {} } : b.type === 'thinking' ? { type: 'thinking', thinking: '' } : { type: 'text', text: '' }
+      const deltas = b.type === 'tool_use'
+        ? mitades(JSON.stringify(b.input)).map(p => ({ type: 'input_json_delta', partial_json: p }))
+        : b.type === 'thinking'
+          ? [{ type: 'thinking_delta', thinking: b.thinking }]
+          : mitades(b.text).map(t => ({ type: 'text_delta', text: t }))
+      return [
+        { type: 'content_block_start', index, content_block: inicio },
+        ...deltas.map(delta => ({ type: 'content_block_delta', index, delta })),
+        { type: 'content_block_stop', index },
+      ]
+    })
+    return sse([
+      { type: 'message_start', message: { model: cuerpo.model, usage: { input_tokens: cuerpo.usage?.input_tokens ?? 0 } } },
+      ...bloques,
+      { type: 'message_delta', delta: { stop_reason: cuerpo.stop_reason }, usage: { output_tokens: cuerpo.usage?.output_tokens ?? 0 } },
+      { type: 'message_stop' },
+    ])
+  }
   const eleccion = cuerpo?.choices?.[0]
-  const contenido: string = eleccion?.message?.content ?? ''
-  const mitad = Math.ceil(contenido.length / 2)
-  return [
+  const llamadas: LlamadaOpenAI[] = eleccion?.message?.tool_calls ?? []
+  return sse([
     { model: cuerpo?.model, created: cuerpo?.created, choices: [{ delta: { reasoning_content: 'pienso' } }] },
-    ...[contenido.slice(0, mitad), contenido.slice(mitad)].filter(Boolean).map(c => ({ choices: [{ delta: { content: c } }] })),
+    ...mitades(eleccion?.message?.content ?? '').map(c => ({ choices: [{ delta: { content: c } }] })),
+    ...llamadas.flatMap((l, index) => [
+      { choices: [{ delta: { tool_calls: [{ index, id: l.id, type: 'function', function: { name: l.function.name, arguments: '' } }] } }] },
+      ...mitades(l.function.arguments).map(a => ({ choices: [{ delta: { tool_calls: [{ index, function: { arguments: a } }] } }] })),
+    ]),
     { choices: [{ delta: {}, finish_reason: eleccion?.finish_reason }] },
     { choices: [], usage: cuerpo?.usage },
-  ].map(e => `data: ${JSON.stringify(e)}\n\n`).concat('data: [DONE]\n\n')
+  ]).concat('data: [DONE]\n\n')
 }
 
 const lectorDe = (trozos: string[]) => {
@@ -519,12 +564,13 @@ describe('NVIDIA en streaming, con límite por inactividad', () => {
     expect(r.data.metadata).toMatchObject({ finish_reason: 'stop', tokens: 500 })
   })
 
-  it('con herramientas sigue sin streaming', async () => {
+  it('con herramientas también va en streaming (#251)', async () => {
     new ChatHandler(baseDeDatos(true))
     fetchSimulado.mockResolvedValueOnce(respuesta(openaiResponde))
 
     await enviar({ provider: 'nvidia' })
-    expect(cuerpoDe(0).stream).toBe(false)
+    expect(cuerpoDe(0)).toMatchObject({ stream: true, stream_options: { include_usage: true } })
+    expect(cuerpoDe(0).tools).toBeDefined()
   })
 
   it('OpenAI también, con el tope que aceptan sus modelos de razonamiento (#246)', async () => {
@@ -695,7 +741,7 @@ describe('un corte por inactividad conserva lo que ya había llegado (#237)', ()
   })
 })
 
-describe('con red cargada no hay texto en vivo (#223)', () => {
+describe('con red cargada el texto también sale mientras llega (#251)', () => {
   const remitente = () => {
     const enviados: string[] = []
     const sender = { isDestroyed: () => false, send: (_canal: string, d: { texto: string }) => { enviados.push(d.texto) } }
@@ -710,31 +756,145 @@ describe('con red cargada no hay texto en vivo (#223)', () => {
       ...params,
     })
 
-  it('ni en las rondas con herramientas ni en la final, aunque esa vaya en streaming', async () => {
-    new ChatHandler(baseDeDatos(true))
-    for (let i = 0; i < 4; i++) fetchSimulado.mockResolvedValueOnce(respuesta(openaiPideHerramienta))
-    fetchSimulado.mockResolvedValueOnce(respuesta(openaiResponde))
-    const { enviados, event } = remitente()
+  /** Como `respuesta`, pero cada evento tarda más que el intervalo de envío: así sale cada texto intermedio. */
+  const despacio = (cuerpo: unknown) => {
+    const r = respuesta(cuerpo)
+    return {
+      ...r,
+      body: {
+        getReader: () => {
+          const lector = r.body.getReader()
+          return { read: () => new Promise(resolver => setTimeout(() => resolver(lector.read()), 150)) }
+        },
+      },
+    }
+  }
+  const hastaTerminar = async <T,>(promesa: Promise<T>) => {
+    await vi.advanceTimersByTimeAsync(30_000)
+    return promesa
+  }
 
-    const r = await enviarEnVivo(event, { provider: 'nvidia' })
+  beforeEach(() => { vi.useFakeTimers() })
+  afterEach(() => { vi.useRealTimers() })
 
-    expect(r.data.response).toBe('J3 esta a 8 m de cota.')
-    // La quinta, ya sin herramientas, va en streaming hasta el proceso principal.
-    expect(cuerpoDe(4).stream).toBe(true)
-    expect(enviados).toEqual([])
-  })
-
-  it('si el modelo rechaza las herramientas, la petición sin ellas sí sale en vivo', async () => {
+  it('NVIDIA: las vueltas de herramientas no enseñan nada y la final se ve crecer hasta la respuesta', async () => {
     new ChatHandler(baseDeDatos(true))
     fetchSimulado
-      .mockResolvedValueOnce(respuesta({ detail: 'Tools are not supported by this model' }, 400))
+      .mockResolvedValueOnce(despacio(openaiPideHerramienta))
+      .mockResolvedValueOnce(despacio(openaiPideHerramienta))
+      .mockResolvedValueOnce(despacio(openaiResponde))
+    const { enviados, event } = remitente()
+
+    const r = await hastaTerminar(enviarEnVivo(event, { provider: 'nvidia' }))
+
+    expect(r.data.response).toBe('J3 esta a 8 m de cota.')
+    expect([0, 1, 2].map(i => cuerpoDe(i).stream)).toEqual([true, true, true])
+    expect(cuerpoDe(2).tools).toBeDefined()
+    expect(enviados.length).toBeGreaterThanOrEqual(2)
+    enviados.slice(1).forEach((e, i) => expect(e.startsWith(enviados[i])).toBe(true))
+    expect(enviados.every(e => r.data.response.startsWith(e))).toBe(true)
+    expect(enviados.at(-1)).toBe(r.data.response)
+  })
+
+  const conTexto = {
+    anthropic: anthropicPideHerramienta,
+    nvidia: {
+      ...openaiPideHerramienta,
+      choices: [{ ...openaiPideHerramienta.choices[0], message: { ...openaiPideHerramienta.choices[0].message, content: 'Voy a mirar J3.' } }],
+    },
+  }
+  const final = { anthropic: anthropicResponde, nvidia: openaiResponde }
+  const previo = { anthropic: 'Lo miro.', nvidia: 'Voy a mirar J3.' }
+
+  it.each(['anthropic', 'nvidia'] as const)('%s: una vuelta con texto y herramienta no deja el texto suelto en pantalla', async proveedor => {
+    new ChatHandler(baseDeDatos(true))
+    fetchSimulado
+      .mockResolvedValueOnce(despacio(conTexto[proveedor]))
+      .mockResolvedValueOnce(despacio(final[proveedor]))
+    const { enviados, event } = remitente()
+
+    const r = await hastaTerminar(enviarEnVivo(event, { provider: proveedor }))
+
+    expect(r.data.response).toBe('J3 esta a 8 m de cota.')
+    // Se vio mientras llegaba, se quitó al llegar la herramienta, y lo que sigue es sólo la respuesta.
+    const retirada = enviados.indexOf('')
+    expect(retirada).toBeGreaterThan(0)
+    expect(enviados.slice(0, retirada).every(e => previo[proveedor].startsWith(e))).toBe(true)
+    const despues = enviados.slice(retirada + 1)
+    expect(despues.length).toBeGreaterThan(0)
+    expect(despues.every(e => r.data.response.startsWith(e))).toBe(true)
+    expect(enviados.at(-1)).toBe(r.data.response)
+  })
+
+  it('dos llamadas en paralelo llegan troceadas y se ejecutan las dos, cada una con su id', async () => {
+    vi.useRealTimers()
+    new ChatHandler(baseDeDatos(true))
+    const llamadas = [
+      { id: 'call_1', type: 'function', function: { name: 'consultar_elemento', arguments: '{"id":"J3"}' } },
+      { id: 'call_2', type: 'function', function: { name: 'consultar_elemento', arguments: '{"id":"J1"}' } },
+    ]
+    const dos = {
+      ...openaiPideHerramienta,
+      choices: [{ finish_reason: 'tool_calls', message: { role: 'assistant', content: null, tool_calls: llamadas } }],
+    }
+    fetchSimulado.mockResolvedValueOnce(respuesta(dos)).mockResolvedValueOnce(respuesta(openaiResponde))
+
+    const r = await enviar({ provider: 'nvidia' })
+
+    expect(r.data.response).toBe('J3 esta a 8 m de cota.')
+    const mensajes: MensajeEnviado[] = cuerpoDe(1).messages
+    expect(mensajes.find(m => m.role === 'assistant')?.tool_calls).toEqual(llamadas)
+    const resultados = mensajes.filter(m => m.role === 'tool')
+    expect(resultados.map(m => [m.tool_call_id, JSON.parse(m.content).elemento.id])).toEqual([['call_1', 'J3'], ['call_2', 'J1']])
+  })
+
+  it('si el modelo no admite streaming con herramientas, se pide sin streaming y conservándolas', async () => {
+    new ChatHandler(baseDeDatos(true))
+    fetchSimulado
+      .mockResolvedValueOnce(respuesta({ detail: 'Streaming is not supported with tools for this model' }, 400))
+      .mockResolvedValueOnce(respuesta(openaiPideHerramienta))
       .mockResolvedValueOnce(respuesta(openaiResponde))
     const { enviados, event } = remitente()
 
-    const r = await enviarEnVivo(event, { provider: 'nvidia' })
+    const r = await hastaTerminar(enviarEnVivo(event, { provider: 'nvidia' }))
+
+    expect(r.data.response).toBe('J3 esta a 8 m de cota.')
+    expect(cuerpoDe(0)).toMatchObject({ stream: true })
+    expect(cuerpoDe(1)).toMatchObject({ stream: false })
+    expect(cuerpoDe(1).tools).toBeDefined()
+    expect(cuerpoDe(2)).toMatchObject({ stream: false })
+    expect(enviados).toEqual([r.data.response])
+  })
+
+  it('si el modelo rechaza las herramientas, la petición sin ellas también sale en vivo', async () => {
+    new ChatHandler(baseDeDatos(true))
+    fetchSimulado
+      .mockResolvedValueOnce(respuesta({ detail: 'Tools are not supported by this model' }, 400))
+      .mockResolvedValueOnce(despacio(openaiResponde))
+    const { enviados, event } = remitente()
+
+    const r = await hastaTerminar(enviarEnVivo(event, { provider: 'nvidia' }))
 
     expect(cuerpoDe(1).tools).toBeUndefined()
-    expect(enviados.length).toBeGreaterThan(0)
+    expect(enviados.length).toBeGreaterThan(1)
     expect(enviados.at(-1)).toBe(r.data.response)
+  })
+
+  it('una pregunta de energía, cuya respuesta sustituye Boorie, no enseña la del modelo mientras llega', async () => {
+    new ChatHandler(baseDeDatos(true))
+    fetchSimulado.mockResolvedValueOnce(despacio({
+      ...openaiResponde,
+      choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: 'Ahorrarás un 23 % moviendo el bombeo a valle.' } }],
+    }))
+    const { enviados, event } = remitente()
+
+    const r = await hastaTerminar(enviarEnVivo(event, {
+      provider: 'nvidia',
+      preguntaOriginal: '¿Cómo reduzco el consumo de energía del bombeo?',
+    }))
+
+    expect(r.data.metadata.propuesta_energia).toBeDefined()
+    expect(r.data.response).not.toContain('23 %')
+    expect(enviados).toEqual([])
   })
 })

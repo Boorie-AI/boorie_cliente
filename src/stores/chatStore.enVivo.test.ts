@@ -154,6 +154,36 @@ describe('el texto de la nube en pantalla mientras llega (#223)', () => {
     expect(sendMessage.mock.calls[0][0].idFlujo).not.toBe(sendMessage.mock.calls[1][0].idFlujo)
   })
 
+  it('con herramientas: el texto retirado deja la pantalla vacía, y la respuesta final manda aunque sea otra (#251)', async () => {
+    let trasRetirar: string | null = null
+    sendMessage.mockImplementation(async (p: Peticion) => {
+      if (p.sinRazonar) return { success: true, data: { response: '[]', metadata: {} } }
+      emitir(p.idFlujo, 'Voy a mirar el bombeo. ')
+      await esperar(150)
+      // La vuelta acabó pidiendo herramientas: el proceso principal retira lo que había.
+      emitir(p.idFlujo, '')
+      await esperar(150)
+      trasRetirar = useChatStore.getState().streamingMessage
+      emitir(p.idFlujo, 'Ahorrarás un 23 % moviendo el bombeo. ')
+      await esperar(150)
+      // Y al final la sustituye la propuesta de Boorie.
+      return {
+        success: true,
+        data: { response: 'Puedo analizar el consumo de bombeo de tu red.', metadata: { provider: 'Nvidia', finish_reason: 'stop', propuesta_energia: { red_id: 'n1' } } },
+      }
+    })
+
+    await preguntar()
+
+    expect(vistos).toContain('Voy a mirar el bombeo.')
+    expect(trasRetirar).toBe('')
+    const ultimoConTexto = vistos.filter(Boolean).at(-1)!
+    expect(ultimoConTexto.startsWith('Puedo analizar el consumo de bombeo de tu red.')).toBe(true)
+    expect(useChatStore.getState().streamingMessage).toBe('')
+    expect(respuestaGuardada().content).not.toContain('23 %')
+    expect(respuestaGuardada().content.startsWith('Puedo analizar el consumo de bombeo de tu red.')).toBe(true)
+  })
+
   it('si salta el límite del chat con texto recibido, se guarda lo recibido con su aviso', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     let terminar: (r: unknown) => void = () => {}
