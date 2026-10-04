@@ -73,6 +73,7 @@ export class ReformulateNode {
       // se ejecuta una vez por vuelta del ciclo.
       const respuesta = await llamarModeloRAG({
         rol: 'auxiliar',
+        tarea: 'reformular',
         prompt,
         temperatura: 0.7, // Higher temperature for diversity
         maxTokens: 500,

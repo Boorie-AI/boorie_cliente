@@ -208,13 +208,27 @@
     "tryDifferentSearch": "Try a different search term",
     "modeloRespuesta": {
       "titulo": "Model that writes the chat answers",
-      "descripcion": "It can run on this computer or come from an external provider with a key. Searching your documents and grading the sources still happen locally.",
+      "descripcion": "It can run on this computer or come from an external provider with a key. Where your documents are searched and the sources graded is chosen under “Where the search is processed”.",
       "automatico": "Automatic (recommended): {{modelo}}",
       "local": "On this computer (Ollama)",
       "sinExternos": "To choose an external model, add the provider’s key under “API Providers” and load its models.",
       "avisoExterno": "With a {{proveedor}} model, your question and the fragments of your documents sent with it leave this computer for {{proveedor}}.",
       "guardado": "Saved. It applies from the next question.",
       "sigueLocal": "Not changed: without your consent nothing is sent to {{proveedor}} and the model on this computer keeps answering."
+    },
+    "motorBusqueda": {
+      "titulo": "Where the search is processed",
+      "descripcion": "Rewording your question and deciding which fragments of your documents help answer it. On this computer nothing leaves it; with NVIDIA it is faster on a computer without a GPU, but the question and the fragments are sent to NVIDIA.",
+      "local": "On this computer (Ollama)",
+      "nvidia": "NVIDIA (in the cloud)",
+      "porEntorno": "Set by the BOORIE_RAG_BACKEND environment variable, which overrides this setting: {{motor}}.",
+      "sinClave": "There is no valid NVIDIA key under “API Providers”: the search stays on this computer. Add the NVIDIA key and test it to use it.",
+      "sinConsentimiento": "Without your consent for NVIDIA nothing is sent: the search stays on this computer.",
+      "darConsentimiento": "Review the consent for NVIDIA",
+      "avisoNube": "Your question and the fragments of your documents leave this computer for NVIDIA to reword it and grade which ones help.",
+      "guardado": "Saved. It applies from the next question.",
+      "sigueLocal": "Not changed: without your consent nothing is sent to NVIDIA and the search stays on this computer.",
+      "error": "The setting could not be saved."
     },
     "clave": {
       "estadoOk": "Saved and encrypted with the system keychain · ends in …{{fin}}",

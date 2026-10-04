@@ -3,7 +3,7 @@ import { componerPromptDeSistema } from '@/../backend/services/hydraulic/promptD
 import { compruebaLaEntrada } from '@/services/guardianDeEntrada'
 import { type Adjunto, type UsoDelAdjunto } from '@/services/chat/adjunto'
 import { similitudesDelAdjunto } from '@/services/chat/similitudDelAdjunto'
-import { consultasEnElIdiomaDelDocumento } from '@/services/chat/consultasDelAdjunto'
+import { consultasEnElIdiomaDelDocumento, escritorDeConsultas } from '@/services/chat/consultasDelAdjunto'
 import {
   componerPeticion,
   posprocesarRespuesta,
@@ -590,7 +590,9 @@ export const useChatStore = create<ChatState>()(
               contextoDeOllama: m => contextoDeOllama(getOllamaBaseUrl(), m),
               limitesDeLaApi: limitesGuardadosDelModelo,
               similitudes: (texto, consulta) => similitudesDelAdjunto(texto, consulta),
-              consultasEnElIdioma: a => consultasEnElIdiomaDelDocumento({ ...a, baseUrl: getOllamaBaseUrl() }),
+              consultasEnElIdioma: ({ proveedor: deQuien, modelo: conCual, numCtx, ...a }) => consultasEnElIdiomaDelDocumento({
+                ...a, escribir: escritorDeConsultas(deQuien, conCual, numCtx, getOllamaBaseUrl()),
+              }),
             })
             enhancedPrompt = peticion.prompt
             ragSources = peticion.fuentes

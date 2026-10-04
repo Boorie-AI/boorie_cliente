@@ -208,13 +208,27 @@
     "tryDifferentSearch": "Prova amb un terme de cerca diferent",
     "modeloRespuesta": {
       "titulo": "Model que redacta les respostes del xat",
-      "descripcion": "Pot ser un d’aquest equip o d’un proveïdor extern amb clau. La cerca als teus documents i l’avaluació de les fonts es continuen fent en local.",
+      "descripcion": "Pot ser un d’aquest equip o d’un proveïdor extern amb clau. On es cerca als teus documents i s’avaluen les fonts es tria a «On es processa la cerca».",
       "automatico": "Automàtic (recomanat): {{modelo}}",
       "local": "En aquest equip (Ollama)",
       "sinExternos": "Per triar un model extern, afegeix la clau del proveïdor a «Proveïdors API» i carrega’n els models.",
       "avisoExterno": "Amb un model de {{proveedor}}, la teva pregunta i els fragments dels teus documents que l’acompanyen surten d’aquest equip cap a {{proveedor}}.",
       "guardado": "Desat. S’aplica a partir de la propera pregunta.",
       "sigueLocal": "No s'ha canviat: sense el teu consentiment no s'envia res a {{proveedor}} i continua responent el model d'aquest equip."
+    },
+    "motorBusqueda": {
+      "titulo": "On es processa la cerca",
+      "descripcion": "Reformular la teva pregunta i decidir quins fragments dels teus documents serveixen per respondre-la. En aquest equip no en surt res; amb NVIDIA va més de pressa en un equip sense GPU, però la pregunta i els fragments surten cap a NVIDIA.",
+      "local": "En aquest equip (Ollama)",
+      "nvidia": "NVIDIA (al núvol)",
+      "porEntorno": "Ho fixa la variable d’entorn BOORIE_RAG_BACKEND, que mana sobre aquest ajust: {{motor}}.",
+      "sinClave": "No hi ha cap clau de NVIDIA vàlida a «Proveïdors API»: la cerca continua en aquest equip. Afegeix la clau de NVIDIA i prova-la per fer-la servir.",
+      "sinConsentimiento": "Sense el teu consentiment per a NVIDIA no s’envia res: la cerca continua en aquest equip.",
+      "darConsentimiento": "Revisar el consentiment per a NVIDIA",
+      "avisoNube": "La teva pregunta i els fragments dels teus documents surten d’aquest equip cap a NVIDIA per reformular-la i avaluar quins serveixen.",
+      "guardado": "Desat. S’aplica a partir de la propera pregunta.",
+      "sigueLocal": "No s’ha canviat: sense el teu consentiment no s’envia res a NVIDIA i la cerca continua en aquest equip.",
+      "error": "No s’ha pogut desar l’ajust."
     },
     "clave": {
       "estadoOk": "Desada i xifrada amb el clauer del sistema · acaba en …{{fin}}",

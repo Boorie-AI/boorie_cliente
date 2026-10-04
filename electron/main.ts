@@ -411,6 +411,7 @@ import { cifradorDeSafeStorage, configurarCifrador } from '../backend/services/s
 import { migrarClaves } from '../backend/services/security/migracionClaves'
 import { corregirProveedores } from '../backend/services/security/proveedoresActivos'
 import { cargarConsentimientos } from '../backend/services/security/consentimientoNube'
+import { cargarMotorRAG } from '../backend/services/hydraulic/agentic/modelosRAG'
 
 log.transports.file.level = 'info'
 capturarConsolaDelMain()
@@ -684,6 +685,11 @@ async function initializeApplication(): Promise<void> {
       await cargarConsentimientos(prisma)
     } catch (error) {
       appLogger.error('No se pudo leer el consentimiento para la nube', error as Error)
+    }
+    try {
+      await cargarMotorRAG(prisma)
+    } catch (error) {
+      appLogger.error('No se pudo leer dónde se procesa la búsqueda; sigue en local', error as Error)
     }
 
     // Initialize services with dependency injection

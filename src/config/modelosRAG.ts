@@ -20,6 +20,16 @@ export interface ModelosRAG {
   degradado: boolean
   motivo?: string
   selectorVisible: boolean
+  motor?: EstadoMotorRAG
+}
+
+/** Dónde se procesa la búsqueda (#224), como lo cuenta `revisarMotorRAG` en el proceso principal. */
+export interface EstadoMotorRAG {
+  ajuste: 'ollama' | 'nvidia'
+  pedido: 'ollama' | 'nvidia'
+  porEntorno: boolean
+  efectivo: 'ollama' | 'nvidia'
+  motivo?: 'sinConsentimiento' | 'sinClave'
 }
 
 /**
@@ -27,7 +37,7 @@ export interface ModelosRAG {
  *
  * El #49 lo dejó fijo y sin forma de cambiarlo salvo con variables de entorno, que en una
  * instalación de Windows no son algo que se le pueda pedir a quien la usa. Lo que se elige aquí
- * manda sobre el automático; el auxiliar, que gradúa fragmento a fragmento, sigue siendo local.
+ * manda sobre el automático. Reformular y graduar van donde diga «Dónde se procesa la búsqueda».
  */
 export interface ModeloElegido {
   /** El id del proveedor en `ai_providers`, para encontrar su clave. */
@@ -76,8 +86,9 @@ export async function cargarModelosRAG(): Promise<ModelosRAG | null> {
 }
 
 /**
- * Olvida lo consultado: con el consentimiento cambiado, el motor del RAG puede
- * ser otro (`BOORIE_RAG_BACKEND=nvidia` sin consentimiento vuelve a local).
+ * Olvida lo consultado: con el consentimiento, la clave o «Dónde se procesa la
+ * búsqueda» cambiados, el motor del RAG puede ser otro (NVIDIA sin
+ * consentimiento o sin clave vuelve a local).
  */
 export function refrescarModelosRAG(): void {
   cache = null

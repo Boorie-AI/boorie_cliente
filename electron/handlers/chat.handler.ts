@@ -286,7 +286,8 @@ export class ChatHandler {
 
     try {
       // Get system prompt from database and add it to messages if not already present
-      logger.info('Processing chat message', { provider, model, messageCount: messages.length })
+      // Es el papel «redactar» del registro de cada pregunta del RAG (#224).
+      logger.info('Processing chat message', { papel: 'redactar', provider, model, messageCount: messages.length })
       const messagesWithSystemPrompt = await this.addSystemPrompt(messages, {
         redaccion: { proveedor: provider, modelo: model },
         embeddings: modeloEmbeddings,

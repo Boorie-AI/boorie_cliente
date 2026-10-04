@@ -70,6 +70,9 @@ interface Window {
       search: (data: any) => Promise<any>;
       query: (prompt: string, options?: any) => Promise<any>;
       modelos: () => Promise<any>;
+      motor?: () => Promise<{ success: boolean; data?: import('../config/modelosRAG').EstadoMotorRAG; error?: string }>;
+      guardarMotor?: (motor: 'ollama' | 'nvidia') => Promise<{ success: boolean; data?: import('../config/modelosRAG').EstadoMotorRAG; error?: string }>;
+      consultas?: (peticion: { pregunta: string; idioma: string; proveedor: string; modelo: string }) => Promise<{ success: boolean; consultas?: string[]; motivo?: string; error?: string }>;
     };
     feedback?: import('./feedback').FeedbackAPI;
     nube?: {

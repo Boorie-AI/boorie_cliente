@@ -52,8 +52,10 @@ La misma ruta que el chat, sacada de la tienda a `src/services/chat/rutaDelChat.
 
 1. El adjunto se lee con `extraerTextoDeFichero`, el mismo código que usa la app.
 2. `componerPeticion` elige qué fragmentos caben en el contexto del modelo, por
-   palabras y por significado (embeddings de Ollama), y con Ollama pide además
-   consultas en el idioma del documento. Antepone el contexto de «chat general»
+   palabras y por significado (embeddings de Ollama), y pide además consultas en
+   el idioma del documento al mismo modelo que responde: con Ollama desde aquí, y
+   con NVIDIA con `escribirConsultasEnLaNube`, lo mismo que hace el proceso
+   principal de la app (#224). Antepone el contexto de «chat general»
    que la app pone siempre sin proyecto.
 3. Se llama al modelo con los mismos parámetros que la app: Ollama en streaming
    con su `num_ctx`; NVIDIA en streaming, con 8192 tokens de salida,

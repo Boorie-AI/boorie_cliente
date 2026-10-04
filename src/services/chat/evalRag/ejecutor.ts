@@ -42,7 +42,8 @@ import es from '@/locales/es.json'
 import { componerPeticion, posprocesarRespuesta, type TextosDeLaRespuesta } from '../rutaDelChat'
 import { estimarTokens, trocear } from '../adjunto'
 import { coseno } from '../similitudDelAdjunto'
-import { consultasEnElIdiomaDelDocumento } from '../consultasDelAdjunto'
+import { consultasDeOllama, consultasEnElIdiomaDelDocumento } from '../consultasDelAdjunto'
+import { escribirConsultasEnLaNube } from '@/../backend/services/hydraulic/agentic/consultasEnLaNube'
 import type { ChatMessage } from '../types'
 import { cerrarCaso, informeDeModelo, informeMarkdown, type InformeDeModelo, type Repeticion, type ResultadoDeCaso } from './informe'
 
@@ -258,7 +259,13 @@ async function ejecutarRepeticion(
         return undefined
       }
     },
-    consultasEnElIdioma: a => consultasEnElIdiomaDelDocumento({ ...a, baseUrl: OLLAMA }),
+    // Lo mismo que la app: con Ollama desde aquí, con NVIDIA lo que hace el proceso principal (#224).
+    consultasEnElIdioma: ({ proveedor: deQuien, modelo: conCual, numCtx, ...a }) => consultasEnElIdiomaDelDocumento({
+      ...a,
+      escribir: deQuien === 'Ollama'
+        ? consultasDeOllama(OLLAMA, conCual, numCtx)
+        : (texto, idioma) => escribirConsultasEnLaNube(texto, idioma, conCual),
+    }),
   })
   const sistema: ChatMessage = { role: 'system', content: componerPromptDeSistema(null, { redaccion: { proveedor, modelo }, embeddings: null }) }
   const t1 = Date.now()

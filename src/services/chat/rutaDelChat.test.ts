@@ -98,23 +98,25 @@ describe('componerPeticion', () => {
       conversacion: [{ role: 'user', content: base.pregunta, metadata: { adjunto } }],
     }, d)
     expect(d.contextoDeOllama).toHaveBeenCalledWith('qwen2.5:7b')
-    expect(d.consultasEnElIdioma).toHaveBeenCalledWith(expect.objectContaining({ modelo: 'qwen2.5:7b', numCtx: 4096, idiomaDeLaApp: 'es' }))
+    expect(d.consultasEnElIdioma).toHaveBeenCalledWith(expect.objectContaining({ proveedor: 'Ollama', modelo: 'qwen2.5:7b', numCtx: 4096, idiomaDeLaApp: 'es' }))
     // Una vez por la pregunta y otra por la consulta.
     expect(d.similitudes).toHaveBeenCalledTimes(2)
     expect(p.adjuntoUsado?.completo).toBe(false)
     expect(p.leidoDelAdjunto.length).toBeLessThan(adjunto.texto.length)
   })
 
-  it('en la nube usa el contexto de la nube y no pide consultas al modelo local', async () => {
+  it('en la nube usa el contexto de la nube y pide las consultas con el modelo que redacta (#224)', async () => {
     const d = deps()
+    d.consultasEnElIdioma = vi.fn(async () => ['step drawdown test'])
     const adjunto = { nombre: 'walton.pdf', texto: libro(8000) }
     await componerPeticion({
       ...base, proveedor: 'Nvidia', modelo: 'nvidia/nemotron', prompt: base.pregunta,
       conversacion: [{ role: 'user', content: base.pregunta, metadata: { adjunto } }],
     }, d)
     expect(d.contextoDeOllama).not.toHaveBeenCalled()
-    expect(d.consultasEnElIdioma).not.toHaveBeenCalled()
-    expect(d.similitudes).toHaveBeenCalledTimes(1)
+    expect(d.consultasEnElIdioma).toHaveBeenCalledWith(expect.objectContaining({ proveedor: 'Nvidia', modelo: 'nvidia/nemotron' }))
+    // Una vez por la pregunta y otra por la consulta, como con Ollama.
+    expect(d.similitudes).toHaveBeenCalledTimes(2)
   })
 
   it('en la nube, la ventana que dio la API manda sobre la tabla', async () => {

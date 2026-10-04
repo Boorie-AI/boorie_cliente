@@ -1,6 +1,13 @@
+/* eslint-disable no-console -- como el resto de ModelosRAG, a la consola del proceso principal: appLogger.info calla fuera de desarrollo, y esto es el registro de qué modelo atendió cada papel */
 import { AgenticRAGState, GradedDocument, GradingResult, GradingConfig, Document } from '../types'
 import { StateManager } from '../stateManager'
-import { llamarModeloRAG } from '../modelosRAG'
+import { backendRAG, llamarModeloRAG, LimiteDePeticiones } from '../modelosRAG'
+
+/** Un documento ya evaluado y, si no se pudo evaluar, por qué. */
+interface Graduacion {
+  doc: GradedDocument
+  sinGraduar?: string
+}
 
 export class GradeNode {
   private config: GradingConfig
@@ -27,7 +34,11 @@ export class GradeNode {
        * unas pocas peticiones a la vez y el resto las encola, así que pedir las
        * diez de golpe no acelera y sí compite con la generación por la CPU.
        */
-      const gradedDocuments = await this.gradeInBatches(state.retrievedDocuments, state)
+      const { graduados: gradedDocuments, llamadas, sinGraduar } = await this.gradeInBatches(state.retrievedDocuments, state)
+      if (sinGraduar.length > 0) {
+        const motivos = [...new Set(sinGraduar)].join('; ')
+        console.warn(`[GradeNode] ${sinGraduar.length} de ${gradedDocuments.length} fragmentos sin graduar (${motivos}); se conservan los que encontró la búsqueda.`)
+      }
 
       // Calculate metrics
       let relevantDocs = gradedDocuments.filter(doc => doc.relevant)
@@ -86,7 +97,7 @@ export class GradeNode {
         nextNode,
         metrics: {
           duration: Date.now() - startTime,
-          apiCalls: state.retrievedDocuments.length
+          apiCalls: llamadas
         }
       }
     } catch (error) {
@@ -108,21 +119,101 @@ export class GradeNode {
     }
   }
 
-  /** Cuántas peticiones de graduado van a la vez contra el modelo local. */
+  /** Cuántas peticiones de graduado van a la vez. */
   private static readonly EN_PARALELO = 4
 
-  private async gradeInBatches(docs: Document[], state: AgenticRAGState): Promise<GradedDocument[]> {
-    const graduados: GradedDocument[] = []
+  /**
+   * Fragmentos por llamada cuando gradúa NVIDIA (#224).
+   *
+   * Uno por llamada eran veinte llamadas por vuelta, y la API limita las
+   * peticiones por minuto: medido con la clave del equipo, 20 a la vez dieron
+   * 12 respuestas 429 de 40, y 4 a la vez no fallaban pero tardaban 75 s en
+   * total (unos 5 s por llamada, casi todo cola del servidor). Con cinco por
+   * llamada son cuatro llamadas, que van a la vez y quedan muy por debajo del
+   * límite. En local se sigue de uno en uno: el prompt está medido para el
+   * modelo pequeño, y a ese le cuesta igual leer cinco fragmentos juntos que
+   * por separado.
+   */
+  private static readonly POR_LOTE_EN_LA_NUBE = 5
 
-    for (let i = 0; i < docs.length; i += GradeNode.EN_PARALELO) {
-      const tanda = docs.slice(i, i + GradeNode.EN_PARALELO)
-      graduados.push(...await Promise.all(tanda.map(doc => this.gradeDocument(doc, state))))
+  private async gradeInBatches(
+    docs: Document[],
+    state: AgenticRAGState,
+  ): Promise<{ graduados: GradedDocument[]; llamadas: number; sinGraduar: string[] }> {
+    const enLote = docs.length > 0 && (await backendRAG()) === 'nvidia'
+    const tamano = enLote ? GradeNode.POR_LOTE_EN_LA_NUBE : 1
+    const grupos: Document[][] = []
+    for (let i = 0; i < docs.length; i += tamano) grupos.push(docs.slice(i, i + tamano))
+
+    const resultados: Graduacion[] = []
+    for (let i = 0; i < grupos.length; i += GradeNode.EN_PARALELO) {
+      const tanda = grupos.slice(i, i + GradeNode.EN_PARALELO)
+      const hechos = await Promise.all(tanda.map(grupo =>
+        enLote ? this.gradeBatch(grupo, state) : this.gradeDocument(grupo[0], state).then(r => [r])))
+      resultados.push(...hechos.flat())
     }
 
-    return graduados
+    return {
+      graduados: resultados.map(r => r.doc),
+      llamadas: grupos.length,
+      sinGraduar: resultados.flatMap(r => (r.sinGraduar ? [r.sinGraduar] : [])),
+    }
   }
 
-  private async gradeDocument(doc: Document, state: AgenticRAGState): Promise<GradedDocument> {
+  private graduado(doc: Document, state: AgenticRAGState, result: { relevant: boolean; score: number; reason: string }): GradedDocument {
+    /**
+     * El juez decide si pasa; el orden lo pone el parecido (#161).
+     *
+     * Antes la puntuación era `0,7 × juez + 0,3 × técnica`, y con el modelo
+     * local eso no ordena nada: medido sobre fragmentos reales, el juez da
+     * **0,95 a todo lo que acepta** —incluida una tabla de cifras sueltas ante
+     * una pregunta de normativa— y 0 a lo que rechaza. Su salida es binaria,
+     * así que la fórmula colapsaba en dos valores y las tres fuentes salían
+     * con la misma relevancia en la interfaz.
+     *
+     * Lo que sí sabe hacer es de portero, y para eso se usa. Para ordenar se
+     * usa el parecido que devolvió la búsqueda, que es lo único del camino
+     * que varía con el documento. Sin él —una búsqueda que no lo traiga— se
+     * cae en la valoración técnica, como antes.
+     */
+    const isRelevant = result.relevant && result.score >= this.config.relevanceThreshold
+    return {
+      ...doc,
+      relevanceScore: doc.score ?? this.evaluateTechnicalRelevance(doc, state),
+      relevant: isRelevant,
+      reason: result.reason || 'Technical evaluation'
+    }
+  }
+
+  /**
+   * Sin juez manda el buscador, no el silencio.
+   *
+   * Antes un fallo aquí marcaba el documento como no relevante, y como el
+   * fallo típico es que el modelo no esté —Ollama parado, una etiqueta que
+   * no existe— le pasaba a todos los documentos a la vez: el agente se
+   * quedaba sin contexto y contestaba que no podía responder, sin que nada
+   * dijera que el juez estaba caído. Lo que llega hasta aquí ya pasó el
+   * umbral de la búsqueda y el filtro de ámbito, así que se conserva. Lo mismo
+   * con el límite de peticiones de la API (#224): se conserva y se dice.
+   */
+  private sinJuez(doc: Document, state: AgenticRAGState, motivo: string): Graduacion {
+    return {
+      doc: {
+        ...doc,
+        relevanceScore: doc.score ?? this.evaluateTechnicalRelevance(doc, state),
+        relevant: true,
+        reason: `Sin graduar (${motivo}): se conserva lo que encontró la búsqueda`
+      },
+      sinGraduar: motivo,
+    }
+  }
+
+  private motivoDelFallo(error: unknown): string {
+    if (!(error instanceof LimiteDePeticiones)) return 'juez no disponible'
+    return error.status === 429 ? 'límite de peticiones de la API' : 'servicio de NVIDIA saturado'
+  }
+
+  private async gradeDocument(doc: Document, state: AgenticRAGState): Promise<Graduacion> {
     try {
       const prompt = this.buildGradingPrompt(doc, state)
 
@@ -130,6 +221,7 @@ export class GradeNode {
       // fragmento recuperado, así que aquí manda la velocidad.
       const respuesta = await llamarModeloRAG({
         rol: 'auxiliar',
+        tarea: 'graduar',
         prompt,
         temperatura: 0.1, // Low temperature for consistent grading
         // `max_tokens` no existe en Ollama —su opción se llama `num_predict`—
@@ -141,54 +233,95 @@ export class GradeNode {
         timeoutMs: 30000,
       })
 
-      // Parse LLM response
-      const result = this.parseGradingResponse(respuesta)
-
-      const technicalScore = this.evaluateTechnicalRelevance(doc, state)
-
-      /**
-       * El juez decide si pasa; el orden lo pone el parecido (#161).
-       *
-       * Antes la puntuación era `0,7 × juez + 0,3 × técnica`, y con el modelo
-       * local eso no ordena nada: medido sobre fragmentos reales, el juez da
-       * **0,95 a todo lo que acepta** —incluida una tabla de cifras sueltas ante
-       * una pregunta de normativa— y 0 a lo que rechaza. Su salida es binaria,
-       * así que la fórmula colapsaba en dos valores y las tres fuentes salían
-       * con la misma relevancia en la interfaz.
-       *
-       * Lo que sí sabe hacer es de portero, y para eso se usa. Para ordenar se
-       * usa el parecido que devolvió la búsqueda, que es lo único del camino
-       * que varía con el documento. Sin él —una búsqueda que no lo traiga— se
-       * cae en la valoración técnica, como antes.
-       */
-      const isRelevant = result.relevant && result.score >= this.config.relevanceThreshold
-
-      return {
-        ...doc,
-        relevanceScore: doc.score ?? technicalScore,
-        relevant: isRelevant,
-        reason: result.reason || 'Technical evaluation'
-      }
+      return { doc: this.graduado(doc, state, this.parseGradingResponse(respuesta)) }
     } catch (error) {
       console.error('[GradeNode] Document grading error:', error)
-
-      /**
-       * Sin juez manda el buscador, no el silencio.
-       *
-       * Antes un fallo aquí marcaba el documento como no relevante, y como el
-       * fallo típico es que el modelo no esté —Ollama parado, una etiqueta que
-       * no existe— le pasaba a todos los documentos a la vez: el agente se
-       * quedaba sin contexto y contestaba que no podía responder, sin que nada
-       * dijera que el juez estaba caído. Lo que llega hasta aquí ya pasó el
-       * umbral de la búsqueda y el filtro de ámbito, así que se conserva.
-       */
-      return {
-        ...doc,
-        relevanceScore: doc.score ?? this.evaluateTechnicalRelevance(doc, state),
-        relevant: true,
-        reason: 'Juez no disponible: se conserva lo que encontró la búsqueda'
-      }
+      return this.sinJuez(doc, state, this.motivoDelFallo(error))
     }
+  }
+
+  /** Varios fragmentos en una llamada; lo que el juez no conteste se conserva sin graduar, y se dice. */
+  private async gradeBatch(docs: Document[], state: AgenticRAGState): Promise<Graduacion[]> {
+    let respuesta: string
+    try {
+      respuesta = await llamarModeloRAG({
+        rol: 'auxiliar',
+        tarea: 'graduar',
+        prompt: this.buildBatchGradingPrompt(docs, state),
+        temperatura: 0.1,
+        // Unos 60 tokens por veredicto con su motivo; el margen es para que un
+        // motivo largo no corte el JSON del último.
+        maxTokens: 120 * docs.length + 60,
+        timeoutMs: 60000,
+      })
+    } catch (error) {
+      console.error(`[GradeNode] Error al graduar un lote de ${docs.length}:`, error)
+      const motivo = this.motivoDelFallo(error)
+      return docs.map(doc => this.sinJuez(doc, state, motivo))
+    }
+
+    const veredictos = this.parseBatchGradingResponse(respuesta, docs.length)
+    return docs.map((doc, i) => {
+      const v = veredictos[i]
+      if (!v) {
+        console.warn(`[GradeNode] El juez no evaluó «${doc.metadata.source}» en el lote; se conserva sin graduar.`)
+        return this.sinJuez(doc, state, 'el juez no lo evaluó')
+      }
+      return { doc: this.graduado(doc, state, v) }
+    })
+  }
+
+  /** Un veredicto por posición, o `undefined` donde el juez no dijo nada legible. */
+  private parseBatchGradingResponse(response: string, total: number): Array<{ relevant: boolean; score: number; reason: string } | undefined> {
+    const veredictos: Array<{ relevant: boolean; score: number; reason: string } | undefined> = new Array(total).fill(undefined)
+    const lista = response.match(/\[[\s\S]*\]/)
+    if (!lista) {
+      console.warn('[GradeNode] El juez no devolvió una lista JSON para el lote:', response.slice(0, 300))
+      return veredictos
+    }
+    try {
+      const datos: unknown = JSON.parse(lista[0])
+      if (!Array.isArray(datos)) return veredictos
+      datos.forEach((dato: unknown, posicion: number) => {
+        if (!dato || typeof dato !== 'object') return
+        const v = dato as { doc?: unknown; relevant?: unknown; score?: unknown; reason?: unknown }
+        const numero = Number(v.doc)
+        const i = Number.isInteger(numero) && numero >= 1 && numero <= total ? numero - 1 : posicion
+        if (i >= total || typeof v.relevant !== 'boolean') return
+        veredictos[i] = {
+          relevant: v.relevant,
+          score: Math.max(0, Math.min(1, parseFloat(String(v.score)) || 0)),
+          reason: typeof v.reason === 'string' && v.reason ? v.reason : 'No reason provided',
+        }
+      })
+    } catch (error) {
+      console.warn('[GradeNode] La lista del lote no es JSON válido:', error)
+    }
+    return veredictos
+  }
+
+  /** El mismo criterio que `buildGradingPrompt`, con los documentos numerados delante de la pregunta. */
+  private buildBatchGradingPrompt(docs: Document[], state: AgenticRAGState): string {
+    const domainContext = this.getDomainContext(state.engineeringDomain)
+    const calculo = state.calculationType
+      ? ` Ten en cuenta que la pregunta trata sobre ${this.getCalculationTypeSpanish(state.calculationType)}.`
+      : ''
+    const documentos = docs.map((doc, i) => {
+      const seccion = doc.metadata.section ? `Sección: ${doc.metadata.section}\n` : ''
+      const estandar = doc.metadata.standard ? `Estándar: ${doc.metadata.standard}\n` : ''
+      return `[${i + 1}] Fuente: ${doc.metadata.source}\n${seccion}${estandar}${doc.content.substring(0, 1500)}`
+    }).join('\n\n')
+
+    return `Documentos a evaluar
+
+${documentos}
+
+Pregunta del usuario: "${state.originalQuestion}"
+
+${domainContext}
+Decide, para cada documento por separado, si sirve para responder esa pregunta. Sirve si contiene datos, procedimientos, normativa o resultados que respondan directamente a lo que se pregunta.${calculo}
+
+Responde ÚNICAMENTE con una lista JSON, un objeto por documento y en el mismo orden: [{"doc": 1, "relevant": boolean, "score": number entre 0.0 y 1.0, "reason": "breve"}]`
   }
 
   /**
