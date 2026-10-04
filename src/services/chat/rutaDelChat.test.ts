@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { componerPeticion, posprocesarRespuesta, promptConFuentes, type DependenciasDePeticion } from './rutaDelChat'
 import { cierreDeIdioma, contextoDeConocimiento } from '@/services/contextoConocimiento'
-import { CONTEXTO_EN_LA_NUBE } from './adjunto'
 
 const deps = (): DependenciasDePeticion & { [k: string]: any } => ({
   contextoDeOllama: vi.fn(async () => 4096),
@@ -116,7 +115,19 @@ describe('componerPeticion', () => {
     expect(d.contextoDeOllama).not.toHaveBeenCalled()
     expect(d.consultasEnElIdioma).not.toHaveBeenCalled()
     expect(d.similitudes).toHaveBeenCalledTimes(1)
-    expect(CONTEXTO_EN_LA_NUBE).toBeGreaterThan(4096)
+  })
+
+  it('en la nube, la ventana que dio la API manda sobre la tabla', async () => {
+    const adjunto = { nombre: 'walton.pdf', texto: libro(8000) }
+    const entrada = {
+      ...base, proveedor: 'openrouter', modelo: 'openai/gpt-4o', prompt: base.pregunta,
+      conversacion: [{ role: 'user' as const, content: base.pregunta, metadata: { adjunto } }],
+    }
+    const conLaTabla = await componerPeticion(entrada, deps())
+    const d = { ...deps(), limitesDeLaApi: vi.fn(async () => ({ contexto: 8192, salida: 2048 })) }
+    const conLaApi = await componerPeticion(entrada, d)
+    expect(d.limitesDeLaApi).toHaveBeenCalledWith('openrouter', 'openai/gpt-4o')
+    expect(conLaApi.adjuntoUsado!.incluidos).toBeLessThan(conLaTabla.adjuntoUsado!.incluidos)
   })
 
   it('las fuentes del RAG que no caben junto al adjunto se quitan del prompt y se cuentan', async () => {

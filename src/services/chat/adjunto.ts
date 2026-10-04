@@ -14,6 +14,7 @@
  */
 
 import { paginasDeLosFragmentos, etiquetaDePaginas } from './paginasDelAdjunto'
+import type { LimitesDeModelo } from '@/../backend/services/hydraulic/agentic/limitesDeModelo'
 
 export interface Adjunto {
   nombre: string
@@ -71,31 +72,32 @@ export function estimarTokens(texto: string): number {
 }
 
 /**
- * Con Ollama, el contexto es el `num_ctx` que se le pide para ese modelo
- * (`contextoDeOllama`): 8192 con qwen2.5, 4096 con nemotron-mini. Por encima
- * de ese tamaño Ollama no recorta con cuidado: se queda con el principio y el
- * final del prompt.
- */
-/**
- * Los proveedores en la nube admiten mucho más; esto es un tope prudente. Era
- * 32 000, y con el libro de Walton dejaba fuera de la pregunta por la prueba
- * escalonada la ecuación 4.2, la tabla 2.1 o el criterio de C, según cómo
- * cayera el corte: los pasajes buenos estaban justo en el límite. Con 48 000
- * entran todos (medido con los vectores de granite-embedding de la app).
- */
-export const CONTEXTO_EN_LA_NUBE = 48000
-/**
- * Lo que se deja para que el modelo escriba la respuesta: la sexta parte del
- * contexto, y nunca menos de 700. Una pregunta que pide tablas, fórmulas y
- * procedimiento hizo escribir a qwen2.5 unos 1250 tokens.
+ * Lo que se deja para que el modelo escriba la respuesta dentro de lo que se le
+ * manda: la sexta parte del contexto útil, y nunca menos de 700. Una pregunta
+ * que pide tablas, fórmulas y procedimiento hizo escribir a qwen2.5 unos 1250
+ * tokens. Con Ollama el contexto es el `num_ctx` (`contextoDeOllama`), y por
+ * encima Ollama no recorta con cuidado: se queda con el principio y el final
+ * del prompt.
  */
 const RESERVA_RESPUESTA = 700
 /** El prompt de sistema se compone después; mide unos 600 tokens sin personalizar. */
 const RESERVA_SISTEMA = 900
 
-export function presupuestoDelAdjunto(contexto: number, tokensDelResto: number): number {
-  const respuesta = Math.max(RESERVA_RESPUESTA, Math.floor(contexto / 6))
-  return Math.max(0, contexto - respuesta - RESERVA_SISTEMA - tokensDelResto)
+/**
+ * Lo que cabe del adjunto (#223). Además de la reserva dentro del contexto
+ * útil, la entrada y el tope de salida que se pide tienen que caber juntos en
+ * la ventana del modelo: con gpt-4 (8192 de ventana) se mandaban 39 000 tokens.
+ * En los modelos grandes la ventana sobra y manda el contexto útil, así que con
+ * Ultra lo que entra no cambia aunque su salida suba a 16 384.
+ */
+export function presupuestoDelAdjunto(
+  limites: Pick<LimitesDeModelo, 'contexto' | 'contextoUtil' | 'salida'>,
+  tokensDelResto: number
+): number {
+  const util = limites.contextoUtil
+  const prudente = util - Math.max(RESERVA_RESPUESTA, Math.floor(util / 6))
+  const entrada = limites.salida === null ? prudente : Math.min(prudente, limites.contexto - limites.salida)
+  return Math.max(0, entrada - RESERVA_SISTEMA - tokensDelResto)
 }
 
 const TOKENS_POR_FRAGMENTO = 250

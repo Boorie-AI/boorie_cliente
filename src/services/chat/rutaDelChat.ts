@@ -17,6 +17,7 @@ import {
   type RespaldoDeFuente,
 } from '@/../backend/services/hydraulic/citasSinRespaldo'
 import { marcarLoTraducido } from '@/services/avisoDeTraduccion'
+import { limitesDe, type LimitesDeLaApi } from '@/../backend/services/hydraulic/agentic/limitesDeModelo'
 import { logger } from '@/utils/logger'
 import {
   type Adjunto,
@@ -25,7 +26,6 @@ import {
   estimarTokens,
   fuentesQueCaben,
   presupuestoDelAdjunto,
-  CONTEXTO_EN_LA_NUBE,
   seleccionarFragmentos,
   separarDocumentoPegado,
 } from './adjunto'
@@ -73,6 +73,8 @@ export interface EntradaDePeticion<M extends MensajeDelHistorial> {
 export interface DependenciasDePeticion {
   /** El `num_ctx` con que se carga un modelo de Ollama (`contextoDeOllama`). */
   contextoDeOllama: (modelo: string) => Promise<number>
+  /** Ventana y salida que dio la API al probar la clave, si se guardaron (`AIModel.metadata`). */
+  limitesDeLaApi?: (proveedor: string, modelo: string) => Promise<LimitesDeLaApi | undefined>
   /** Un coseno por fragmento del adjunto, o nada si no se pudo (`similitudesDelAdjunto`). */
   similitudes: (texto: string, consulta: string) => Promise<number[] | undefined>
   /** Consultas en el idioma del documento (`consultasEnElIdiomaDelDocumento`); sólo con Ollama. */
@@ -138,8 +140,12 @@ export async function componerPeticion<M extends MensajeDelHistorial>(
       + historial.reduce((n, msg) => n + estimarTokens(msg.content), 0)
     const esOllama = proveedor.toLowerCase() === 'ollama'
     const modeloOllama = modelo.replace(/^ollama-/, '')
-    const numCtx = esOllama ? await deps.contextoDeOllama(modeloOllama) : CONTEXTO_EN_LA_NUBE
-    const presupuesto = presupuestoDelAdjunto(numCtx, resto)
+    const deLaApi = esOllama
+      ? { contexto: await deps.contextoDeOllama(modeloOllama) }
+      : await deps.limitesDeLaApi?.(proveedor, modelo)
+    const limites = limitesDe(proveedor, esOllama ? modeloOllama : modelo, deLaApi)
+    const numCtx = limites.contexto
+    const presupuesto = presupuestoDelAdjunto(limites, resto)
     // El significado y las consultas solo hacen falta si hay que elegir: un documento que cabe va entero (#205).
     const hayQueElegir = estimarTokens(vigente.texto) > presupuesto
     const [similitudes, textosDeConsultas] = hayQueElegir

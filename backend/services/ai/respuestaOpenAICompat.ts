@@ -257,21 +257,19 @@ export function unirContinuacion(previo: string, siguiente: string): string {
 
 /**
  * Lo que se le pide a NVIDIA para redactar, igual en el chat y en la batería.
+ * El tope de salida es el del modelo (`limitesDe`).
  *
  * Medido con nemotron-3-super: 4096 tokens en 56 s. Con 4096 las respuestas
- * largas se cortaban y había que continuar, y la costura se notaba; 8192 caben
- * de sobra en 240 s. La temperatura baja de 0,5 a 0,2 porque aquí se responde
- * sobre documentos y normas, no se redacta: con más, nemotron-3-ultra rellenaba
- * con páginas y referencias de memoria. `/no_think` en el sistema no hace nada
- * con nemotron-3; `enable_thinking: false` sí (comprobado: 0 tokens de
+ * largas se cortaban y había que continuar, y la costura se notaba. La
+ * temperatura baja de 0,5 a 0,2 porque aquí se responde sobre documentos y
+ * normas, no se redacta: con más, nemotron-3-ultra rellenaba con páginas y
+ * referencias de memoria. `/no_think` en el sistema no hace nada con
+ * nemotron-3; `enable_thinking: false` sí (comprobado: 0 tokens de
  * razonamiento).
  */
-export function cuerpoNvidia(sinRazonar?: boolean): Record<string, unknown> {
+export function cuerpoNvidia(salida: number, sinRazonar?: boolean): Record<string, unknown> {
   return {
-    max_tokens: 8192, temperature: 0.2, top_p: 1,
+    max_tokens: salida, temperature: 0.2, top_p: 1,
     ...(sinRazonar ? { chat_template_kwargs: { enable_thinking: false } } : {}),
   }
 }
-
-/** En streaming `totalMs` es sólo la red de seguridad; lo que corta es la inactividad. */
-export const LIMITES_NVIDIA = { totalMs: 600000, inactividadMs: 90000 }

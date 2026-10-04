@@ -11,6 +11,8 @@
  * chat al primer envío.
  */
 
+import { limitesDelListado, type LimitesDeLaApi } from '../hydraulic/agentic/limitesDeModelo'
+
 export const PROVEEDORES_CON_PRUEBA = ['anthropic', 'openai', 'google', 'openrouter'] as const
 export type ProveedorConPrueba = typeof PROVEEDORES_CON_PRUEBA[number]
 
@@ -33,6 +35,13 @@ export interface ModeloListado {
   modelId: string
   modelName: string
   description: string
+  /** Ventana y salida que da el listado, para `limitesDe` (#223). OpenAI no las da. */
+  metadata?: { limites: LimitesDeLaApi }
+}
+
+function conLimites(proveedor: ProveedorConPrueba, m: Record<string, unknown>, modelo: ModeloListado): ModeloListado {
+  const limites = limitesDelListado(proveedor, m)
+  return limites ? { ...modelo, metadata: { limites } } : modelo
 }
 
 export interface ResultadoPrueba {
@@ -94,7 +103,7 @@ async function listar(proveedor: ProveedorConPrueba, apiKey: string, f: typeof f
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       }, f)
-      return (datos.data ?? []).map((m: any) => ({
+      return (datos.data ?? []).map((m: any) => conLimites(proveedor, m, {
         modelId: m.id,
         modelName: m.display_name || m.id,
         description: '',
@@ -113,13 +122,13 @@ async function listar(proveedor: ProveedorConPrueba, apiKey: string, f: typeof f
         .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
         .map((m: any) => {
           const id = String(m.name).split('/').pop()!
-          return { modelId: id, modelName: m.displayName || id, description: m.description || '' }
+          return conLimites(proveedor, m, { modelId: id, modelName: m.displayName || id, description: m.description || '' })
         })
     }
     case 'openrouter': {
       await pedir('https://openrouter.ai/api/v1/key', { Authorization: `Bearer ${apiKey}` }, f)
       const datos = await pedir('https://openrouter.ai/api/v1/models', { Authorization: `Bearer ${apiKey}` }, f)
-      return (datos.data ?? []).map((m: any) => ({
+      return (datos.data ?? []).map((m: any) => conLimites(proveedor, m, {
         modelId: m.id,
         modelName: m.name || m.id,
         description: m.description || '',

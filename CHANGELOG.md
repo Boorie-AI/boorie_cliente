@@ -19,6 +19,11 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 - **Con el modelo local, ya no se pierden trozos de la respuesta.** Si un fragmento de lo que
   enviaba Ollama llegaba partido por la red, ese texto desaparecía de la respuesta en pantalla,
   y con él alguna tilde o «ñ» partida. Ahora se recompone antes de mostrarlo.
+- **Cada modelo en la nube responde con el largo que admite.** A todos se les pedía lo mismo, y
+  los modelos antiguos que admiten menos —Claude 3 Haiku y Opus, GPT-4 Turbo, GPT-4— rechazaban
+  la pregunta con un error. Ahora a cada uno se le pide lo que admite, tomado de su proveedor al
+  probar la clave o, si no lo da, de una tabla. Nemotron Ultra puede escribir el doble antes de
+  cortarse, así que sus respuestas largas llegan enteras más a menudo.
 
 ## [1.47.0] - 2026-10-03
 

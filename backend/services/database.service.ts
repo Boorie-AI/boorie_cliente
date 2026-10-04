@@ -7,6 +7,7 @@ import {
     valorParaGuardar,
     type EstadoPublicoClave,
 } from './security/clavesProveedor';
+import { metadataParaGuardar } from './hydraulic/agentic/limitesDeModelo';
 
 /**
  * Lo que va a la columna `apiKey` para una clave nueva (#225): cifrada si hay
@@ -244,7 +245,7 @@ export class DatabaseService {
                         isAvailable: data.isAvailable,
                         isSelected: data.isSelected,
                         description: data.description,
-                        metadata: data.metadata ? JSON.stringify(data.metadata) : null
+                        metadata: metadataParaGuardar(data.metadata, existing.metadata)
                     }
                 });
             } else {
@@ -257,7 +258,7 @@ export class DatabaseService {
                         isAvailable: data.isAvailable || true,
                         isSelected: data.isSelected || false,
                         description: data.description,
-                        metadata: data.metadata ? JSON.stringify(data.metadata) : null
+                        metadata: metadataParaGuardar(data.metadata, null)
                     }
                 });
             }

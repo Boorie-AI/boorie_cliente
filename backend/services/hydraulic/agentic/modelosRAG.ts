@@ -40,6 +40,16 @@
 import axios from 'axios'
 import { alCambiarConsentimiento, hayConsentimiento } from '../../security/consentimientoNube'
 
+// Los límites viven aparte porque los usa el renderer, y este fichero trae axios.
+export {
+  limitesDe,
+  limitesDeLaNube,
+  CONTEXTO_UTIL_NUBE,
+  type LimitesDeModelo,
+  type LimitesDeLaNube,
+  type LimitesDeLaApi,
+} from './limitesDeModelo'
+
 export type RolRAG = 'principal' | 'auxiliar'
 
 export type BackendRAG = 'ollama' | 'nvidia'

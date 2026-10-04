@@ -7,6 +7,7 @@ import { consultasEnElIdiomaDelDocumento } from '@/services/chat/consultasDelAdj
 import { componerPeticion, posprocesarRespuesta, promptConFuentes } from '@/services/chat/rutaDelChat'
 import { lineasNdjson } from '@/services/chat/lineasNdjson'
 import { contextoDeOllama } from '@/../backend/services/contextoDeOllama'
+import { limitesGuardados, type LimitesDeLaApi } from '@/../backend/services/hydraulic/agentic/limitesDeModelo'
 import {
   configuracionInicialDeConocimiento,
   guardarEleccion,
@@ -121,6 +122,18 @@ interface ChatState {
 
   // Hydraulic project context
   buildProjectContext: (projectId: string) => Promise<string>
+}
+
+/** Lo que dio la API del proveedor al probar la clave, guardado con el modelo (#223). */
+async function limitesGuardadosDelModelo(proveedor: string, modelo: string): Promise<LimitesDeLaApi | undefined> {
+  try {
+    const fila = (await databaseService.getAIProviders()).find(p => p.name.toLowerCase() === proveedor.toLowerCase())
+    if (!fila) return undefined
+    const elegido = (await databaseService.getAIModels(fila.id)).find(m => m.modelId === modelo)
+    return limitesGuardados(elegido?.metadata)
+  } catch {
+    return undefined
+  }
 }
 
 export const useChatStore = create<ChatState>()(
@@ -529,6 +542,7 @@ export const useChatStore = create<ChatState>()(
               busquedaFallida,
             }, {
               contextoDeOllama: m => contextoDeOllama(getOllamaBaseUrl(), m),
+              limitesDeLaApi: limitesGuardadosDelModelo,
               similitudes: (texto, consulta) => similitudesDelAdjunto(texto, consulta),
               consultasEnElIdioma: a => consultasEnElIdiomaDelDocumento({ ...a, baseUrl: getOllamaBaseUrl() }),
             })

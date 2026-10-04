@@ -15,6 +15,12 @@ import {
 import { WNTRResilienceService } from '../../backend/services/hydraulic/resilienceService'
 import { componerPromptDeSistema, type ModelosEnUso } from '../../backend/services/hydraulic/promptDelAgente'
 import { contextoDeOllama } from '../../backend/services/contextoDeOllama'
+import {
+  limitesDe,
+  limitesDeLaNube,
+  limitesGuardados,
+  type LimitesDeLaNube,
+} from '../../backend/services/hydraulic/agentic/limitesDeModelo'
 import { detectarIntencionEscenario, detectarIntencionEnergia } from '../../backend/services/hydraulic/intencionEscenario'
 import { esLocal, hayConsentimiento, SIN_CONSENTIMIENTO } from '../../backend/services/security/consentimientoNube'
 
@@ -36,7 +42,6 @@ import { leerRedActiva } from '../../backend/services/hydraulic/redActiva'
 import {
   MAX_CONTINUACIONES,
   FIN_POR_INACTIVIDAD,
-  LIMITES_NVIDIA,
   cuerpoNvidia,
   leerRespuestaEnStreaming,
   leerAnthropicEnStreaming,
@@ -126,18 +131,6 @@ export interface SendChatMessageParams {
  */
 const MAX_VUELTAS_HERRAMIENTAS = 4
 
-/**
- * Cuánto se espera a un proveedor externo (#246, igual que NVIDIA desde el
- * #232). En streaming lo que corta es la inactividad, y el total sólo es una
- * red por si el servidor no para nunca; sin streaming —las vueltas con
- * herramientas— el total es lo único que hay.
- */
-const INACTIVIDAD_NUBE_MS = 90000
-const TOPE_TOTAL_NUBE_MS = 600000
-const TOPE_SIN_STREAMING_MS = 180000
-/** El tope de la respuesta de un proveedor externo, el mismo que NVIDIA. */
-const MAX_TOKENS_NUBE = 8192
-
 type LectorSSE = (respuesta: { body: any }, controlador: AbortController, inactividadMs: number, mensaje: string) => Promise<any>
 
 /**
@@ -150,7 +143,7 @@ async function pedirAlProveedor(
   init: RequestInit,
   proveedor: string,
   streaming: { inactividadMs: number; leer: LectorSSE } | null,
-  timeout: number = streaming ? TOPE_TOTAL_NUBE_MS : TOPE_SIN_STREAMING_MS
+  timeout: number
 ): Promise<{ response: Response; data?: any }> {
   const controlador = new AbortController()
   const tope = setTimeout(() => controlador.abort(new Error(`${proveedor} timed out: no terminó en ${Math.round(timeout / 1000)} s`)), timeout)
@@ -174,17 +167,6 @@ async function pedirAlProveedor(
 function esErrorDeStreaming(status: number, mensaje: string): boolean {
   return status === 400 && /stream/i.test(mensaje)
 }
-
-/**
- * Un modelo local tarda lo suyo, y con herramientas cada respuesta cuesta dos
- * inferencias completas en vez de una. Con los 120 s de siempre, llama3.1:8b
- * sobre Net3 se pasaba de largo en la primera vuelta y el chat mostraba «The
- * operation was aborted due to timeout». El margen ancho solo se aplica cuando
- * hay herramientas: sin ellas, el limite corto sigue siendo el aviso util de
- * que Ollama no responde.
- */
-const TIMEOUT_OLLAMA_MS = 120000
-const TIMEOUT_OLLAMA_HERRAMIENTAS_MS = 300000
 
 export interface IPCChatResponse {
   success: boolean
@@ -282,25 +264,26 @@ export class ChatHandler {
         : null
 
       let result: ChatResponse
+      const nube = esLocal(provider) ? limitesDeLaNube(model) : await this.limitesDeLaNubePara(provider, model)
 
       switch (provider.toLowerCase()) {
         case 'anthropic':
-          result = await this.sendAnthropicMessage(model, messagesWithSystemPrompt, apiKey, red)
+          result = await this.sendAnthropicMessage(model, messagesWithSystemPrompt, apiKey, nube, red)
           break
         case 'openai':
-          result = await this.sendOpenAIMessage(model, messagesWithSystemPrompt, apiKey, red)
+          result = await this.sendOpenAIMessage(model, messagesWithSystemPrompt, apiKey, nube, red)
           break
         case 'google':
-          result = await this.sendGoogleMessage(model, messagesWithSystemPrompt, apiKey)
+          result = await this.sendGoogleMessage(model, messagesWithSystemPrompt, apiKey, nube)
           break
         case 'openrouter':
-          result = await this.sendOpenRouterMessage(model, messagesWithSystemPrompt, apiKey, red)
+          result = await this.sendOpenRouterMessage(model, messagesWithSystemPrompt, apiKey, nube, red)
           break
         case 'ollama':
           result = await this.sendOllamaMessage(model, messagesWithSystemPrompt, '', red)
           break
         case 'nvidia':
-          result = await this.sendNvidiaMessage(model, messagesWithSystemPrompt, apiKey, red, sinRazonar)
+          result = await this.sendNvidiaMessage(model, messagesWithSystemPrompt, apiKey, nube, red, sinRazonar)
           break
         default:
           throw new Error(`Unsupported chat provider: ${provider}`)
@@ -382,6 +365,25 @@ export class ChatHandler {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
       }
+    }
+  }
+
+  /**
+   * Los límites del modelo con lo que dijo la API al probar la clave, si se
+   * guardó (#223). Sin esa fila —un modelo añadido a mano, una base sin
+   * migrar— valen la tabla o el valor por defecto.
+   */
+  private async limitesDeLaNubePara(proveedor: string, modelo: string): Promise<LimitesDeLaNube> {
+    try {
+      const filas = await this.databaseService.prisma.aIModel.findMany({
+        where: { modelId: modelo },
+        select: { metadata: true, provider: { select: { name: true } } },
+      })
+      const fila = filas.find(f => f.provider.name.toLowerCase() === proveedor.toLowerCase())
+      return limitesDeLaNube(modelo, limitesGuardados(fila?.metadata))
+    } catch (error) {
+      logger.warn('No se pudieron leer los límites guardados del modelo; van los de la tabla', { proveedor, modelo, error: String(error) })
+      return limitesDeLaNube(modelo)
     }
   }
 
@@ -519,6 +521,7 @@ export class ChatHandler {
     model: string,
     messages: ChatMessage[],
     apiKey: string,
+    limites: LimitesDeLaNube,
     red?: RedParaHerramientas | null
   ): Promise<ChatResponse> {
     const { system, historial } = this.convertToAnthropicFormat(messages)
@@ -537,7 +540,7 @@ export class ChatHandler {
       const enStreaming = !usarHerramientas
       const requestBody: any = {
         model: model,
-        max_tokens: MAX_TOKENS_NUBE,
+        max_tokens: limites.salida,
         messages: historial,
         stream: enStreaming,
       }
@@ -563,7 +566,8 @@ export class ChatHandler {
             ...(enStreaming ? { Accept: 'text/event-stream' } : {}),
           },
           body: JSON.stringify(requestBody),
-        }, 'Anthropic', enStreaming ? { inactividadMs: INACTIVIDAD_NUBE_MS, leer: leerAnthropicEnStreaming } : null))
+        }, 'Anthropic', enStreaming ? { inactividadMs: limites.inactividadMs, leer: leerAnthropicEnStreaming } : null,
+        enStreaming ? limites.totalMs : limites.totalConHerramientasMs))
       } catch (error) {
         if (continuaciones === 0) throw error
         logger.warn('Anthropic falla al continuar la respuesta, se entrega lo que hay', { model, error: String(error) })
@@ -843,6 +847,7 @@ export class ChatHandler {
     model: string,
     messages: ChatMessage[],
     apiKey: string,
+    limites: LimitesDeLaNube,
     red?: RedParaHerramientas | null
   ): Promise<ChatResponse> {
     return this.enviarOpenAICompat({
@@ -855,9 +860,9 @@ export class ChatHandler {
       // `max_completion_tokens` y sin temperatura: los modelos de razonamiento
       // (o-series, gpt-5) rechazan `max_tokens` y cualquier temperatura que no
       // sea la suya, y la lista de modelos ya sale de la API (#246).
-      cuerpoExtra: { max_completion_tokens: MAX_TOKENS_NUBE },
-      timeout: TOPE_TOTAL_NUBE_MS,
-      inactividadMs: INACTIVIDAD_NUBE_MS,
+      cuerpoExtra: { max_completion_tokens: limites.salida },
+      timeout: limites.totalMs,
+      inactividadMs: limites.inactividadMs,
       modeloDeLaRespuesta: false,
       extraerError: (errorData) => errorData.error?.message || 'Unknown error',
       lanzarError: (status, errorMessage) => {
@@ -888,7 +893,7 @@ export class ChatHandler {
    * implementado: streaming con límite por inactividad, lo recibido se
    * conserva, y si corta por `MAX_TOKENS` se le pide que siga.
    */
-  private async sendGoogleMessage(model: string, messages: ChatMessage[], apiKey: string): Promise<ChatResponse> {
+  private async sendGoogleMessage(model: string, messages: ChatMessage[], apiKey: string, limites: LimitesDeLaNube): Promise<ChatResponse> {
     const { contents, systemInstruction } = this.convertToGoogleFormat(messages)
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`
 
@@ -902,7 +907,7 @@ export class ChatHandler {
       const requestBody = {
         contents,
         ...(systemInstruction ? { systemInstruction } : {}),
-        generationConfig: { maxOutputTokens: MAX_TOKENS_NUBE, temperature: 0.7 },
+        generationConfig: { maxOutputTokens: limites.salida, temperature: 0.7 },
       }
 
       logger.debug('Google AI API Request via backend', { model, messagesCount: contents.length, continuaciones })
@@ -917,7 +922,7 @@ export class ChatHandler {
             'x-goog-api-key': apiKey,
           },
           body: JSON.stringify(requestBody),
-        }, 'Google AI', { inactividadMs: INACTIVIDAD_NUBE_MS, leer: leerGoogleEnStreaming }))
+        }, 'Google AI', { inactividadMs: limites.inactividadMs, leer: leerGoogleEnStreaming }, limites.totalMs))
       } catch (error) {
         if (continuaciones === 0) throw error
         logger.warn('Google AI falla al continuar la respuesta, se entrega lo que hay', { model, error: String(error) })
@@ -1008,6 +1013,7 @@ export class ChatHandler {
     model: string,
     messages: ChatMessage[],
     apiKey: string,
+    limites: LimitesDeLaNube,
     red?: RedParaHerramientas | null
   ): Promise<ChatResponse> {
     return this.enviarOpenAICompat({
@@ -1020,9 +1026,9 @@ export class ChatHandler {
         'X-Title': 'Boorie', // Required by OpenRouter
       },
       // OpenRouter specific parameters
-      cuerpoExtra: { max_tokens: MAX_TOKENS_NUBE, temperature: 0.7, top_p: 1, frequency_penalty: 0, presence_penalty: 0 },
-      timeout: TOPE_TOTAL_NUBE_MS,
-      inactividadMs: INACTIVIDAD_NUBE_MS,
+      cuerpoExtra: { max_tokens: limites.salida, temperature: 0.7, top_p: 1, frequency_penalty: 0, presence_penalty: 0 },
+      timeout: limites.totalMs,
+      inactividadMs: limites.inactividadMs,
       modeloDeLaRespuesta: true,
       extraerError: (errorData) => errorData.error?.message || 'Unknown error',
       lanzarError: (status, errorMessage) => {
@@ -1066,7 +1072,7 @@ export class ChatHandler {
       content: msg.content
     }))
 
-    const numCtx = await contextoDeOllama(baseUrl, model)
+    const limites = limitesDe('ollama', model, { contexto: await contextoDeOllama(baseUrl, model) })
 
     let usarHerramientas = !!red
     /** La propuesta de escenario pendiente de confirmar, si el agente la construye (#44). */
@@ -1082,7 +1088,7 @@ export class ChatHandler {
           model: model,
           messages: historial,
           stream: false,
-          options: { num_ctx: numCtx },
+          options: { num_ctx: limites.contexto },
         }
         if (usarHerramientas) requestBody.tools = herramientasOpenAI(HERRAMIENTAS)
 
@@ -1099,7 +1105,7 @@ export class ChatHandler {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(requestBody),
-          signal: AbortSignal.timeout(usarHerramientas ? TIMEOUT_OLLAMA_HERRAMIENTAS_MS : TIMEOUT_OLLAMA_MS)
+          signal: AbortSignal.timeout(usarHerramientas ? limites.totalConHerramientasMs : limites.totalMs)
         })
 
         if (!response.ok) {
@@ -1189,6 +1195,7 @@ export class ChatHandler {
     model: string,
     messages: ChatMessage[],
     apiKey: string,
+    limites: LimitesDeLaNube,
     red?: RedParaHerramientas | null,
     sinRazonar?: boolean
   ): Promise<ChatResponse> {
@@ -1200,9 +1207,9 @@ export class ChatHandler {
         'Authorization': `Bearer ${apiKey}`,
         'Accept': 'application/json',
       },
-      cuerpoExtra: cuerpoNvidia(sinRazonar),
-      timeout: LIMITES_NVIDIA.totalMs,
-      inactividadMs: LIMITES_NVIDIA.inactividadMs,
+      cuerpoExtra: cuerpoNvidia(limites.salida, sinRazonar),
+      timeout: limites.totalMs,
+      inactividadMs: limites.inactividadMs,
       modeloDeLaRespuesta: true,
       extraerError: (errorData, status) => errorData.detail || errorData.title || `Error ${status}`,
       lanzarError: (status, errorMessage) => {

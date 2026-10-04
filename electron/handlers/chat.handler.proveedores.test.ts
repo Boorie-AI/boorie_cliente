@@ -255,3 +255,71 @@ describe('OpenAI', () => {
     expect(cuerpoDe(1).stream).toBe(false)
   })
 })
+
+/**
+ * Antes se pedían 8192 tokens de salida a todos (#223), y la API rechaza la
+ * petición entera de un modelo que admite menos: claude-3-haiku y gpt-4-turbo
+ * admiten 4096.
+ */
+describe('el tope de salida es el del modelo (#223)', () => {
+  const conModelos = (filas: Array<{ modelId: string; proveedor: string; metadata: string | null }>) => new ChatHandler({
+    claveDeProveedor: async () => 'clave-FAKE-0123456789',
+    prisma: {
+      appSetting: { findUnique: async () => null },
+      aIProvider: { findMany: async () => [] },
+      hydraulicNetwork: { findFirst: async () => null },
+      aIModel: {
+        findMany: async ({ where }: { where: { modelId: string } }) => filas
+          .filter(f => f.modelId === where.modelId)
+          .map(f => ({ metadata: f.metadata, provider: { name: f.proveedor } })),
+      },
+    },
+  } as never)
+
+  const pedir = (provider: string, model: string) => handlers['chat:send-message'](null, {
+    provider, model, messages: [{ role: 'user', content: 'Hola' }],
+  })
+
+  it.each([
+    ['anthropic', 'claude-3-haiku-20240307', 'max_tokens', 4096],
+    ['anthropic', 'claude-3-opus-20240229', 'max_tokens', 4096],
+    ['anthropic', 'claude-3-5-sonnet-20241022', 'max_tokens', 8192],
+    ['openai', 'gpt-4o', 'max_completion_tokens', 16384],
+    ['openai', 'gpt-4-turbo', 'max_completion_tokens', 4096],
+    ['openai', 'gpt-4', 'max_completion_tokens', 2048],
+    ['openrouter', 'anthropic/claude-3-haiku', 'max_tokens', 4096],
+    ['nvidia', 'nvidia/nemotron-3-ultra-550b-a55b', 'max_tokens', 16384],
+    ['nvidia', 'nvidia/nemotron-3.5-lightning-30b-a3b', 'max_tokens', 8192],
+    ['openai', 'modelo-inventado-9000', 'max_completion_tokens', 8192],
+  ])('%s %s recibe %s = %i', async (proveedor, modelo, campo, tope) => {
+    fetchSimulado.mockImplementationOnce(sse((dialecto[proveedor] ?? dialecto.openai)('ok', 'fin')))
+    const r = await pedir(proveedor, modelo)
+    expect(r.success).toBe(true)
+    expect(cuerpoDe(0)[campo]).toBe(tope)
+  })
+
+  it('Google lo lleva en generationConfig', async () => {
+    fetchSimulado.mockImplementationOnce(sse(dialecto.google('ok', 'fin')))
+    await pedir('google', 'gemini-2.5-pro')
+    expect(cuerpoDe(0).generationConfig.maxOutputTokens).toBe(8192)
+  })
+
+  it('lo que dio la API al probar la clave manda sobre la tabla', async () => {
+    conModelos([
+      { modelId: 'claude-sonnet-4-5', proveedor: 'Anthropic', metadata: JSON.stringify({ limites: { contexto: 200000, salida: 32000 } }) },
+      // Mismo id en otro proveedor: no cuenta.
+      { modelId: 'claude-sonnet-4-5', proveedor: 'openrouter', metadata: JSON.stringify({ limites: { salida: 1000 } }) },
+    ])
+    fetchSimulado.mockImplementationOnce(sse(dialecto.anthropic('ok', 'fin')))
+    await pedir('anthropic', 'claude-sonnet-4-5')
+    expect(cuerpoDe(0).max_tokens).toBe(32000)
+  })
+
+  it('sin poder leer la base, la tabla', async () => {
+    // El `beforeEach` monta un prisma sin `aIModel`.
+    fetchSimulado.mockImplementationOnce(sse(dialecto.anthropic('ok', 'fin')))
+    const r = await pedir('anthropic', 'claude-3-haiku-20240307')
+    expect(r.success).toBe(true)
+    expect(cuerpoDe(0).max_tokens).toBe(4096)
+  })
+})
