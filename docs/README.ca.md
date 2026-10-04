@@ -39,15 +39,22 @@
 
 ## 📦 Descarregar i Instal·lar
 
-### 🚀 Última Versió - v1.48.0
+### 🚀 Última Versió - v1.49.0
 
 | Plataforma | Arquitectura | Descàrrega | Mida |
 |------------|-------------|------------|------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.48.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.48.0/Boorie-1.48.0-arm64.dmg) | ~324 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.48.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.48.0/Boorie-Setup-1.48.0.exe) | ~252 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.48.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.48.0/Boorie-1.48.0.AppImage) | ~403 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.49.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.49.0/Boorie-1.49.0-arm64.dmg) | ~324 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.49.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.49.0/Boorie-Setup-1.49.0.exe) | ~252 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.49.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.49.0/Boorie-1.49.0.AppImage) | ~403 MB |
 
 
+
+### 📝 Novetats a v1.49.0
+- Amb el servei al núvol saturat, la pantalla diu que s'està esperant —per exemple «NVIDIA està saturat; es torna a provar d'aquí a 8 s (2 de 4)», amb compte enrere— en lloc de només «pensant».
+- L'idioma de Configuració i el de l'aplicació ja no es contradiuen: mana sempre el triat a Configuració, i la primera vegada es pren el del sistema si és castellà, català o anglès.
+- Un enllaç en una resposta o en un document ja no pot treure Boorie de l'aplicació: les pàgines web i el correu s'obren al navegador i al client de correu del sistema, i la resta es bloqueja.
+- L'informe d'«Ajuda i comentaris» ja no s'omple d'avisos d'arrencada que no són errors.
+- Vegeu les [notes completes de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.49.0).
 
 ### 📝 Novetats a v1.48.0
 - Amb els models al núvol, la resposta es veu mentre s'escriu, com amb el model local, i també amb un projecte obert. El text arriba ja net, i el «Revisant…» va sota la resposta en lloc de tapar-la.
@@ -495,12 +502,12 @@
 4. Executa Boorie des d'Aplicacions
 
 #### Linux
-1. Descarrega `Boorie-1.48.0.AppImage` de l'enllaç anterior
-2. Dona-li permisos d'execució: `chmod +x Boorie-1.48.0.AppImage`
-3. Executa: `./Boorie-1.48.0.AppImage`
+1. Descarrega `Boorie-1.49.0.AppImage` de l'enllaç anterior
+2. Dona-li permisos d'execució: `chmod +x Boorie-1.49.0.AppImage`
+3. Executa: `./Boorie-1.49.0.AppImage`
 
 #### Windows
-1. Descarrega `Boorie-Setup-1.48.0.exe` de l'enllaç anterior
+1. Descarrega `Boorie-Setup-1.49.0.exe` de l'enllaç anterior
 2. Executa l'instal·lador i segueix l'assistent
 3. Inicia Boorie des del Menú Inici o l'accés directe de l'Escriptori
 

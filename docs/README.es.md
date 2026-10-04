@@ -39,15 +39,22 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.48.0
+### 🚀 Última Versión - v1.49.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.48.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.48.0/Boorie-1.48.0-arm64.dmg) | ~324 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.48.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.48.0/Boorie-Setup-1.48.0.exe) | ~252 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.48.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.48.0/Boorie-1.48.0.AppImage) | ~403 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.49.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.49.0/Boorie-1.49.0-arm64.dmg) | ~324 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.49.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.49.0/Boorie-Setup-1.49.0.exe) | ~252 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.49.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.49.0/Boorie-1.49.0.AppImage) | ~403 MB |
 
 
+
+### 📝 Novedades en v1.49.0
+- Con el servicio en la nube saturado, la pantalla dice que se está esperando —por ejemplo «NVIDIA está saturado; se vuelve a intentar en 8 s (2 de 4)», con cuenta atrás— en vez de sólo «pensando».
+- El idioma de Configuración y el de la aplicación ya no se contradicen: manda siempre el elegido en Configuración, y la primera vez se toma el del sistema si es castellano, catalán o inglés.
+- Un enlace en una respuesta o en un documento ya no puede sacar a Boorie de la aplicación: las páginas web y el correo se abren en el navegador y el cliente de correo del sistema, y lo demás se bloquea.
+- El informe de «Ayuda y comentarios» ya no se llena de avisos de arranque que no son fallos.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.49.0).
 
 ### 📝 Novedades en v1.48.0
 - Con los modelos en la nube, la respuesta se ve mientras se escribe, como con el modelo local, y también con un proyecto abierto. El texto llega ya limpio, y el «Revisando…» va debajo de la respuesta en vez de taparla.
@@ -495,12 +502,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.48.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.48.0.AppImage`
-3. Ejecuta: `./Boorie-1.48.0.AppImage`
+1. Descarga `Boorie-1.49.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.49.0.AppImage`
+3. Ejecuta: `./Boorie-1.49.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.48.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.49.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
