@@ -519,3 +519,111 @@ describe('servicio saturado (#260)', () => {
     expect(fetchSimulado).toHaveBeenCalledTimes(1)
   })
 })
+
+/**
+ * Mientras se espera a un servicio saturado, la pantalla lo dice (#266): el
+ * aviso sale por el canal de la respuesta en vivo, con el mismo idFlujo.
+ */
+describe('aviso de espera por saturación (#266)', () => {
+  type Enviado = { idFlujo: string; texto: string; espera?: { proveedor: string; intento: number; total: number; segundos: number } }
+  const remitente = () => {
+    const enviados: Enviado[] = []
+    const sender = {
+      isDestroyed: () => false,
+      send: (canal: string, d: Enviado) => { if (canal === 'chat:respuesta-parcial') enviados.push(d) },
+    }
+    return { enviados, event: { sender } }
+  }
+  const enviarEnVivo = (provider: string, event: unknown, extra: Record<string, unknown> = {}) =>
+    handlers['chat:send-message'](event, {
+      provider,
+      model: 'un-modelo',
+      messages: [{ role: 'user', content: '¿Cómo se calcula el golpe de ariete?' }],
+      idFlujo: 'flujo-1',
+      ...extra,
+    })
+  const saturado = (status: number, retryAfter?: string) => async () => ({
+    ok: false, status, json: async () => ({ error: { message: 'Too many requests' } }),
+    headers: { get: (h: string) => (h.toLowerCase() === 'retry-after' ? retryAfter ?? null : null) },
+  })
+  const avisos = (enviados: Enviado[]) => enviados.filter(e => e.espera)
+
+  it('un 429 avisa antes de esperar: proveedor, intento, total y segundos', async () => {
+    vi.useFakeTimers()
+    fetchSimulado
+      .mockImplementationOnce(saturado(429, '7'))
+      .mockImplementationOnce(sse(dialecto.openai('Ya.', 'fin')))
+    const { enviados, event } = remitente()
+
+    const promesa = enviarEnVivo('nvidia', event)
+    await vi.advanceTimersByTimeAsync(100)
+    // Avisado y todavía esperando: la segunda petición no ha salido.
+    expect(fetchSimulado).toHaveBeenCalledTimes(1)
+    expect(enviados).toEqual([{ idFlujo: 'flujo-1', texto: '', espera: { proveedor: 'NVIDIA', intento: 1, total: 4, segundos: 7 } }])
+
+    await vi.advanceTimersByTimeAsync(7000)
+    const r = await promesa
+    expect(r.data.response).toBe('Ya.')
+    expect(avisos(enviados)).toHaveLength(1)
+    expect(enviados.at(-1)).toEqual({ idFlujo: 'flujo-1', texto: 'Ya.' })
+  })
+
+  it('la saturación dentro del streaming también avisa, y cada reintento con su número', async () => {
+    vi.useFakeTimers()
+    fetchSimulado
+      .mockImplementationOnce(sse([{ error: 'Service temporarily overloaded' }]))
+      .mockImplementationOnce(sse([{ error: 'Service temporarily overloaded' }]))
+      .mockImplementationOnce(sse(dialecto.openai('Ahora sí.', 'fin')))
+    const { enviados, event } = remitente()
+
+    const promesa = enviarEnVivo('nvidia', event)
+    await vi.advanceTimersByTimeAsync(20_000)
+    const r = await promesa
+
+    expect(r.data.response).toBe('Ahora sí.')
+    expect(avisos(enviados)).toHaveLength(2)
+    const [primero, segundo] = avisos(enviados).map(e => e.espera!)
+    expect(primero).toMatchObject({ proveedor: 'NVIDIA', intento: 1, total: 4 })
+    // 2 s y 4 s, con hasta un 25 % de azar.
+    expect(primero.segundos).toBeGreaterThanOrEqual(2)
+    expect(primero.segundos).toBeLessThanOrEqual(3)
+    expect(segundo).toMatchObject({ intento: 2, total: 4 })
+    expect(segundo.segundos).toBeGreaterThanOrEqual(4)
+    expect(segundo.segundos).toBeLessThanOrEqual(5)
+  })
+
+  it('lo que había de texto sale antes del aviso, y el aviso lo repite', async () => {
+    vi.useFakeTimers()
+    fetchSimulado
+      .mockImplementationOnce(sse(dialecto.openai('Primera parte del informe,', 'longitud')))
+      .mockImplementationOnce(saturado(503, '3'))
+      .mockImplementationOnce(sse(dialecto.openai(' y el final.', 'fin')))
+    const { enviados, event } = remitente()
+
+    const promesa = enviarEnVivo('openai', event)
+    await vi.advanceTimersByTimeAsync(10_000)
+    const r = await promesa
+
+    expect(r.data.response).toBe('Primera parte del informe, y el final.')
+    const i = enviados.findIndex(e => e.espera)
+    expect(i).toBeGreaterThan(0)
+    expect(enviados[i - 1].texto).toBe('Primera parte del informe,')
+    expect(enviados[i]).toEqual({ idFlujo: 'flujo-1', texto: 'Primera parte del informe,', espera: { proveedor: 'OpenAI', intento: 1, total: 4, segundos: 3 } })
+  })
+
+  it('sin idFlujo —la revisión contra el documento— no avisa', async () => {
+    vi.useFakeTimers()
+    fetchSimulado
+      .mockImplementationOnce(saturado(429, '2'))
+      .mockImplementationOnce(sse(dialecto.openai('[]', 'fin')))
+    const { enviados, event } = remitente()
+
+    const promesa = enviarEnVivo('nvidia', event, { idFlujo: undefined, sinRazonar: true })
+    await vi.advanceTimersByTimeAsync(3000)
+    const r = await promesa
+
+    expect(r.success).toBe(true)
+    expect(fetchSimulado).toHaveBeenCalledTimes(2)
+    expect(enviados).toEqual([])
+  })
+})

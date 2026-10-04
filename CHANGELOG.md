@@ -9,6 +9,15 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **Con el servicio en la nube saturado, la pantalla dice que se está esperando.** Cuando
+  NVIDIA, OpenAI, OpenRouter, Anthropic o Google están saturados, Boorie espera y vuelve a
+  intentarlo hasta cuatro veces, y durante esa espera —de hasta medio minuto— sólo se veía «La
+  IA está pensando…». Ahora debajo aparece, por ejemplo, «NVIDIA está saturado; se vuelve a
+  intentar en 8 s (2 de 4)», con la cuenta atrás, y desaparece en cuanto empieza a llegar la
+  respuesta.
+
 ## [1.48.0] - 2026-10-04
 
 La respuesta de los modelos en la nube se ve mientras se escribe, también con un proyecto abierto; la búsqueda en tus documentos puede hacerse en NVIDIA desde Configuración, y una respuesta larga, cortada o con el servicio saturado ya no se pierde.

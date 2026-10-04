@@ -19,7 +19,8 @@ vi.mock('@/services/consentimientoNube', () => ({ consentirAlEnviar: async () =>
 import { useChatStore } from './chatStore'
 import i18n from '@/i18n'
 
-type Parcial = { idFlujo: string; texto: string }
+type Espera = { proveedor: string; intento: number; total: number; segundos: number }
+type Parcial = { idFlujo: string; texto: string; espera?: Espera }
 type Peticion = { idFlujo: string; sinRazonar?: boolean }
 type Guardado = { role: string; content: string; metadata?: Record<string, unknown> }
 
@@ -32,6 +33,8 @@ const sendMessage = vi.fn()
 const esperar = (ms: number) => new Promise(r => setTimeout(r, ms))
 /** Lo que haría el proceso principal: mandar el texto acumulado a todos los que escuchan. */
 const emitir = (idFlujo: string, texto: string) => oyentes.forEach(o => o({ idFlujo, texto }))
+/** El aviso de espera por saturación (#266): repite el último texto y trae la espera. */
+const avisar = (idFlujo: string, texto: string, espera: Espera) => oyentes.forEach(o => o({ idFlujo, texto, espera }))
 const respuestaGuardada = () => guardados.filter(m => m.role === 'assistant').pop()!
 const preguntar = () => useChatStore.getState().sendMessage('¿Cómo se calcula el golpe de ariete?')
 
@@ -64,6 +67,7 @@ beforeEach(() => {
     isLoading: false,
     streamingMessage: '',
     revisando: false,
+    esperaDelProveedor: null,
     wisdomConfig: { enabled: true, categories: [], searchTopK: 3, searchMethod: 'agentic' },
   })
   dejarDeVer = useChatStore.subscribe((s, antes) => {
@@ -217,5 +221,73 @@ describe('el texto de la nube en pantalla mientras llega (#223)', () => {
     await enviando
 
     expect(respuestaGuardada().content).toBe(i18n.t('messages.chatTimeout'))
+  })
+})
+
+describe('aviso de espera por saturación (#266)', () => {
+  const espera = { proveedor: 'NVIDIA', intento: 2, total: 4, segundos: 8 }
+
+  it('sale con el aviso de esta petición, no toca el texto y se quita en cuanto llega texto', async () => {
+    const visto: Record<string, unknown> = {}
+    sendMessage.mockImplementation(async (p: Peticion) => {
+      if (p.sinRazonar) {
+        visto.enLaRevision = useChatStore.getState().esperaDelProveedor
+        return { success: true, data: { response: '[]', metadata: {} } }
+      }
+      avisar('otra-peticion', '', espera)
+      visto.deOtra = useChatStore.getState().esperaDelProveedor
+      emitir(p.idFlujo, 'Con la fórmula ')
+      await esperar(150)
+      const antes = Date.now()
+      avisar(p.idFlujo, 'Con la fórmula ', espera)
+      visto.aviso = useChatStore.getState().esperaDelProveedor
+      visto.textoConAviso = useChatStore.getState().streamingMessage
+      visto.margen = [antes + 8000, Date.now() + 8000]
+      emitir(p.idFlujo, 'Con la fórmula de Joukowsky. ')
+      visto.trasTexto = useChatStore.getState().esperaDelProveedor
+      await esperar(150)
+      return { success: true, data: { response: 'Con la fórmula de Joukowsky.', metadata: { provider: 'Nvidia', finish_reason: 'stop' } } }
+    })
+
+    await preguntar()
+
+    expect(visto.deOtra).toBeNull()
+    expect(visto.aviso).toMatchObject({ proveedor: 'NVIDIA', intento: 2, total: 4 })
+    const [desde, hasta] = visto.margen as number[]
+    const { hasta: vuelve } = visto.aviso as { hasta: number }
+    expect(vuelve).toBeGreaterThanOrEqual(desde)
+    expect(vuelve).toBeLessThanOrEqual(hasta)
+    expect((visto.textoConAviso as string).trimEnd()).toBe('Con la fórmula')
+    expect(visto.trasTexto).toBeNull()
+    expect(visto.enLaRevision).toBeNull()
+    expect(useChatStore.getState().esperaDelProveedor).toBeNull()
+  })
+
+  it('sin texto nuevo tras el aviso, se va al terminar la petición', async () => {
+    let enLaRevision: unknown = 'sin mirar'
+    sendMessage.mockImplementation(async (p: Peticion) => {
+      if (p.sinRazonar) {
+        enLaRevision = useChatStore.getState().esperaDelProveedor
+        return { success: true, data: { response: '[]', metadata: {} } }
+      }
+      avisar(p.idFlujo, '', espera)
+      return { success: true, data: { response: 'Respuesta entera.', metadata: { provider: 'Nvidia', finish_reason: 'stop' } } }
+    })
+
+    await preguntar()
+
+    expect(enLaRevision).toBeNull()
+    expect(useChatStore.getState().esperaDelProveedor).toBeNull()
+  })
+
+  it('si la petición falla, tampoco se queda', async () => {
+    sendMessage.mockImplementation(async (p: Peticion) => {
+      avisar(p.idFlujo, '', espera)
+      return { success: false, error: 'Service temporarily overloaded' }
+    })
+
+    await preguntar()
+
+    expect(useChatStore.getState().esperaDelProveedor).toBeNull()
   })
 })
