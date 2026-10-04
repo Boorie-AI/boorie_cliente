@@ -123,3 +123,12 @@ globalThis.window.electron = true
  */
 import i18n from '@/i18n'
 if (i18n.language !== 'es') i18n.changeLanguage('es')
+
+/**
+ * happy-dom se presenta como un sistema en inglés, y en una instalación nueva
+ * `usePreferencesStore` toma el idioma del sistema (#265): sin esto, cualquier
+ * prueba que importe el store pasaría la interfaz al inglés. Las pruebas del
+ * propio store lo redefinen.
+ */
+Object.defineProperty(window.navigator, 'languages', { value: ['es-ES', 'es'], configurable: true })
+Object.defineProperty(window.navigator, 'language', { value: 'es-ES', configurable: true })
