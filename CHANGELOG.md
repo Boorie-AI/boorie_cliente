@@ -16,6 +16,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   lo recibido se mostraba como si estuviera entera, sin ningún aviso; con Anthropic se perdía
   todo. Ahora se ve lo que llegó con el aviso de respuesta incompleta, como cuando el modelo deja
   de responder.
+- **Con el modelo local, ya no se pierden trozos de la respuesta.** Si un fragmento de lo que
+  enviaba Ollama llegaba partido por la red, ese texto desaparecía de la respuesta en pantalla,
+  y con él alguna tilde o «ñ» partida. Ahora se recompone antes de mostrarlo.
 
 ## [1.47.0] - 2026-10-03
 
