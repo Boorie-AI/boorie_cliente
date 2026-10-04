@@ -5,6 +5,7 @@ import { type Adjunto, type UsoDelAdjunto } from '@/services/chat/adjunto'
 import { similitudesDelAdjunto } from '@/services/chat/similitudDelAdjunto'
 import { consultasEnElIdiomaDelDocumento } from '@/services/chat/consultasDelAdjunto'
 import { componerPeticion, posprocesarRespuesta, promptConFuentes } from '@/services/chat/rutaDelChat'
+import { lineasNdjson } from '@/services/chat/lineasNdjson'
 import { contextoDeOllama } from '@/../backend/services/contextoDeOllama'
 import { limitesGuardados, type LimitesDeLaApi } from '@/../backend/services/hydraulic/agentic/limitesDeModelo'
 import {
@@ -589,7 +590,7 @@ export const useChatStore = create<ChatState>()(
                     const r = await get().callOllamaAPI(
                       modelo,
                       enhancedPrompt,
-                      historial, // history (without the user msg added below — it's already inside)
+                      historial, // sin la pregunta de ahora: va dentro de enhancedPrompt (#249)
                       modeloEmbeddings,
                     )
                     result = { success: true, data: { response: r.response, metadata: r.metadata } }
@@ -893,46 +894,38 @@ export const useChatStore = create<ChatState>()(
 
           // Stream the response
           const reader = response.body?.getReader()
-          const decoder = new TextDecoder()
 
           if (reader) {
             try {
-              for (;;) {
-                const { done, value } = await reader.read()
-                if (done) break
+              // Línea a línea ya enteras: una partida entre dos lecturas se perdía (#252).
+              for await (const line of lineasNdjson(reader)) {
+                try {
+                  const data = JSON.parse(line)
 
-                const chunk = decoder.decode(value)
-                const lines = chunk.split('\n').filter(line => line.trim())
+                  // Reasoning models (e.g. nemotron-3-nano) emit `thinking`
+                  // chunks with an empty `content`. Surface them so the user
+                  // sees progress instead of a blank screen during CoT.
+                  const thinkingChunk = data.message?.thinking as string | undefined
+                  const contentChunk = data.message?.content as string | undefined
 
-                for (const line of lines) {
-                  try {
-                    const data = JSON.parse(line)
-
-                    // Reasoning models (e.g. nemotron-3-nano) emit `thinking`
-                    // chunks with an empty `content`. Surface them so the user
-                    // sees progress instead of a blank screen during CoT.
-                    const thinkingChunk = data.message?.thinking as string | undefined
-                    const contentChunk = data.message?.content as string | undefined
-
-                    if (thinkingChunk) {
-                      // Visually mark thinking text so we can hide it later if desired.
-                      // We accumulate it as part of the streaming buffer; it disappears
-                      // once the final assistant message is committed.
-                      get().setStreamingMessage(
-                        (fullResponse ? fullResponse + '\n\n' : '') +
-                          '_💭 ' + thinkingChunk.replace(/\n+/g, ' ').trim() + '_'
-                      )
-                    }
-                    if (contentChunk) {
-                      fullResponse += contentChunk
-                      get().setStreamingMessage(fullResponse)
-                    }
-                    if (data.eval_count) {
-                      totalTokens = data.eval_count
-                    }
-                  } catch (e) {
-                    logger.warn('Failed to parse streaming line:', line, e)
+                  if (thinkingChunk) {
+                    // Visually mark thinking text so we can hide it later if desired.
+                    // We accumulate it as part of the streaming buffer; it disappears
+                    // once the final assistant message is committed.
+                    get().setStreamingMessage(
+                      (fullResponse ? fullResponse + '\n\n' : '') +
+                        '_💭 ' + thinkingChunk.replace(/\n+/g, ' ').trim() + '_'
+                    )
                   }
+                  if (contentChunk) {
+                    fullResponse += contentChunk
+                    get().setStreamingMessage(fullResponse)
+                  }
+                  if (data.eval_count) {
+                    totalTokens = data.eval_count
+                  }
+                } catch (e) {
+                  logger.warn('Failed to parse streaming line:', line, e)
                 }
               }
             } finally {
