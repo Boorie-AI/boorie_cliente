@@ -119,6 +119,15 @@ export interface Conversation {
   provider: string
 }
 
+/** El proveedor está saturado y la respuesta espera para repetirse (#266). */
+export interface EsperaDelProveedor {
+  proveedor: string
+  intento: number
+  total: number
+  /** Cuándo se vuelve a intentar, en `Date.now()`. */
+  hasta: number
+}
+
 interface ChatState {
   conversations: Conversation[]
   activeConversationId: string | null
@@ -127,6 +136,8 @@ interface ChatState {
   streamingBuffer: string
   /** La respuesta ya está y se revisa contra el documento: va debajo del texto, no en su lugar (#223). */
   revisando: boolean
+  /** Como `revisando`, debajo de la burbuja; se quita en cuanto llega texto. */
+  esperaDelProveedor: EsperaDelProveedor | null
 
   // Wisdom/RAG configuration
   wisdomConfig: WisdomConfiguration | undefined
@@ -178,6 +189,7 @@ export const useChatStore = create<ChatState>()(
       streamingMessage: '',
       streamingBuffer: '',
       revisando: false,
+      esperaDelProveedor: null,
       wisdomConfig: undefined,
 
       createNewConversation: (projectId?: string) => {
@@ -612,6 +624,7 @@ export const useChatStore = create<ChatState>()(
              * sin respaldo no aparecen y lo que se ve es lo que queda.
              */
             const alRecibir = (texto: string) => {
+              if (get().esperaDelProveedor) set({ esperaDelProveedor: null })
               enVivo.recibido = texto
               enVivo.pintor?.emitir(texto)
             }
@@ -672,7 +685,13 @@ export const useChatStore = create<ChatState>()(
                   // Un id por intento: lo que llegue tarde de uno anterior se descarta.
                   const idFlujo = `${conversationId}:${Date.now()}:${attempt}`
                   const dejarDeEscuchar = window.electronAPI.chat.onRespuestaParcial?.(parcial => {
-                    if (parcial.idFlujo === idFlujo) alRecibir(parcial.texto)
+                    if (parcial.idFlujo !== idFlujo) return
+                    if (parcial.espera) {
+                      const { proveedor, intento, total, segundos } = parcial.espera
+                      set({ esperaDelProveedor: { proveedor, intento, total, hasta: Date.now() + segundos * 1000 } })
+                    } else {
+                      alRecibir(parcial.texto)
+                    }
                   })
                   try {
                     result = await window.electronAPI.chat.sendMessage({
@@ -694,6 +713,7 @@ export const useChatStore = create<ChatState>()(
                     })
                   } finally {
                     dejarDeEscuchar?.()
+                    set({ esperaDelProveedor: null })
                   }
                 }
                 // La respuesta entera manda: lo que quedara por pintar ya no.
@@ -846,7 +866,7 @@ export const useChatStore = create<ChatState>()(
         } finally {
           // Ensure streaming is cleared and loading is stopped
           get().clearStreamingMessage()
-          set({ isLoading: false, revisando: false })
+          set({ isLoading: false, revisando: false, esperaDelProveedor: null })
         }
       },
 

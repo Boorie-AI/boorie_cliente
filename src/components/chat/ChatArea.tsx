@@ -13,7 +13,7 @@ import boorieIconLight from '@/assets/boorie_icon_light.png'
 
 export function ChatArea() {
   const { t } = useTranslation()
-  const { activeConversationId, conversations, isLoading, streamingMessage, revisando } = useChatStore()
+  const { activeConversationId, conversations, isLoading, streamingMessage, revisando, esperaDelProveedor } = useChatStore()
   // El proyecto del chat es el proyecto activo global (issue #31): antes el chat
   // llevaba su propia selección, así que podía estar en un proyecto distinto del
   // que mostraba la vista WNTR.
@@ -112,6 +112,7 @@ export function ChatArea() {
               isLoading={isLoading}
               streamingMessage={streamingMessage}
               revisando={revisando}
+              esperaDelProveedor={esperaDelProveedor}
             />
             <div ref={messagesEndRef} />
           </div>

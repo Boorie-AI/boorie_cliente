@@ -6,6 +6,7 @@ import * as os from 'os'
 import * as path from 'path'
 import { promises as fs } from 'fs'
 import { randomUUID } from 'crypto'
+import { AsyncLocalStorage } from 'async_hooks'
 import {
   HERRAMIENTAS,
   ejecutarHerramienta,
@@ -139,7 +140,34 @@ export interface SendChatMessageParams {
 export interface RespuestaParcial {
   idFlujo: string
   texto: string
+  /**
+   * El proveedor está saturado y se espera para repetir (#266). Con esto,
+   * `texto` es el último ya mandado, para que quien sólo mire el texto no
+   * pinte nada distinto.
+   */
+  espera?: EsperaPorSaturacion
 }
+
+export interface EsperaPorSaturacion {
+  proveedor: string
+  /** El reintento que viene, de 1 a `total`. */
+  intento: number
+  total: number
+  segundos: number
+}
+
+type AlEsperar = (espera: EsperaPorSaturacion) => void
+
+/**
+ * A quién avisar de una espera por saturación durante esta petición (#266).
+ * Va por contexto y no por parámetro porque la espera vive en
+ * `pedirAlProveedor`, tres capas por debajo de cada proveedor, y la revisión
+ * contra el documento puede ir a la vez sin aviso.
+ */
+const avisoDeEspera = new AsyncLocalStorage<AlEsperar>()
+
+/** El nombre de NVIDIA en los logs y en `metadata.provider` es «Nvidia»; en pantalla, el suyo. */
+const nombreEnPantalla = (proveedor: string) => (proveedor === 'Nvidia' ? 'NVIDIA' : proveedor)
 
 /** Cada cuánto, como mucho, se manda el texto al renderer. */
 const INTERVALO_EN_VIVO_MS = 100
@@ -210,6 +238,7 @@ async function pedirAlProveedor(
       }
       const espera = esperaTrasLimite(response.headers?.get?.('retry-after'), intento)
       logger.warn(`${proveedor} ${porque}, se reintenta`, { intento: intento + 1, esperaMs: Math.round(espera) })
+      avisoDeEspera.getStore()?.({ proveedor: nombreEnPantalla(proveedor), intento: intento + 1, total: REINTENTOS_POR_LIMITE, segundos: Math.ceil(espera / 1000) })
       await new Promise(resolver => setTimeout(resolver, espera))
     }
   } catch (error) {
@@ -252,10 +281,21 @@ export class ChatHandler {
     // Handler for sending chat messages through backend
     ipcMain.handle('chat:send-message', async (event, params: SendChatMessageParams) => {
       const { idFlujo } = params
+      let ultimoTexto = ''
       const enVivo = idFlujo && event?.sender
         ? limitarFrecuencia(texto => {
+            ultimoTexto = texto
             if (!event.sender.isDestroyed()) event.sender.send('chat:respuesta-parcial', { idFlujo, texto } satisfies RespuestaParcial)
           }, INTERVALO_EN_VIVO_MS)
+        : null
+      const alEsperar: AlEsperar | null = idFlujo && enVivo
+        ? espera => {
+            // Lo pendiente sale antes: llegado después, quitaría el aviso recién puesto.
+            enVivo.vaciar()
+            if (!event.sender.isDestroyed()) {
+              event.sender.send('chat:respuesta-parcial', { idFlujo, texto: ultimoTexto, espera } satisfies RespuestaParcial)
+            }
+          }
         : null
       try {
         logger.debug('IPC: Sending chat message', {
@@ -264,7 +304,9 @@ export class ChatHandler {
           messageCount: params.messages.length
         })
 
-        const result = await this.sendChatMessage(params, enVivo?.emitir)
+        const result = alEsperar
+          ? await avisoDeEspera.run(alEsperar, () => this.sendChatMessage(params, enVivo?.emitir))
+          : await this.sendChatMessage(params, enVivo?.emitir)
         if (result.success) enVivo?.vaciar()
         else enVivo?.cancelar()
 

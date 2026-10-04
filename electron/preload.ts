@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 
+/** Lo que manda `chat:respuesta-parcial`; es `RespuestaParcial` de chat.handler.ts. */
+type RespuestaParcialIPC = {
+  idFlujo: string
+  texto: string
+  espera?: { proveedor: string; intento: number; total: number; segundos: number }
+}
+
 const electronAPI = {
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   getPlatform: () => ipcRenderer.invoke('get-platform'),
@@ -110,8 +117,9 @@ const electronAPI = {
       return () => ipcRenderer.removeListener('chat:vectores-progress', wrappedCallback)
     },
     // Sólo escuchar y darse de baja: el texto lo manda el proceso principal mientras llega la respuesta (#223).
-    onRespuestaParcial: (callback: (data: { idFlujo: string; texto: string }) => void) => {
-      const wrappedCallback = (_event: IpcRendererEvent, data: { idFlujo: string; texto: string }) => callback(data)
+    // Con `espera`, el proveedor está saturado y se repite tras esos segundos (#266).
+    onRespuestaParcial: (callback: (data: RespuestaParcialIPC) => void) => {
+      const wrappedCallback = (_event: IpcRendererEvent, data: RespuestaParcialIPC) => callback(data)
       ipcRenderer.on('chat:respuesta-parcial', wrappedCallback)
       return () => ipcRenderer.removeListener('chat:respuesta-parcial', wrappedCallback)
     },

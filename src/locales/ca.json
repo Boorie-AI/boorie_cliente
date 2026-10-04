@@ -53,6 +53,10 @@
       "omite": "Hi falta:",
       "pagina": "(p. {{pagina}})"
     },
+    "esperaProveedor": {
+      "cuentaAtras": "{{proveedor}} està saturat; es torna a provar d'aquí a {{segundos}} s ({{intento}} de {{total}})",
+      "reintentando": "{{proveedor}} està saturat; s'està tornant a provar ({{intento}} de {{total}})…"
+    },
     "cortadaPorInactividad": "Resposta incompleta: el model ha deixat d'enviar text i s'ha tallat aquí. Això és el que ha arribat; si hi falta alguna cosa, torna a preguntar.",
     "cortadaPorLongitud": "Resposta incompleta: el model ha arribat al màxim de text que pot escriure d'una vegada i s'ha tallat aquí. Això és el que ha arribat; si hi falta alguna cosa, demana-li que continuï o fes la pregunta per parts.",
     "cortadaPorTiempo": "Resposta incompleta: s'ha acabat el temps d'espera i s'ha tallat aquí. Això és el que ha arribat; si hi falta alguna cosa, torna a preguntar."

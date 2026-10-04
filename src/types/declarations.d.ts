@@ -64,7 +64,12 @@ interface Window {
       vectoresDeAdjunto?: (fragmentos: string[]) => Promise<{ success: boolean; vectores?: number[][]; message?: string }>;
       vectorDeTexto?: (texto: string) => Promise<{ success: boolean; vector?: number[]; message?: string }>;
       onVectoresProgress?: (callback: (data: { hechos: number; total: number }) => void) => () => void;
-      onRespuestaParcial?: (callback: (data: { idFlujo: string; texto: string }) => void) => () => void;
+      onRespuestaParcial?: (callback: (data: {
+        idFlujo: string;
+        texto: string;
+        /** El proveedor está saturado: se repite tras `segundos` (#266). `texto` es el de antes. */
+        espera?: { proveedor: string; intento: number; total: number; segundos: number };
+      }) => void) => () => void;
     };
     agenticRAG: {
       search: (data: any) => Promise<any>;

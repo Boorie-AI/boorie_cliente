@@ -28,6 +28,12 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   respuestas seguían el idioma del selector, no el que se veía. Ahora manda siempre el idioma
   elegido en Configuración. La primera vez que se abre Boorie se toma el idioma del sistema si es
   castellano, catalán o inglés (si no, castellano), y se queda guardado como elección.
+- **Con el servicio en la nube saturado, la pantalla dice que se está esperando.** Cuando
+  NVIDIA, OpenAI, OpenRouter, Anthropic o Google están saturados, Boorie espera y vuelve a
+  intentarlo hasta cuatro veces, y durante esa espera —de hasta medio minuto— sólo se veía «La
+  IA está pensando…». Ahora debajo aparece, por ejemplo, «NVIDIA está saturado; se vuelve a
+  intentar en 8 s (2 de 4)», con la cuenta atrás, y desaparece en cuanto empieza a llegar la
+  respuesta.
 
 ## [1.48.0] - 2026-10-04
 
