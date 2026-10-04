@@ -53,7 +53,9 @@
       "omite": "Falta:",
       "pagina": "(p. {{pagina}})"
     },
-    "cortadaPorInactividad": "Respuesta incompleta: el modelo dejó de enviar texto y se ha cortado aquí. Esto es lo que llegó; si falta algo, vuelve a preguntar."
+    "cortadaPorInactividad": "Respuesta incompleta: el modelo dejó de enviar texto y se ha cortado aquí. Esto es lo que llegó; si falta algo, vuelve a preguntar.",
+    "cortadaPorLongitud": "Respuesta incompleta: el modelo llegó al máximo de texto que puede escribir de una vez y se ha cortado aquí. Esto es lo que llegó; si falta algo, pídele que siga o haz la pregunta por partes.",
+    "cortadaPorTiempo": "Respuesta incompleta: se acabó el tiempo de espera y se ha cortado aquí. Esto es lo que llegó; si falta algo, vuelve a preguntar."
   },
   "settings": {
     "title": "Configuración",

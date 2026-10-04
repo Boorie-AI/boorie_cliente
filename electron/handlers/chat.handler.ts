@@ -48,7 +48,10 @@ import {
   leerGoogleEnStreaming,
   pedirContinuacion,
   unirContinuacion,
+  unirContinuacionParcial,
+  type AlTexto,
 } from '../../backend/services/ai/respuestaOpenAICompat'
+import { limitarFrecuencia } from '../../backend/services/ai/limitarFrecuencia'
 import { URL_NVIDIA } from '../../backend/services/ai/pruebaNvidia'
 export { FIN_POR_INACTIVIDAD, leerRespuestaEnStreaming, pedirContinuacion, unirContinuacion }
 
@@ -122,6 +125,32 @@ export interface SendChatMessageParams {
    * razonando y 25 s sin razonar, con el mismo resultado.
    */
   sinRazonar?: boolean
+  /**
+   * Con esto, el texto de la respuesta se manda al renderer mientras llega por
+   * `chat:respuesta-parcial`, con este id para que el chat descarte lo de otra
+   * petición (#223). Sin él —la revisión contra el documento— no sale nada.
+   */
+  idFlujo?: string
+}
+
+/** Lo que recibe el renderer mientras llega la respuesta: el texto acumulado, no el trozo. */
+export interface RespuestaParcial {
+  idFlujo: string
+  texto: string
+}
+
+/** Cada cuánto, como mucho, se manda el texto al renderer. */
+const INTERVALO_EN_VIVO_MS = 100
+
+/**
+ * Lo que se enseña de una respuesta con continuaciones mientras llega la
+ * actual: lo anterior unido a ella, o sólo lo anterior mientras su principio
+ * pueda ser todavía un solape que `unirContinuacion` quitará.
+ */
+function textoEnVivo(partes: string[], actual: string): string {
+  const previo = partes.reduce(unirContinuacion, '')
+  if (!previo) return actual
+  return unirContinuacionParcial(previo, actual) ?? previo
 }
 
 /**
@@ -131,7 +160,7 @@ export interface SendChatMessageParams {
  */
 const MAX_VUELTAS_HERRAMIENTAS = 4
 
-type LectorSSE = (respuesta: { body: any }, controlador: AbortController, inactividadMs: number, mensaje: string) => Promise<any>
+type LectorSSE = (respuesta: { body: any }, controlador: AbortController, inactividadMs: number, mensaje: string, alTexto?: AlTexto) => Promise<any>
 
 /**
  * Una petición a un proveedor externo. Devuelve la respuesta y, si fue bien,
@@ -142,7 +171,7 @@ async function pedirAlProveedor(
   url: string,
   init: RequestInit,
   proveedor: string,
-  streaming: { inactividadMs: number; leer: LectorSSE } | null,
+  streaming: { inactividadMs: number; leer: LectorSSE; alTexto?: AlTexto } | null,
   timeout: number
 ): Promise<{ response: Response; data?: any }> {
   const controlador = new AbortController()
@@ -152,7 +181,7 @@ async function pedirAlProveedor(
     const response = await fetch(url, { ...init, signal: controlador.signal })
     if (!response.ok) return { response }
     const data = streaming
-      ? await streaming.leer(response, controlador, streaming.inactividadMs, mensajeDeInactividad)
+      ? await streaming.leer(response, controlador, streaming.inactividadMs, mensajeDeInactividad, streaming.alTexto)
       : await response.json()
     return { response, data }
   } catch (error) {
@@ -194,6 +223,12 @@ export class ChatHandler {
   private registerHandlers(): void {
     // Handler for sending chat messages through backend
     ipcMain.handle('chat:send-message', async (event, params: SendChatMessageParams) => {
+      const { idFlujo } = params
+      const enVivo = idFlujo && event?.sender
+        ? limitarFrecuencia(texto => {
+            if (!event.sender.isDestroyed()) event.sender.send('chat:respuesta-parcial', { idFlujo, texto } satisfies RespuestaParcial)
+          }, INTERVALO_EN_VIVO_MS)
+        : null
       try {
         logger.debug('IPC: Sending chat message', {
           provider: params.provider,
@@ -201,7 +236,9 @@ export class ChatHandler {
           messageCount: params.messages.length
         })
 
-        const result = await this.sendChatMessage(params)
+        const result = await this.sendChatMessage(params, enVivo?.emitir)
+        if (result.success) enVivo?.vaciar()
+        else enVivo?.cancelar()
 
         logger.success('IPC: Chat message sent successfully', {
           provider: params.provider,
@@ -210,6 +247,7 @@ export class ChatHandler {
 
         return result
       } catch (error) {
+        enVivo?.cancelar()
         logger.error('IPC: Failed to send chat message', error as Error, {
           provider: params.provider,
           model: params.model
@@ -225,7 +263,7 @@ export class ChatHandler {
     logger.success('Chat IPC handlers registered successfully')
   }
 
-  private async sendChatMessage(params: SendChatMessageParams): Promise<IPCChatResponse> {
+  private async sendChatMessage(params: SendChatMessageParams, alTexto?: AlTexto): Promise<IPCChatResponse> {
     const { provider, model, messages, projectId, preguntaOriginal, modeloEmbeddings, sinRazonar } = params
 
     /**
@@ -268,22 +306,22 @@ export class ChatHandler {
 
       switch (provider.toLowerCase()) {
         case 'anthropic':
-          result = await this.sendAnthropicMessage(model, messagesWithSystemPrompt, apiKey, nube, red)
+          result = await this.sendAnthropicMessage(model, messagesWithSystemPrompt, apiKey, nube, red, alTexto)
           break
         case 'openai':
-          result = await this.sendOpenAIMessage(model, messagesWithSystemPrompt, apiKey, nube, red)
+          result = await this.sendOpenAIMessage(model, messagesWithSystemPrompt, apiKey, nube, red, alTexto)
           break
         case 'google':
-          result = await this.sendGoogleMessage(model, messagesWithSystemPrompt, apiKey, nube)
+          result = await this.sendGoogleMessage(model, messagesWithSystemPrompt, apiKey, nube, alTexto)
           break
         case 'openrouter':
-          result = await this.sendOpenRouterMessage(model, messagesWithSystemPrompt, apiKey, nube, red)
+          result = await this.sendOpenRouterMessage(model, messagesWithSystemPrompt, apiKey, nube, red, alTexto)
           break
         case 'ollama':
           result = await this.sendOllamaMessage(model, messagesWithSystemPrompt, '', red)
           break
         case 'nvidia':
-          result = await this.sendNvidiaMessage(model, messagesWithSystemPrompt, apiKey, nube, red, sinRazonar)
+          result = await this.sendNvidiaMessage(model, messagesWithSystemPrompt, apiKey, nube, red, sinRazonar, alTexto)
           break
         default:
           throw new Error(`Unsupported chat provider: ${provider}`)
@@ -516,13 +554,18 @@ export class ChatHandler {
    * Anthropic como NVIDIA (#246): streaming con límite por inactividad en las
    * vueltas sin herramientas, lo recibido se conserva si se calla, y si corta
    * por `max_tokens` se le pide que siga.
+   *
+   * Con red cargada no se manda nada en vivo aunque la última vuelta vaya en
+   * streaming, como con Ollama (#223; el de las herramientas es el #251). Si
+   * el modelo rechaza las herramientas y se repite sin ellas, esa sí.
    */
   private async sendAnthropicMessage(
     model: string,
     messages: ChatMessage[],
     apiKey: string,
     limites: LimitesDeLaNube,
-    red?: RedParaHerramientas | null
+    red?: RedParaHerramientas | null,
+    alTexto?: AlTexto
   ): Promise<ChatResponse> {
     const { system, historial } = this.convertToAnthropicFormat(messages)
 
@@ -535,9 +578,11 @@ export class ChatHandler {
     let ultima: any = null
     const partes: string[] = []
     let continuaciones = 0
+    let enVivo = red ? undefined : alTexto
 
     for (;;) {
       const enStreaming = !usarHerramientas
+      const alTrozo = enVivo && ((t: string) => enVivo!(textoEnVivo(partes, t)))
       const requestBody: any = {
         model: model,
         max_tokens: limites.salida,
@@ -566,7 +611,7 @@ export class ChatHandler {
             ...(enStreaming ? { Accept: 'text/event-stream' } : {}),
           },
           body: JSON.stringify(requestBody),
-        }, 'Anthropic', enStreaming ? { inactividadMs: limites.inactividadMs, leer: leerAnthropicEnStreaming } : null,
+        }, 'Anthropic', enStreaming ? { inactividadMs: limites.inactividadMs, leer: leerAnthropicEnStreaming, alTexto: alTrozo } : null,
         enStreaming ? limites.totalMs : limites.totalConHerramientasMs))
       } catch (error) {
         if (continuaciones === 0) throw error
@@ -584,6 +629,7 @@ export class ChatHandler {
         if (usarHerramientas && esErrorDeHerramientas(response.status, errorMessage)) {
           logger.warn('Anthropic rechaza las herramientas, se reintenta sin ellas', { model, errorMessage })
           usarHerramientas = false
+          enVivo = alTexto
           continue
         }
 
@@ -603,6 +649,7 @@ export class ChatHandler {
       if (llamadas.length === 0) {
         const texto = textoDesdeAnthropic(data)
         partes.push(texto)
+        enVivo?.(partes.reduce(unirContinuacion, ''))
         if (data.stop_reason !== 'max_tokens' || continuaciones >= MAX_CONTINUACIONES) break
 
         continuaciones++
@@ -720,7 +767,8 @@ export class ChatHandler {
     },
     model: string,
     messages: ChatMessage[],
-    red?: RedParaHerramientas | null
+    red?: RedParaHerramientas | null,
+    alTexto?: AlTexto
   ): Promise<ChatResponse> {
     const historial: any[] = [...messages]
 
@@ -733,6 +781,8 @@ export class ChatHandler {
     const partes: string[] = []
     let continuaciones = 0
     let sinStreaming = false
+    // Con red, sin texto en vivo (#223), como en `sendAnthropicMessage`.
+    let enVivo = red ? undefined : alTexto
 
     for (;;) {
       const requestBody: any = {
@@ -747,6 +797,7 @@ export class ChatHandler {
         requestBody.stream = true
         requestBody.stream_options = { include_usage: true }
       }
+      const alTrozo = enVivo && ((t: string) => enVivo!(textoEnVivo(partes, t)))
 
       logger.debug(`${cfg.proveedor} API Request via backend`, {
         model,
@@ -762,7 +813,7 @@ export class ChatHandler {
           method: 'POST',
           headers: { ...cfg.cabeceras, ...(enStreaming ? { Accept: 'text/event-stream' } : {}) },
           body: JSON.stringify(requestBody),
-        }, cfg.proveedor, enStreaming ? { inactividadMs: cfg.inactividadMs!, leer: leerRespuestaEnStreaming } : null, cfg.timeout))
+        }, cfg.proveedor, enStreaming ? { inactividadMs: cfg.inactividadMs!, leer: leerRespuestaEnStreaming, alTexto: alTrozo } : null, cfg.timeout))
       } catch (error) {
         // Como con un error HTTP más abajo: lanzar aquí tiraba también los trozos ya recibidos.
         if (continuaciones === 0) throw error
@@ -780,6 +831,7 @@ export class ChatHandler {
         if (usarHerramientas && esErrorDeHerramientas(response.status, errorMessage)) {
           logger.warn(`${cfg.proveedor} rechaza las herramientas, se reintenta sin ellas`, { model, errorMessage })
           usarHerramientas = false
+          enVivo = alTexto
           continue
         }
 
@@ -805,6 +857,7 @@ export class ChatHandler {
       if (llamadas.length === 0) {
         const texto = data.choices?.[0]?.message?.content || ''
         partes.push(texto)
+        enVivo?.(partes.reduce(unirContinuacion, ''))
         // Un corte por inactividad no se continúa: sería reenviar el prompt
         // entero a un servidor que acaba de callarse, y esperar otros 90 s.
         if (data.choices?.[0]?.finish_reason !== 'length' || continuaciones >= MAX_CONTINUACIONES) break
@@ -848,7 +901,8 @@ export class ChatHandler {
     messages: ChatMessage[],
     apiKey: string,
     limites: LimitesDeLaNube,
-    red?: RedParaHerramientas | null
+    red?: RedParaHerramientas | null,
+    alTexto?: AlTexto
   ): Promise<ChatResponse> {
     return this.enviarOpenAICompat({
       url: 'https://api.openai.com/v1/chat/completions',
@@ -885,7 +939,7 @@ export class ChatHandler {
             throw new Error(`OpenAI API error (${status}): ${errorMessage}`)
         }
       },
-    }, model, messages, red)
+    }, model, messages, red, alTexto)
   }
 
   /**
@@ -893,7 +947,7 @@ export class ChatHandler {
    * implementado: streaming con límite por inactividad, lo recibido se
    * conserva, y si corta por `MAX_TOKENS` se le pide que siga.
    */
-  private async sendGoogleMessage(model: string, messages: ChatMessage[], apiKey: string, limites: LimitesDeLaNube): Promise<ChatResponse> {
+  private async sendGoogleMessage(model: string, messages: ChatMessage[], apiKey: string, limites: LimitesDeLaNube, alTexto?: AlTexto): Promise<ChatResponse> {
     const { contents, systemInstruction } = this.convertToGoogleFormat(messages)
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`
 
@@ -911,6 +965,7 @@ export class ChatHandler {
       }
 
       logger.debug('Google AI API Request via backend', { model, messagesCount: contents.length, continuaciones })
+      const alTrozo = alTexto && ((t: string) => alTexto(textoEnVivo(partes, t)))
 
       let response: Response
       let data: any
@@ -922,7 +977,7 @@ export class ChatHandler {
             'x-goog-api-key': apiKey,
           },
           body: JSON.stringify(requestBody),
-        }, 'Google AI', { inactividadMs: limites.inactividadMs, leer: leerGoogleEnStreaming }, limites.totalMs))
+        }, 'Google AI', { inactividadMs: limites.inactividadMs, leer: leerGoogleEnStreaming, alTexto: alTrozo }, limites.totalMs))
       } catch (error) {
         if (continuaciones === 0) throw error
         logger.warn('Google AI falla al continuar la respuesta, se entrega lo que hay', { model, error: String(error) })
@@ -945,6 +1000,7 @@ export class ChatHandler {
       salida += data.usageMetadata?.candidatesTokenCount || 0
       const texto: string = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
       partes.push(texto)
+      alTexto?.(partes.reduce(unirContinuacion, ''))
       if (data.candidates?.[0]?.finishReason !== 'MAX_TOKENS' || continuaciones >= MAX_CONTINUACIONES) break
 
       continuaciones++
@@ -1014,7 +1070,8 @@ export class ChatHandler {
     messages: ChatMessage[],
     apiKey: string,
     limites: LimitesDeLaNube,
-    red?: RedParaHerramientas | null
+    red?: RedParaHerramientas | null,
+    alTexto?: AlTexto
   ): Promise<ChatResponse> {
     return this.enviarOpenAICompat({
       url: 'https://openrouter.ai/api/v1/chat/completions',
@@ -1050,7 +1107,7 @@ export class ChatHandler {
             throw new Error(`OpenRouter API error (${status}): ${errorMessage}`)
         }
       },
-    }, model, messages, red)
+    }, model, messages, red, alTexto)
   }
 
   private async sendOllamaMessage(
@@ -1197,7 +1254,8 @@ export class ChatHandler {
     apiKey: string,
     limites: LimitesDeLaNube,
     red?: RedParaHerramientas | null,
-    sinRazonar?: boolean
+    sinRazonar?: boolean,
+    alTexto?: AlTexto
   ): Promise<ChatResponse> {
     return this.enviarOpenAICompat({
       url: `${URL_NVIDIA}/chat/completions`,
@@ -1226,7 +1284,7 @@ export class ChatHandler {
             throw new Error(`Nvidia API error (${status}): ${errorMessage}`)
         }
       },
-    }, model, messages, red)
+    }, model, messages, red, alTexto)
   }
 
   unregisterHandlers(): void {

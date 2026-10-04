@@ -98,6 +98,8 @@ export const proveedorDe = (modelo: string) => (modelo.includes('/') ? 'nvidia' 
 const textos: TextosDeLaRespuesta = {
   noEstaEnLoLeido: es.chat.citas.noEstaEnLoLeido,
   cortadaPorInactividad: es.chat.cortadaPorInactividad,
+  cortadaPorLongitud: es.chat.cortadaPorLongitud,
+  cortadaPorTiempo: es.chat.cortadaPorTiempo,
   revision: {
     titulo: es.chat.revision.titulo,
     contradice: es.chat.revision.contradice,

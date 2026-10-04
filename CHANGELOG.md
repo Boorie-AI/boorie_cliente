@@ -11,6 +11,17 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 
 ## [Unreleased]
 
+- **Con los modelos en la nube, la respuesta se ve mientras se escribe.** Con NVIDIA, OpenAI,
+  OpenRouter, Anthropic y Google había que esperar a que terminara entera —a veces varios
+  minutos— sin ver nada. Ahora el texto aparece a medida que llega, como con el modelo local, y
+  ya limpio: las páginas que no respaldan las fuentes no llegan a mostrarse. Mientras se revisa
+  contra el documento, la respuesta se queda en pantalla y el «Revisando…» va debajo. Con una red
+  cargada en el proyecto la respuesta sigue llegando entera al final.
+- **Una respuesta cortada por largo o por tiempo se conserva y lo dice.** Si el modelo agotaba
+  lo que puede escribir de una vez, la respuesta acababa a media frase sin ningún aviso; y si se
+  pasaba el tiempo máximo con parte ya escrita, se tiraba y solo quedaba el mensaje de que había
+  tardado demasiado. Ahora se guarda lo que llegó con un aviso que explica por qué está
+  incompleta.
 - **Un error del servicio en la nube a mitad de una respuesta ya no la da por completa.** Si
   NVIDIA, OpenAI u OpenRouter mandaban un error cuando ya habían escrito parte de la respuesta,
   lo recibido se mostraba como si estuviera entera, sin ningún aviso; con Anthropic se perdía

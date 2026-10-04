@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 
 const electronAPI = {
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
@@ -108,6 +108,12 @@ const electronAPI = {
       const wrappedCallback = (_event: any, data: any) => callback(data)
       ipcRenderer.on('chat:vectores-progress', wrappedCallback)
       return () => ipcRenderer.removeListener('chat:vectores-progress', wrappedCallback)
+    },
+    // Sólo escuchar y darse de baja: el texto lo manda el proceso principal mientras llega la respuesta (#223).
+    onRespuestaParcial: (callback: (data: { idFlujo: string; texto: string }) => void) => {
+      const wrappedCallback = (_event: IpcRendererEvent, data: { idFlujo: string; texto: string }) => callback(data)
+      ipcRenderer.on('chat:respuesta-parcial', wrappedCallback)
+      return () => ipcRenderer.removeListener('chat:respuesta-parcial', wrappedCallback)
     },
     onAttachmentProgress: (callback: (data: { fileName: string; pagina: number; total: number }) => void) => {
       const wrappedCallback = (_event: any, data: any) => callback(data)

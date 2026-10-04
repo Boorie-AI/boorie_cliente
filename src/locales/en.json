@@ -53,7 +53,9 @@
       "omite": "Missing:",
       "pagina": "(p. {{pagina}})"
     },
-    "cortadaPorInactividad": "Incomplete answer: the model stopped sending text and it was cut off here. This is what arrived; if something is missing, ask again."
+    "cortadaPorInactividad": "Incomplete answer: the model stopped sending text and it was cut off here. This is what arrived; if something is missing, ask again.",
+    "cortadaPorLongitud": "Incomplete answer: the model reached the most text it can write in one go and it was cut off here. This is what arrived; if something is missing, ask it to continue or split the question.",
+    "cortadaPorTiempo": "Incomplete answer: the time limit ran out and it was cut off here. This is what arrived; if something is missing, ask again."
   },
   "settings": {
     "title": "Settings",

@@ -18,6 +18,7 @@ import {
 } from '@/../backend/services/hydraulic/citasSinRespaldo'
 import { marcarLoTraducido } from '@/services/avisoDeTraduccion'
 import { limitesDe, type LimitesDeLaApi } from '@/../backend/services/hydraulic/agentic/limitesDeModelo'
+import { FIN_POR_ERROR, FIN_POR_INACTIVIDAD, FIN_POR_TIEMPO } from '@/../backend/services/ai/respuestaOpenAICompat'
 import { logger } from '@/utils/logger'
 import {
   type Adjunto,
@@ -234,35 +235,116 @@ export async function componerPeticion<M extends MensajeDelHistorial>(
 export interface TextosDeLaRespuesta {
   noEstaEnLoLeido: string
   cortadaPorInactividad: string
+  /** Se acabaron los tokens de salida y las continuaciones (#223). */
+  cortadaPorLongitud: string
+  /** Llegó el tope total de la petición, o el del chat, con texto ya recibido (#223). */
+  cortadaPorTiempo: string
   revision: TextosDeRevision
 }
 
-export interface EntradaDePosproceso {
-  pregunta: string
-  /** Lo que escribió el modelo, tal cual. */
-  escrita: string
-  finishReason?: string
+/** Contra qué se comprueba lo que escribe el modelo: lo mismo mientras llega que al final. */
+export interface ContextoDeLaRespuesta {
   fuentes: any[]
   paginasDelAdjunto: RespaldoDeFuente[]
   leidoDelAdjunto: string
   idioma: IdiomaApp
   hayAdjunto: boolean
+  textos: TextosDeLaRespuesta
+}
+
+export interface EntradaDePosproceso extends ContextoDeLaRespuesta {
+  pregunta: string
+  /** Lo que escribió el modelo, tal cual. */
+  escrita: string
+  finishReason?: string
   /** Con un modelo local la revisión serían minutos: sólo se pide en la nube. */
   conRevision: boolean
-  textos: TextosDeLaRespuesta
 }
 
 export interface DependenciasDePosproceso {
   /** Una petición al mismo modelo, sin razonar, con el prompt de revisión. */
   pedirRevision: (prompt: string) => Promise<{ success: boolean; response?: string; error?: string }>
-  alEmpezarLaRevision?: () => void
+  /** Con el texto ya limpio, que es lo que se queda en pantalla mientras se revisa. */
+  alEmpezarLaRevision?: (texto: string) => void
+}
+
+/**
+ * Lo que se quita y se marca de lo escrito: las páginas sin respaldo, las
+ * ecuaciones, tablas y normas que no están en lo leído y lo traducido. Es
+ * igual mientras llega (`vistaParcial`) que al final (`posprocesarRespuesta`),
+ * para que lo que se ve sea lo que queda.
+ */
+function limpiarLoEscrito(escrita: string, ctx: ContextoDeLaRespuesta) {
+  const { fuentes, textos } = ctx
+  /**
+   * Las páginas que el modelo se invente no salen de aquí (#165).
+   *
+   * El chat no usa la respuesta que escribe el RAG —pide sólo las
+   * fuentes, con `soloRecuperacion`— así que la limpieza que hace
+   * el nodo de generación no le llega: la respuesta se escribe en
+   * esta misma ruta y hay que comprobarla aquí, contra las
+   * fuentes que de verdad se recuperaron.
+   */
+  const { texto: sinPaginasFalsas, quitadas } = limpiarCitasSinRespaldo(
+    escrita,
+    [...fuentes.map((f: any) => ({ page: f?.page })), ...ctx.paginasDelAdjunto]
+  )
+  // Y las ecuaciones y tablas citadas que no están en nada de lo leído.
+  const leido = [ctx.leidoDelAdjunto, ...fuentes.map((f: any) => f?.content ?? '')].join('\n')
+  const nota = textos.noEstaEnLoLeido
+  const conReferencias = marcarReferenciasSinRespaldo(sinPaginasFalsas, leido, nota)
+  const { texto: response, marcadas: normas } = marcarNormasSinRespaldo(conReferencias.texto, leido, nota)
+  /**
+   * Y si lo citado venía de otro idioma, se dice (#160). La regla
+   * está en el prompt y nemotron-mini la ignora, así que se
+   * resuelve aquí en vez de pidiéndoselo otra vez.
+   */
+  const texto = marcarLoTraducido(response, fuentes, ctx.idioma, { hayAdjunto: ctx.hayAdjunto })
+  return { texto, leido, quitadas, marcadas: [...conReferencias.marcadas, ...normas] }
+}
+
+/**
+ * El aviso de una respuesta que no llegó entera, o nada si llegó (#237, #223).
+ *
+ * El modelo se calló a mitad, el servidor mandó un error con texto ya
+ * recibido, se acabaron los tokens de salida después de las continuaciones
+ * o llegó el tope de tiempo. En todos, lo recibido se entrega con el aviso.
+ */
+export function avisoDeCorte(finishReason: string | undefined, textos: TextosDeLaRespuesta): string | null {
+  switch (finishReason) {
+    case FIN_POR_INACTIVIDAD:
+    case FIN_POR_ERROR:
+      return textos.cortadaPorInactividad
+    case FIN_POR_TIEMPO:
+      return textos.cortadaPorTiempo
+    // OpenAI, OpenRouter y NVIDIA; Anthropic; Google.
+    case 'length':
+    case 'max_tokens':
+    case 'MAX_TOKENS':
+      return textos.cortadaPorLongitud
+    default:
+      return null
+  }
+}
+
+/**
+ * Lo que se pinta de una respuesta mientras llega (#223), con la misma
+ * limpieza que al final.
+ *
+ * La última palabra se guarda hasta que llegue el espacio que la cierra: a
+ * medias, «p. 2» de un «p. 203» sin respaldo se vería un instante antes de
+ * que la limpieza la reconociera y la quitara.
+ */
+export function vistaParcial(escrita: string, ctx: ContextoDeLaRespuesta): string {
+  const cerrada = /\s$/.test(escrita) ? escrita : escrita.slice(0, escrita.search(/\S*$/))
+  return limpiarLoEscrito(cerrada, ctx).texto
 }
 
 export interface RespuestaPosprocesada {
   texto: string
   /** El texto sin el apartado de la revisión, que cita al documento: es lo que se puntúa. */
   sinRevision: string
-  /** El modelo se calló a mitad (`FIN_POR_INACTIVIDAD`, #237). */
+  /** No llegó entera: se calló, se acabaron los tokens o el tiempo (`avisoDeCorte`). */
   cortada: boolean
   revision?: { problemas: number }
   /** Páginas citadas sin respaldo, ya quitadas del texto. */
@@ -276,46 +358,21 @@ export async function posprocesarRespuesta(
   deps: DependenciasDePosproceso
 ): Promise<RespuestaPosprocesada> {
   const { fuentes, textos } = entrada
-  /**
-   * Las páginas que el modelo se invente no salen de aquí (#165).
-   *
-   * El chat no usa la respuesta que escribe el RAG —pide sólo las
-   * fuentes, con `soloRecuperacion`— así que la limpieza que hace
-   * el nodo de generación no le llega: la respuesta se escribe en
-   * esta misma ruta y hay que comprobarla aquí, contra las
-   * fuentes que de verdad se recuperaron.
-   */
-  const { texto: sinPaginasFalsas, quitadas } = limpiarCitasSinRespaldo(
-    entrada.escrita,
-    [...fuentes.map((f: any) => ({ page: f?.page })), ...entrada.paginasDelAdjunto]
-  )
+  const { texto: respuesta, leido, quitadas, marcadas } = limpiarLoEscrito(entrada.escrita, entrada)
   if (quitadas.length > 0) {
     logger.warn('Se han quitado referencias a páginas sin respaldo en las fuentes:', quitadas)
   }
-  // Y las ecuaciones y tablas citadas que no están en nada de lo leído.
-  const leido = [entrada.leidoDelAdjunto, ...fuentes.map((f: any) => f?.content ?? '')].join('\n')
-  const nota = textos.noEstaEnLoLeido
-  const conReferencias = marcarReferenciasSinRespaldo(sinPaginasFalsas, leido, nota)
-  const { texto: response, marcadas: normas } = marcarNormasSinRespaldo(conReferencias.texto, leido, nota)
-  const marcadas = [...conReferencias.marcadas, ...normas]
   if (marcadas.length > 0) {
     logger.warn('Referencias a ecuaciones, tablas o normas que no están en lo leído:', marcadas)
   }
+  const nota = textos.noEstaEnLoLeido
   /**
-   * Y si lo citado venía de otro idioma, se dice (#160). La regla
-   * está en el prompt y nemotron-mini la ignora, así que se
-   * resuelve aquí en vez de pidiéndoselo otra vez.
+   * Si no llegó entera, se dice justo después del texto, y no se
+   * revisa: la revisión daría por omitido lo que simplemente no llegó.
    */
-  const respuesta = marcarLoTraducido(response, fuentes, entrada.idioma, { hayAdjunto: entrada.hayAdjunto })
-  /**
-   * El modelo se calló a mitad, o el servidor mandó un error con
-   * texto ya recibido, y el handler entrega lo que llegó
-   * (`FIN_POR_INACTIVIDAD`, #237; `FIN_POR_ERROR`, #223). Se dice
-   * justo después del texto, y no se revisa: la revisión daría por
-   * omitido lo que simplemente no llegó.
-   */
-  const cortada = entrada.finishReason === 'inactividad' || entrada.finishReason === 'error_en_el_flujo'
-  let texto = cortada ? `${respuesta}\n\n---\n\n*${textos.cortadaPorInactividad}*` : respuesta
+  const aviso = avisoDeCorte(entrada.finishReason, textos)
+  const cortada = aviso !== null
+  let texto = aviso ? `${respuesta}\n\n---\n\n*${aviso}*` : respuesta
   /**
    * La segunda pasada (`revisionContraElDocumento`): sólo en la
    * nube —con un modelo local serían minutos— y cuando hay algo
@@ -324,7 +381,7 @@ export async function posprocesarRespuesta(
   const sinRevision = texto
   let revision: { problemas: number } | undefined
   if (entrada.conRevision && !cortada && leido.trim() && (entrada.hayAdjunto || fuentes.length)) {
-    deps.alEmpezarLaRevision?.()
+    deps.alEmpezarLaRevision?.(texto)
     try {
       const r = await deps.pedirRevision(promptDeRevision(entrada.pregunta, leido, respuesta))
       if (r?.success) {

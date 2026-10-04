@@ -64,6 +64,7 @@ interface Window {
       vectoresDeAdjunto?: (fragmentos: string[]) => Promise<{ success: boolean; vectores?: number[][]; message?: string }>;
       vectorDeTexto?: (texto: string) => Promise<{ success: boolean; vector?: number[]; message?: string }>;
       onVectoresProgress?: (callback: (data: { hechos: number; total: number }) => void) => () => void;
+      onRespuestaParcial?: (callback: (data: { idFlujo: string; texto: string }) => void) => () => void;
     };
     agenticRAG: {
       search: (data: any) => Promise<any>;
