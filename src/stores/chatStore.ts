@@ -52,6 +52,8 @@ export interface Message {
     adjunto?: Adjunto
     /** Cuánto del adjunto vigente leyó el modelo para esta respuesta (#194). */
     adjuntoUsado?: UsoDelAdjunto
+    /** Sin adjunto, las fuentes que no cabían en la ventana del modelo (#223). */
+    fuentesOmitidasPorContexto?: number
     /** Respondió el auxiliar porque el principal no estaba (#49). */
     modeloDegradado?: boolean
     /**
@@ -548,7 +550,7 @@ export const useChatStore = create<ChatState>()(
             })
             enhancedPrompt = peticion.prompt
             ragSources = peticion.fuentes
-            const { historial, mensajes: messages, adjuntoUsado, leidoDelAdjunto, paginasDelAdjunto } = peticion
+            const { historial, mensajes: messages, adjuntoUsado, leidoDelAdjunto, paginasDelAdjunto, fuentesOmitidasPorContexto } = peticion
             const vigente = peticion.adjunto
 
             // Clear any previous streaming message
@@ -693,6 +695,7 @@ export const useChatStore = create<ChatState>()(
                   metadata.ragEnabled = false
                 }
                 if (adjuntoUsado) metadata.adjuntoUsado = adjuntoUsado
+                if (fuentesOmitidasPorContexto) metadata.fuentesOmitidasPorContexto = fuentesOmitidasPorContexto
 
                 // Add assistant message
                 await get().addMessageToConversation(conversationId, {

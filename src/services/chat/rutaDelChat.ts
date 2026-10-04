@@ -92,6 +92,8 @@ export interface Peticion<M extends MensajeDelHistorial> {
   /** Lo que el modelo leyó del adjunto: contra esto se comprueban citas y revisión. */
   leidoDelAdjunto: string
   paginasDelAdjunto: RespaldoDeFuente[]
+  /** Sin adjunto, las fuentes del RAG que no cabían en la ventana del modelo (#223). */
+  fuentesOmitidasPorContexto?: number
 }
 
 /**
@@ -127,15 +129,34 @@ export async function componerPeticion<M extends MensajeDelHistorial>(
   let adjuntoUsado: UsoDelAdjunto | undefined
   let leidoDelAdjunto = ''
   let paginasDelAdjunto: RespaldoDeFuente[] = []
-  if (vigente) {
-    /**
-     * El adjunto antes que el RAG (#201): su presupuesto se calcula sin
-     * contar las fuentes, y las fuentes entran después en lo que quede.
-     * Es lo que el usuario ha puesto delante para esta pregunta.
-     */
-    // Solo se descuenta el bloque que se puede recortar: el aviso de una
-    // búsqueda fallida no tiene fuentes que quitar y se queda entero.
-    const recortable = bloqueConocimiento && fuentes.length ? bloqueConocimiento : ''
+  let fuentesOmitidasPorContexto: number | undefined
+
+  /**
+   * Quita las fuentes que no caben en `espacio` y devuelve cuántas quitó. Sin
+   * ninguna, el bloque se quita entero: el de «no se encontró nada» le diría
+   * al modelo algo que no es verdad. Y la función de reemplazo evita que un
+   * «$&» del contenido se interprete.
+   */
+  const dejarLasQueCaben = (espacio: number): number => {
+    const caben = fuentesQueCaben(fuentes, espacio, f => contextoDeConocimiento(f, idioma, { busquedaFallida }))
+    if (caben.length === fuentes.length) return 0
+    const nuevo = caben.length ? contextoDeConocimiento(caben, idioma, { busquedaFallida }) : ''
+    prompt = prompt.replace(bloqueConocimiento, () => nuevo)
+    const quitadas = fuentes.length - caben.length
+    fuentes = caben
+    return quitadas
+  }
+
+  // Solo se descuenta el bloque que se puede recortar: el aviso de una
+  // búsqueda fallida no tiene fuentes que quitar y se queda entero.
+  const recortable = bloqueConocimiento && fuentes.length ? bloqueConocimiento : ''
+  /**
+   * El presupuesto hace falta con un adjunto, y también sin él cuando hay
+   * fuentes: con 20 fragmentos del RAG no caben en los 4096 de un modelo
+   * pequeño de Ollama, y antes se mandaban igual (#223). Sin ninguna de las
+   * dos cosas no se pregunta nada al modelo ni a la API.
+   */
+  if (vigente || recortable) {
     const resto = estimarTokens(prompt) - (recortable ? estimarTokens(recortable) : 0)
       + historial.reduce((n, msg) => n + estimarTokens(msg.content), 0)
     const esOllama = proveedor.toLowerCase() === 'ollama'
@@ -146,51 +167,56 @@ export async function componerPeticion<M extends MensajeDelHistorial>(
     const limites = limitesDe(proveedor, esOllama ? modeloOllama : modelo, deLaApi)
     const numCtx = limites.contexto
     const presupuesto = presupuestoDelAdjunto(limites, resto)
-    // El significado y las consultas solo hacen falta si hay que elegir: un documento que cabe va entero (#205).
-    const hayQueElegir = estimarTokens(vigente.texto) > presupuesto
-    const [similitudes, textosDeConsultas] = hayQueElegir
-      ? await Promise.all([
-          deps.similitudes(vigente.texto, pregunta),
-          esOllama
-            ? deps.consultasEnElIdioma({
-                documento: vigente.texto, pregunta, idiomaDeLaApp: idioma, modelo: modeloOllama, numCtx,
-              })
-            : Promise.resolve([]),
-        ])
-      : [undefined, []]
-    const consultas = await Promise.all(textosDeConsultas.map(async texto =>
-      ({ texto, similitudes: await deps.similitudes(vigente.texto, texto) })))
-    const seleccion = seleccionarFragmentos(vigente.texto, pregunta, presupuesto, { similitudes, consultas })
-    const bloqueAdjunto = bloqueParaElModelo(vigente, seleccion)
-    leidoDelAdjunto = seleccion.texto
-    /**
-     * Con las páginas marcadas, sólo valen las de lo que se leyó. Sin
-     * mapa —un documento sin cabeceras—, cualquier número que aparezca
-     * en lo leído, que es lo único que se puede comprobar.
-     */
-    paginasDelAdjunto = seleccion.paginas
-      ? seleccion.paginas.map(page => ({ page }))
-      : paginasQueAparecenEn(seleccion.texto)
-    adjuntoUsado = {
-      nombre: vigente.nombre, incluidos: seleccion.incluidos, total: seleccion.total, completo: seleccion.completo,
-      ...(similitudes ? { porSignificado: true } : {}),
-    }
 
-    if (recortable) {
-      const caben = fuentesQueCaben(fuentes, presupuesto - estimarTokens(bloqueAdjunto),
-        f => contextoDeConocimiento(f, idioma, { busquedaFallida }))
-      if (caben.length < fuentes.length) {
-        // Sin ninguna, el bloque se quita entero: el de «no se encontró
-        // nada» le diría al modelo algo que no es verdad. Y la función
-        // de reemplazo evita que un «$&» del contenido se interprete.
-        const nuevo = caben.length ? contextoDeConocimiento(caben, idioma, { busquedaFallida }) : ''
-        prompt = prompt.replace(bloqueConocimiento, () => nuevo)
-        adjuntoUsado.fuentesOmitidas = fuentes.length - caben.length
-        fuentes = caben
+    if (vigente) {
+      /**
+       * El adjunto antes que el RAG (#201): su presupuesto se calcula sin
+       * contar las fuentes, y las fuentes entran después en lo que quede.
+       * Es lo que el usuario ha puesto delante para esta pregunta.
+       */
+      // El significado y las consultas solo hacen falta si hay que elegir: un documento que cabe va entero (#205).
+      const hayQueElegir = estimarTokens(vigente.texto) > presupuesto
+      const [similitudes, textosDeConsultas] = hayQueElegir
+        ? await Promise.all([
+            deps.similitudes(vigente.texto, pregunta),
+            esOllama
+              ? deps.consultasEnElIdioma({
+                  documento: vigente.texto, pregunta, idiomaDeLaApp: idioma, modelo: modeloOllama, numCtx,
+                })
+              : Promise.resolve([]),
+          ])
+        : [undefined, []]
+      const consultas = await Promise.all(textosDeConsultas.map(async texto =>
+        ({ texto, similitudes: await deps.similitudes(vigente.texto, texto) })))
+      const seleccion = seleccionarFragmentos(vigente.texto, pregunta, presupuesto, { similitudes, consultas })
+      const bloqueAdjunto = bloqueParaElModelo(vigente, seleccion)
+      leidoDelAdjunto = seleccion.texto
+      /**
+       * Con las páginas marcadas, sólo valen las de lo que se leyó. Sin
+       * mapa —un documento sin cabeceras—, cualquier número que aparezca
+       * en lo leído, que es lo único que se puede comprobar.
+       */
+      paginasDelAdjunto = seleccion.paginas
+        ? seleccion.paginas.map(page => ({ page }))
+        : paginasQueAparecenEn(seleccion.texto)
+      adjuntoUsado = {
+        nombre: vigente.nombre, incluidos: seleccion.incluidos, total: seleccion.total, completo: seleccion.completo,
+        ...(similitudes ? { porSignificado: true } : {}),
+      }
+
+      if (recortable) {
+        const quitadas = dejarLasQueCaben(presupuesto - estimarTokens(bloqueAdjunto))
+        if (quitadas) adjuntoUsado.fuentesOmitidas = quitadas
+      }
+      prompt = bloqueAdjunto + prompt
+      if (!seleccion.completo || adjuntoUsado.fuentesOmitidas) logger.info('Adjunto ajustado al contexto', adjuntoUsado)
+    } else {
+      const quitadas = dejarLasQueCaben(presupuesto)
+      if (quitadas) {
+        fuentesOmitidasPorContexto = quitadas
+        logger.info('Fuentes ajustadas al contexto del modelo', { modelo, contexto: numCtx, incluidas: fuentes.length, omitidas: quitadas })
       }
     }
-    prompt = bloqueAdjunto + prompt
-    if (!seleccion.completo || adjuntoUsado.fuentesOmitidas) logger.info('Adjunto ajustado al contexto', adjuntoUsado)
   }
 
   // Después del adjunto, porque puede haber quitado las fuentes que pedían traducir (#201).
@@ -201,7 +227,7 @@ export async function componerPeticion<M extends MensajeDelHistorial>(
     { role: 'user', content: prompt },
   ]
 
-  return { prompt, mensajes, historial, fuentes, adjunto: vigente, adjuntoUsado, leidoDelAdjunto, paginasDelAdjunto }
+  return { prompt, mensajes, historial, fuentes, adjunto: vigente, adjuntoUsado, leidoDelAdjunto, paginasDelAdjunto, fuentesOmitidasPorContexto }
 }
 
 /** Los textos que se añaden a la respuesta, ya traducidos: la ruta no depende de i18n. */

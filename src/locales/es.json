@@ -974,6 +974,7 @@
     "ragPage": "página",
     "ragOn": "RAG activado",
     "ragNothing": "RAG: no se encontró información relevante",
+    "fuentesOmitidasPorContexto": "Para que cupiera en el contexto del modelo, se han dejado fuera {{count}} fuente(s) de la documentación.",
     "ragFallo": "RAG: no se pudo consultar la documentación, ni tras reintentarlo",
     "helperAnswer": "Respuesta del modelo auxiliar",
     "noProject": "Sin proyecto",

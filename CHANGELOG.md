@@ -24,6 +24,10 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   la pregunta con un error. Ahora a cada uno se le pide lo que admite, tomado de su proveedor al
   probar la clave o, si no lo da, de una tabla. Nemotron Ultra puede escribir el doble antes de
   cortarse, así que sus respuestas largas llegan enteras más a menudo.
+- **Sin documento adjunto, la documentación que se le pasa al modelo cabe en lo que admite.**
+  Con muchas fuentes de la base de conocimiento y un modelo local pequeño, se le mandaban todas
+  aunque no le cabían, y el modelo perdía parte de la pregunta o de las fuentes sin que se viera.
+  Ahora entran las que caben, y la respuesta dice cuántas se quedaron fuera.
 
 ## [1.47.0] - 2026-10-03
 

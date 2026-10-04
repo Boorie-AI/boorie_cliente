@@ -142,6 +142,44 @@ describe('componerPeticion', () => {
     expect(p.adjuntoUsado?.fuentesOmitidas).toBe(fuentes.length - p.fuentes.length)
     expect(p.prompt).not.toContain(bloqueConocimiento)
   })
+
+  describe('sin adjunto, las fuentes caben en la ventana del modelo (#223)', () => {
+    // 20 fragmentos de ~1000 caracteres, como un searchTopK alto.
+    const veinte = Array.from({ length: 20 }, (_, i) => ({ title: `Norma ${i}`, content: libro(9), page: i + 1 }))
+    const conFuentes = () => {
+      const { prompt, bloqueConocimiento } = promptConFuentes(base.pregunta, veinte, 'es', { busquedaFallida: false })
+      return { ...base, prompt, fuentes: veinte, bloqueConocimiento, conversacion: [{ role: 'user' as const, content: base.pregunta }] }
+    }
+
+    it('con un modelo pequeño de Ollama se quitan las que no caben y se cuentan', async () => {
+      const d = deps()
+      d.contextoDeOllama = vi.fn(async () => 4096)
+      const p = await componerPeticion({ ...conFuentes(), modelo: 'nemotron-mini' }, d)
+      expect(d.contextoDeOllama).toHaveBeenCalledWith('nemotron-mini')
+      expect(p.fuentes.length).toBeGreaterThan(0)
+      expect(p.fuentes.length).toBeLessThan(veinte.length)
+      expect(p.fuentesOmitidasPorContexto).toBe(veinte.length - p.fuentes.length)
+      expect(p.adjuntoUsado).toBeUndefined()
+      // Lo que va al modelo cabe en su ventana.
+      expect(Math.ceil(p.prompt.length / 4)).toBeLessThan(4096)
+      expect(p.prompt).toContain(base.pregunta)
+    })
+
+    it('en la nube, con 48k de contexto útil, entran todas', async () => {
+      const d = deps()
+      const p = await componerPeticion({ ...conFuentes(), proveedor: 'nvidia', modelo: 'nvidia/nemotron-3-ultra-550b-a55b' }, d)
+      expect(p.fuentes).toHaveLength(veinte.length)
+      expect(p.fuentesOmitidasPorContexto).toBeUndefined()
+      expect(d.contextoDeOllama).not.toHaveBeenCalled()
+    })
+
+    it('sin fuentes no se calcula nada ni se pregunta a nadie', async () => {
+      const d = deps()
+      const p = await componerPeticion({ ...base, prompt: base.pregunta, conversacion: [{ role: 'user', content: base.pregunta }] }, d)
+      expect(p.fuentesOmitidasPorContexto).toBeUndefined()
+      expect(d.contextoDeOllama).not.toHaveBeenCalled()
+    })
+  })
 })
 
 const textos = {
