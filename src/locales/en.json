@@ -974,6 +974,7 @@
     "ragPage": "page",
     "ragOn": "RAG enabled",
     "ragNothing": "RAG: no relevant information found",
+    "fuentesOmitidasPorContexto": "To fit the model's context, {{count}} documentation source(s) were left out.",
     "ragFallo": "RAG: the documentation could not be searched, even after retrying",
     "helperAnswer": "Answer from the helper model",
     "noProject": "No project",
