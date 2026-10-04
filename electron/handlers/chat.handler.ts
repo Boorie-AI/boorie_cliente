@@ -39,6 +39,7 @@ interface RedParaHerramientas {
   inp: string
 }
 import { leerRedActiva } from '../../backend/services/hydraulic/redActiva'
+import { esperaTrasLimite, REINTENTOS_POR_LIMITE } from '../../backend/services/hydraulic/agentic/modelosRAG'
 import {
   MAX_CONTINUACIONES,
   FIN_POR_INACTIVIDAD,
@@ -162,6 +163,9 @@ const MAX_VUELTAS_HERRAMIENTAS = 4
 
 type LectorSSE = (respuesta: { body: any }, controlador: AbortController, inactividadMs: number, mensaje: string, alTexto?: AlTexto) => Promise<any>
 
+/** Lo que se reintenta esperando en vez de darlo por fallo: límite de peticiones y servicio saturado. */
+const SATURADO = new Set([429, 503, 529])
+
 /**
  * Una petición a un proveedor externo. Devuelve la respuesta y, si fue bien,
  * sus datos ya leídos; si se corta, lanza el motivo del corte (inactividad o
@@ -178,7 +182,19 @@ async function pedirAlProveedor(
   const tope = setTimeout(() => controlador.abort(new Error(`${proveedor} timed out: no terminó en ${Math.round(timeout / 1000)} s`)), timeout)
   const mensajeDeInactividad = `${proveedor} timed out: ${Math.round((streaming?.inactividadMs ?? 0) / 1000)} s sin enviar nada`
   try {
-    const response = await fetch(url, { ...init, signal: controlador.signal })
+    let response = await fetch(url, { ...init, signal: controlador.signal })
+    /**
+     * Saturado o con el límite de peticiones (429, 503; 529 es el «overloaded»
+     * de Anthropic): se espera y se repite, como en la búsqueda (#224). Llega
+     * antes del cuerpo, así que no hay texto que perder. Antes el error subía
+     * tal cual y la respuesta se perdía con el servicio saturado (#260).
+     */
+    for (let intento = 0; !response.ok && SATURADO.has(response.status) && intento < REINTENTOS_POR_LIMITE; intento++) {
+      const espera = esperaTrasLimite(response.headers?.get?.('retry-after'), intento)
+      logger.warn(`${proveedor} respondió ${response.status}, se reintenta`, { intento: intento + 1, esperaMs: Math.round(espera) })
+      await new Promise(resolver => setTimeout(resolver, espera))
+      response = await fetch(url, { ...init, signal: controlador.signal })
+    }
     if (!response.ok) return { response }
     const data = streaming
       ? await streaming.leer(response, controlador, streaming.inactividadMs, mensajeDeInactividad, streaming.alTexto)

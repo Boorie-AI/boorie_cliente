@@ -216,9 +216,12 @@ describe('Anthropic', () => {
     [402, 'credits'],
     [529, 'temporarily unavailable'],
   ])('un %i da un error que el chat sabe explicar', async (status, texto) => {
-    fetchSimulado.mockImplementationOnce(error(status, { type: 'error', error: { message: 'x' } }))
-    const r = await enviar('anthropic')
-    expect(r.error).toContain(texto)
+    // El 529 se reintenta (#260): aquí se repite en todos los intentos.
+    vi.useFakeTimers()
+    fetchSimulado.mockImplementation(error(status, { type: 'error', error: { message: 'x' } }))
+    const promesa = enviar('anthropic')
+    await vi.advanceTimersByTimeAsync(120_000)
+    expect((await promesa).error).toContain(texto)
   })
 })
 
@@ -431,5 +434,64 @@ describe('el texto en pantalla mientras llega (#223)', () => {
     expect(r.success).toBe(true)
     expect(r.data.response).toBe('Mitad del informe')
     expect(r.data.metadata.finish_reason).toBe(FIN_POR_TIEMPO)
+  })
+})
+
+/**
+ * Con el servicio saturado la redacción espera y repite, como la búsqueda
+ * (#224). Antes el error subía tal cual y la pregunta se quedaba sin
+ * respuesta (#260).
+ */
+describe('servicio saturado (#260)', () => {
+  const saturado = (status: number, retryAfter?: string) => async () => ({
+    ok: false, status, json: async () => ({ error: { message: 'Service temporarily overloaded' } }),
+    headers: { get: (h: string) => (h.toLowerCase() === 'retry-after' ? retryAfter ?? null : null) },
+  })
+
+  it.each([['openai', 503], ['openrouter', 429], ['anthropic', 529]])('%s: un %i seguido de una respuesta buena llega sin error', async (proveedor, status) => {
+    vi.useFakeTimers()
+    fetchSimulado
+      .mockImplementationOnce(saturado(status as number))
+      .mockImplementationOnce(sse(dialecto[proveedor as string]('Respuesta tras esperar.', 'fin')))
+
+    const promesa = enviar(proveedor as string)
+    await vi.advanceTimersByTimeAsync(3000)
+    const r = await promesa
+
+    expect(r.success).toBe(true)
+    expect(r.data.response).toBe('Respuesta tras esperar.')
+    expect(fetchSimulado).toHaveBeenCalledTimes(2)
+  })
+
+  it('respeta el Retry-After que manda el servicio', async () => {
+    vi.useFakeTimers()
+    fetchSimulado
+      .mockImplementationOnce(saturado(429, '7'))
+      .mockImplementationOnce(sse(dialecto.openai('Ya.', 'fin')))
+
+    const promesa = enviar('openai')
+    await vi.advanceTimersByTimeAsync(6900)
+    expect(fetchSimulado).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(200)
+    expect((await promesa).data.response).toBe('Ya.')
+  })
+
+  it('tras agotar los reintentos sube el error de siempre', async () => {
+    vi.useFakeTimers()
+    fetchSimulado.mockImplementation(saturado(503))
+
+    const promesa = enviar('openai')
+    await vi.advanceTimersByTimeAsync(120_000)
+    const r = await promesa
+
+    expect(r.success).toBe(false)
+    expect(fetchSimulado).toHaveBeenCalledTimes(5)
+  })
+
+  it('un error que no es de saturación no se reintenta', async () => {
+    fetchSimulado.mockImplementation(error(401, { error: { message: 'Invalid API key' } }))
+    const r = await enviar('openai')
+    expect(r.success).toBe(false)
+    expect(fetchSimulado).toHaveBeenCalledTimes(1)
   })
 })

@@ -59,6 +59,10 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   Con muchas fuentes de la base de conocimiento y un modelo local pequeño, se le mandaban todas
   aunque no le cabían, y el modelo perdía parte de la pregunta o de las fuentes sin que se viera.
   Ahora entran las que caben, y la respuesta dice cuántas se quedaron fuera.
+- **Con el servicio en la nube saturado, la respuesta espera en vez de perderse.** Cuando NVIDIA
+  (u OpenAI, OpenRouter o Anthropic) contestaba que estaba saturado o que se habían hecho
+  demasiadas peticiones, la pregunta se quedaba sin respuesta. Ahora Boorie espera unos segundos
+  y vuelve a pedirla, hasta cuatro veces, igual que ya hace la búsqueda.
 
 ## [1.47.0] - 2026-10-03
 
