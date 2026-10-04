@@ -9,22 +9,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.48.0] - 2026-10-04
 
-- **La búsqueda en tus documentos también puede hacerse en NVIDIA, desde Configuración.** Antes
-  sólo la respuesta podía escribirla un modelo en la nube: reformular la pregunta y decidir qué
-  fragmentos sirven se hacía siempre en este equipo, y en un portátil sin GPU era la parte lenta
-  —más de dos minutos por pregunta—. Ahora, en Configuración → Configuración de IA, «Dónde se
-  procesa la búsqueda» permite elegir NVIDIA, con la misma clave que ya usa el chat y tras dar el
-  consentimiento para enviarle los datos. Si falta la clave o el consentimiento, Configuración lo
-  avisa y la búsqueda sigue en este equipo.
-- **Con un modelo de NVIDIA, las preguntas en castellano encuentran lo que buscan en un libro en
-  inglés.** Con el modelo local Boorie busca también con términos en el idioma del documento
-  —«step drawdown test» para una prueba escalonada—, pero con un modelo en la nube esa ayuda no se
-  usaba. Ahora también se usa con NVIDIA.
-- **Si NVIDIA pide esperar, Boorie espera y reintenta.** Cuando la API rechaza peticiones por ir
-  demasiado deprisa, la búsqueda espera lo que pide y lo vuelve a intentar; si aun así no puede
-  evaluar algún fragmento, lo conserva y queda anotado en el registro.
+La respuesta de los modelos en la nube se ve mientras se escribe, también con un proyecto abierto; la búsqueda en tus documentos puede hacerse en NVIDIA desde Configuración, y una respuesta larga, cortada o con el servicio saturado ya no se pierde.
 
 - **Con los modelos en la nube, la respuesta se ve mientras se escribe.** Con NVIDIA, OpenAI,
   OpenRouter, Anthropic y Google había que esperar a que terminara entera —a veces varios
@@ -37,6 +24,24 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   igual que sin proyecto: mientras el modelo consulta la red no se muestra nada a medias, y en
   cuanto empieza a responder el texto va apareciendo. Las preguntas de escenario o de ahorro de
   energía, en las que Boorie propone simular antes de dar cifras, siguen apareciendo de una vez.
+- **La búsqueda en tus documentos también puede hacerse en NVIDIA, desde Configuración.** Antes
+  sólo la respuesta podía escribirla un modelo en la nube: reformular la pregunta y decidir qué
+  fragmentos sirven se hacía siempre en este equipo, y en un portátil sin GPU era la parte lenta
+  —más de dos minutos por pregunta—. Ahora, en Configuración → Configuración de IA, «Dónde se
+  procesa la búsqueda» permite elegir NVIDIA, con la misma clave que ya usa el chat y tras dar el
+  consentimiento para enviarle los datos. Si falta la clave o el consentimiento, Configuración lo
+  avisa y la búsqueda sigue en este equipo.
+- **Con un modelo de NVIDIA, las preguntas en castellano encuentran lo que buscan en un libro en
+  inglés.** Con el modelo local Boorie busca también con términos en el idioma del documento
+  —«step drawdown test» para una prueba escalonada—, pero con un modelo en la nube esa ayuda no se
+  usaba. Ahora también se usa con NVIDIA.
+- **Con el servicio en la nube saturado, la respuesta espera en vez de perderse.** Cuando NVIDIA
+  (u OpenAI, OpenRouter o Anthropic) contestaba que estaba saturado o que se habían hecho
+  demasiadas peticiones, la pregunta se quedaba sin respuesta. Ahora Boorie espera unos segundos
+  y vuelve a pedirla, hasta cuatro veces, igual que ya hace la búsqueda.
+- **Si NVIDIA pide esperar, Boorie espera y reintenta.** Cuando la API rechaza peticiones por ir
+  demasiado deprisa, la búsqueda espera lo que pide y lo vuelve a intentar; si aun así no puede
+  evaluar algún fragmento, lo conserva y queda anotado en el registro.
 - **Una respuesta cortada por largo o por tiempo se conserva y lo dice.** Si el modelo agotaba
   lo que puede escribir de una vez, la respuesta acababa a media frase sin ningún aviso; y si se
   pasaba el tiempo máximo con parte ya escrita, se tiraba y solo quedaba el mensaje de que había
@@ -47,9 +52,6 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   lo recibido se mostraba como si estuviera entera, sin ningún aviso; con Anthropic se perdía
   todo. Ahora se ve lo que llegó con el aviso de respuesta incompleta, como cuando el modelo deja
   de responder.
-- **Con el modelo local, ya no se pierden trozos de la respuesta.** Si un fragmento de lo que
-  enviaba Ollama llegaba partido por la red, ese texto desaparecía de la respuesta en pantalla,
-  y con él alguna tilde o «ñ» partida. Ahora se recompone antes de mostrarlo.
 - **Cada modelo en la nube responde con el largo que admite.** A todos se les pedía lo mismo, y
   los modelos antiguos que admiten menos —Claude 3 Haiku y Opus, GPT-4 Turbo, GPT-4— rechazaban
   la pregunta con un error. Ahora a cada uno se le pide lo que admite, tomado de su proveedor al
@@ -59,10 +61,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   Con muchas fuentes de la base de conocimiento y un modelo local pequeño, se le mandaban todas
   aunque no le cabían, y el modelo perdía parte de la pregunta o de las fuentes sin que se viera.
   Ahora entran las que caben, y la respuesta dice cuántas se quedaron fuera.
-- **Con el servicio en la nube saturado, la respuesta espera en vez de perderse.** Cuando NVIDIA
-  (u OpenAI, OpenRouter o Anthropic) contestaba que estaba saturado o que se habían hecho
-  demasiadas peticiones, la pregunta se quedaba sin respuesta. Ahora Boorie espera unos segundos
-  y vuelve a pedirla, hasta cuatro veces, igual que ya hace la búsqueda.
+- **Con el modelo local, ya no se pierden trozos de la respuesta.** Si un fragmento de lo que
+  enviaba Ollama llegaba partido por la red, ese texto desaparecía de la respuesta en pantalla,
+  y con él alguna tilde o «ñ» partida. Ahora se recompone antes de mostrarlo.
 
 ## [1.47.0] - 2026-10-03
 
