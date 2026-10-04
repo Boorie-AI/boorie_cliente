@@ -33,7 +33,7 @@ export interface LimitesDeModelo {
   /** En streaming, lo que se espera sin recibir nada. `null` si no hay streaming. */
   inactividadMs: number | null
   totalMs: number
-  /** El total de una vuelta con herramientas, que va sin streaming. */
+  /** El total de una vuelta con herramientas sin streaming: hoy sólo Ollama; en la nube van en streaming (#251). */
   totalConHerramientasMs: number
   fuente: FuenteDeLimites
 }
@@ -63,9 +63,9 @@ const NUBE_POR_DEFECTO = { contexto: 32768, salida: 8192 }
 
 /**
  * En streaming lo que corta es la inactividad, y el total sólo es una red por
- * si el servidor no para nunca (#232, #246). Sin streaming —las vueltas con
- * herramientas de Anthropic— el total es lo único que hay. OpenAI, OpenRouter y
- * NVIDIA usan `totalMs` también en esas vueltas, como antes de #223.
+ * si el servidor no para nunca (#232, #246). Desde el #251 también las vueltas
+ * con herramientas van en streaming, así que `totalConHerramientasMs` no se usa
+ * en la nube; el modelo que no se deja servir en streaming usa `totalMs`.
  */
 const ESPERAS_NUBE = {
   inactividadMs: 90000,

@@ -200,3 +200,119 @@ describe('unirContinuacionParcial', () => {
     expect(unirContinuacionParcial(previo, ' y después se anota')).toBe(`${previo} y después se anota`)
   })
 })
+
+describe('llamadas a herramientas en streaming (#251)', () => {
+  const ev = (o: unknown) => `data: ${JSON.stringify(o)}\n\n`
+  const llamada = (trozo: Record<string, unknown>) => ev({ choices: [{ delta: { tool_calls: [trozo] } }] })
+  type Llamada = { id: string; function: { name: string; arguments: string } }
+
+  it('OpenAI: acumula por índice dos llamadas en paralelo con los argumentos partidos e intercalados', async () => {
+    const partido = llamada({ index: 0, function: { arguments: '"J3"}' } })
+    const r = await leer(cuerpo([
+      ev({ model: 'nemotron', created: 9, choices: [{ delta: { role: 'assistant', content: null } }] }),
+      llamada({ index: 0, id: 'call_a', type: 'function', function: { name: 'consultar_elemento', arguments: '' } }),
+      llamada({ index: 0, function: { arguments: '{"id":' } }),
+      llamada({ index: 1, id: 'call_b', type: 'function', function: { name: 'listar_elementos', arguments: '{"ti' } }),
+      // Y un evento partido también entre dos lecturas de red.
+      partido.slice(0, 20),
+      partido.slice(20),
+      llamada({ index: 1, function: { arguments: 'po":"pipe"}' } }),
+      ev({ choices: [{ delta: {}, finish_reason: 'tool_calls' }] }),
+      ev({ choices: [], usage: { total_tokens: 42 } }),
+    ]))
+    expect(r).toMatchObject({ model: 'nemotron', created: 9, usage: { total_tokens: 42 } })
+    expect(r.choices[0].finish_reason).toBe('tool_calls')
+    expect(r.choices[0].message).toEqual({
+      role: 'assistant',
+      content: null,
+      tool_calls: [
+        { id: 'call_a', type: 'function', function: { name: 'consultar_elemento', arguments: '{"id":"J3"}' } },
+        { id: 'call_b', type: 'function', function: { name: 'listar_elementos', arguments: '{"tipo":"pipe"}' } },
+      ],
+    })
+  })
+
+  it('OpenAI: un nombre que llega repetido en cada trozo no se duplica, y uno troceado se une', async () => {
+    const r = await leer(cuerpo([
+      llamada({ index: 0, id: 'c1', function: { name: 'calcular', arguments: '{"a"' } }),
+      llamada({ index: 0, id: 'c1', function: { name: 'calcular', arguments: ':1}' } }),
+      llamada({ index: 1, id: 'c2', function: { name: 'consultar_', arguments: '' } }),
+      llamada({ index: 1, function: { name: 'elemento', arguments: '{}' } }),
+    ]))
+    const llamadas: Llamada[] = r.choices[0].message.tool_calls
+    expect(llamadas.map(l => [l.id, l.function.name, l.function.arguments]))
+      .toEqual([['c1', 'calcular', '{"a":1}'], ['c2', 'consultar_elemento', '{}']])
+    // Sin finish_reason del servidor, se deduce de que hay llamadas.
+    expect(r.choices[0].finish_reason).toBe('tool_calls')
+  })
+
+  it('OpenAI: el texto previo a la llamada se retira de la pantalla y no se manda más', async () => {
+    const vistos: string[] = []
+    const r = await leerRespuestaEnStreaming(cuerpo([
+      delta('Voy a '), delta('mirar J3.'),
+      llamada({ index: 0, id: 'c1', function: { name: 'consultar_elemento', arguments: '{"id":"J3"}' } }),
+      delta(' (y algo más)'),
+      fin('tool_calls'),
+    ]), new AbortController(), 1000, 'x', t => vistos.push(t))
+    expect(vistos).toEqual(['Voy a ', 'Voy a mirar J3.', ''])
+    // El texto sí va en el mensaje, que se reenvía al modelo tal cual.
+    expect(r.choices[0].message.content).toBe('Voy a mirar J3. (y algo más)')
+    expect(r.choices[0].message.tool_calls).toHaveLength(1)
+  })
+
+  it('OpenAI: sin llamadas la forma es la de siempre, sin tool_calls', async () => {
+    const r = await leer(cuerpo([delta('Hola'), fin('stop')]))
+    expect(r.choices[0]).toEqual({ finish_reason: 'stop', message: { role: 'assistant', content: 'Hola' } })
+  })
+
+  it('OpenAI: un silencio con una llamada empezada se lanza aunque hubiera texto: no se ejecuta a medias', async () => {
+    const c = new AbortController()
+    await expect(leer(cuerpo([
+      delta('Lo miro.'),
+      llamada({ index: 0, id: 'c1', function: { name: 'consultar_elemento', arguments: '{"id":' } }),
+    ], 'colgado', c.signal), 30, c)).rejects.toThrow('callado')
+  })
+
+  it('Anthropic: tool_use con input_json_delta partido, junto al texto, en su orden', async () => {
+    const vistos: string[] = []
+    const r = await leerAnthropicEnStreaming(cuerpo([
+      ev({ type: 'message_start', message: { model: 'claude', usage: { input_tokens: 100 } } }),
+      ev({ type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } }),
+      ev({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Lo ' } }),
+      ev({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'miro.' } }),
+      ev({ type: 'content_block_stop', index: 0 }),
+      ev({ type: 'content_block_start', index: 1, content_block: { type: 'tool_use', id: 'toolu_01', name: 'consultar_elemento', input: {} } }),
+      ev({ type: 'content_block_delta', index: 1, delta: { type: 'input_json_delta', partial_json: '' } }),
+      ev({ type: 'content_block_delta', index: 1, delta: { type: 'input_json_delta', partial_json: '{"i' } }),
+      ev({ type: 'content_block_delta', index: 1, delta: { type: 'input_json_delta', partial_json: 'd": "J3"}' } }),
+      ev({ type: 'content_block_stop', index: 1 }),
+      ev({ type: 'content_block_start', index: 2, content_block: { type: 'tool_use', id: 'toolu_02', name: 'listar_elementos', input: {} } }),
+      ev({ type: 'content_block_stop', index: 2 }),
+      ev({ type: 'message_delta', delta: { stop_reason: 'tool_use' }, usage: { output_tokens: 20 } }),
+      ev({ type: 'message_stop' }),
+    ]), new AbortController(), 1000, 'x', t => vistos.push(t))
+    expect(r).toEqual({
+      model: 'claude',
+      stop_reason: 'tool_use',
+      usage: { input_tokens: 100, output_tokens: 20 },
+      content: [
+        { type: 'text', text: 'Lo miro.' },
+        { type: 'tool_use', id: 'toolu_01', name: 'consultar_elemento', input: { id: 'J3' } },
+        { type: 'tool_use', id: 'toolu_02', name: 'listar_elementos', input: {} },
+      ],
+    })
+    expect(vistos).toEqual(['Lo ', 'Lo miro.', ''])
+  })
+
+  it('Anthropic: sin texto no queda un bloque de texto vacío, que la API rechaza al reenviarlo', async () => {
+    const r = await leerAnthropicEnStreaming(cuerpo([
+      ev({ type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } }),
+      ev({ type: 'content_block_stop', index: 0 }),
+      ev({ type: 'content_block_start', index: 1, content_block: { type: 'tool_use', id: 't1', name: 'calcular', input: {} } }),
+      ev({ type: 'content_block_delta', index: 1, delta: { type: 'input_json_delta', partial_json: '{"x":1}' } }),
+      ev({ type: 'content_block_stop', index: 1 }),
+    ]), new AbortController(), 1000, 'x')
+    expect(r.content).toEqual([{ type: 'tool_use', id: 't1', name: 'calcular', input: { x: 1 } }])
+    expect(r.stop_reason).toBe('tool_use')
+  })
+})

@@ -304,24 +304,39 @@ export class ChatHandler {
       let result: ChatResponse
       const nube = esLocal(provider) ? limitesDeLaNube(model) : await this.limitesDeLaNubePara(provider, model)
 
+      const pregunta = preguntaOriginal
+        ?? [...messages].reverse().find(m => m.role === 'user')?.content
+        ?? ''
+      /**
+       * Si la pregunta es de escenario o de energía, la respuesta del modelo
+       * puede acabar sustituida por la propuesta de Boorie (abajo), y enseñarla
+       * mientras llega sería enseñar justo las cifras sin simular que esa
+       * sustitución existe para tapar (#251). Se sabe antes de preguntar
+       * —depende sólo de la pregunta y de la red—, así que esa respuesta no
+       * sale en vivo; si al final el modelo propone por su cuenta y no se
+       * sustituye, aparece de golpe, como antes del #223.
+       */
+      const puedeSustituirse = !!red && (!!detectarIntencionEscenario(pregunta, red.datos) || detectarIntencionEnergia(pregunta))
+      const enVivo = puedeSustituirse ? undefined : alTexto
+
       switch (provider.toLowerCase()) {
         case 'anthropic':
-          result = await this.sendAnthropicMessage(model, messagesWithSystemPrompt, apiKey, nube, red, alTexto)
+          result = await this.sendAnthropicMessage(model, messagesWithSystemPrompt, apiKey, nube, red, enVivo)
           break
         case 'openai':
-          result = await this.sendOpenAIMessage(model, messagesWithSystemPrompt, apiKey, nube, red, alTexto)
+          result = await this.sendOpenAIMessage(model, messagesWithSystemPrompt, apiKey, nube, red, enVivo)
           break
         case 'google':
-          result = await this.sendGoogleMessage(model, messagesWithSystemPrompt, apiKey, nube, alTexto)
+          result = await this.sendGoogleMessage(model, messagesWithSystemPrompt, apiKey, nube, enVivo)
           break
         case 'openrouter':
-          result = await this.sendOpenRouterMessage(model, messagesWithSystemPrompt, apiKey, nube, red, alTexto)
+          result = await this.sendOpenRouterMessage(model, messagesWithSystemPrompt, apiKey, nube, red, enVivo)
           break
         case 'ollama':
           result = await this.sendOllamaMessage(model, messagesWithSystemPrompt, '', red)
           break
         case 'nvidia':
-          result = await this.sendNvidiaMessage(model, messagesWithSystemPrompt, apiKey, nube, red, sinRazonar, alTexto)
+          result = await this.sendNvidiaMessage(model, messagesWithSystemPrompt, apiKey, nube, red, sinRazonar, enVivo)
           break
         default:
           throw new Error(`Unsupported chat provider: ${provider}`)
@@ -339,9 +354,6 @@ export class ChatHandler {
        * no está simulada.
        */
       if (red && !result.metadata?.propuesta_escenario) {
-        const pregunta = preguntaOriginal
-          ?? [...messages].reverse().find(m => m.role === 'user')?.content
-          ?? ''
         const intencion = detectarIntencionEscenario(pregunta, red.datos)
         if (intencion) {
           const propuesta = await ejecutarHerramienta('proponer_escenario', { ...intencion }, { red: red.datos })
@@ -368,9 +380,6 @@ export class ChatHandler {
        * las cifras llegan de la simulación.
        */
       if (red && !result.metadata?.propuesta_escenario && !result.metadata?.propuesta_energia) {
-        const pregunta = preguntaOriginal
-          ?? [...messages].reverse().find(m => m.role === 'user')?.content
-          ?? ''
         if (detectarIntencionEnergia(pregunta)) {
           result = {
             response:
@@ -551,13 +560,10 @@ export class ChatHandler {
   }
 
   /**
-   * Anthropic como NVIDIA (#246): streaming con límite por inactividad en las
-   * vueltas sin herramientas, lo recibido se conserva si se calla, y si corta
-   * por `max_tokens` se le pide que siga.
-   *
-   * Con red cargada no se manda nada en vivo aunque la última vuelta vaya en
-   * streaming, como con Ollama (#223; el de las herramientas es el #251). Si
-   * el modelo rechaza las herramientas y se repite sin ellas, esa sí.
+   * Anthropic como NVIDIA (#246): streaming con límite por inactividad, lo
+   * recibido se conserva si se calla, y si corta por `max_tokens` se le pide
+   * que siga. Las vueltas con herramientas también van en streaming (#251), y
+   * el texto en pantalla se comporta como en `enviarOpenAICompat`.
    */
   private async sendAnthropicMessage(
     model: string,
@@ -578,16 +584,14 @@ export class ChatHandler {
     let ultima: any = null
     const partes: string[] = []
     let continuaciones = 0
-    let enVivo = red ? undefined : alTexto
+    const alTrozo = alTexto && ((t: string) => alTexto(textoEnVivo(partes, t)))
 
     for (;;) {
-      const enStreaming = !usarHerramientas
-      const alTrozo = enVivo && ((t: string) => enVivo!(textoEnVivo(partes, t)))
       const requestBody: any = {
         model: model,
         max_tokens: limites.salida,
         messages: historial,
-        stream: enStreaming,
+        stream: true,
       }
       if (system) requestBody.system = system
       if (usarHerramientas) requestBody.tools = herramientasAnthropic(HERRAMIENTAS)
@@ -596,7 +600,6 @@ export class ChatHandler {
         model,
         messagesCount: historial.length,
         herramientas: usarHerramientas,
-        streaming: enStreaming,
       })
 
       let response: Response
@@ -608,11 +611,10 @@ export class ChatHandler {
             'Content-Type': 'application/json',
             'x-api-key': apiKey,
             'anthropic-version': '2023-06-01',
-            ...(enStreaming ? { Accept: 'text/event-stream' } : {}),
+            Accept: 'text/event-stream',
           },
           body: JSON.stringify(requestBody),
-        }, 'Anthropic', enStreaming ? { inactividadMs: limites.inactividadMs, leer: leerAnthropicEnStreaming, alTexto: alTrozo } : null,
-        enStreaming ? limites.totalMs : limites.totalConHerramientasMs))
+        }, 'Anthropic', { inactividadMs: limites.inactividadMs, leer: leerAnthropicEnStreaming, alTexto: alTrozo }, limites.totalMs))
       } catch (error) {
         if (continuaciones === 0) throw error
         logger.warn('Anthropic falla al continuar la respuesta, se entrega lo que hay', { model, error: String(error) })
@@ -629,7 +631,6 @@ export class ChatHandler {
         if (usarHerramientas && esErrorDeHerramientas(response.status, errorMessage)) {
           logger.warn('Anthropic rechaza las herramientas, se reintenta sin ellas', { model, errorMessage })
           usarHerramientas = false
-          enVivo = alTexto
           continue
         }
 
@@ -649,7 +650,7 @@ export class ChatHandler {
       if (llamadas.length === 0) {
         const texto = textoDesdeAnthropic(data)
         partes.push(texto)
-        enVivo?.(partes.reduce(unirContinuacion, ''))
+        alTexto?.(partes.reduce(unirContinuacion, ''))
         if (data.stop_reason !== 'max_tokens' || continuaciones >= MAX_CONTINUACIONES) break
 
         continuaciones++
@@ -758,10 +759,9 @@ export class ChatHandler {
       lanzarError: (status: number, errorMessage: string) => never
       modeloDeLaRespuesta: boolean
       /**
-       * Con esto, las vueltas sin herramientas van en streaming y `timeout` pasa
-       * a ser el tope total: sólo se corta si el servidor deja de mandar datos
-       * este tiempo (`leerRespuestaEnStreaming`). Con herramientas sigue sin
-       * streaming, porque las llamadas llegan troceadas y no compensa.
+       * Con esto, las vueltas van en streaming —también las de herramientas
+       * (#251)— y `timeout` pasa a ser el tope total: sólo se corta si el
+       * servidor deja de mandar datos este tiempo (`leerRespuestaEnStreaming`).
        */
       inactividadMs?: number
     },
@@ -781,8 +781,18 @@ export class ChatHandler {
     const partes: string[] = []
     let continuaciones = 0
     let sinStreaming = false
-    // Con red, sin texto en vivo (#223), como en `sendAnthropicMessage`.
-    let enVivo = red ? undefined : alTexto
+    /**
+     * El texto en pantalla con herramientas (#251). Cada vuelta manda su texto
+     * mientras llega, unido a lo de las vueltas anteriores con
+     * `textoEnVivo`. Una vuelta que acaba pidiendo herramientas no deja nada:
+     * el lector, al ver la primera llamada, manda `''`, que aquí se convierte
+     * en lo que ya había antes de esta vuelta, y deja de mandar texto. Lo
+     * habitual —NVIDIA, OpenAI— son vueltas de herramientas sin texto, que no
+     * enseñan nada, y una vuelta final de texto, que es la que se ve crecer.
+     * Con Anthropic, el «Lo miro.» que suele preceder a la herramienta se ve un
+     * momento y se quita.
+     */
+    const alTrozo = alTexto && ((t: string) => alTexto(textoEnVivo(partes, t)))
 
     for (;;) {
       const requestBody: any = {
@@ -792,12 +802,11 @@ export class ChatHandler {
         ...cfg.cuerpoExtra,
       }
       if (usarHerramientas) requestBody.tools = herramientasOpenAI(HERRAMIENTAS)
-      const enStreaming = !!cfg.inactividadMs && !usarHerramientas && !sinStreaming
+      const enStreaming = !!cfg.inactividadMs && !sinStreaming
       if (enStreaming) {
         requestBody.stream = true
         requestBody.stream_options = { include_usage: true }
       }
-      const alTrozo = enVivo && ((t: string) => enVivo!(textoEnVivo(partes, t)))
 
       logger.debug(`${cfg.proveedor} API Request via backend`, {
         model,
@@ -825,19 +834,20 @@ export class ChatHandler {
         const errorData = await response.json().catch(() => ({})) as any
         const errorMessage = cfg.extraerError(errorData, response.status)
 
+        // Antes que el de herramientas: un «no streaming with tools» nombra las
+        // dos cosas, y sin streaming se conservan los datos de la red (#251).
+        if (enStreaming && esErrorDeStreaming(response.status, errorMessage)) {
+          logger.warn(`${cfg.proveedor} no sirve este modelo en streaming, se pide sin él`, { model, errorMessage })
+          sinStreaming = true
+          continue
+        }
+
         // Ni OpenRouter ni NVIDIA garantizan herramientas en todos los modelos
         // que sirven, y una lista de cuales las soportan envejeceria mal: se
         // detecta el rechazo y se reintenta sin ellas.
         if (usarHerramientas && esErrorDeHerramientas(response.status, errorMessage)) {
           logger.warn(`${cfg.proveedor} rechaza las herramientas, se reintenta sin ellas`, { model, errorMessage })
           usarHerramientas = false
-          enVivo = alTexto
-          continue
-        }
-
-        if (enStreaming && esErrorDeStreaming(response.status, errorMessage)) {
-          logger.warn(`${cfg.proveedor} no sirve este modelo en streaming, se pide sin él`, { model, errorMessage })
-          sinStreaming = true
           continue
         }
 
@@ -857,7 +867,7 @@ export class ChatHandler {
       if (llamadas.length === 0) {
         const texto = data.choices?.[0]?.message?.content || ''
         partes.push(texto)
-        enVivo?.(partes.reduce(unirContinuacion, ''))
+        alTexto?.(partes.reduce(unirContinuacion, ''))
         // Un corte por inactividad no se continúa: sería reenviar el prompt
         // entero a un servidor que acaba de callarse, y esperar otros 90 s.
         if (data.choices?.[0]?.finish_reason !== 'length' || continuaciones >= MAX_CONTINUACIONES) break
