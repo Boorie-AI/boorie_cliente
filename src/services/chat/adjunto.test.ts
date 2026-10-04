@@ -9,7 +9,6 @@ import { describe, it, expect } from 'vitest'
 import {
   estimarTokens,
   presupuestoDelAdjunto,
-  CONTEXTO_EN_LA_NUBE,
   seleccionarFragmentos,
   bloqueParaElModelo,
   separarDocumentoPegado,
@@ -19,6 +18,7 @@ import {
   trocear,
   finDeLaFrase,
 } from './adjunto'
+import { limitesDe } from '@/../backend/services/hydraulic/agentic/limitesDeModelo'
 
 /** Una memoria de cálculo como la de la prueba en la aplicación: 120 tramos de 15 tuberías. */
 function memoria(): string {
@@ -50,18 +50,34 @@ describe('la estimación de tokens', () => {
 })
 
 describe('el presupuesto', () => {
+  const ollama = (contexto: number) => limitesDe('ollama', 'qwen2.5:7b', { contexto })
+
   it('con 4096 tokens de contexto, lo que sobra tras la respuesta y el sistema', () => {
-    expect(presupuestoDelAdjunto(4096, 0)).toBe(4096 - 700 - 900)
-    expect(presupuestoDelAdjunto(4096, 500)).toBe(presupuestoDelAdjunto(4096, 0) - 500)
+    expect(presupuestoDelAdjunto(ollama(4096), 0)).toBe(4096 - 700 - 900)
+    expect(presupuestoDelAdjunto(ollama(4096), 500)).toBe(presupuestoDelAdjunto(ollama(4096), 0) - 500)
   })
 
   it('con más contexto, más sitio y también más reserva para la respuesta', () => {
-    expect(presupuestoDelAdjunto(8192, 0)).toBe(8192 - 1365 - 900)
-    expect(presupuestoDelAdjunto(CONTEXTO_EN_LA_NUBE, 0)).toBeGreaterThan(presupuestoDelAdjunto(4096, 0) * 5)
+    expect(presupuestoDelAdjunto(ollama(8192), 0)).toBe(8192 - 1365 - 900)
+    expect(presupuestoDelAdjunto(limitesDe('nvidia', 'nvidia/nemotron-3-ultra-550b-a55b'), 0))
+      .toBeGreaterThan(presupuestoDelAdjunto(ollama(4096), 0) * 5)
+  })
+
+  it('con Ultra entra lo mismo que antes de #223 aunque su salida suba a 16 384', () => {
+    // Antes: 48 000 de contexto, la sexta parte para la respuesta y 900 para el sistema.
+    expect(presupuestoDelAdjunto(limitesDe('nvidia', 'nvidia/nemotron-3-ultra-550b-a55b'), 0)).toBe(48000 - 8000 - 900)
+  })
+
+  it('la entrada y la salida que se pide caben juntas en la ventana del modelo', () => {
+    const gpt4 = limitesDe('openai', 'gpt-4')
+    const presupuesto = presupuestoDelAdjunto(gpt4, 0)
+    expect(presupuesto + 900 + (gpt4.salida ?? 0)).toBeLessThanOrEqual(gpt4.contexto)
+    const pequeno = { contexto: 10000, contextoUtil: 10000, salida: 4096 }
+    expect(presupuestoDelAdjunto(pequeno, 0)).toBe(10000 - 4096 - 900)
   })
 
   it('nunca es negativo', () => {
-    expect(presupuestoDelAdjunto(4096, 100_000)).toBe(0)
+    expect(presupuestoDelAdjunto(ollama(4096), 100_000)).toBe(0)
   })
 })
 

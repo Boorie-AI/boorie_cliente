@@ -101,3 +101,36 @@ describe('lo propio de cada API', () => {
     expect(tienePrueba('Anthropic')).toBe(true)
   })
 })
+
+describe('los límites que da el listado se guardan con el modelo (#223)', () => {
+  it('Anthropic: max_input_tokens y max_tokens', async () => {
+    const lista = { data: [
+      { id: 'claude-n', display_name: 'N', max_input_tokens: 1000000, max_tokens: 128000 },
+      { id: 'claude-viejo', display_name: 'V', max_input_tokens: null, max_tokens: null },
+    ] }
+    const r = await probarClaveExterna('anthropic', 'k', api(() => json(200, lista)))
+    expect(r.modelos[0].metadata).toEqual({ limites: { contexto: 1000000, salida: 128000 } })
+    expect(r.modelos[1]).not.toHaveProperty('metadata')
+  })
+
+  it('Google: inputTokenLimit y outputTokenLimit', async () => {
+    const lista = { models: [{ name: 'models/gemini-n', supportedGenerationMethods: ['generateContent'], inputTokenLimit: 1048576, outputTokenLimit: 65536 }] }
+    const r = await probarClaveExterna('google', 'k', api(() => json(200, lista)))
+    expect(r.modelos[0].metadata).toEqual({ limites: { contexto: 1048576, salida: 65536 } })
+  })
+
+  it('OpenRouter: context_length y top_provider.max_completion_tokens, que puede faltar', async () => {
+    const lista = { data: [
+      { id: 'a/b', name: 'B', context_length: 131072, top_provider: { max_completion_tokens: 8192 } },
+      { id: 'a/c', name: 'C', context_length: 32768, top_provider: { max_completion_tokens: null } },
+    ] }
+    const r = await probarClaveExterna('openrouter', 'k', api(url => json(200, url.includes('/key') ? {} : lista)))
+    expect(r.modelos[0].metadata).toEqual({ limites: { contexto: 131072, salida: 8192 } })
+    expect(r.modelos[1].metadata).toEqual({ limites: { contexto: 32768 } })
+  })
+
+  it('OpenAI no los da', async () => {
+    const r = await probarClaveExterna('openai', 'k', api(() => json(200, LISTAS.openai)))
+    expect(r.modelos.every(m => !m.metadata)).toBe(true)
+  })
+})

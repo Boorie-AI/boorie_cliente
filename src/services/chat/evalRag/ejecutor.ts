@@ -29,10 +29,10 @@ import { contextoDeOllama } from '@/../backend/services/contextoDeOllama'
 import { componerPromptDeSistema } from '@/../backend/services/hydraulic/promptDelAgente'
 import { formatearContextoRed } from '@/../backend/services/hydraulic/networkContext'
 import { PAREJAS } from '@/../backend/services/hydraulic/agentic/modelosRAG'
+import { limitesDeLaNube } from '@/../backend/services/hydraulic/agentic/limitesDeModelo'
 import { URL_NVIDIA } from '@/../backend/services/ai/pruebaNvidia'
 import {
   cuerpoNvidia,
-  LIMITES_NVIDIA,
   MAX_CONTINUACIONES,
   leerRespuestaEnStreaming,
   pedirContinuacion,
@@ -156,16 +156,17 @@ async function llamarNvidia(modelo: string, mensajes: ChatMessage[], clave: stri
   let entrada = 0
   let salida = 0
   let fin: string | undefined
+  const limites = limitesDeLaNube(modelo)
   for (let continuaciones = 0; ; continuaciones++) {
     const controlador = new AbortController()
-    const tope = setTimeout(() => controlador.abort(new Error('NVIDIA: tope total agotado')), LIMITES_NVIDIA.totalMs)
+    const tope = setTimeout(() => controlador.abort(new Error('NVIDIA: tope total agotado')), limites.totalMs)
     try {
       const r = await fetch(`${URL_NVIDIA}/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${clave}`, Accept: 'text/event-stream' },
         signal: AbortSignal.any([enVuelo.signal, controlador.signal]),
         body: JSON.stringify({
-          model: modelo, messages: historial, stream: true, stream_options: { include_usage: true }, ...cuerpoNvidia(sinRazonar),
+          model: modelo, messages: historial, stream: true, stream_options: { include_usage: true }, ...cuerpoNvidia(limites.salida, sinRazonar),
         }),
       })
       if (!r.ok) {
@@ -173,7 +174,7 @@ async function llamarNvidia(modelo: string, mensajes: ChatMessage[], clave: stri
         if (continuaciones > 0) break
         throw new Error(`NVIDIA respondió ${r.status}${detalle ? `: ${detalle}` : ''}`)
       }
-      const datos = await leerRespuestaEnStreaming(r, controlador, LIMITES_NVIDIA.inactividadMs, `NVIDIA: ${LIMITES_NVIDIA.inactividadMs / 1000} s sin enviar nada`)
+      const datos = await leerRespuestaEnStreaming(r, controlador, limites.inactividadMs, `NVIDIA: ${limites.inactividadMs / 1000} s sin enviar nada`)
       entrada += datos.usage?.prompt_tokens ?? 0
       salida += datos.usage?.completion_tokens ?? 0
       const texto = datos.choices?.[0]?.message?.content ?? ''
