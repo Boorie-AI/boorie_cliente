@@ -28,7 +28,7 @@ import { modeloEmbeddingsOllama } from '@/../backend/services/modeloEmbeddings'
 import { contextoDeOllama } from '@/../backend/services/contextoDeOllama'
 import { componerPromptDeSistema } from '@/../backend/services/hydraulic/promptDelAgente'
 import { formatearContextoRed } from '@/../backend/services/hydraulic/networkContext'
-import { PAREJAS } from '@/../backend/services/hydraulic/agentic/modelosRAG'
+import { PAREJAS, esperaTrasLimite, REINTENTOS_POR_LIMITE } from '@/../backend/services/hydraulic/agentic/modelosRAG'
 import { limitesDeLaNube } from '@/../backend/services/hydraulic/agentic/limitesDeModelo'
 import { URL_NVIDIA } from '@/../backend/services/ai/pruebaNvidia'
 import {
@@ -37,6 +37,7 @@ import {
   leerRespuestaEnStreaming,
   pedirContinuacion,
   unirContinuacion,
+  esSaturacionEnElFlujo,
 } from '@/../backend/services/ai/respuestaOpenAICompat'
 import es from '@/locales/es.json'
 import { componerPeticion, posprocesarRespuesta, type TextosDeLaRespuesta } from '../rutaDelChat'
@@ -164,20 +165,41 @@ async function llamarNvidia(modelo: string, mensajes: ChatMessage[], clave: stri
     const controlador = new AbortController()
     const tope = setTimeout(() => controlador.abort(new Error('NVIDIA: tope total agotado')), limites.totalMs)
     try {
-      const r = await fetch(`${URL_NVIDIA}/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${clave}`, Accept: 'text/event-stream' },
-        signal: AbortSignal.any([enVuelo.signal, controlador.signal]),
-        body: JSON.stringify({
-          model: modelo, messages: historial, stream: true, stream_options: { include_usage: true }, ...cuerpoNvidia(limites.salida, sinRazonar),
-        }),
-      })
-      if (!r.ok) {
-        const detalle = await r.json().then((d: any) => d.detail || d.title || '').catch(() => '')
-        if (continuaciones > 0) break
-        throw new Error(`NVIDIA respondió ${r.status}${detalle ? `: ${detalle}` : ''}`)
+      // Como el chat (#260): con NVIDIA saturado se espera y se repite, tanto si
+      // lo dice con un 429/503 como con un error dentro del streaming.
+      let datos: Awaited<ReturnType<typeof leerRespuestaEnStreaming>>
+      let fallo: Error | undefined
+      for (let intento = 0; ; intento++) {
+        const r = await fetch(`${URL_NVIDIA}/chat/completions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${clave}`, Accept: 'text/event-stream' },
+          signal: AbortSignal.any([enVuelo.signal, controlador.signal]),
+          body: JSON.stringify({
+            model: modelo, messages: historial, stream: true, stream_options: { include_usage: true }, ...cuerpoNvidia(limites.salida, sinRazonar),
+          }),
+        })
+        const puedeRepetir = intento < REINTENTOS_POR_LIMITE
+        if (!r.ok) {
+          if ((r.status === 429 || r.status === 503) && puedeRepetir) {
+            await new Promise(res => setTimeout(res, esperaTrasLimite(r.headers.get('retry-after'), intento)))
+            continue
+          }
+          const detalle = await r.json().then((d: any) => d.detail || d.title || '').catch(() => '')
+          fallo = new Error(`NVIDIA respondió ${r.status}${detalle ? `: ${detalle}` : ''}`)
+          break
+        }
+        try {
+          datos = await leerRespuestaEnStreaming(r, controlador, limites.inactividadMs, `NVIDIA: ${limites.inactividadMs / 1000} s sin enviar nada`)
+          break
+        } catch (error) {
+          if (!esSaturacionEnElFlujo(error) || !puedeRepetir) throw error
+          await new Promise(res => setTimeout(res, esperaTrasLimite(null, intento)))
+        }
       }
-      const datos = await leerRespuestaEnStreaming(r, controlador, limites.inactividadMs, `NVIDIA: ${limites.inactividadMs / 1000} s sin enviar nada`)
+      if (fallo) {
+        if (continuaciones > 0) break
+        throw fallo
+      }
       entrada += datos.usage?.prompt_tokens ?? 0
       salida += datos.usage?.completion_tokens ?? 0
       const texto = datos.choices?.[0]?.message?.content ?? ''

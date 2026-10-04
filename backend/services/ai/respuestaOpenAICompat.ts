@@ -266,6 +266,25 @@ export async function leerGoogleEnStreaming(
   }
 }
 
+/** Un evento de error del servidor dentro del streaming, antes de recibir texto. */
+export class ErrorEnElFlujo extends Error {
+  constructor(public readonly delServidor: string) {
+    super(`Stream error: ${delServidor}`)
+    this.name = 'ErrorEnElFlujo'
+  }
+}
+
+/**
+ * Si el error es el servicio saturado o el límite de peticiones dicho dentro del
+ * streaming. NVIDIA, cuando está saturado, no siempre responde 429 o 503:
+ * a menudo contesta 200 y manda `{"error":"Service temporarily overloaded"}`
+ * como primer evento (#260). Sin texto recibido se puede repetir sin perder nada.
+ */
+export function esSaturacionEnElFlujo(error: unknown): boolean {
+  return error instanceof ErrorEnElFlujo
+    && /overload|rate.?limit|too many requests|capacity|temporarily unavailable|try again/i.test(error.delServidor)
+}
+
 /**
  * El bucle común de las tres: lee las líneas `data:` de un SSE con un límite
  * por inactividad y dice cómo terminó.
@@ -351,7 +370,7 @@ async function leerEventos(
   }
   if (errorDelServidor !== null) {
     lector.cancel?.().catch(() => {})
-    if (!hayTexto()) throw new Error(`Stream error: ${errorDelServidor}`)
+    if (!hayTexto()) throw new ErrorEnElFlujo(errorDelServidor)
     return FIN_POR_ERROR
   }
   return 'completa'

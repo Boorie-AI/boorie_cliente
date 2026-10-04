@@ -206,9 +206,12 @@ describe('Anthropic', () => {
   })
 
   it('un error a mitad del streaming no se toma por respuesta', async () => {
-    fetchSimulado.mockImplementationOnce(sse([{ type: 'error', error: { type: 'overloaded_error', message: 'Overloaded' } }]))
-    const r = await enviar('anthropic')
-    expect(r).toMatchObject({ success: false, error: expect.stringContaining('Overloaded') })
+    // «Overloaded» es saturación y se repite (#260): aquí, en todos los intentos.
+    vi.useFakeTimers()
+    fetchSimulado.mockImplementation(sse([{ type: 'error', error: { type: 'overloaded_error', message: 'Overloaded' } }]))
+    const promesa = enviar('anthropic')
+    await vi.advanceTimersByTimeAsync(120_000)
+    expect(await promesa).toMatchObject({ success: false, error: expect.stringContaining('Overloaded') })
   })
 
   it.each([
@@ -486,6 +489,27 @@ describe('servicio saturado (#260)', () => {
 
     expect(r.success).toBe(false)
     expect(fetchSimulado).toHaveBeenCalledTimes(5)
+  })
+
+  it('NVIDIA saturado contesta 200 con el error dentro del streaming: también se espera y se repite', async () => {
+    vi.useFakeTimers()
+    fetchSimulado
+      .mockImplementationOnce(sse([{ error: 'Service temporarily overloaded' }]))
+      .mockImplementationOnce(sse(dialecto.openai('Ahora sí.', 'fin')))
+
+    const promesa = enviar('openai')
+    await vi.advanceTimersByTimeAsync(3000)
+    const r = await promesa
+
+    expect(r.data.response).toBe('Ahora sí.')
+    expect(fetchSimulado).toHaveBeenCalledTimes(2)
+  })
+
+  it('un error dentro del streaming que no es de saturación no se repite', async () => {
+    fetchSimulado.mockImplementation(sse([{ error: { message: 'Model not found' } }]))
+    const r = await enviar('openai')
+    expect(r.success).toBe(false)
+    expect(fetchSimulado).toHaveBeenCalledTimes(1)
   })
 
   it('un error que no es de saturación no se reintenta', async () => {

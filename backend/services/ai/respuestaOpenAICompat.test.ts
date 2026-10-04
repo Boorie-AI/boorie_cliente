@@ -5,6 +5,8 @@
  */
 import { describe, it, expect } from 'vitest'
 import {
+  ErrorEnElFlujo,
+  esSaturacionEnElFlujo,
   FIN_POR_ERROR,
   FIN_POR_INACTIVIDAD,
   FIN_POR_TIEMPO,
@@ -314,5 +316,14 @@ describe('llamadas a herramientas en streaming (#251)', () => {
     ]), new AbortController(), 1000, 'x')
     expect(r.content).toEqual([{ type: 'tool_use', id: 't1', name: 'calcular', input: { x: 1 } }])
     expect(r.stop_reason).toBe('tool_use')
+  })
+})
+
+describe('esSaturacionEnElFlujo (#260)', () => {
+  it('reconoce la saturación y el límite de peticiones dichos dentro del streaming', () => {
+    expect(esSaturacionEnElFlujo(new ErrorEnElFlujo('Service temporarily overloaded'))).toBe(true)
+    expect(esSaturacionEnElFlujo(new ErrorEnElFlujo('Rate limit exceeded, try again later'))).toBe(true)
+    expect(esSaturacionEnElFlujo(new ErrorEnElFlujo('Model not found'))).toBe(false)
+    expect(esSaturacionEnElFlujo(new Error('Service temporarily overloaded'))).toBe(false)
   })
 })
