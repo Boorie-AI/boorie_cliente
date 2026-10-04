@@ -9,6 +9,15 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **El idioma de Configuración y el de la aplicación ya no se contradicen.** Podía pasar que el
+  selector de idioma dijera «Català» y la aplicación saliera en castellano, o que en un equipo
+  con el sistema en inglés el selector dijera «Español» y todo apareciera en inglés; además, las
+  respuestas seguían el idioma del selector, no el que se veía. Ahora manda siempre el idioma
+  elegido en Configuración. La primera vez que se abre Boorie se toma el idioma del sistema si es
+  castellano, catalán o inglés (si no, castellano), y se queda guardado como elección.
+
 ## [1.48.0] - 2026-10-04
 
 La respuesta de los modelos en la nube se ve mientras se escribe, también con un proyecto abierto; la búsqueda en tus documentos puede hacerse en NVIDIA desde Configuración, y una respuesta larga, cortada o con el servicio saturado ya no se pierde.
