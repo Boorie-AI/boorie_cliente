@@ -741,7 +741,7 @@ console.log('Memoria:', process.memoryUsage());
 
 ### 4. Reportar Errores
 
-Al reportar problemas, incluye:
+Lo más cómodo es **Ayuda y comentarios**, en la barra lateral: rellena el reporte y, con «Incluir información técnica», añade el entorno por ti. Ver [Configuración](Configuracion.md#ayuda-y-comentarios). Si lo haces a mano, incluye:
 
 ```
 **Entorno:**

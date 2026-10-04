@@ -80,6 +80,7 @@ Welcome to the comprehensive documentation for **Boorie**, the advanced AI deskt
 
 ## 📞 Support and Community
 
+- **From the app**: **Help & feedback** (sidebar or Settings → About) prepares the report for you; see [Configuration](Configuration.md#-help--feedback)
 - **GitHub Issues**: [Report bugs and feature requests](https://github.com/your-username/boorie_cliente/issues)
 - **Discussions**: [Community discussions](https://github.com/your-username/boorie_cliente/discussions)
 - **Discord**: [Join our community](https://discord.gg/boorie)

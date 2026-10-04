@@ -9,6 +9,15 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **El informe de «Ayuda y comentarios» ya no se llena de avisos que no son fallos.** Al marcar
+  «Incluir información técnica», los últimos avisos de la app incluían casi siempre que el inicio
+  de sesión con Microsoft o con Google no estaba configurado, algo normal porque es opcional. Esos
+  avisos ocupaban el sitio de los que sí explican el problema —el informe se recorta para caber
+  en el enlace de GitHub— y hacían pensar en un fallo de configuración. Ahora ya no salen como
+  avisos ni entran en el informe.
+
 ## [1.48.0] - 2026-10-04
 
 La respuesta de los modelos en la nube se ve mientras se escribe, también con un proyecto abierto; la búsqueda en tus documentos puede hacerse en NVIDIA desde Configuración, y una respuesta larga, cortada o con el servicio saturado ya no se pierde.

@@ -346,6 +346,26 @@ await window.electronAPI.config.reset('ai');
 await window.electronAPI.config.resetAll();
 ```
 
+## Ajuda i comentaris
+
+Per informar d’un problema o suggerir una millora no cal sortir de l’aplicació.
+**Ajuda i comentaris** és a la barra lateral i a **Configuració → Quant a**.
+
+1. Tria **Informar d’un problema** o **Suggerir una millora** i omple el formulari.
+2. Envia’l:
+   - **Obre a GitHub** obre al navegador un issue nou ja omplert; el revises i
+     prems «Submit new issue». Cal un compte de GitHub. Si el text no cap
+     sencer a l’enllaç, l’informe complet queda al porta-retalls per enganxar-lo.
+   - **Copia l’informe** el deixa al porta-retalls per enviar-lo pel canal de
+     sempre, si no tens compte de GitHub.
+
+**Inclou informació tècnica** afegeix la versió de Boorie, el sistema operatiu,
+la versió de Python, la pantalla on eres i els últims avisos de l’aplicació,
+sense rutes personals ni correus (també es treuen del text que escriguis).
+**Mostra exactament què s’enviarà** ensenya l’informe tal qual abans d’enviar-lo.
+L’issue és públic: no hi incloguis dades de clients, noms de xarxes ni
+informació confidencial.
+
 ## Solució de Problemes de Configuració
 
 ### Problemes Comuns
