@@ -128,17 +128,47 @@ export function cifrasDelTexto(texto: string): Array<{ valor: number; posicion: 
   return salida
 }
 
-export function cumple(texto: string, comprobacion: Comprobacion): boolean {
-  const t = normalizar(texto)
-  if ('patron' in comprobacion) return new RegExp(comprobacion.patron, 'iu').test(t)
-  const { cifra, tolerancia, unidad } = comprobacion
+/**
+ * Las celdas de las tablas Markdown del texto, cada una con la cabecera de su
+ * columna. Un modelo que contesta con una tabla pone la unidad una sola vez,
+ * en la cabecera: «| Paso | C (sec²/ft⁵) |» y debajo «| 1 y 2 | 0,04 |».
+ */
+export function celdasDeTablas(texto: string): Array<{ celda: string; cabecera: string }> {
+  const celdas = (linea: string) => linea.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim())
+  const lineas = texto.split('\n')
+  const salida: Array<{ celda: string; cabecera: string }> = []
+  for (let i = 0; i + 1 < lineas.length; i++) {
+    if (!lineas[i].trim().startsWith('|') || !/^\s*\|?\s*:?-{3,}/.test(lineas[i + 1])) continue
+    const cabeceras = celdas(lineas[i])
+    let j = i + 2
+    for (; j < lineas.length && lineas[j].trim().startsWith('|'); j++) {
+      celdas(lineas[j]).forEach((celda, k) => { if (cabeceras[k]) salida.push({ celda, cabecera: cabeceras[k] }) })
+    }
+    i = j - 1
+  }
+  return salida
+}
+
+function tieneLaCifra(t: string, cifra: number, tolerancia: number, unidadDetras: RegExp | null): boolean {
   // El «2» de «Q_2» o de «Q^{2}» no es un 2.
   return cifrasDelTexto(t).some(({ valor, posicion, fin }) => {
     if (Math.abs(valor - cifra) > tolerancia) return false
     if (/[\d_^{]$/.test(t.slice(0, posicion))) return false
-    // Entre la cifra y la unidad sólo caben espacios, negritas y delimitadores: «10 \(\text{sec}^2…».
-    return !unidad || new RegExp(`^[\\s*$\\\\(]{0,5}(?:${unidad})`, 'iu').test(t.slice(fin))
+    return !unidadDetras || unidadDetras.test(t.slice(fin))
   })
+}
+
+export function cumple(texto: string, comprobacion: Comprobacion): boolean {
+  const t = normalizar(texto)
+  if ('patron' in comprobacion) return new RegExp(comprobacion.patron, 'iu').test(t)
+  const { cifra, tolerancia, unidad } = comprobacion
+  // Entre la cifra y la unidad sólo caben espacios, negritas y delimitadores: «10 \(\text{sec}^2…».
+  if (tieneLaCifra(t, cifra, tolerancia, unidad ? new RegExp(`^[\\s*$\\\\(]{0,5}(?:${unidad})`, 'iu') : null)) return true
+  if (!unidad) return false
+  // O en una celda cuya columna lleva la unidad en la cabecera.
+  const enCabecera = new RegExp(`(?:${unidad})`, 'iu')
+  return celdasDeTablas(texto).some(({ celda, cabecera }) =>
+    enCabecera.test(normalizar(cabecera)) && tieneLaCifra(normalizar(celda), cifra, tolerancia, /^[\s*$\\]*$/))
 }
 
 /**

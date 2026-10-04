@@ -575,7 +575,7 @@ export const useChatStore = create<ChatState>()(
                     const r = await get().callOllamaAPI(
                       modelo,
                       enhancedPrompt,
-                      historial, // history (without the user msg added below — it's already inside)
+                      historial, // sin la pregunta de ahora: va dentro de enhancedPrompt (#249)
                       modeloEmbeddings,
                     )
                     result = { success: true, data: { response: r.response, metadata: r.metadata } }

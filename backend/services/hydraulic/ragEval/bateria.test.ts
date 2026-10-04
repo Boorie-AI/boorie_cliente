@@ -73,6 +73,23 @@ describe('cumple', () => {
     expect(cumple('C = 2.0 \\, \\text{seg}^2/\\text{ft}^5', { cifra: 2, tolerancia: 0.1, unidad: 'seg\\^2/ft' })).toBe(true)
     expect(cumple('menores a 10 \\(\\text{sec}^2/\\text{ft}^5\\)', { cifra: 10, tolerancia: 0, unidad: 'sec\\^2/ft' })).toBe(true)
   })
+
+  it('en una tabla vale la unidad de la cabecera de su columna, y no la de otra', () => {
+    // Así contestó Ultra el caso 5.7: las cifras bien, la unidad sólo arriba.
+    const tabla = [
+      '| Paso | Caudal (gpm) | Coeficiente *C* (sec²/ft⁵) |',
+      '|------|------|------|',
+      '| 1 y 2 | 700 | **0,04** |',
+      '| 2 y 3 | 1400 | 0,11 |',
+    ].join('\n')
+    const DE_C = '(?:s|sec|seg)\\s*(?:²|\\^2|2)\\s*/\\s*ft'
+    expect(cumple(tabla, { cifra: 0.04, tolerancia: 0.001, unidad: DE_C })).toBe(true)
+    expect(cumple(tabla, { cifra: 0.11, tolerancia: 0.001, unidad: DE_C })).toBe(true)
+    expect(cumple(tabla, { cifra: 700, tolerancia: 1, unidad: DE_C })).toBe(false)
+    expect(cumple(tabla, { cifra: 700, tolerancia: 1, unidad: 'gpm' })).toBe(true)
+    // Sin tabla, una cifra suelta sigue necesitando su unidad detrás.
+    expect(cumple('C vale 0,04 en el primer paso', { cifra: 0.04, tolerancia: 0.001, unidad: DE_C })).toBe(false)
+  })
 })
 
 describe('puntuarRespuesta', () => {

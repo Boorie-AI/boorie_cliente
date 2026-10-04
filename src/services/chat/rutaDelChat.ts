@@ -113,8 +113,14 @@ export async function componerPeticion<M extends MensajeDelHistorial>(
    * El historial va sin el documento que pegaban los mensajes de antes
    * de #194: con él, cada turno de esas conversaciones desbordaba el
    * contexto aunque ya no se preguntara por el documento.
+   *
+   * Y sin la pregunta de ahora, que es el último mensaje y ya va dentro del
+   * prompt: con ella el modelo recibía dos turnos de usuario seguidos, el
+   * primero sin contexto (#249).
    */
-  const historial = entrada.conversacion.map(msg => ({ ...msg, content: separarDocumentoPegado(msg.content).pregunta }))
+  const ultimo = entrada.conversacion[entrada.conversacion.length - 1]
+  const anteriores = ultimo?.role === 'user' ? entrada.conversacion.slice(0, -1) : entrada.conversacion
+  const historial = anteriores.map(msg => ({ ...msg, content: separarDocumentoPegado(msg.content).pregunta }))
   const vigente = [...entrada.conversacion].reverse().find(msg => msg.metadata?.adjunto)?.metadata?.adjunto
   let adjuntoUsado: UsoDelAdjunto | undefined
   let leidoDelAdjunto = ''
