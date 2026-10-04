@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.47.0
+### 🚀 Latest Release - v1.48.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.47.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.47.0/Boorie-1.47.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.47.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.47.0/Boorie-Setup-1.47.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.47.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.47.0/Boorie-1.47.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.48.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.48.0/Boorie-1.48.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.48.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.48.0/Boorie-Setup-1.48.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.48.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.48.0/Boorie-1.48.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.48.0**: Cloud answers now appear as they are written, like the local model's, and also with a project open; text is already cleaned up as it arrives, and «Checking the answer against the document…» shows under the answer instead of replacing it. Document search can also run on NVIDIA: Settings → AI configuration → «Where the search is processed», with the key the chat already uses and after consenting to send the data; questions in Spanish also find what they need in an English book. A long answer cut by length or time keeps what arrived with a notice, an error halfway no longer passes for a complete answer, and when the cloud service is saturated Boorie waits and retries instead of losing the answer. Each cloud model is asked for the output length it supports, so older models no longer reject the question; without an attachment, knowledge-base sources are trimmed to fit the model; and the local model no longer loses pieces of text. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.48.0).
 - **v1.47.0**: Copy the whole conversation in one click and paste it into Word or Notepad. The button sits in the chat header and says «Copied»; in Word it pastes with bold, lists, bordered tables and readable formulas, and in Notepad as clean text. Authors appear as «User» and «Assistant» in your language, attached documents only by name, and the disclaimer goes at the end, as in the export. And with NVIDIA, an answer that stops halfway is no longer lost: what arrived is shown with a notice that it is incomplete, instead of throwing it away and asking again from scratch. Cloud providers are only active with a key that works: each one now appears once and stays off until «Test» accepts its key, and on first start this version switches off those without a key. Anthropic, OpenAI, OpenRouter and Google now write answers like NVIDIA: «Test» tells an invalid key from no credit, no network or a service outage, models come from your account, and long answers arrive complete. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.47.0).
 - **v1.46.0**: Cloud provider keys are now stored encrypted with the system keychain (Windows, macOS and, on Linux, GNOME Keyring or KWallet), and existing ones are encrypted the first time this version opens; Settings no longer shows the saved key, only whether there is one and its last four characters. Nothing goes to an external model without your consent: the first time you choose a cloud model, Boorie says what it will send —the question, the history, the attachment, fragments of your documents and the network and project context— and to whom, and if you decline the local model keeps answering. With NVIDIA, Nemotron Ultra now writes the answers and cites what it actually read: each fragment of an attached book carries its printed page, citations not found in what was read are flagged, and a second review checks the answer against the document. Long answers no longer stop halfway, a long NVIDIA answer is no longer cut off by a fixed timeout, and «Test» really checks the NVIDIA key. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.46.0).
 - **v1.45.0**: Report a problem or suggest an improvement from inside Boorie. «Help & feedback» sits at the foot of the sidebar on every screen, and in Settings → About; the form opens on top of what you are doing without losing it. «Open in GitHub» leaves the issue written with the team's template, and «Copy report» copies it for anyone without a GitHub account. Ticking «Include technical information» adds the version, system, Python, the screen you were on and the app's latest warnings —without personal paths or emails— and you can see exactly what will be sent first. About also shows the system and the Python version Boorie uses, and its version history now shows the right date —it showed the day before in the Americas— without the formatting asterisks. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.45.0).
@@ -130,12 +131,12 @@
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.47.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.47.0.AppImage`
-3. Run: `./Boorie-1.47.0.AppImage`
+1. Download `Boorie-1.48.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.48.0.AppImage`
+3. Run: `./Boorie-1.48.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.47.0.exe` from the link above
+1. Download `Boorie-Setup-1.48.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 

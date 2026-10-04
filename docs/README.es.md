@@ -39,15 +39,22 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.47.0
+### 🚀 Última Versión - v1.48.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.47.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.47.0/Boorie-1.47.0-arm64.dmg) | ~324 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.47.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.47.0/Boorie-Setup-1.47.0.exe) | ~252 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.47.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.47.0/Boorie-1.47.0.AppImage) | ~403 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.48.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.48.0/Boorie-1.48.0-arm64.dmg) | ~324 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.48.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.48.0/Boorie-Setup-1.48.0.exe) | ~252 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.48.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.48.0/Boorie-1.48.0.AppImage) | ~403 MB |
 
 
+
+### 📝 Novedades en v1.48.0
+- Con los modelos en la nube, la respuesta se ve mientras se escribe, como con el modelo local, y también con un proyecto abierto. El texto llega ya limpio, y el «Revisando…» va debajo de la respuesta en vez de taparla.
+- La búsqueda en tus documentos también puede hacerse en NVIDIA: Configuración → Configuración de IA → «Dónde se procesa la búsqueda», con la clave que ya usa el chat y tras dar el consentimiento. Con NVIDIA, las preguntas en castellano encuentran lo que buscan en un libro en inglés.
+- Una respuesta cortada por largo o por tiempo conserva lo que llegó con un aviso; un error a mitad ya no pasa por una respuesta completa; y con el servicio en la nube saturado, Boorie espera y vuelve a pedirla en vez de perderla.
+- A cada modelo en la nube se le pide el largo que admite, así que los antiguos ya no rechazan la pregunta; sin adjunto, las fuentes de la base de conocimiento se recortan para caber en el modelo; y con el modelo local ya no se pierden trozos de la respuesta.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.48.0).
 
 ### 📝 Novedades en v1.47.0
 - Copiar la conversación entera de un clic para pegarla en Word o en el Bloc de notas. El botón está en la cabecera del chat y dice «Copiado». En Word se pega con negritas, listas, tablas con bordes y las fórmulas en texto legible; en el Bloc de notas, como texto limpio.
@@ -488,12 +495,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.47.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.47.0.AppImage`
-3. Ejecuta: `./Boorie-1.47.0.AppImage`
+1. Descarga `Boorie-1.48.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.48.0.AppImage`
+3. Ejecuta: `./Boorie-1.48.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.47.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.48.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
