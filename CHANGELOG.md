@@ -9,6 +9,14 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **Un error del servicio en la nube a mitad de una respuesta ya no la da por completa.** Si
+  NVIDIA, OpenAI u OpenRouter mandaban un error cuando ya habían escrito parte de la respuesta,
+  lo recibido se mostraba como si estuviera entera, sin ningún aviso; con Anthropic se perdía
+  todo. Ahora se ve lo que llegó con el aviso de respuesta incompleta, como cuando el modelo deja
+  de responder.
+
 ## [1.47.0] - 2026-10-03
 
 La conversación entera se copia de un clic para pegarla en Word o en el Bloc de notas, una respuesta de NVIDIA que se corta ya no se pierde, y los proveedores en la nube sólo quedan activos con una clave que funciona.

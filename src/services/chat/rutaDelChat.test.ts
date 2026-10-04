@@ -193,10 +193,10 @@ describe('posprocesarRespuesta', () => {
     expect(r.revision).toBeUndefined()
   })
 
-  it('una respuesta cortada lo dice y no se revisa', async () => {
+  it.each(['inactividad', 'error_en_el_flujo'])('una respuesta cortada (%s) lo dice y no se revisa', async finishReason => {
     const pedirRevision = vi.fn()
     const r = await posprocesarRespuesta(
-      { ...posproceso, conRevision: true, finishReason: 'inactividad', escrita: 'Cada 30' },
+      { ...posproceso, conRevision: true, finishReason, escrita: 'Cada 30' },
       { pedirRevision }
     )
     expect(r.cortada).toBe(true)

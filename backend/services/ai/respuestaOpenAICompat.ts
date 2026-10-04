@@ -33,6 +33,16 @@ const ENCABEZADO_DE_CONTINUACION = /^\s*(?:#{1,6}\s*)?[*_([]*\s*(?:continuaci[o�
 export const FIN_POR_INACTIVIDAD = 'inactividad'
 
 /**
+ * El `finish_reason` de una respuesta en la que el servidor mandó un evento de
+ * error a mitad, con texto ya recibido: se conserva lo que llegó, igual que con
+ * la inactividad, en vez de darlo por completo o tirarlo.
+ */
+export const FIN_POR_ERROR = 'error_en_el_flujo'
+
+/** Cómo terminó la lectura de un SSE. */
+type FinDeLectura = 'completa' | typeof FIN_POR_INACTIVIDAD | typeof FIN_POR_ERROR
+
+/**
  * Una respuesta de /chat/completions recibida en streaming, con un límite por
  * inactividad en lugar de uno total.
  *
@@ -63,7 +73,7 @@ export async function leerRespuestaEnStreaming(
   let usage: any
   let modelo: string | undefined
   let creado: number | undefined
-  const callado = await leerEventos(respuesta, controlador, inactividadMs, mensajeDeInactividad, evento => {
+  const fin_ = await leerEventos(respuesta, controlador, inactividadMs, mensajeDeInactividad, evento => {
     modelo = evento.model ?? modelo
     creado = evento.created ?? creado
     if (evento.usage) usage = evento.usage
@@ -75,7 +85,7 @@ export async function leerRespuestaEnStreaming(
     model: modelo,
     created: creado,
     usage: usage ?? {},
-    choices: [{ finish_reason: callado ? FIN_POR_INACTIVIDAD : fin, message: { role: 'assistant', content: contenido } }],
+    choices: [{ finish_reason: fin_ === 'completa' ? fin : fin_, message: { role: 'assistant', content: contenido } }],
   }
 }
 
@@ -94,7 +104,7 @@ export async function leerAnthropicEnStreaming(
   let fin: string | undefined
   let modelo: string | undefined
   const usage = { input_tokens: 0, output_tokens: 0 }
-  const callado = await leerEventos(respuesta, controlador, inactividadMs, mensajeDeInactividad, evento => {
+  const fin_ = await leerEventos(respuesta, controlador, inactividadMs, mensajeDeInactividad, evento => {
     switch (evento.type) {
       case 'message_start':
         modelo = evento.message?.model ?? modelo
@@ -107,13 +117,11 @@ export async function leerAnthropicEnStreaming(
         fin = evento.delta?.stop_reason ?? fin
         usage.output_tokens = evento.usage?.output_tokens ?? usage.output_tokens
         break
-      case 'error':
-        throw new Error(`Anthropic stream error: ${evento.error?.message ?? evento.error?.type ?? 'unknown'}`)
     }
   }, () => !!texto)
   return {
     model: modelo,
-    stop_reason: callado ? FIN_POR_INACTIVIDAD : fin,
+    stop_reason: fin_ === 'completa' ? fin : fin_,
     usage,
     content: [{ type: 'text', text: texto }],
   }
@@ -129,7 +137,7 @@ export async function leerGoogleEnStreaming(
   let texto = ''
   let fin: string | undefined
   let usageMetadata: any
-  const callado = await leerEventos(respuesta, controlador, inactividadMs, mensajeDeInactividad, evento => {
+  const fin_ = await leerEventos(respuesta, controlador, inactividadMs, mensajeDeInactividad, evento => {
     const candidato = evento.candidates?.[0]
     for (const parte of candidato?.content?.parts ?? []) {
       // Las partes de razonamiento no son respuesta.
@@ -139,14 +147,20 @@ export async function leerGoogleEnStreaming(
     if (evento.usageMetadata) usageMetadata = evento.usageMetadata
   }, () => !!texto)
   return {
-    candidates: [{ finishReason: callado ? FIN_POR_INACTIVIDAD : fin, content: { parts: [{ text: texto }] } }],
+    candidates: [{ finishReason: fin_ === 'completa' ? fin : fin_, content: { parts: [{ text: texto }] } }],
     usageMetadata: usageMetadata ?? {},
   }
 }
 
 /**
  * El bucle común de las tres: lee las líneas `data:` de un SSE con un límite
- * por inactividad y devuelve si se cortó por silencio con texto ya recibido.
+ * por inactividad y dice cómo terminó.
+ *
+ * Un evento de error del servidor (`{"error": …}` en OpenAI, NVIDIA y Google;
+ * `{"type":"error","error": …}` en Anthropic) corta la lectura: con texto ya
+ * recibido se conserva, como con la inactividad; sin texto se lanza y el chat
+ * reintenta. Antes, en los compatibles con OpenAI se ignoraba y lo parcial
+ * pasaba por una respuesta completa.
  */
 async function leerEventos(
   respuesta: { body: any },
@@ -155,7 +169,7 @@ async function leerEventos(
   mensajeDeInactividad: string,
   alEvento: (evento: any) => void,
   hayTexto: () => boolean
-): Promise<boolean> {
+): Promise<FinDeLectura> {
   let temporizador: ReturnType<typeof setTimeout> | undefined
   let callado = false
   const vigilar = () => {
@@ -169,25 +183,43 @@ async function leerEventos(
   const lector = respuesta.body.getReader()
   const decodificador = new TextDecoder()
   let pendiente = ''
+  let errorDelServidor: string | null = null
+  const procesar = (crudo: string) => {
+    const linea = crudo.trim()
+    if (!linea.startsWith('data:')) return
+    const datos = linea.slice(5).trim()
+    if (datos === '[DONE]') return
+    let evento: any
+    try { evento = JSON.parse(datos) } catch { return }
+    if (evento?.error) {
+      errorDelServidor = String(evento.error.message ?? evento.error.type ?? evento.error)
+      return
+    }
+    alEvento(evento)
+  }
+  const procesarLineas = () => {
+    let salto: number
+    while (errorDelServidor === null && (salto = pendiente.indexOf('\n')) >= 0) {
+      const linea = pendiente.slice(0, salto)
+      pendiente = pendiente.slice(salto + 1)
+      procesar(linea)
+    }
+  }
   try {
     for (;;) {
       const { done, value } = await lector.read()
       if (done) break
       vigilar()
       pendiente += decodificador.decode(value, { stream: true })
-      let salto: number
-      while ((salto = pendiente.indexOf('\n')) >= 0) {
-        const linea = pendiente.slice(0, salto).trim()
-        pendiente = pendiente.slice(salto + 1)
-        if (!linea.startsWith('data:')) continue
-        const datos = linea.slice(5).trim()
-        if (datos === '[DONE]') continue
-        let evento: any
-        try { evento = JSON.parse(datos) } catch { continue }
-        alEvento(evento)
-      }
+      procesarLineas()
+      if (errorDelServidor !== null) break
     }
-    return false
+    if (errorDelServidor === null) {
+      // El último evento puede llegar sin salto de línea final.
+      pendiente += decodificador.decode()
+      procesarLineas()
+      if (errorDelServidor === null) procesar(pendiente)
+    }
   } catch (error) {
     // Sólo el silencio del servidor conserva lo parcial; el tope total y un
     // fallo de red siguen como antes: error, y el chat reintenta.
@@ -196,10 +228,16 @@ async function leerEventos(
       const motivo = controlador.signal.reason
       throw motivo instanceof Error ? motivo : error
     }
-    return true
+    return FIN_POR_INACTIVIDAD
   } finally {
     clearTimeout(temporizador)
   }
+  if (errorDelServidor !== null) {
+    lector.cancel?.().catch(() => {})
+    if (!hayTexto()) throw new Error(`Stream error: ${errorDelServidor}`)
+    return FIN_POR_ERROR
+  }
+  return 'completa'
 }
 
 /**
