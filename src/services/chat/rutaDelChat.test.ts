@@ -48,8 +48,13 @@ describe('componerPeticion', () => {
     ]
     const p = await componerPeticion({ ...base, conversacion, prompt: base.pregunta }, d)
     expect(p.prompt).toBe(base.pregunta + cierreDeIdioma('es', false))
-    expect(p.mensajes).toHaveLength(4)
-    expect(p.mensajes.at(-1)).toEqual({ role: 'user', content: p.prompt })
+    // La pregunta va una sola vez, dentro del prompt (#249).
+    expect(p.mensajes).toEqual([
+      { role: 'user', content: 'Hola' },
+      { role: 'assistant', content: 'Hola, ¿en qué te ayudo?' },
+      { role: 'user', content: p.prompt },
+    ])
+    expect(p.historial.map(m => m.content)).toEqual(['Hola', 'Hola, ¿en qué te ayudo?'])
     expect(p.adjunto).toBeUndefined()
     expect(p.leidoDelAdjunto).toBe('')
     expect(d.contextoDeOllama).not.toHaveBeenCalled()
@@ -63,6 +68,7 @@ describe('componerPeticion', () => {
       conversacion: [{ role: 'user', content: base.pregunta, metadata: { adjunto } }],
     }, d)
     expect(p.adjunto).toBe(adjunto)
+    expect(p.mensajes).toEqual([{ role: 'user', content: p.prompt }])
     expect(p.adjuntoUsado).toMatchObject({ nombre: 'nota.txt', completo: true })
     expect(p.leidoDelAdjunto).toContain('Table 2.1')
     expect(p.prompt).toContain('nota.txt')
