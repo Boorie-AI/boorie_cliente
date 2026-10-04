@@ -132,6 +132,16 @@ describe('consentimiento (R10, R11, D4)', () => {
     expect(r.cuerpo).not.toContain('maria')
   })
 
+  it('el informe no lleva los avisos de arranque conocidos, pero sí cualquier otro (#267)', async () => {
+    registrar('main', 'warn', 'Microsoft Client ID not configured. Set MS_CLIENT_ID environment variable.')
+    registrar('main', 'warn', 'Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.')
+    registrar('renderer', 'warn', 'La red tiene 3 nudos sin coordenadas')
+    const r = await invocar('feedback:preview', BUG, { incluirTecnica: true, pantalla: 'chat' })
+    expect(r.cuerpo).not.toContain('MS_CLIENT_ID')
+    expect(r.cuerpo).not.toContain('GOOGLE_CLIENT_ID')
+    expect(r.cuerpo).toContain('[renderer] [warn] La red tiene 3 nudos sin coordenadas')
+  })
+
   it('una pantalla con caracteres raros se registra como unknown', async () => {
     const r = await invocar('feedback:preview', BUG, { incluirTecnica: true, pantalla: '<img src=x>' })
     expect(r.cuerpo).toContain('- Screen: unknown')

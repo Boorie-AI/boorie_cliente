@@ -319,7 +319,7 @@ boorie --enable-dev-tools
 
 ### 4. Reportar Errors
 
-Quan reportis problemes, inclou:
+El més còmode és **Ajuda i comentaris**, a la barra lateral: omple l’informe i, amb «Inclou informació tècnica», hi afegeix l’entorn per tu. Vegeu [Configuració](Configuracio.md#ajuda-i-comentaris). Si ho fas a mà, inclou:
 
 ```
 **Entorn:**
