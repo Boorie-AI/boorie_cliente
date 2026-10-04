@@ -9,6 +9,14 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **Un enlace en una respuesta ya no puede sacar a Boorie de la aplicación.** Un enlace en el
+  texto de una respuesta o de un documento podía llevar la ventana de Boorie a una página
+  externa, o pedir al sistema que abriera un fichero local o el enlace de otra aplicación. Ahora
+  las páginas web y el correo se abren en el navegador y el cliente de correo del sistema, y lo
+  demás se bloquea.
+
 ## [1.48.0] - 2026-10-04
 
 La respuesta de los modelos en la nube se ve mientras se escribe, también con un proyecto abierto; la búsqueda en tus documentos puede hacerse en NVIDIA desde Configuración, y una respuesta larga, cortada o con el servicio saturado ya no se pierde.
