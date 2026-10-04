@@ -43,6 +43,7 @@ import { esperaTrasLimite, REINTENTOS_POR_LIMITE } from '../../backend/services/
 import {
   MAX_CONTINUACIONES,
   FIN_POR_INACTIVIDAD,
+  esSaturacionEnElFlujo,
   cuerpoNvidia,
   leerRespuestaEnStreaming,
   leerAnthropicEnStreaming,
@@ -182,24 +183,35 @@ async function pedirAlProveedor(
   const tope = setTimeout(() => controlador.abort(new Error(`${proveedor} timed out: no terminó en ${Math.round(timeout / 1000)} s`)), timeout)
   const mensajeDeInactividad = `${proveedor} timed out: ${Math.round((streaming?.inactividadMs ?? 0) / 1000)} s sin enviar nada`
   try {
-    let response = await fetch(url, { ...init, signal: controlador.signal })
     /**
-     * Saturado o con el límite de peticiones (429, 503; 529 es el «overloaded»
-     * de Anthropic): se espera y se repite, como en la búsqueda (#224). Llega
-     * antes del cuerpo, así que no hay texto que perder. Antes el error subía
-     * tal cual y la respuesta se perdía con el servicio saturado (#260).
+     * Saturado o con el límite de peticiones se espera y se repite, como en la
+     * búsqueda (#224); antes el error subía tal cual y la respuesta se perdía
+     * (#260). Llega de dos formas: un 429, 503 o 529 (el «overloaded» de
+     * Anthropic) antes del cuerpo, o un 200 con el error como primer evento del
+     * streaming, que es como lo dice NVIDIA casi siempre. En los dos casos aún
+     * no hay texto, así que repetir no pierde nada.
      */
-    for (let intento = 0; !response.ok && SATURADO.has(response.status) && intento < REINTENTOS_POR_LIMITE; intento++) {
+    for (let intento = 0; ; intento++) {
+      const response = await fetch(url, { ...init, signal: controlador.signal })
+      let porque: string
+      if (!response.ok) {
+        if (!SATURADO.has(response.status) || intento >= REINTENTOS_POR_LIMITE) return { response }
+        porque = `respondió ${response.status}`
+      } else {
+        try {
+          const data = streaming
+            ? await streaming.leer(response, controlador, streaming.inactividadMs, mensajeDeInactividad, streaming.alTexto)
+            : await response.json()
+          return { response, data }
+        } catch (error) {
+          if (!esSaturacionEnElFlujo(error) || intento >= REINTENTOS_POR_LIMITE) throw error
+          porque = 'dijo dentro del streaming que está saturado'
+        }
+      }
       const espera = esperaTrasLimite(response.headers?.get?.('retry-after'), intento)
-      logger.warn(`${proveedor} respondió ${response.status}, se reintenta`, { intento: intento + 1, esperaMs: Math.round(espera) })
+      logger.warn(`${proveedor} ${porque}, se reintenta`, { intento: intento + 1, esperaMs: Math.round(espera) })
       await new Promise(resolver => setTimeout(resolver, espera))
-      response = await fetch(url, { ...init, signal: controlador.signal })
     }
-    if (!response.ok) return { response }
-    const data = streaming
-      ? await streaming.leer(response, controlador, streaming.inactividadMs, mensajeDeInactividad, streaming.alTexto)
-      : await response.json()
-    return { response, data }
   } catch (error) {
     const motivo = controlador.signal.reason
     throw motivo instanceof Error ? motivo : error
