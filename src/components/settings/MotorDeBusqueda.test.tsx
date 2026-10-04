@@ -95,7 +95,7 @@ describe('«Dónde se procesa la búsqueda» en Configuración (#224)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Acepto enviar estos datos a NVIDIA' }))
 
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
-    expect(screen.getByText(/salen de este equipo hacia NVIDIA/)).toBeInTheDocument()
+    expect(await screen.findByText(/salen de este equipo hacia NVIDIA/)).toBeInTheDocument()
   })
 
   it('si lo fija el entorno, lo dice', async () => {
