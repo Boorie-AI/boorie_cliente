@@ -276,12 +276,13 @@ export async function posprocesarRespuesta(
    */
   const respuesta = marcarLoTraducido(response, fuentes, entrada.idioma, { hayAdjunto: entrada.hayAdjunto })
   /**
-   * El modelo se calló a mitad y el handler entrega lo que llegó
-   * (`FIN_POR_INACTIVIDAD`, #237). Se dice justo después del
-   * texto, y no se revisa: la revisión daría por omitido lo que
-   * simplemente no llegó.
+   * El modelo se calló a mitad, o el servidor mandó un error con
+   * texto ya recibido, y el handler entrega lo que llegó
+   * (`FIN_POR_INACTIVIDAD`, #237; `FIN_POR_ERROR`, #223). Se dice
+   * justo después del texto, y no se revisa: la revisión daría por
+   * omitido lo que simplemente no llegó.
    */
-  const cortada = entrada.finishReason === 'inactividad'
+  const cortada = entrada.finishReason === 'inactividad' || entrada.finishReason === 'error_en_el_flujo'
   let texto = cortada ? `${respuesta}\n\n---\n\n*${textos.cortadaPorInactividad}*` : respuesta
   /**
    * La segunda pasada (`revisionContraElDocumento`): sólo en la
