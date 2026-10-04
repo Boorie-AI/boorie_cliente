@@ -7,9 +7,12 @@ import { describe, it, expect } from 'vitest'
 import {
   FIN_POR_ERROR,
   FIN_POR_INACTIVIDAD,
+  FIN_POR_TIEMPO,
   leerAnthropicEnStreaming,
   leerGoogleEnStreaming,
   leerRespuestaEnStreaming,
+  unirContinuacion,
+  unirContinuacionParcial,
 } from './respuestaOpenAICompat'
 
 /**
@@ -127,5 +130,73 @@ describe('leerGoogleEnStreaming', () => {
     expect(r.candidates[0].content.parts[0].text).toBe('Respuesta')
     expect(r.candidates[0].finishReason).toBe('STOP')
     expect(r.usageMetadata).toEqual({ totalTokenCount: 3 })
+  })
+})
+
+describe('el texto mientras llega (#223)', () => {
+  const ev = (o: unknown) => `data: ${JSON.stringify(o)}\n\n`
+
+  it('cada lector avisa con el texto acumulado, sin el razonamiento', async () => {
+    const vistos: string[] = []
+    await leerRespuestaEnStreaming(cuerpo([
+      'data: {"choices":[{"delta":{"reasoning_content":"pienso"}}]}\n\n',
+      delta('Hola, '), delta('mundo'), fin('stop'),
+    ]), new AbortController(), 1000, 'x', t => vistos.push(t))
+    expect(vistos).toEqual(['Hola, ', 'Hola, mundo'])
+
+    const deAnthropic: string[] = []
+    await leerAnthropicEnStreaming(cuerpo([
+      ev({ type: 'content_block_delta', delta: { type: 'text_delta', text: 'A' } }),
+      ev({ type: 'content_block_delta', delta: { type: 'input_json_delta', partial_json: '{' } }),
+      ev({ type: 'content_block_delta', delta: { type: 'text_delta', text: 'B' } }),
+    ]), new AbortController(), 1000, 'x', t => deAnthropic.push(t))
+    expect(deAnthropic).toEqual(['A', 'AB'])
+
+    const deGoogle: string[] = []
+    await leerGoogleEnStreaming(cuerpo([
+      ev({ candidates: [{ content: { parts: [{ text: 'pienso', thought: true }] } }] }),
+      ev({ candidates: [{ content: { parts: [{ text: 'Res' }] } }] }),
+      ev({ candidates: [{ content: { parts: [{ text: 'puesta' }] } }] }),
+    ]), new AbortController(), 1000, 'x', t => deGoogle.push(t))
+    expect(deGoogle).toEqual(['Res', 'Respuesta'])
+  })
+
+  it('el tope total con texto ya recibido lo conserva y lo marca; sin texto, se lanza', async () => {
+    const c1 = new AbortController()
+    const leyendo = leer(cuerpo([delta('Mitad del informe')], 'colgado', c1.signal), 60_000, c1)
+    await new Promise(r => setTimeout(r, 5))
+    c1.abort(new Error('Nvidia timed out: no terminó en 600 s'))
+    const r = await leyendo
+    expect(texto(r)).toBe('Mitad del informe')
+    expect(r.choices[0].finish_reason).toBe(FIN_POR_TIEMPO)
+
+    const c2 = new AbortController()
+    const sinTexto = leer(cuerpo([], 'colgado', c2.signal), 60_000, c2)
+    c2.abort(new Error('Nvidia timed out: no terminó en 600 s'))
+    await expect(sinTexto).rejects.toThrow('no terminó')
+  })
+})
+
+describe('unirContinuacionParcial', () => {
+  const previo = 'El ensayo escalonado mide la pérdida en el pozo con el medidor de potencia,'
+
+  it('retiene el principio mientras puede ser el solape, y no lo repite al resolverse', () => {
+    const final = '…medidor de potencia, que se lee cada minuto.'
+    const vistas: string[] = []
+    for (let i = 1; i <= final.length; i++) {
+      const v = unirContinuacionParcial(previo, final.slice(0, i))
+      if (v !== null) vistas.push(v)
+    }
+    expect(vistas.at(-1)).toBe(unirContinuacion(previo, final))
+    for (const v of vistas) expect(v.split('medidor de potencia').length).toBe(2)
+  })
+
+  it('retiene un título de «Continuación» hasta que acaba la línea, y luego lo quita', () => {
+    expect(unirContinuacionParcial(previo, '## Continuación del proced')).toBeNull()
+    expect(unirContinuacionParcial(previo, '## Continuación del procedimiento\n\nY después')).toBe(`${previo}Y después`)
+  })
+
+  it('un texto que no puede ser solape ni título sale enseguida', () => {
+    expect(unirContinuacionParcial(previo, ' y después se anota')).toBe(`${previo} y después se anota`)
   })
 })

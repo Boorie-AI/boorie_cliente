@@ -694,3 +694,47 @@ describe('un corte por inactividad conserva lo que ya había llegado (#237)', ()
     }
   })
 })
+
+describe('con red cargada no hay texto en vivo (#223)', () => {
+  const remitente = () => {
+    const enviados: string[] = []
+    const sender = { isDestroyed: () => false, send: (_canal: string, d: { texto: string }) => { enviados.push(d.texto) } }
+    return { enviados, event: { sender } }
+  }
+  const enviarEnVivo = (event: unknown, params: Record<string, unknown>) =>
+    handlersRegistrados['chat:send-message'](event, {
+      model: 'un-modelo',
+      messages: [{ role: 'user', content: '¿como mejoro el flujo en J3?' }],
+      projectId: 'p1',
+      idFlujo: 'f1',
+      ...params,
+    })
+
+  it('ni en las rondas con herramientas ni en la final, aunque esa vaya en streaming', async () => {
+    new ChatHandler(baseDeDatos(true))
+    for (let i = 0; i < 4; i++) fetchSimulado.mockResolvedValueOnce(respuesta(openaiPideHerramienta))
+    fetchSimulado.mockResolvedValueOnce(respuesta(openaiResponde))
+    const { enviados, event } = remitente()
+
+    const r = await enviarEnVivo(event, { provider: 'nvidia' })
+
+    expect(r.data.response).toBe('J3 esta a 8 m de cota.')
+    // La quinta, ya sin herramientas, va en streaming hasta el proceso principal.
+    expect(cuerpoDe(4).stream).toBe(true)
+    expect(enviados).toEqual([])
+  })
+
+  it('si el modelo rechaza las herramientas, la petición sin ellas sí sale en vivo', async () => {
+    new ChatHandler(baseDeDatos(true))
+    fetchSimulado
+      .mockResolvedValueOnce(respuesta({ detail: 'Tools are not supported by this model' }, 400))
+      .mockResolvedValueOnce(respuesta(openaiResponde))
+    const { enviados, event } = remitente()
+
+    const r = await enviarEnVivo(event, { provider: 'nvidia' })
+
+    expect(cuerpoDe(1).tools).toBeUndefined()
+    expect(enviados.length).toBeGreaterThan(0)
+    expect(enviados.at(-1)).toBe(r.data.response)
+  })
+})

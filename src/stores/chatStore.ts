@@ -4,7 +4,16 @@ import { compruebaLaEntrada } from '@/services/guardianDeEntrada'
 import { type Adjunto, type UsoDelAdjunto } from '@/services/chat/adjunto'
 import { similitudesDelAdjunto } from '@/services/chat/similitudDelAdjunto'
 import { consultasEnElIdiomaDelDocumento } from '@/services/chat/consultasDelAdjunto'
-import { componerPeticion, posprocesarRespuesta, promptConFuentes } from '@/services/chat/rutaDelChat'
+import {
+  componerPeticion,
+  posprocesarRespuesta,
+  promptConFuentes,
+  vistaParcial,
+  type ContextoDeLaRespuesta,
+  type TextosDeLaRespuesta,
+} from '@/services/chat/rutaDelChat'
+import { FIN_POR_TIEMPO } from '@/../backend/services/ai/respuestaOpenAICompat'
+import { limitarFrecuencia, type Limitador } from '@/../backend/services/ai/limitarFrecuencia'
 import { lineasNdjson } from '@/services/chat/lineasNdjson'
 import { contextoDeOllama } from '@/../backend/services/contextoDeOllama'
 import { limitesGuardados, type LimitesDeLaApi } from '@/../backend/services/hydraulic/agentic/limitesDeModelo'
@@ -23,6 +32,24 @@ import { databaseService } from '@/services/database'
 import { getOllamaBaseUrl } from '@/config/ollama'
 import { cargarModelosRAG, modeloElegido, modeloFijadoRAG, modelosRAGEnCache } from '@/config/modelosRAG'
 import { consentirAlEnviar } from '@/services/consentimientoNube'
+
+/** Cada cuánto, como mucho, se repinta la respuesta que va llegando (#223). */
+const INTERVALO_DE_PINTADO_MS = 100
+
+function textosDeLaRespuesta(): TextosDeLaRespuesta {
+  return {
+    noEstaEnLoLeido: i18n.t('chat.citas.noEstaEnLoLeido'),
+    cortadaPorInactividad: i18n.t('chat.cortadaPorInactividad'),
+    cortadaPorLongitud: i18n.t('chat.cortadaPorLongitud'),
+    cortadaPorTiempo: i18n.t('chat.cortadaPorTiempo'),
+    revision: {
+      titulo: i18n.t('chat.revision.titulo'),
+      contradice: i18n.t('chat.revision.contradice'),
+      omite: i18n.t('chat.revision.omite'),
+      pagina: p => i18n.t('chat.revision.pagina', { pagina: p }),
+    },
+  }
+}
 
 export interface WisdomConfiguration {
   enabled: boolean
@@ -56,6 +83,8 @@ export interface Message {
     fuentesOmitidasPorContexto?: number
     /** Respondió el auxiliar porque el principal no estaba (#49). */
     modeloDegradado?: boolean
+    /** Cómo terminó: lo dice el proveedor, o `FIN_POR_TIEMPO` si saltó el límite del chat (#223). */
+    finish_reason?: string
     /**
      * Escenario que el agente propone y que espera confirmación (#44). Llega
      * con el nombre que le pone el handler, sin traducir, para que no haya dos
@@ -96,6 +125,8 @@ interface ChatState {
   isLoading: boolean
   streamingMessage: string
   streamingBuffer: string
+  /** La respuesta ya está y se revisa contra el documento: va debajo del texto, no en su lugar (#223). */
+  revisando: boolean
 
   // Wisdom/RAG configuration
   wisdomConfig: WisdomConfiguration | undefined
@@ -114,7 +145,7 @@ interface ChatState {
   saveConversation: (conversation: Conversation) => Promise<void>
   loadConversations: (projectId?: string) => Promise<void>
   loadAllConversations: () => Promise<void>
-  callOllamaAPI: (model: string, prompt: string, context: Message[], modeloEmbeddings?: string | null) => Promise<{ response: string; metadata: any }>
+  callOllamaAPI: (model: string, prompt: string, context: Message[], modeloEmbeddings?: string | null, alRecibir?: (texto: string) => void) => Promise<{ response: string; metadata: any }>
   callAPIProvider: (provider: string, model: string, prompt: string, context: Message[]) => Promise<{ response: string; metadata: any }>
 
   // Wisdom/RAG actions
@@ -146,6 +177,7 @@ export const useChatStore = create<ChatState>()(
       isLoading: false,
       streamingMessage: '',
       streamingBuffer: '',
+      revisando: false,
       wisdomConfig: undefined,
 
       createNewConversation: (projectId?: string) => {
@@ -377,6 +409,18 @@ export const useChatStore = create<ChatState>()(
         const globalTimeout = new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('GLOBAL_TIMEOUT')), GLOBAL_TIMEOUT_MS)
         )
+        /**
+         * Lo que ha llegado de la respuesta y contra qué se limpia (#223): si
+         * salta el límite global con texto ya recibido, se guarda eso con su
+         * aviso en vez de tirarlo.
+         */
+        const enVivo: {
+          recibido: string
+          enCurso: { ctx: ContextoDeLaRespuesta; modelo: string; proveedor: string } | null
+          pintor: Limitador | null
+          // Con el límite global ya saltado, lo que termine después no se añade: ya hay respuesta.
+          abandonado: boolean
+        } = { recibido: '', enCurso: null, pintor: null, abandonado: false }
 
         try {
           // Wrap the entire pipeline in a global timeout
@@ -552,6 +596,23 @@ export const useChatStore = create<ChatState>()(
             ragSources = peticion.fuentes
             const { historial, mensajes: messages, adjuntoUsado, leidoDelAdjunto, paginasDelAdjunto, fuentesOmitidasPorContexto } = peticion
             const vigente = peticion.adjunto
+            const ctx: ContextoDeLaRespuesta = {
+              fuentes: ragSources,
+              paginasDelAdjunto,
+              leidoDelAdjunto,
+              idioma: usePreferencesStore.getState().language,
+              hayAdjunto: !!vigente,
+              textos: textosDeLaRespuesta(),
+            }
+            enVivo.enCurso = { ctx, modelo, proveedor }
+            /**
+             * El texto en pantalla mientras llega (#223), ya limpio: las páginas
+             * sin respaldo no aparecen y lo que se ve es lo que queda.
+             */
+            const alRecibir = (texto: string) => {
+              enVivo.recibido = texto
+              enVivo.pintor?.emitir(texto)
+            }
 
             // Clear any previous streaming message
             get().clearStreamingMessage()
@@ -579,8 +640,13 @@ export const useChatStore = create<ChatState>()(
             for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
               try {
                 if (attempt > 0) {
+                  // Lo del intento anterior no se queda en pantalla mientras llega el nuevo.
+                  enVivo.pintor?.cancelar()
+                  enVivo.recibido = ''
+                  get().clearStreamingMessage()
                   await new Promise(resolve => setTimeout(resolve, 2000 * attempt))
                 }
+                enVivo.pintor = limitarFrecuencia(texto => get().setStreamingMessage(vistaParcial(texto, ctx)), INTERVALO_DE_PINTADO_MS)
 
                 let result: any
 
@@ -594,29 +660,42 @@ export const useChatStore = create<ChatState>()(
                       enhancedPrompt,
                       historial, // sin la pregunta de ahora: va dentro de enhancedPrompt (#249)
                       modeloEmbeddings,
+                      alRecibir,
                     )
                     result = { success: true, data: { response: r.response, metadata: r.metadata } }
                   } catch (e: any) {
                     result = { success: false, error: e?.message || 'Ollama streaming failed' }
                   }
                 } else {
-                  result = await window.electronAPI.chat.sendMessage({
-                    provider: proveedor,
-                    model: modelo,
-                    messages: messages,
-                    // Sin clave: la busca el proceso principal, que es donde vive (#225).
-
-                    // Con proyecto el agente puede consultar la red por
-                    // herramientas, en vez de quedarse en el resumen (#34).
-                    projectId: proyectoParaContexto,
-
-                    // La pregunta sin el contexto inyectado, para reconocer si
-                    // pide un escenario (#44): buscar ids de elementos en el
-                    // prompt enriquecido encuentra los del resumen de la red.
-                    preguntaOriginal: content,
-                    modeloEmbeddings,
+                  // Un id por intento: lo que llegue tarde de uno anterior se descarta.
+                  const idFlujo = `${conversationId}:${Date.now()}:${attempt}`
+                  const dejarDeEscuchar = window.electronAPI.chat.onRespuestaParcial?.(parcial => {
+                    if (parcial.idFlujo === idFlujo) alRecibir(parcial.texto)
                   })
+                  try {
+                    result = await window.electronAPI.chat.sendMessage({
+                      idFlujo,
+                      provider: proveedor,
+                      model: modelo,
+                      messages: messages,
+                      // Sin clave: la busca el proceso principal, que es donde vive (#225).
+
+                      // Con proyecto el agente puede consultar la red por
+                      // herramientas, en vez de quedarse en el resumen (#34).
+                      projectId: proyectoParaContexto,
+
+                      // La pregunta sin el contexto inyectado, para reconocer si
+                      // pide un escenario (#44): buscar ids de elementos en el
+                      // prompt enriquecido encuentra los del resumen de la red.
+                      preguntaOriginal: content,
+                      modeloEmbeddings,
+                    })
+                  } finally {
+                    dejarDeEscuchar?.()
+                  }
                 }
+                // La respuesta entera manda: lo que quedara por pintar ya no.
+                enVivo.pintor.cancelar()
 
                 if (!result.success) {
                   const err = new Error(result.error || 'Failed to send message')
@@ -629,27 +708,17 @@ export const useChatStore = create<ChatState>()(
                 }
 
                 const final = await posprocesarRespuesta({
+                  ...ctx,
                   pregunta: content,
                   escrita: result.data?.response || '',
                   finishReason: result.data?.metadata?.finish_reason,
-                  fuentes: ragSources,
-                  paginasDelAdjunto,
-                  leidoDelAdjunto,
-                  idioma: usePreferencesStore.getState().language,
-                  hayAdjunto: !!vigente,
                   conRevision: !isOllama,
-                  textos: {
-                    noEstaEnLoLeido: i18n.t('chat.citas.noEstaEnLoLeido'),
-                    cortadaPorInactividad: i18n.t('chat.cortadaPorInactividad'),
-                    revision: {
-                      titulo: i18n.t('chat.revision.titulo'),
-                      contradice: i18n.t('chat.revision.contradice'),
-                      omite: i18n.t('chat.revision.omite'),
-                      pagina: p => i18n.t('chat.revision.pagina', { pagina: p }),
-                    },
-                  },
                 }, {
-                  alEmpezarLaRevision: () => get().setStreamingMessage(i18n.t('chat.revision.enCurso')),
+                  // El texto se queda y la revisión va como estado debajo (#223).
+                  alEmpezarLaRevision: texto => {
+                    get().setStreamingMessage(texto)
+                    set({ revisando: true })
+                  },
                   pedirRevision: async prompt => {
                     const r = await window.electronAPI.chat.sendMessage({
                       provider: proveedor,
@@ -676,6 +745,8 @@ export const useChatStore = create<ChatState>()(
                 if (!modeloElegido() && modelosRAGEnCache()?.degradado) {
                   metadata.modeloDegradado = true
                 }
+
+                if (enVivo.abandonado) return
 
                 // Clear streaming message before adding final message
                 get().clearStreamingMessage()
@@ -716,6 +787,8 @@ export const useChatStore = create<ChatState>()(
             }
           })()])
         } catch (error) {
+          enVivo.abandonado = true
+          enVivo.pintor?.cancelar()
           logger.error('Failed to get AI response:', error)
           get().clearStreamingMessage()
 
@@ -723,7 +796,24 @@ export const useChatStore = create<ChatState>()(
           const errorMessage = error instanceof Error ? error.message : String(error)
           let userFacingMessage: string
 
-          if (errorMessage === 'GLOBAL_TIMEOUT') {
+          if (errorMessage === 'GLOBAL_TIMEOUT' && enVivo.recibido.trim() && enVivo.enCurso) {
+            /**
+             * Con texto ya en pantalla, se queda lo recibido con su aviso, sin
+             * revisar: tirarlo y decir «ha tardado demasiado» borraba lo que
+             * el usuario estaba leyendo (#223).
+             */
+            const { ctx, modelo, proveedor } = enVivo.enCurso
+            const final = await posprocesarRespuesta(
+              { ...ctx, pregunta: content, escrita: enVivo.recibido.trimEnd(), finishReason: FIN_POR_TIEMPO, conRevision: false },
+              { pedirRevision: async () => ({ success: false }) }
+            )
+            await get().addMessageToConversation(conversationId, {
+              role: 'assistant',
+              content: final.texto,
+              metadata: { model: modelo, provider: proveedor, finish_reason: FIN_POR_TIEMPO },
+            })
+            return
+          } else if (errorMessage === 'GLOBAL_TIMEOUT') {
             userFacingMessage = i18n.t('messages.chatTimeout')
           } else if (errorMessage === 'SIN_CONSENTIMIENTO') {
             userFacingMessage = i18n.t('messages.chatSinConsentimiento')
@@ -754,7 +844,7 @@ export const useChatStore = create<ChatState>()(
         } finally {
           // Ensure streaming is cleared and loading is stopped
           get().clearStreamingMessage()
-          set({ isLoading: false })
+          set({ isLoading: false, revisando: false })
         }
       },
 
@@ -836,7 +926,7 @@ export const useChatStore = create<ChatState>()(
         await get().loadConversations()
       },
 
-      callOllamaAPI: async (model: string, prompt: string, context: Message[], modeloEmbeddings?: string | null) => {
+      callOllamaAPI: async (model: string, prompt: string, context: Message[], modeloEmbeddings?: string | null, alRecibir?: (texto: string) => void) => {
         try {
           // Clean model name (remove 'ollama-' prefix if present)
           const cleanModelName = model.startsWith('ollama-') ? model.replace('ollama-', '') : model
@@ -911,7 +1001,8 @@ export const useChatStore = create<ChatState>()(
                   const thinkingChunk = data.message?.thinking as string | undefined
                   const contentChunk = data.message?.content as string | undefined
 
-                  if (thinkingChunk) {
+                  // Con texto ya limpio en pantalla, el razonamiento no lo pisa.
+                  if (thinkingChunk && !(alRecibir && fullResponse)) {
                     // Visually mark thinking text so we can hide it later if desired.
                     // We accumulate it as part of the streaming buffer; it disappears
                     // once the final assistant message is committed.
@@ -922,7 +1013,8 @@ export const useChatStore = create<ChatState>()(
                   }
                   if (contentChunk) {
                     fullResponse += contentChunk
-                    get().setStreamingMessage(fullResponse)
+                    if (alRecibir) alRecibir(fullResponse)
+                    else get().setStreamingMessage(fullResponse)
                   }
                   if (data.eval_count) {
                     totalTokens = data.eval_count

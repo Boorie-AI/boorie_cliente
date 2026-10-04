@@ -39,8 +39,18 @@ export const FIN_POR_INACTIVIDAD = 'inactividad'
  */
 export const FIN_POR_ERROR = 'error_en_el_flujo'
 
+/**
+ * El `finish_reason` de una respuesta que llegó al tope total de la petición
+ * con texto ya recibido (#223): se conserva lo recibido con su aviso, como con
+ * la inactividad.
+ */
+export const FIN_POR_TIEMPO = 'tiempo_total'
+
 /** Cómo terminó la lectura de un SSE. */
-type FinDeLectura = 'completa' | typeof FIN_POR_INACTIVIDAD | typeof FIN_POR_ERROR
+type FinDeLectura = 'completa' | typeof FIN_POR_INACTIVIDAD | typeof FIN_POR_ERROR | typeof FIN_POR_TIEMPO
+
+/** Recibe el texto acumulado de la respuesta cada vez que crece, para enseñarlo mientras llega. */
+export type AlTexto = (texto: string) => void
 
 /**
  * Una respuesta de /chat/completions recibida en streaming, con un límite por
@@ -66,7 +76,8 @@ export async function leerRespuestaEnStreaming(
   respuesta: { body: any },
   controlador: AbortController,
   inactividadMs: number,
-  mensajeDeInactividad: string
+  mensajeDeInactividad: string,
+  alTexto?: AlTexto
 ): Promise<any> {
   let contenido = ''
   let fin: string | undefined
@@ -78,7 +89,10 @@ export async function leerRespuestaEnStreaming(
     creado = evento.created ?? creado
     if (evento.usage) usage = evento.usage
     const eleccion = evento.choices?.[0]
-    if (eleccion?.delta?.content) contenido += eleccion.delta.content
+    if (eleccion?.delta?.content) {
+      contenido += eleccion.delta.content
+      alTexto?.(contenido)
+    }
     if (eleccion?.finish_reason) fin = eleccion.finish_reason
   }, () => !!contenido)
   return {
@@ -98,7 +112,8 @@ export async function leerAnthropicEnStreaming(
   respuesta: { body: any },
   controlador: AbortController,
   inactividadMs: number,
-  mensajeDeInactividad: string
+  mensajeDeInactividad: string,
+  alTexto?: AlTexto
 ): Promise<any> {
   let texto = ''
   let fin: string | undefined
@@ -111,7 +126,10 @@ export async function leerAnthropicEnStreaming(
         usage.input_tokens = evento.message?.usage?.input_tokens ?? 0
         break
       case 'content_block_delta':
-        if (evento.delta?.type === 'text_delta') texto += evento.delta.text ?? ''
+        if (evento.delta?.type === 'text_delta' && evento.delta.text) {
+          texto += evento.delta.text
+          alTexto?.(texto)
+        }
         break
       case 'message_delta':
         fin = evento.delta?.stop_reason ?? fin
@@ -132,17 +150,20 @@ export async function leerGoogleEnStreaming(
   respuesta: { body: any },
   controlador: AbortController,
   inactividadMs: number,
-  mensajeDeInactividad: string
+  mensajeDeInactividad: string,
+  alTexto?: AlTexto
 ): Promise<any> {
   let texto = ''
   let fin: string | undefined
   let usageMetadata: any
   const fin_ = await leerEventos(respuesta, controlador, inactividadMs, mensajeDeInactividad, evento => {
     const candidato = evento.candidates?.[0]
+    const antes = texto.length
     for (const parte of candidato?.content?.parts ?? []) {
       // Las partes de razonamiento no son respuesta.
       if (typeof parte.text === 'string' && !parte.thought) texto += parte.text
     }
+    if (texto.length > antes) alTexto?.(texto)
     if (candidato?.finishReason) fin = candidato.finishReason
     if (evento.usageMetadata) usageMetadata = evento.usageMetadata
   }, () => !!texto)
@@ -221,14 +242,17 @@ async function leerEventos(
       if (errorDelServidor === null) procesar(pendiente)
     }
   } catch (error) {
-    // Sólo el silencio del servidor conserva lo parcial; el tope total y un
-    // fallo de red siguen como antes: error, y el chat reintenta.
-    if (!callado || !hayTexto()) {
-      // El lector rechaza con el motivo del abort; ese es el mensaje que sirve.
-      const motivo = controlador.signal.reason
-      throw motivo instanceof Error ? motivo : error
-    }
-    return FIN_POR_INACTIVIDAD
+    /**
+     * El silencio del servidor y el tope total conservan lo parcial si había
+     * texto: tirar minutos de respuesta para repetir la pregunta y esperar lo
+     * mismo es peor que entregarla con su aviso (#223). Un fallo de red sigue
+     * como antes: error, y el chat reintenta.
+     */
+    if (hayTexto() && callado) return FIN_POR_INACTIVIDAD
+    if (hayTexto() && controlador.signal.aborted) return FIN_POR_TIEMPO
+    // El lector rechaza con el motivo del abort; ese es el mensaje que sirve.
+    const motivo = controlador.signal.reason
+    throw motivo instanceof Error ? motivo : error
   } finally {
     clearTimeout(temporizador)
   }
@@ -253,6 +277,29 @@ export function unirContinuacion(previo: string, siguiente: string): string {
     if (previo.endsWith(sinPuntos.slice(0, k))) return previo + sinPuntos.slice(k)
   }
   return previo + sinPuntos
+}
+
+/**
+ * La costura mientras la continuación todavía llega: `null` si su principio
+ * aún puede acabar siendo un encabezado de «Continuación» o el solape con lo
+ * anterior, que `unirContinuacion` quitaría al final. Enseñarlo antes haría
+ * aparecer y desaparecer un trozo repetido.
+ *
+ * El solape se busca en los 400 últimos caracteres de `previo`: mientras lo
+ * recibido esté ahí dentro, lo siguiente puede alargarlo; cuando no, la unión
+ * ya no cambia al llegar más texto.
+ */
+export function unirContinuacionParcial(previo: string, siguiente: string): string | null {
+  const principio = siguiente.replace(/^\s+/, '')
+  if (!principio.includes('\n') && (
+    /^(?:#{1,6}\s*)?[*_([]*\s*[A-Za-zÀ-ÿ]*$/.test(principio)
+    || /^(?:#{1,6}\s*)?[*_([]*\s*continu/i.test(principio)
+  )) return null
+  const sinEncabezado = siguiente.replace(ENCABEZADO_DE_CONTINUACION, '')
+  if (/^\s*\.{0,2}$/.test(sinEncabezado)) return null
+  const sinPuntos = sinEncabezado.replace(/^\s*(?:…|\.{3})/, '')
+  if (sinPuntos.length < 400 && previo.slice(-400).includes(sinPuntos)) return null
+  return unirContinuacion(previo, siguiente)
 }
 
 /**

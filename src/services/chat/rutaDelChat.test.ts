@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { componerPeticion, posprocesarRespuesta, promptConFuentes, type DependenciasDePeticion } from './rutaDelChat'
+import { componerPeticion, posprocesarRespuesta, promptConFuentes, vistaParcial, type DependenciasDePeticion } from './rutaDelChat'
 import { cierreDeIdioma, contextoDeConocimiento } from '@/services/contextoConocimiento'
 
 const deps = (): DependenciasDePeticion & { [k: string]: any } => ({
@@ -185,6 +185,8 @@ describe('componerPeticion', () => {
 const textos = {
   noEstaEnLoLeido: 'no está en lo leído',
   cortadaPorInactividad: 'Respuesta incompleta',
+  cortadaPorLongitud: 'Incompleta por longitud',
+  cortadaPorTiempo: 'Incompleta por tiempo',
   revision: { titulo: 'Revisión', contradice: 'Contradice', omite: 'Omite', pagina: (p: string) => `p. ${p}` },
 }
 
@@ -257,5 +259,52 @@ describe('posprocesarRespuesta', () => {
     expect(r.cortada).toBe(true)
     expect(r.texto).toContain('Respuesta incompleta')
     expect(pedirRevision).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['length', 'Incompleta por longitud'],
+    ['max_tokens', 'Incompleta por longitud'],
+    ['MAX_TOKENS', 'Incompleta por longitud'],
+    ['tiempo_total', 'Incompleta por tiempo'],
+  ])('cortada por %s: conserva el texto con su aviso y no se revisa (#223)', async (finishReason, aviso) => {
+    const pedirRevision = vi.fn()
+    const r = await posprocesarRespuesta(
+      { ...posproceso, conRevision: true, finishReason, escrita: 'Cada 30 segundos y' },
+      { pedirRevision }
+    )
+    expect(r.cortada).toBe(true)
+    expect(r.texto).toBe(`Cada 30 segundos y\n\n---\n\n*${aviso}*`)
+    expect(pedirRevision).not.toHaveBeenCalled()
+  })
+
+  it('al empezar la revisión pasa el texto limpio, que es lo que se queda en pantalla', async () => {
+    const alEmpezarLaRevision = vi.fn()
+    const r = await posprocesarRespuesta(
+      { ...posproceso, conRevision: true, escrita: 'Cada 30 segundos (p. 203).' },
+      { pedirRevision: async () => ({ success: true, response: '[]' }), alEmpezarLaRevision }
+    )
+    expect(alEmpezarLaRevision).toHaveBeenCalledWith(r.sinRevision)
+  })
+})
+
+describe('vistaParcial (#223)', () => {
+  const escrita = 'Cada 30 segundos (p. 14), según la Tabla 9.9. Y lo repite la p. 143 del anexo. Se anota en el estadillo.'
+  const ctx = { ...posproceso, fuentes: [{ title: 'Walton', content: 'Table 2.1', page: 14 }] }
+
+  it('una página sin respaldo no aparece en ningún momento mientras llega', () => {
+    // A medias, «p. 143» es «p. 14», que sí tiene respaldo: se vería y luego desaparecería.
+    for (let i = 1; i <= escrita.length; i++) {
+      const vista = vistaParcial(escrita.slice(0, i), ctx)
+      expect(vista).not.toMatch(/repite la p\. 1/)
+    }
+  })
+
+  it('con la respuesta entera, es lo mismo que deja posprocesarRespuesta', async () => {
+    const final = await posprocesarRespuesta({ ...ctx, conRevision: false, escrita }, { pedirRevision: vi.fn() })
+    // Al acabar llega el último espacio, o no hace falta: la vista de lo completo más un espacio es el final.
+    expect(vistaParcial(`${escrita} `, ctx).trimEnd()).toBe(final.texto)
+    expect(final.texto).toContain('p. 14')
+    expect(final.texto).toContain('Tabla 9.9 no está en lo leído')
+    expect(final.texto).not.toContain('143')
   })
 })

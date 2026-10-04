@@ -22,13 +22,21 @@ vi.mock('../../backend/services/security/consentimientoNube', async importOrigin
 vi.mock('../../backend/services/contextoDeOllama', () => ({ contextoDeOllama: async () => 8192 }))
 
 import { ChatHandler, FIN_POR_INACTIVIDAD } from './chat.handler'
+import { FIN_POR_TIEMPO } from '../../backend/services/ai/respuestaOpenAICompat'
 
 const codificar = (e: unknown) => new TextEncoder().encode(`data: ${JSON.stringify(e)}\n\n`)
 
-/** Una respuesta SSE que manda los eventos y, con `callarse`, se queda muda hasta que la aborten. */
-function sse(eventos: unknown[], callarse = false) {
+/** El texto en trozos de cinco caracteres, como llega de un modelo. */
+const trozos = (texto: string) => texto.match(/[\s\S]{1,5}/g) ?? []
+
+/**
+ * Una respuesta SSE que manda los eventos y, con `callarse`, se queda muda
+ * hasta que la aborten. Con `pausaMs`, cada evento tarda eso en llegar.
+ */
+function sse(eventos: unknown[], callarse = false, pausaMs = 0) {
   return async (_url: string, init: any) => {
     const cola = eventos.map(codificar)
+    const tras = <T>(v: T) => (pausaMs ? new Promise<T>(r => setTimeout(() => r(v), pausaMs)) : Promise.resolve(v))
     return {
       ok: true,
       status: 200,
@@ -36,7 +44,7 @@ function sse(eventos: unknown[], callarse = false) {
       body: {
         getReader: () => ({
           read: () => cola.length
-            ? Promise.resolve({ done: false, value: cola.shift() })
+            ? tras({ done: false, value: cola.shift() })
             : callarse
               ? new Promise((_, rechazar) => init.signal.addEventListener('abort', () => rechazar(new Error('aborted'))))
               : Promise.resolve({ done: true, value: undefined }),
@@ -53,21 +61,21 @@ const dialecto: Record<string, (texto: string, fin: 'fin' | 'longitud' | null) =
   anthropic: (texto, fin) => [
     { type: 'message_start', message: { model: 'claude-x', usage: { input_tokens: 10, output_tokens: 1 } } },
     { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
-    ...[texto.slice(0, 5), texto.slice(5)].filter(Boolean).map(t => ({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: t } })),
+    ...trozos(texto).map(t => ({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: t } })),
     ...(fin ? [
       { type: 'message_delta', delta: { stop_reason: fin === 'fin' ? 'end_turn' : 'max_tokens' }, usage: { output_tokens: 20 } },
       { type: 'message_stop' },
     ] : []),
   ],
   google: (texto, fin) => [
-    ...[texto.slice(0, 5), texto.slice(5)].filter(Boolean).map(t => ({ candidates: [{ content: { role: 'model', parts: [{ text: t }] } }] })),
+    ...trozos(texto).map(t => ({ candidates: [{ content: { role: 'model', parts: [{ text: t }] } }] })),
     ...(fin ? [{
       candidates: [{ content: { role: 'model', parts: [{ text: '' }] }, finishReason: fin === 'fin' ? 'STOP' : 'MAX_TOKENS' }],
       usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 20, totalTokenCount: 30 },
     }] : []),
   ],
   openai: (texto, fin) => [
-    ...[texto.slice(0, 5), texto.slice(5)].filter(Boolean).map(t => ({ choices: [{ delta: { content: t } }] })),
+    ...trozos(texto).map(t => ({ choices: [{ delta: { content: t } }] })),
     ...(fin ? [{ choices: [{ delta: {}, finish_reason: fin === 'fin' ? 'stop' : 'length' }] }, { choices: [], usage: { total_tokens: 30 } }] : []),
   ],
 }
@@ -321,5 +329,107 @@ describe('el tope de salida es el del modelo (#223)', () => {
     const r = await pedir('anthropic', 'claude-3-haiku-20240307')
     expect(r.success).toBe(true)
     expect(cuerpoDe(0).max_tokens).toBe(4096)
+  })
+})
+
+describe('el texto en pantalla mientras llega (#223)', () => {
+  /** Un `event` de ipcMain que apunta lo que el proceso principal le manda al renderer. */
+  const remitente = () => {
+    const enviados: Array<{ idFlujo: string; texto: string }> = []
+    const sender = {
+      isDestroyed: () => false,
+      send: (canal: string, d: { idFlujo: string; texto: string }) => { if (canal === 'chat:respuesta-parcial') enviados.push(d) },
+    }
+    return { enviados, event: { sender } }
+  }
+  const enviarEnVivo = (provider: string, event: unknown, extra: Record<string, unknown> = {}) =>
+    handlers['chat:send-message'](event, {
+      provider,
+      model: 'un-modelo',
+      messages: [{ role: 'user', content: '¿Cómo se calcula el golpe de ariete?' }],
+      idFlujo: 'flujo-1',
+      ...extra,
+    })
+
+  /** Con los eventos espaciados más que el intervalo, cada texto intermedio sale. */
+  const hastaTerminar = async <T>(promesa: Promise<T>) => {
+    await vi.advanceTimersByTimeAsync(20_000)
+    return promesa
+  }
+
+  describe.each(['anthropic', 'openai', 'openrouter', 'google', 'nvidia'])('%s', proveedor => {
+    const habla = dialecto[proveedor] ?? dialecto.openai
+
+    it('manda el texto acumulado, creciendo, y el último es la respuesta', async () => {
+      vi.useFakeTimers()
+      fetchSimulado.mockImplementationOnce(sse(habla('La fórmula de Joukowsky.', 'fin'), false, 150))
+      const { enviados, event } = remitente()
+
+      const r = await hastaTerminar(enviarEnVivo(proveedor, event))
+
+      expect(r.success).toBe(true)
+      expect(enviados.length).toBe(trozos('La fórmula de Joukowsky.').length)
+      expect(enviados.every(e => e.idFlujo === 'flujo-1')).toBe(true)
+      enviados.slice(1).forEach((e, i) => expect(e.texto.startsWith(enviados[i].texto)).toBe(true))
+      expect(enviados.at(-1)!.texto).toBe(r.data.response)
+    })
+
+    it('con continuaciones sigue sumando, sin el solape repetido en ningún evento', async () => {
+      vi.useFakeTimers()
+      fetchSimulado
+        .mockImplementationOnce(sse(habla('Primera parte del informe largo,', 'longitud'), false, 150))
+        .mockImplementationOnce(sse(habla('…del informe largo, y el final.', 'fin'), false, 150))
+      const { enviados, event } = remitente()
+
+      const r = await hastaTerminar(enviarEnVivo(proveedor, event))
+
+      expect(r.data.response).toBe('Primera parte del informe largo, y el final.')
+      expect(enviados.length).toBeGreaterThanOrEqual(2)
+      for (const e of enviados) expect(e.texto.split('del informe largo').length).toBeLessThanOrEqual(2)
+      expect(enviados.at(-1)!.texto).toBe(r.data.response)
+    })
+  })
+
+  it('sin idFlujo —la revisión contra el documento— no sale nada', async () => {
+    fetchSimulado.mockImplementationOnce(sse(dialecto.openai('[]', 'fin')))
+    const { enviados, event } = remitente()
+
+    const r = await enviarEnVivo('nvidia', event, { idFlujo: undefined, sinRazonar: true })
+
+    expect(r.success).toBe(true)
+    expect(enviados).toEqual([])
+  })
+
+  it('el tope total con texto recibido entrega lo parcial marcado en vez de tirarlo', async () => {
+    vi.useFakeTimers()
+    // Manda texto y después sólo comentarios cada 30 s: nunca se calla y nunca acaba.
+    fetchSimulado.mockImplementationOnce(async (_url: string, init: { signal: AbortSignal }) => {
+      let primera = true
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({}),
+        body: {
+          getReader: () => ({
+            read: () => new Promise((resolver, rechazar) => {
+              init.signal.addEventListener('abort', () => rechazar(init.signal.reason))
+              setTimeout(() => {
+                const t = primera ? `data: ${JSON.stringify({ choices: [{ delta: { content: 'Mitad del informe' } }] })}\n\n` : ': ping\n\n'
+                primera = false
+                resolver({ done: false, value: new TextEncoder().encode(t) })
+              }, 30_000)
+            }),
+          }),
+        },
+      }
+    })
+
+    const promesa = enviar('openai')
+    await vi.advanceTimersByTimeAsync(601_000)
+    const r = await promesa
+
+    expect(r.success).toBe(true)
+    expect(r.data.response).toBe('Mitad del informe')
+    expect(r.data.metadata.finish_reason).toBe(FIN_POR_TIEMPO)
   })
 })

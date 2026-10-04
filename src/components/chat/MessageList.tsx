@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Message } from '@/stores/chatStore'
 import { MessageBubble } from './MessageBubble'
 import { TypingIndicator } from './TypingIndicator'
@@ -7,9 +8,12 @@ interface MessageListProps {
   messages: Message[]
   isLoading: boolean
   streamingMessage: string
+  /** La respuesta ya está y se revisa contra el documento (#223). */
+  revisando?: boolean
 }
 
-export function MessageList({ messages, isLoading, streamingMessage }: MessageListProps) {
+export function MessageList({ messages, isLoading, streamingMessage, revisando = false }: MessageListProps) {
+  const { t } = useTranslation()
   const { showTypingIndicators } = usePreferencesStore()
 
   return (
@@ -30,6 +34,13 @@ export function MessageList({ messages, isLoading, streamingMessage }: MessageLi
           }}
           isStreaming
         />
+      )}
+
+      {/* Debajo del texto, no en su lugar: lo que se está leyendo no desaparece. */}
+      {isLoading && revisando && (
+        <p role="status" className="ml-11 text-sm text-muted-foreground animate-pulse">
+          {t('chat.revision.enCurso')}
+        </p>
       )}
     </div>
   )
