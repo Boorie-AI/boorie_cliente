@@ -128,6 +128,10 @@ normalizados: el texto del PDF parte las fórmulas («s_w = CQ²» llega como
 3. `npx vitest run backend/services/hydraulic/ragEval`: que las expresiones compilen.
 4. Pruébalo con una respuesta buena y una mala, y mira la tabla de hechos.
 
-Los casos actuales son un **borrador para revisar con Luis**: diez sacados del
-libro de Walton y la pregunta de Luis sobre la prueba a caudal variable, con los
-números del informe que se le envió el 30 de septiembre.
+Los casos actuales son diez sacados del libro de Walton y la pregunta de Luis
+sobre la prueba a caudal variable, con los números del informe que se le envió
+el 30 de septiembre. Los redactó Claude y **se dieron por buenos el 3 de octubre
+de 2026 sin la revisión de Luis** que pedía el #226: lo decidió Rayne al cerrarlo.
+Si más adelante Luis corrige alguno, se cambian sus expresiones en `casos.ts` y
+`npm run eval:rag -- --repuntuar <informe.json>` vuelve a puntuar las corridas
+guardadas con los casos nuevos, sin volver a preguntar a los modelos.

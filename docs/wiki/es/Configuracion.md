@@ -575,6 +575,27 @@ if (!validation.valid) {
 }
 ```
 
+## Ayuda y comentarios
+
+Para reportar un problema o sugerir una mejora no hace falta salir de la app.
+**Ayuda y comentarios** está en la barra lateral y en **Configuración → Acerca de**.
+
+1. Elige **Reportar un problema** o **Sugerir una mejora** y rellena el formulario.
+2. Envíalo:
+   - **Abrir en GitHub** abre en el navegador un issue nuevo ya relleno; lo
+     revisas y pulsas «Submit new issue». Hace falta una cuenta de GitHub. Si el
+     texto no cabe entero en el enlace, el informe completo queda en el
+     portapapeles para pegarlo.
+   - **Copiar informe** lo deja en el portapapeles para enviarlo por el canal de
+     siempre, si no tienes cuenta de GitHub.
+
+**Incluir información técnica** añade la versión de Boorie, el sistema operativo,
+la versión de Python, la pantalla en la que estabas y los últimos avisos de la
+app, sin rutas personales ni correos (también se quitan del texto que escribas).
+**Ver exactamente lo que se enviará** enseña el informe tal cual antes de enviarlo.
+El issue es público: no incluyas datos de clientes, nombres de redes ni
+información confidencial.
+
 ## Solución de Problemas de Configuración
 
 ### Problemas Comunes

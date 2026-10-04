@@ -59,7 +59,7 @@ export class MicrosoftAuthService {
     }
 
     if (!this.config.clientId) {
-      this.logger.warn('Microsoft Client ID not configured. Set MS_CLIENT_ID environment variable.')
+      this.logger.info('Microsoft Client ID not configured. Set MS_CLIENT_ID environment variable.')
     }
   }
 

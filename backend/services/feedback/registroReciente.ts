@@ -21,9 +21,26 @@ const MAX_CARACTERES = 500
 
 const entradas: EntradaRegistro[] = []
 
+/**
+ * Avisos de arranque que no son fallos y no dicen nada del problema (#267).
+ * Se descartan al registrar para que no ocupen sitio en el búfer ni en el
+ * informe, que va recortado para caber en la URL de GitHub. Lista explícita y
+ * estrecha a propósito: un patrón amplio escondería avisos de verdad.
+ */
+const RUIDO_DE_ARRANQUE: RegExp[] = [
+  // Inicio de sesión con Microsoft sin configurar: es lo normal (electron/services/auth/microsoft.auth.service.ts).
+  /Microsoft Client ID not configured\. Set MS_CLIENT_ID/,
+  // Lo mismo con Google (electron/services/auth/google.auth.service.ts).
+  /Google OAuth not configured\. Set GOOGLE_CLIENT_ID/,
+]
+
+export function esRuidoDeArranque(texto: string): boolean {
+  return RUIDO_DE_ARRANQUE.some(patron => patron.test(texto))
+}
+
 export function registrar(origen: OrigenRegistro, nivel: NivelRegistro, texto: string, ahora = new Date()): void {
   const limpio = texto.replace(/\s+/g, ' ').trim()
-  if (!limpio) return
+  if (!limpio || esRuidoDeArranque(limpio)) return
   entradas.push({
     hora: ahora.toISOString(),
     origen,

@@ -831,7 +831,7 @@ if (process.env.NODE_ENV === 'development') {
 
 ### 4. Reporting Bugs
 
-When reporting issues, include:
+The easiest way is **Help & feedback**, in the sidebar: it fills in the report and, with “Include technical information”, adds the environment for you. See [Configuration](Configuration.md#-help--feedback). If you do it by hand, include:
 
 ```
 **Environment:**

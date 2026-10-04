@@ -16,6 +16,12 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   externa, o pedir al sistema que abriera un fichero local o el enlace de otra aplicación. Ahora
   las páginas web y el correo se abren en el navegador y el cliente de correo del sistema, y lo
   demás se bloquea.
+- **El informe de «Ayuda y comentarios» ya no se llena de avisos que no son fallos.** Al marcar
+  «Incluir información técnica», los últimos avisos de la app incluían casi siempre que el inicio
+  de sesión con Microsoft o con Google no estaba configurado, algo normal porque es opcional. Esos
+  avisos ocupaban el sitio de los que sí explican el problema —el informe se recorta para caber
+  en el enlace de GitHub— y hacían pensar en un fallo de configuración. Ahora ya no salen como
+  avisos ni entran en el informe.
 
 ## [1.48.0] - 2026-10-04
 

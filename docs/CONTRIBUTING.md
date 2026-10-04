@@ -10,6 +10,7 @@
 - [Publicar una versión](PROCESO_DE_RELEASE.md)
 - [Guía de Estilo](#guía-de-estilo)
 - [Enviando Pull Requests](#enviando-pull-requests)
+- [Reportar desde la app](#reportar-desde-la-app)
 - [Reportando Bugs](#reportando-bugs)
 - [Sugiriendo Mejoras](#sugiriendo-mejoras)
 - [Documentación](#documentación)
@@ -181,9 +182,34 @@ git commit -m "arreglado"
    - [ ] El código sigue la guía de estilo
    - [ ] He ejecutado pre-commit
 
+## 🆘 Reportar desde la app
+
+La forma más rápida de reportar un problema o sugerir una mejora es desde la
+propia aplicación, sin buscar la plantilla a mano:
+
+1. Abre **Ayuda y comentarios**: está en la barra lateral y en
+   **Configuración → Acerca de**.
+2. Elige **Reportar un problema** o **Sugerir una mejora** y rellena el
+   formulario. Prepara el reporte con el mismo formato que las plantillas de abajo.
+3. Envíalo de una de estas dos formas:
+   - **Abrir en GitHub** abre en el navegador un issue nuevo ya relleno; lo
+     revisas y pulsas «Submit new issue». Hace falta una cuenta de GitHub. Si
+     el texto no cabe entero en el enlace, el informe completo queda en el
+     portapapeles para pegarlo.
+   - **Copiar informe** lo deja en el portapapeles para enviarlo por el canal
+     de siempre, si no tienes cuenta de GitHub.
+
+La casilla **Incluir información técnica** añade la versión de Boorie, el
+sistema operativo, la versión de Python (y si es el entorno que gestiona
+Boorie), la pantalla en la que estabas y los últimos avisos y errores de la
+app. Antes de salir se quitan las rutas personales y los correos, también del
+texto que escribas. **Ver exactamente lo que se enviará** enseña el informe
+tal cual. El issue es público: no incluyas datos de clientes, nombres de redes
+ni información confidencial.
+
 ## 🐛 Reportando Bugs
 
-Usa la [plantilla de reporte de bugs](.github/ISSUE_TEMPLATE/bug_report.md) e incluye:
+Si no lo haces desde la app, usa la [plantilla de reporte de bugs](.github/ISSUE_TEMPLATE/bug_report.md) e incluye:
 
 - Descripción clara del problema
 - Pasos para reproducir
@@ -194,7 +220,7 @@ Usa la [plantilla de reporte de bugs](.github/ISSUE_TEMPLATE/bug_report.md) e in
 
 ## 💡 Sugiriendo Mejoras
 
-Usa la [plantilla de feature request](.github/ISSUE_TEMPLATE/feature_request.md) e incluye:
+Si no lo haces desde la app, usa la [plantilla de feature request](.github/ISSUE_TEMPLATE/feature_request.md) e incluye:
 
 - Descripción clara de la mejora
 - Motivación y casos de uso

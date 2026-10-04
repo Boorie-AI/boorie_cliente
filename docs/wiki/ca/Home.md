@@ -80,6 +80,7 @@ Benvingut a la documentació completa de **Boorie**, el client d'escriptori AI a
 
 ## 📞 Suport i Comunitat
 
+- **Des de l’aplicació**: **Ajuda i comentaris** (barra lateral o Configuració → Quant a) prepara l’informe per tu; vegeu [Configuració](Configuracio.md#ajuda-i-comentaris)
 - **GitHub Issues**: [Reportar bugs i sol·licituds de característiques](https://github.com/your-username/boorie_cliente/issues)
 - **Discussions**: [Discussions de la comunitat](https://github.com/your-username/boorie_cliente/discussions)
 - **Discord**: [Uneix-te a la nostra comunitat](https://discord.gg/boorie)
