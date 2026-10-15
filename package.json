@@ -75,6 +75,9 @@
     "esbuild": "^0.25.0",
     "app-builder-lib": {
       "@electron/get": "^5.1.0"
+    },
+    "mammoth": {
+      "argparse": "^2.0.1"
     }
   },
   "dependencies": {
