@@ -32,6 +32,21 @@ Las redes guardadas por EPANET en Windows con acentos ya cargan, y las que usan 
   fallaba al intentar dibujarla y, como el sistema se guarda con la red, volvía a fallar cada
   vez que se abría, sin dejar llegar al selector para corregirlo. Ahora no la dibuja, avisa de
   que con ese sistema la red cae fuera del planeta y deja elegir otro.
+- **El sistema de coordenadas se puede declarar una vez por proyecto.** El `.inp` no dice en qué
+  sistema están sus coordenadas, y había que elegirlo red a red al abrir cada una en el mapa.
+  Ahora el proyecto tiene un campo «Sistema de coordenadas de las redes»: todas sus redes se
+  abren ya situadas con él, salvo las que tengan uno propio.
+- **El aviso de que la red cae fuera del país del proyecto ya salta.** El proyecto guarda el
+  país por su nombre y la comprobación lo buscaba por código, así que no avisaba nunca. La lista
+  de países incluye ahora Ecuador, Bolivia, Brasil, Costa Rica, Guatemala, Portugal y Estados
+  Unidos, y al editar el proyecto el país se elige de la lista.
+- **Las listas desplegables se leen en el tema oscuro.** Las opciones salían en blanco sobre
+  blanco y sólo se veían al pasar el ratón por encima.
+- **Un paso hidráulico de `0:00` ya no hace eterna la simulación.** EPANET lo interpreta como
+  el paso de patrones o el de informe, el menor, pero el motor de Boorie lo tomaba como un
+  segundo: un día eran 86.400 pasos, y el análisis de fallo de una red de 6.700 nudos se cortaba
+  a los tres minutos con «Resilience analysis timeout». Ahora se resuelve como en EPANET y tarda
+  medio minuto.
 - En esas redes, un escenario con **fugas** avisa de que no se puede combinar con ellas —EPANET
   no modela fugas— en lugar de dar una cifra. En los resultados de energía y de población
   afectada, la trazabilidad dice qué motor resolvió la red.
