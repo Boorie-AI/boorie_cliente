@@ -63,8 +63,14 @@ def simular(wn):
     log = logging.getLogger('wntr.epanet.toolkit')
     avisos = _AvisosDeEpanet(logging.WARNING)
     log.addHandler(avisos)
+    # Además, el toolkit abre sus temporales («enXXXXXX») en el directorio actual
+    # y, si el proceso muere a mitad —el límite de tiempo lo mata—, se quedan
+    # ahí: en la red de riego del #274 fueron 21 GB en la raíz del repositorio.
+    anterior = os.getcwd()
+    os.chdir(carpeta)
     try:
         return wntr.sim.EpanetSimulator(wn).run_sim(file_prefix=os.path.join(carpeta, 'red'))
     finally:
+        os.chdir(anterior)
         log.removeHandler(avisos)
         shutil.rmtree(carpeta, ignore_errors=True)

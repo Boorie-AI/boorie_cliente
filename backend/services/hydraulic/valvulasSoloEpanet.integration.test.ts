@@ -55,6 +55,15 @@ wntr.network.write_inpfile(wn, f'{out}/dw.inp')
 texto = open(f'{out}/dw.inp', encoding='utf-8').read()
 texto = texto.replace('[PATTERNS]\\n', '[PATTERNS]\\n;Patron de Inyección K cada 5 minutos\\n', 1)
 open(f'{out}/net1-dw-cp1252.inp', 'w', encoding='cp1252').write(texto)
+
+# También como la de Luis: paso hidráulico 0:00, patrones e informe cada 5 min.
+import re
+wntr.network.write_inpfile(wntr.network.WaterNetworkModel(src), f'{out}/base.inp')
+texto = open(f'{out}/base.inp', encoding='utf-8').read()
+texto = re.sub(r'(?im)^\\s*HYDRAULIC TIMESTEP.*$', 'HYDRAULIC TIMESTEP 0:00', texto)
+texto = re.sub(r'(?im)^\\s*PATTERN TIMESTEP.*$', 'PATTERN TIMESTEP 0:05', texto)
+texto = re.sub(r'(?im)^\\s*REPORT TIMESTEP.*$', 'REPORT TIMESTEP 0:05', texto)
+open(f'{out}/net1-paso0.inp', 'w', encoding='utf-8').write(texto)
 `
 
 function correr(script: string, args: string[]): Promise<any> {
@@ -128,6 +137,19 @@ describe.skipIf(!canRun)('válvulas que sólo resuelve EPANET', () => {
     const res = await correr('wntr_energy_service.py', ['analizar', red('dw-cp1252'), '{}'])
     expect(res.success).toBe(true)
     expect(res.data.trazabilidad.simulador).toBe('EpanetSimulator')
+  }, SIM_TIMEOUT)
+
+  it('un paso hidráulico de 0:00 se resuelve con el de EPANET y no con 1 s', async () => {
+    // WNTR lo subía a 1 s: 86.400 pasos en un día, y el análisis de fallo de
+    // la red de Luis agotaba los tres minutos.
+    const carga = await correr('wntrService.py', ['load', red('paso0')])
+    expect(carga.success).toBe(true)
+    expect(carga.data.options.time.hydraulic_timestep).toBe(300)
+
+    const fallo = await correr('wntr_resilience_service.py', [
+      'simulate_failure', red('paso0'), JSON.stringify({ components: [{ id: '12' }], duration_hours: 24 }),
+    ])
+    expect(fallo.success).toBe(true)
   }, SIM_TIMEOUT)
 
   it('un escenario con fuga sobre una red con PBV se rechaza en lugar de inventar la cifra', async () => {

@@ -867,7 +867,7 @@ class WNTRService:
             texto, recodificado = leer_inp(file_path)
             lines = texto.splitlines(keepends=True)
             
-            # WNTR sólo lee UTF-8: si venía en otra codificación, se carga la copia
+            # Si el texto no es el del fichero (otra codificación, paso hidráulico nulo), se carga la copia
             modified = recodificado
             new_lines = []
             in_backdrop_section = False
