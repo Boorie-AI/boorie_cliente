@@ -3,6 +3,7 @@ import {
   WGS84,
   cabeEnLaTierra,
   calcularLimites,
+  codigoPais,
   catalogoCRS,
   crearTransformador,
   crearTransformadorInverso,
@@ -118,7 +119,7 @@ describe('validación de cordura tras reproyectar', () => {
     const { centroide } = reproyectarLimites(cartagenaUTM, 'EPSG:32614')
     const cordura = validarCordura(centroide, 'CO')
     expect(cordura.ok).toBe(false)
-    expect(cordura.aviso).toMatch(/CO/)
+    expect(cordura.aviso).toMatch(/Colombia/)
   })
 
   it('caza el hemisferio equivocado', () => {
@@ -152,6 +153,45 @@ describe('red que no cabe en la Tierra', () => {
     // Se pinta y lo caza la cordura del país, no este filtro.
     const { limites } = reproyectarLimites(riegoUTM, 'EPSG:25829')
     expect(cabeEnLaTierra(limites)).toBe(true)
+  })
+})
+
+describe('sistema por defecto del proyecto', () => {
+  const riegoUTM = { minX: 651378.894, maxX: 652882.193, minY: 9713477.79, maxY: 9714690.012 }
+
+  it('sin EPSG en la red se usa el del proyecto', () => {
+    const crs = resolverCRS(null, riegoUTM, 'EPSG:32717')
+    expect(crs.epsg).toBe('EPSG:32717')
+    expect(crs.origen).toBe('proyecto')
+  })
+
+  it('el EPSG declarado en la red manda sobre el del proyecto', () => {
+    const crs = resolverCRS('EPSG:32617', riegoUTM, 'EPSG:32717')
+    expect(crs.epsg).toBe('EPSG:32617')
+    expect(crs.origen).toBe('declarado')
+  })
+
+  it('sin ninguno de los dos vuelve a la sugerencia', () => {
+    expect(resolverCRS(null, riegoUTM, null).epsg).toBeNull()
+  })
+})
+
+describe('país del proyecto', () => {
+  it('se reconoce por nombre, con o sin acentos, y por código', () => {
+    expect(codigoPais('México')).toBe('MX')
+    expect(codigoPais('mexico')).toBe('MX')
+    expect(codigoPais('Ecuador')).toBe('EC')
+    expect(codigoPais('EC')).toBe('EC')
+    expect(codigoPais('Spain')).toBe('ES')
+    expect(codigoPais('Narnia')).toBeNull()
+    expect(codigoPais('')).toBeNull()
+  })
+
+  it('el aviso de fuera del país salta con el país guardado por nombre', () => {
+    const riegoUTM = { minX: 651378.894, maxX: 652882.193, minY: 9713477.79, maxY: 9714690.012 }
+    const { centroide } = reproyectarLimites(riegoUTM, 'EPSG:32717')
+    expect(validarCordura(centroide, 'Ecuador').ok).toBe(true)
+    expect(validarCordura(centroide, 'México').ok).toBe(false)
   })
 })
 

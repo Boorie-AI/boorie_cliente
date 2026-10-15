@@ -592,6 +592,7 @@ export function WNTRMapViewer({
   const [epsgDeclarado, setEpsgDeclarado] = useState<string | null>(null)
   const [mostrarSelectorCRS, setMostrarSelectorCRS] = useState(false)
   const paisProyecto = useProjectStore(s => s.currentProject?.location?.country ?? null)
+  const epsgProyecto = useProjectStore(s => s.currentProject?.location?.epsg ?? null)
 
   useEffect(() => {
     setEpsgDeclarado(networkData?.coordinate_system?.declared_epsg ?? null)
@@ -602,7 +603,10 @@ export function WNTRMapViewer({
     [networkData]
   )
 
-  const crs = useMemo(() => resolverCRS(epsgDeclarado, limitesRed), [epsgDeclarado, limitesRed])
+  const crs = useMemo(
+    () => resolverCRS(epsgDeclarado, limitesRed, epsgProyecto),
+    [epsgDeclarado, limitesRed, epsgProyecto]
+  )
 
   /**
    * Escala de color del paso que se está mostrando. Sale de los datos: los
@@ -1257,7 +1261,9 @@ export function WNTRMapViewer({
                 <div className="flex items-center gap-2 ml-5 text-muted-foreground">
                   <Globe2 className="w-3 h-3" />
                   <span>
-                    {crs.origen === 'declarado' ? t('crs.declared') : t('crs.suggested')}: {crs.epsg} —{' '}
+                    {crs.origen === 'declarado'
+                      ? t('crs.declared')
+                      : crs.origen === 'proyecto' ? t('crs.fromProject') : t('crs.suggested')}: {crs.epsg} —{' '}
                     {nombreCRS(crs.epsg)}
                     {crs.origen === 'sugerido' && t('crs.unconfirmed')}
                   </span>

@@ -41,7 +41,7 @@ export interface EntradaCatalogo {
  * Origen del EPSG con el que se esta pintando. La interfaz lo enseña tal cual:
  * un CRS `sugerido` no debe leerse como si el ingeniero lo hubiera confirmado.
  */
-export type OrigenCRS = 'declarado' | 'sugerido' | 'desconocido'
+export type OrigenCRS = 'declarado' | 'proyecto' | 'sugerido' | 'desconocido'
 
 export interface CRSResuelto {
   epsg: string | null
@@ -283,17 +283,21 @@ export function sugerirCRS(limites: LimitesProyectados | null): CRSResuelto {
 
 /**
  * CRS con el que hay que pintar: lo declarado manda sobre lo sugerido, siempre.
+ * El de la red manda sobre el del proyecto, que es el valor por defecto de todas
+ * sus redes: el `.inp` no dice en qué sistema está, pero el proyecto sí puede.
  */
 export function resolverCRS(
   epsgDeclarado: string | null | undefined,
-  limites: LimitesProyectados | null
+  limites: LimitesProyectados | null,
+  epsgProyecto?: string | null
 ): CRSResuelto {
-  if (epsgDeclarado) {
-    const normalizado = normalizarEPSG(epsgDeclarado)
+  const declarado = epsgDeclarado || epsgProyecto
+  if (declarado) {
+    const normalizado = normalizarEPSG(declarado)
     if (normalizado && esEPSGSoportado(normalizado)) {
       return {
         epsg: normalizado,
-        origen: 'declarado',
+        origen: epsgDeclarado ? 'declarado' : 'proyecto',
         motivo: i18n.t('crs.declaredIn', { nombre: nombreCRS(normalizado) }),
         esquematico: limites ? pareceEsquematico(limites) : false,
       }
@@ -301,7 +305,7 @@ export function resolverCRS(
     return {
       epsg: null,
       origen: 'desconocido',
-      motivo: i18n.t('crs.notRecognised', { epsg: epsgDeclarado }),
+      motivo: i18n.t('crs.notRecognised', { epsg: declarado }),
     }
   }
   return sugerirCRS(limites)
@@ -330,6 +334,43 @@ const ENVOLVENTES_PAIS: Record<string, LimitesGeograficos> = {
   US: { minLon: -125.0, maxLon: -66.9, minLat: 24.4, maxLat: 49.4 },
 }
 
+/** Países que se ofrecen en el proyecto: los que tienen envolvente. */
+export const PAISES: ReadonlyArray<{ codigo: string; nombre: string }> = [
+  { codigo: 'AR', nombre: 'Argentina' },
+  { codigo: 'BO', nombre: 'Bolivia' },
+  { codigo: 'BR', nombre: 'Brasil' },
+  { codigo: 'CL', nombre: 'Chile' },
+  { codigo: 'CO', nombre: 'Colombia' },
+  { codigo: 'CR', nombre: 'Costa Rica' },
+  { codigo: 'EC', nombre: 'Ecuador' },
+  { codigo: 'ES', nombre: 'España' },
+  { codigo: 'US', nombre: 'Estados Unidos' },
+  { codigo: 'GT', nombre: 'Guatemala' },
+  { codigo: 'MX', nombre: 'México' },
+  { codigo: 'PE', nombre: 'Perú' },
+  { codigo: 'PT', nombre: 'Portugal' },
+]
+
+const OTROS_NOMBRES: Record<string, string> = {
+  BRAZIL: 'BR', SPAIN: 'ES', ESPANYA: 'ES', MEXICO: 'MX', PERU: 'PE',
+  'UNITED STATES': 'US', USA: 'US', 'EE. UU.': 'US', 'EEUU': 'US', 'ESTATS UNITS': 'US',
+}
+
+const sinAcentos = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+/**
+ * Código ISO del país del proyecto. El proyecto lo guarda por nombre («México»)
+ * y las envolventes van por código, así que sin esto la comprobación de país no
+ * se hacía nunca.
+ */
+export function codigoPais(pais: string | null | undefined): string | null {
+  const valor = sinAcentos(pais?.trim() ?? '').toUpperCase()
+  if (!valor) return null
+  if (ENVOLVENTES_PAIS[valor]) return valor
+  const porNombre = PAISES.find(p => sinAcentos(p.nombre).toUpperCase() === valor)
+  return porNombre?.codigo ?? OTROS_NOMBRES[valor] ?? null
+}
+
 export interface Cordura {
   ok: boolean
   /** Texto para la interfaz cuando algo no cuadra; vacio cuando `ok`. */
@@ -353,7 +394,7 @@ export function validarCordura(
     return { ok: false, aviso: 'La red reproyectada cae fuera del planeta: el sistema declarado no puede ser el correcto.' }
   }
 
-  const codigo = pais?.trim().toUpperCase()
+  const codigo = codigoPais(pais)
   if (!codigo) return { ok: true, aviso: '' }
 
   const envolvente = ENVOLVENTES_PAIS[codigo]
@@ -367,7 +408,11 @@ export function validarCordura(
 
   return {
     ok: false,
-    aviso: i18n.t('crs.outsideCountry', { lat: lat.toFixed(4), lon: lon.toFixed(4), pais: codigo }),
+    aviso: i18n.t('crs.outsideCountry', {
+      lat: lat.toFixed(4),
+      lon: lon.toFixed(4),
+      pais: PAISES.find(p => p.codigo === codigo)?.nombre ?? codigo,
+    }),
   }
 }
 
