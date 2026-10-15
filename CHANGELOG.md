@@ -9,6 +9,28 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.50.0] - 2026-10-15
+
+Las redes guardadas por EPANET en Windows con acentos ya cargan, y las que usan Darcy-Weisbach o tienen válvulas PBV o GPV se simulan como son.
+
+- **Una red guardada por EPANET en Windows con algún acento ya carga.** Bastaba una «ó» en un
+  comentario del `.inp` —«Patrón de Inyección»— para que «Cargar red hidráulica» se quedara en
+  `'utf-8' codec can't decode byte 0xf3` y no se viera nada de la red. Ahora se lee en la
+  codificación en que se guardó, y un nudo con «ñ» en el nombre conserva su nombre en todos los
+  análisis.
+- **Las redes con Darcy-Weisbach se simulan con Darcy-Weisbach.** El motor de simulación no
+  admite esa fórmula, y Boorie la cambiaba por Hazen-Williams sin decirlo: en la simulación, con
+  una conversión aproximada de la rugosidad; en escenarios, resiliencia y energía, leyendo la
+  rugosidad en milímetros como si fuera la C de Hazen-Williams. Las presiones y caudales salían
+  con éxito y no eran los de la red. Ahora esas redes se resuelven con EPANET, que sí la admite.
+- **Las válvulas PBV y GPV se simulan.** Una red con una válvula rompedora de presión (PBV) no
+  se podía simular, y una de propósito general (GPV) se sustituía en silencio por una tubería de
+  1 m. Esas redes también van por EPANET y cada válvula hace lo que dice su consigna o su curva.
+  Las PRV, PSV, FCV y TCV siguen como estaban.
+- En esas redes, un escenario con **fugas** avisa de que no se puede combinar con ellas —EPANET
+  no modela fugas— en lugar de dar una cifra. En los resultados de energía y de población
+  afectada, la trazabilidad dice qué motor resolvió la red.
+
 ## [1.49.0] - 2026-10-04
 
 Con el servicio en la nube saturado la pantalla dice que se está esperando, el idioma de Configuración y el de la aplicación ya no se contradicen, y un enlace en una respuesta ya no puede sacar a Boorie de la aplicación.

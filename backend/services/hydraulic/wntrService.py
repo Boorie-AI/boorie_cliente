@@ -9,6 +9,8 @@ import warnings
 import wntr
 import wntr.metrics.topographic
 import numpy as np
+from simulador import simular
+from texto_inp import leer_inp
 
 # Suppress specific WNTR warnings that are informational only
 warnings.filterwarnings('ignore', message='Changing the headloss formula from')
@@ -603,38 +605,7 @@ class WNTRService:
         try:
             wn = self.current_model
             
-            # Check headloss formula and handle Darcy-Weisbach
-            headloss_formula = None
-            try:
-                headloss_formula = getattr(wn.options.hydraulic, 'headloss', 'H-W')
-                if headloss_formula is None:
-                    headloss_formula = getattr(wn.options.hydraulic, 'headloss_formula', 'H-W')
-            except:
-                headloss_formula = 'H-W'
-            
-            # If Darcy-Weisbach, convert to Hazen-Williams for WNTR compatibility
-            if str(headloss_formula).upper() in ['D-W', 'DARCY-WEISBACH', 'DW']:
-                # Convert Darcy-Weisbach roughness to Hazen-Williams C values
-                # Approximate conversion: C = 18.0 / (k^0.15) where k is D-W roughness
-                for pipe_name, pipe in wn.links(wntr.network.Pipe):
-                    if hasattr(pipe, 'roughness'):
-                        old_roughness = pipe.roughness
-                        if old_roughness > 0:
-                            # Convert from D-W roughness (m) to H-W C value
-                            # This is an approximation for steel pipes
-                            new_c_value = max(50, min(150, 130 - 40 * (old_roughness / 0.001)))
-                            pipe.roughness = new_c_value
-                
-                # Change formula to Hazen-Williams
-                wn.options.hydraulic.headloss = 'H-W'
-                # print(f"Converted D-W to H-W for WNTR compatibility")  # Debug only
-            
-            # Use only WNTR simulator to avoid code signing issues with EPANET
-            # WNTR simulator works best with Hazen-Williams formula
-            sim = wntr.sim.WNTRSimulator(wn)
-            
-            # Run simulation
-            results = sim.run_sim()
+            results = simular(wn)
             
             # Extract results
             if simulation_type == 'single':
@@ -779,9 +750,7 @@ class WNTRService:
     
     def _hydraulic_analysis(self, wn) -> Dict[str, Any]:
         """Perform hydraulic analysis"""
-        # Use only WNTR simulator to avoid code signing issues
-        sim = wntr.sim.WNTRSimulator(wn)
-        results = sim.run_sim()
+        results = simular(wn)
         
         # Calculate statistics
         pressure = results.node['pressure']
@@ -895,11 +864,11 @@ class WNTRService:
             file_path: Path to the INP file
         """
         try:
-            # Read the file
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                lines = f.readlines()
+            texto, recodificado = leer_inp(file_path)
+            lines = texto.splitlines(keepends=True)
             
-            modified = False
+            # WNTR sólo lee UTF-8: si venía en otra codificación, se carga la copia
+            modified = recodificado
             new_lines = []
             in_backdrop_section = False
             
@@ -924,8 +893,9 @@ class WNTRService:
             
             # If modifications were made, create a temporary file
             if modified:
-                self.temp_file_path = file_path + '.tmp'
-                with open(self.temp_file_path, 'w', encoding='utf-8') as f:
+                # En la carpeta temporal y no junto al .inp, que puede no admitir escritura
+                fd, self.temp_file_path = tempfile.mkstemp(suffix='.inp')
+                with os.fdopen(fd, 'w', encoding='utf-8') as f:
                     f.writelines(new_lines)
                 # Use the temporary file for loading
                 self.model_path = self.temp_file_path

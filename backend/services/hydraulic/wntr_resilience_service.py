@@ -24,6 +24,8 @@ from wntr.metrics import (
     population_impacted,
 )
 import warnings
+from simulador import nombre_simulador, simular
+from texto_inp import leer_inp
 
 # Suppress specific WNTR warnings that are informational only
 warnings.filterwarnings('ignore', message='Changing the headloss formula from')
@@ -43,8 +45,7 @@ class WNTRResilienceService:
     def load_network(self, inp_file):
         """Load network with robust handling for backdrop units (same fix as the other WNTR services)"""
         try:
-            with open(inp_file, 'r', encoding='utf-8', errors='ignore') as f:
-                lines = f.readlines()
+            lines = leer_inp(inp_file)[0].splitlines(keepends=True)
 
             fixed_lines = []
             in_backdrop_section = False
@@ -69,7 +70,7 @@ class WNTRResilienceService:
                 fixed_lines.append(line)
 
             fd, temp_path = tempfile.mkstemp(suffix='.inp', text=True)
-            with os.fdopen(fd, 'w') as f:
+            with os.fdopen(fd, 'w', encoding='utf-8') as f:
                 f.writelines(fixed_lines)
 
             try:
@@ -83,16 +84,6 @@ class WNTRResilienceService:
 
     def _prepare_wntr_simulator(self, wn):
         """Fix incompatibilities so WNTRSimulator can run (same pattern as the other services)"""
-        if str(wn.options.hydraulic.headloss).upper() in ['D-W', 'DARCY-WEISBACH', 'DW']:
-            wn.options.hydraulic.headloss = 'H-W'
-
-        if len(wn.gpv_name_list) > 0:
-            for name in list(wn.gpv_name_list):
-                gpv = wn.get_link(name)
-                u, v = gpv.start_node_name, gpv.end_node_name
-                wn.remove_link(name)
-                wn.add_pipe(name, u, v, length=1.0, diameter=0.3, roughness=130, check_valve=False)
-
         try:
             if wn.options.time.hydraulic_timestep <= 0:
                 wn.options.time.hydraulic_timestep = 3600.0
@@ -659,7 +650,7 @@ class WNTRResilienceService:
             'excluded_negative_demand_nodes': negative_nodes,
             'traceability': {
                 'demand_model': 'PDA',
-                'simulator': 'WNTRSimulator',
+                'simulator': nombre_simulador(wn_ev),
                 'wntr_version': wntr.__version__,
                 'demand_module_lphd': demand_module,
                 'per_capita_demand_m3s': R,
@@ -675,8 +666,7 @@ class WNTRResilienceService:
     def _run_extended(self, wn, duration_hours):
         wn.options.time.duration = float(duration_hours) * 3600.0
         self._prepare_wntr_simulator(wn)
-        sim = wntr.sim.WNTRSimulator(wn)
-        return sim.run_sim()
+        return simular(wn)
 
     def _run_extended_checked(self, wn, duration_hours):
         """
@@ -691,7 +681,8 @@ class WNTRResilienceService:
             results = self._run_extended(wn, duration_hours)
         return results, [
             str(w.message) for w in caught
-            if 'maximum number of trials' in str(w.message).lower()
+            # «maximum number of trials» lo dice WNTRSimulator; «allowed number of trials», EPANET.
+            if 'number of trials' in str(w.message).lower()
         ]
 
     def simulate_failure(self, inp_file, options=None):
@@ -911,8 +902,7 @@ class WNTRResilienceService:
     def _resilience_snapshot(self, wn, min_pressure_threshold):
         """Compute Todini index, network entropy, hydraulic redundancy and serviceability for a network state."""
         self._prepare_wntr_simulator(wn)
-        sim = wntr.sim.WNTRSimulator(wn)
-        results = sim.run_sim()
+        results = simular(wn)
 
         head = results.node['head']
         pressure = results.node['pressure']
