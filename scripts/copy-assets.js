@@ -17,6 +17,9 @@ const FILES_TO_COPY = [
     'backend/services/hydraulic/wntr_simulation_service.py',
     'backend/services/hydraulic/wntr_resilience_service.py',
     'backend/services/hydraulic/wntr_energy_service.py',
+    // Módulos que importan los servicios de arriba: sin ellos, en dist/ fallan al importar.
+    'backend/services/hydraulic/simulador.py',
+    'backend/services/hydraulic/texto_inp.py',
     'backend/services/guardrails/guardrailsService.py',
     'backend/services/guardrails/rails/config.yml',
     'backend/services/guardrails/rails/input.co',
