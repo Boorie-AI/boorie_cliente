@@ -9,6 +9,8 @@ import wntr
 import warnings
 import time
 import numpy as np
+from simulador import simular
+from texto_inp import leer_inp
 
 # Suppress specific WNTR warnings that are informational only
 warnings.filterwarnings('ignore', message='Changing the headloss formula from')
@@ -25,8 +27,7 @@ class WNTRSimulationService:
         
         try:
             # Create a localized temporary file copy to attempt fixes
-            with open(inp_file, 'r', encoding='utf-8', errors='ignore') as f:
-                lines = f.readlines()
+            lines = leer_inp(inp_file)[0].splitlines(keepends=True)
             
             # Stateful parsing to handle [BACKDROP] section correctly
             fixed_lines = []
@@ -59,7 +60,7 @@ class WNTRSimulationService:
             
             # Write key changes to a temporary file
             fd, temp_path = tempfile.mkstemp(suffix='.inp', text=True)
-            with os.fdopen(fd, 'w') as f:
+            with os.fdopen(fd, 'w', encoding='utf-8') as f:
                 f.writelines(fixed_lines)
             
             try:
@@ -93,31 +94,8 @@ class WNTRSimulationService:
                 wn.options.time.hydraulic_timestep = ts_seconds
                 wn.options.time.report_timestep = ts_seconds
                 
-            # Prepare for WNTRSimulator (fix incompatibilities)
-            # 1. H-W Headloss
-            if str(wn.options.hydraulic.headloss).upper() in ['D-W', 'DARCY-WEISBACH', 'DW']:
-                wn.options.hydraulic.headloss = 'H-W'
-            
-            # 2. GPVs -> Pipes
-            if len(wn.gpv_name_list) > 0:
-                gpv_names = list(wn.gpv_name_list)
-                for name in gpv_names:
-                    gpv = wn.get_link(name)
-                    u, v = gpv.start_node_name, gpv.end_node_name
-                    wn.remove_link(name)
-                    wn.add_pipe(name, u, v, length=1.0, diameter=0.3, roughness=130, check_valve=False)
-
-            # 3. Fix invalid timesteps
-            try:
-                if wn.options.time.hydraulic_timestep <= 0:
-                     wn.options.time.hydraulic_timestep = 3600.0
-                if wn.options.time.report_timestep <= 0:
-                     wn.options.time.report_timestep = 3600.0
-            except:
-                pass
-
-            sim = wntr.sim.WNTRSimulator(wn)
-            results = sim.run_sim()
+            self._prepare_wntr_simulator(wn)
+            results = simular(wn)
 
             # Clean results for JSON output (convert to simple dicts/lists)
             # This is a simplified example. You might want full time-series data.
@@ -321,11 +299,7 @@ class WNTRSimulationService:
 
     def _prepare_wntr_simulator(self, wn):
         """Helper to prepare network for WNTRSimulator"""
-        # 1. H-W Headloss
-        if str(wn.options.hydraulic.headloss).upper() in ['D-W', 'DARCY-WEISBACH', 'DW']:
-            wn.options.hydraulic.headloss = 'H-W'
-            
-        # 2. Fix invalid timesteps
+        # Fix invalid timesteps
         try:
             if wn.options.time.hydraulic_timestep <= 0:
                  wn.options.time.hydraulic_timestep = 3600.0
@@ -358,16 +332,7 @@ class WNTRSimulationService:
             
             # Run Hydraulic using helper
             self._prepare_wntr_simulator(wn)
-            
-            # GPV fix override for scenario if needed (GPV logic usually needs explicit handling as removal changes graph)
-            if len(wn.gpv_name_list) > 0:
-                for name in list(wn.gpv_name_list):
-                    gpv = wn.get_link(name)
-                    wn.remove_link(name)
-                    wn.add_pipe(name, gpv.start_node_name, gpv.end_node_name, length=1.0, diameter=0.3, roughness=130)
-            
-            sim = wntr.sim.WNTRSimulator(wn)
-            results = sim.run_sim()
+            results = simular(wn)
 
             # Format Results
             node_results = {}

@@ -5,6 +5,8 @@ import { X, MapPin, FileText } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { hydraulicService } from '@/services/hydraulic/hydraulicService'
 import { ProjectType, NetworkType } from '@/types/hydraulic'
+import { PAISES } from '@/services/geo/crs'
+import { ProjectCRSField } from './ProjectCRSField'
 
 interface NewProjectDialogProps {
   onClose: () => void
@@ -21,7 +23,8 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
     location: {
       country: '',
       region: '',
-      city: ''
+      city: '',
+      epsg: null as string | null
     },
     status: 'planning' as any
   })
@@ -63,15 +66,6 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
   // diccionario de idiomas, que es donde se traducen (#96).
   const projectTypes = ['design', 'analysis', 'optimization', 'troubleshooting'] as const
   const networkTypes = ['distribution', 'transmission', 'collection'] as const
-  
-  const countries = [
-    { code: 'MX', name: 'México' },
-    { code: 'CO', name: 'Colombia' },
-    { code: 'ES', name: 'España' },
-    { code: 'CL', name: 'Chile' },
-    { code: 'AR', name: 'Argentina' },
-    { code: 'PE', name: 'Perú' }
-  ]
   
   return (
     <Dialog.Portal>
@@ -225,9 +219,9 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                     )}
                   >
                     <option value="">{t('newProject.placeholders.country')}</option>
-                    {countries.map((country) => (
-                      <option key={country.code} value={country.name}>
-                        {country.name}
+                    {PAISES.map((pais) => (
+                      <option key={pais.codigo} value={pais.nombre}>
+                        {pais.nombre}
                       </option>
                     ))}
                   </select>
@@ -272,6 +266,17 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
                       "placeholder:text-muted-foreground"
                     )}
                     placeholder={t('newProject.placeholders.city')}
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <ProjectCRSField
+                    epsg={formData.location.epsg}
+                    pais={formData.location.country || null}
+                    onChange={(epsg) => setFormData({
+                      ...formData,
+                      location: { ...formData.location, epsg }
+                    })}
                   />
                 </div>
               </div>

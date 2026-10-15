@@ -5,6 +5,8 @@ import { cn } from '@/utils/cn'
 import * as Dialog from '@radix-ui/react-dialog'
 import { HydraulicProject, ProjectType, ProjectStatus } from '@/types/hydraulic'
 import { hydraulicService } from '@/services/hydraulic/hydraulicService'
+import { PAISES } from '@/services/geo/crs'
+import { ProjectCRSField } from './ProjectCRSField'
 
 interface EditProjectDialogProps {
   project: HydraulicProject
@@ -20,10 +22,12 @@ export function EditProjectDialog({ project, onClose, onProjectUpdated }: EditPr
     type: project.type,
     networkType: project.network?.options.units || 'distribution',
     status: project.status,
+    // Se parte de la ubicación entera: el guardado la sustituye completa y se
+    // perderían las coordenadas.
     location: {
-      country: project.location.country,
-      region: project.location.region,
-      city: project.location.city || ''
+      ...project.location,
+      city: project.location.city || '',
+      epsg: project.location.epsg ?? null
     }
   })
   
@@ -166,22 +170,28 @@ export function EditProjectDialog({ project, onClose, onProjectUpdated }: EditPr
               Location
             </label>
             <div className="grid grid-cols-3 gap-2">
-              <input
-                type="text"
+              {/* Un país escrito a mano en versiones anteriores se conserva como opción. */}
+              <select
                 value={formData.location.country}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
+                onChange={(e) => setFormData({
+                  ...formData,
                   location: { ...formData.location, country: e.target.value }
                 })}
                 className={cn(
                   "px-3 py-2 rounded-lg",
                   "bg-input border border-border",
-                  "focus:outline-hidden focus:ring-2 focus:ring-ring",
-                  "placeholder:text-muted-foreground"
+                  "focus:outline-hidden focus:ring-2 focus:ring-ring"
                 )}
-                placeholder="Country"
                 required
-              />
+              >
+                <option value="">Country</option>
+                {formData.location.country && !PAISES.some(p => p.nombre === formData.location.country) && (
+                  <option value={formData.location.country}>{formData.location.country}</option>
+                )}
+                {PAISES.map(p => (
+                  <option key={p.codigo} value={p.nombre}>{p.nombre}</option>
+                ))}
+              </select>
               <input
                 type="text"
                 value={formData.location.region}
@@ -212,6 +222,16 @@ export function EditProjectDialog({ project, onClose, onProjectUpdated }: EditPr
                   "placeholder:text-muted-foreground"
                 )}
                 placeholder="City"
+              />
+            </div>
+            <div className="mt-3">
+              <ProjectCRSField
+                epsg={formData.location.epsg}
+                pais={formData.location.country || null}
+                onChange={(epsg) => setFormData({
+                  ...formData,
+                  location: { ...formData.location, epsg }
+                })}
               />
             </div>
           </div>

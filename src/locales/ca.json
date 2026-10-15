@@ -1363,7 +1363,15 @@
     "suggested": "Suggerit",
     "unconfirmed": " (sense confirmar)",
     "cannotPlace": "Aquesta xarxa no es pot situar al mapa: {{motivo}}",
-    "unsavedHint": "Aquesta xarxa encara no està desada al projecte: el sistema s’aplica ara, però caldrà tornar-lo a declarar si tanques sense desar-la."
+    "unsavedHint": "Aquesta xarxa encara no està desada al projecte: el sistema s’aplica ara, però caldrà tornar-lo a declarar si tanques sense desar-la.",
+    "description": "Declara l’EPSG en què són les coordenades del .inp. Boorie reprojecta a WGS84 per situar la xarxa sobre el mapa; el fitxer original no es modifica.",
+    "projectTitle": "Sistema de coordenades del projecte",
+    "projectDescription": "Les xarxes del projecte s’obriran al mapa amb aquest sistema, tret de les que en tinguin un de propi declarat. El .inp no diu en quin sistema són les seves coordenades.",
+    "noDefault": "Sense sistema per defecte",
+    "projectField": "Sistema de coordenades de les xarxes",
+    "projectNone": "Sense declarar: es tria en obrir cada xarxa",
+    "projectHint": "Per exemple, EPSG:32717 (UTM 17S) per a una xarxa al sud de l’Equador.",
+    "fromProject": "Del projecte"
   },
   "migration": {
     "calculations": "Càlculs",

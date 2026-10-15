@@ -46,6 +46,13 @@ interface CRSSelectorProps {
    */
   networkId?: string | null
   onDeclarado: (epsg: string | null) => void
+  /**
+   * `proyecto`: se elige el sistema por defecto de las redes de un proyecto, que
+   * puede no ser el abierto (al crearlo todavía no existe), así que el país llega
+   * por `pais` y no se guarda nada aquí: lo guarda el formulario del proyecto.
+   */
+  ambito?: 'red' | 'proyecto'
+  pais?: string | null
 }
 
 export function CRSSelector({
@@ -55,6 +62,8 @@ export function CRSSelector({
   epsgActual,
   networkId,
   onDeclarado,
+  ambito = 'red',
+  pais,
 }: CRSSelectorProps) {
   const { t } = useTranslation()
   const [busqueda, setBusqueda] = useState('')
@@ -62,7 +71,8 @@ export function CRSSelector({
   const [guardando, setGuardando] = useState(false)
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null)
 
-  const paisProyecto = useProjectStore(s => s.currentProject?.location?.country ?? null)
+  const paisAbierto = useProjectStore(s => s.currentProject?.location?.country ?? null)
+  const paisProyecto = ambito === 'proyecto' ? pais ?? null : paisAbierto
 
   const catalogo = useMemo(() => catalogoCRS(), [])
 
@@ -132,11 +142,10 @@ export function CRSSelector({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Globe2 className="h-4 w-4" />
-            {t('crs.title')}
+            {ambito === 'proyecto' ? t('crs.projectTitle') : t('crs.title')}
           </DialogTitle>
           <DialogDescription>
-            Declara el EPSG en el que están las coordenadas del .inp. Boorie reproyecta a WGS84
-            para situar la red sobre el mapa; el fichero original no se modifica.
+            {ambito === 'proyecto' ? t('crs.projectDescription') : t('crs.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -224,7 +233,7 @@ export function CRSSelector({
             </div>
           )}
 
-          {!networkId && (
+          {!networkId && ambito === 'red' && (
             <p className="text-xs text-muted-foreground">
               {t('crs.unsavedHint')}
             </p>
@@ -244,7 +253,7 @@ export function CRSSelector({
             disabled={guardando}
             onClick={() => declarar(null)}
           >
-            {t('crs.notGeo')}
+            {ambito === 'proyecto' ? t('crs.noDefault') : t('crs.notGeo')}
           </Button>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={onCerrar} disabled={guardando}>

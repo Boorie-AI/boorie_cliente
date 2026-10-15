@@ -44,6 +44,7 @@ import wntr
 # escenarios (#43). Una medida de eficiencia energética —mover el bombeo fuera de
 # la hora punta— es el mismo «paro de bomba en una ventana» que un escenario de
 # interrupción, así que no hay motivo para tener dos vocabularios.
+from simulador import nombre_simulador
 from wntr_resilience_service import WNTRResilienceService
 
 # 0,18 USD/kWh: mitad del rango que Luis Mora da para América Latina y el Caribe
@@ -318,7 +319,7 @@ class WNTREnergyService:
                 'origen_eficiencia': origen_eficiencia,
                 'curvas_de_eficiencia': 'se usan cuando el .inp las declara; WNTR no lo hace y aquí sí (ver cabecera)',
                 'metrica': 'potencia 1000·9,81·H·Q/η integrada por intervalos',
-                'simulador': 'WNTRSimulator',
+                'simulador': nombre_simulador(wn),
                 'wntr_version': wntr.__version__,
                 'paso_s': float(np.median(intervalos_s)) if len(intervalos_s) else 0.0,
                 'intervalos': int(len(intervalos_s)),
