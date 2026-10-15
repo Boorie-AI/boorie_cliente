@@ -371,6 +371,22 @@ export function validarCordura(
   }
 }
 
+/**
+ * Si la red reproyectada cabe en la Tierra. Es la condicion para pintarla: con
+ * una latitud fuera de ±90 Mapbox lanza y se lleva el visor entero, y como el
+ * EPSG declarado se guarda con la red, al volver a abrirla caia otra vez antes
+ * de que se pudiera corregir. Pasa con un sistema que no es el de la red, como
+ * declarar EPSG:4326 sobre coordenadas UTM: los metros se leen como grados.
+ */
+export function cabeEnLaTierra(limites: LimitesGeograficos): boolean {
+  const { minLon, maxLon, minLat, maxLat } = limites
+  return (
+    [minLon, maxLon, minLat, maxLat].every(Number.isFinite) &&
+    minLon >= -180 && maxLon <= 180 &&
+    minLat >= -90 && maxLat <= 90
+  )
+}
+
 export interface RedReproyectada {
   transformar: Transformador
   limites: LimitesGeograficos

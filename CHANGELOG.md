@@ -27,6 +27,11 @@ Las redes guardadas por EPANET en Windows con acentos ya cargan, y las que usan 
   se podía simular, y una de propósito general (GPV) se sustituía en silencio por una tubería de
   1 m. Esas redes también van por EPANET y cada válvula hace lo que dice su consigna o su curva.
   Las PRV, PSV, FCV y TCV siguen como estaban.
+- **Un sistema de coordenadas equivocado ya no bloquea el mapa.** Declarar, por ejemplo,
+  EPSG:4326 sobre una red en coordenadas UTM hace que los metros se lean como grados; el mapa
+  fallaba al intentar dibujarla y, como el sistema se guarda con la red, volvía a fallar cada
+  vez que se abría, sin dejar llegar al selector para corregirlo. Ahora no la dibuja, avisa de
+  que con ese sistema la red cae fuera del planeta y deja elegir otro.
 - En esas redes, un escenario con **fugas** avisa de que no se puede combinar con ellas —EPANET
   no modela fugas— en lugar de dar una cifra. En los resultados de energía y de población
   afectada, la trazabilidad dice qué motor resolvió la red.

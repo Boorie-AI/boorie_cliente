@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   WGS84,
+  cabeEnLaTierra,
   calcularLimites,
   catalogoCRS,
   crearTransformador,
@@ -129,6 +130,28 @@ describe('validación de cordura tras reproyectar', () => {
     const { centroide } = reproyectarLimites(cartagenaUTM, 'EPSG:32614')
     expect(validarCordura(centroide, null).ok).toBe(true)
     expect(validarCordura(centroide, '').ok).toBe(true)
+  })
+})
+
+describe('red que no cabe en la Tierra', () => {
+  // Coordenadas UTM 17S de una red de riego en Ecuador (#274).
+  const riegoUTM = { minX: 651378.894, maxX: 652882.193, minY: 9713477.79, maxY: 9714690.012 }
+
+  it('con su huso cae en Ecuador y se puede pintar', () => {
+    const { limites, centroide } = reproyectarLimites(riegoUTM, 'EPSG:32717')
+    expect(cabeEnLaTierra(limites)).toBe(true)
+    expect(validarCordura(centroide, 'EC').ok).toBe(true)
+  })
+
+  it('declarada como WGS84, los metros se leen como grados y no se pinta', () => {
+    const { limites } = reproyectarLimites(riegoUTM, WGS84)
+    expect(cabeEnLaTierra(limites)).toBe(false)
+  })
+
+  it('con el huso de otro hemisferio cae junto al polo pero sigue en la Tierra', () => {
+    // Se pinta y lo caza la cordura del país, no este filtro.
+    const { limites } = reproyectarLimites(riegoUTM, 'EPSG:25829')
+    expect(cabeEnLaTierra(limites)).toBe(true)
   })
 })
 

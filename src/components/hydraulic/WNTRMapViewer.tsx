@@ -26,6 +26,7 @@ import { CRSSelector } from './CRSSelector'
 // visor registraba las suyas, dos visores podian pintar la misma red con
 // definiciones distintas del mismo EPSG (#36).
 import {
+  cabeEnLaTierra,
   calcularLimites,
   nombreCRS,
   reproyectarLimites,
@@ -630,6 +631,7 @@ export function WNTRMapViewer({
         limites,
         centroide,
         cordura: validarCordura(centroide, paisProyecto),
+        dibujable: cabeEnLaTierra(limites),
       }
     } catch (e) {
       logger.error('No se pudo reproyectar la red:', e)
@@ -676,6 +678,10 @@ export function WNTRMapViewer({
     // falta declarar el EPSG.
     if (!conversion) {
       logger.warn('Red sin sistema de coordenadas resuelto: no se dibuja', { motivo: crs.motivo })
+      return
+    }
+    if (!conversion.dibujable) {
+      logger.warn('La red reproyectada no cabe en la Tierra: no se dibuja', { limites: conversion.limites })
       return
     }
     const geoConversion = conversion
@@ -1047,7 +1053,7 @@ export function WNTRMapViewer({
 
     // El GeoJSON es WGS84 por definicion, asi que exportar sin CRS declarado
     // produciria un fichero con coordenadas falsas.
-    if (!conversion) {
+    if (!conversion || !conversion.dibujable) {
       setError(t('messages.crsBeforeExport'))
       return
     }
@@ -1134,7 +1140,7 @@ export function WNTRMapViewer({
               <>
                 <button
                   onClick={() => {
-                    if (map.current && networkData && conversion) {
+                    if (map.current && networkData && conversion?.dibujable) {
                       const geoConversion = conversion
 
                       // Get the first few nodes to check their coordinates
