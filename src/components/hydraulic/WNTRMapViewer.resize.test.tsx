@@ -40,11 +40,11 @@ const AJUSTES = soloAjustesDelMapa(AJUSTES_INICIALES)
 describe('el mapa se reajusta al cambiar de tamaño su contenedor', () => {
   it('empieza a observarlo cuando llega el token', () => {
     token = ''
-    const { rerender } = render(<WNTRMapViewer networkData={RED as never} mapSettings={AJUSTES} />)
+    const { rerender } = render(<WNTRMapViewer networkData={RED as never} mapSettings={AJUSTES} onMapSettingsChange={() => {}} />)
     expect(observados).toHaveLength(0)
 
     token = 'pk.prueba'
-    rerender(<WNTRMapViewer networkData={{ ...RED } as never} mapSettings={AJUSTES} />)
+    rerender(<WNTRMapViewer networkData={{ ...RED } as never} mapSettings={AJUSTES} onMapSettingsChange={() => {}} />)
 
     expect(observados).toHaveLength(1)
     expect(observados[0].isConnected).toBe(true)
