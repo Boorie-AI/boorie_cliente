@@ -17,8 +17,6 @@ import {
   Square,
   SkipBack,
   SkipForward,
-  ChevronLeft,
-  ChevronRight,
   Clock
 } from 'lucide-react';
 
@@ -236,7 +234,18 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
     // arriba y se come la fila de botones (visible al maximizar la ventana).
     <div className="flex h-full bg-background overflow-hidden">
       {/* Main Map Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="relative flex-1 flex flex-col min-w-0">
+        {/* Fuera del panel que se pliega: dentro, con el panel a ancho 0 y el
+            `overflow-hidden` de la raíz, el botón para volver a mostrarlo quedaba
+            recortado a media luna en el borde de la ventana (#279). */}
+        <button
+          onClick={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
+          className="absolute right-0 top-4 z-20 bg-card text-foreground p-1 rounded-l-md border-l border-y border-border hover:bg-muted shadow-md flex items-center justify-center w-6 h-8"
+          title={isRightSidebarCollapsed ? t('sidebar.expandSidebar') : t('sidebar.collapseSidebar')}
+          aria-label={isRightSidebarCollapsed ? t('sidebar.expandSidebar') : t('sidebar.collapseSidebar')}
+        >
+          {isRightSidebarCollapsed ? '<<' : '>>'}
+        </button>
         {/* Map Container */}
         <div className="flex-1 relative">
           {visualizationSettings.vista === 'mapa' ? (
@@ -383,23 +392,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
       </div>
 
       {/* Right Sidebar Panel */}
-      <div className={`relative shrink-0 border-l border-border bg-background transition-all duration-300 ease-in-out ${isRightSidebarCollapsed ? 'w-0' : 'w-80'}`}>
-
-        {/* Toggle Button */}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
-          className="absolute -left-3 top-4 z-50 h-6 w-6 rounded-full border border-border bg-card p-0 text-muted-foreground hover:bg-accent hover:text-foreground"
-          title={isRightSidebarCollapsed ? "Show Sidebar" : "Hide Sidebar"}
-        >
-          {isRightSidebarCollapsed ? (
-            <ChevronLeft className="h-3 w-3" />
-          ) : (
-            <ChevronRight className="h-3 w-3" />
-          )}
-        </Button>
-
+      <div className={`shrink-0 border-l border-border bg-background transition-all duration-300 ease-in-out ${isRightSidebarCollapsed ? 'w-0' : 'w-80'}`}>
         <div className={`h-full w-80 overflow-hidden ${isRightSidebarCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
           <WNTRAdvancedVisualizerPanel
             networkData={networkData}

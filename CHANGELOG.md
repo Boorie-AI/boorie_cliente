@@ -16,6 +16,10 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   red abierta y la simulación o respuesta que estuviera en marcha. Ahora aparece «¿Salir de
   Boorie?»: «Salir» cierra como antes, y «Cancelar», Escape o pulsar fuera dejan todo como
   estaba (#278).
+- **El panel derecho del visor se vuelve a abrir.** Al ocultarlo, el botón para mostrarlo de
+  nuevo quedaba cortado a media luna en el borde de la ventana y no se veía, sobre todo en
+  Esquema. Ahora es una pestaña «<<» entera pegada al borde, como la del panel izquierdo, y el
+  mapa ocupa el hueco que deja el panel en vez de dejar una franja vacía (#279).
 
 ## [1.49.0] - 2026-10-04
 
