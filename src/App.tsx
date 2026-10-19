@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChatLayout } from '@/components/chat/ChatLayout'
 import { CustomTopBar } from '@/components/CustomTopBar'
+import { ConfirmarSalida } from '@/components/ConfirmarSalida'
 import { GlobalErrorTracker } from '@/components/GlobalErrorTracker'
 import { ProjectMismatchDialog } from '@/components/project/ProjectMismatchDialog'
 import { MigracionAvisoDialog } from '@/components/project/MigracionAvisoDialog'
@@ -114,6 +115,7 @@ function App() {
     <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
       <GlobalErrorTracker />
       <CustomTopBar />
+      <ConfirmarSalida />
       {/* Antes que nada y por encima de todo: hasta que se acepte, no se usa
           Boorie (#108). Va aquí y no dentro del contenido para que ninguna
           vista pueda quedar por delante. */}

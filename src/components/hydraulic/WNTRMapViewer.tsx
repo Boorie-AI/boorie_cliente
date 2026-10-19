@@ -455,6 +455,17 @@ export function WNTRMapViewer({
     // from Settings (DB) and may not be available yet on first mount.
   }, [MAPBOX_ACCESS_TOKEN])
 
+  // Mapbox únicamente se reajusta al cambiar la ventana. Al plegar un panel
+  // lateral el contenedor crece y el lienzo se quedaba con el ancho de antes,
+  // dejando una franja vacía donde estaba el panel (#279).
+  useEffect(() => {
+    const contenedor = mapContainer.current
+    if (!contenedor) return
+    const observador = new ResizeObserver(() => map.current?.resize())
+    observador.observe(contenedor)
+    return () => observador.disconnect()
+  }, [])
+
   /**
    * `setStyle` de Mapbox se lleva por delante todas las fuentes y capas propias,
    * asi que al cambiar el mapa base hay que volver a pintar la red. Vive en una

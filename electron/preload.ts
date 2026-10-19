@@ -32,6 +32,17 @@ const electronAPI = {
   minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
   maximizeWindow: () => ipcRenderer.invoke('maximize-window'),
   closeWindow: () => ipcRenderer.invoke('close-window'),
+  // Canales definidos en electron/cierreVentana.ts. El preload sólo importa
+  // de 'electron' para no depender de cómo se empaqueten otros módulos.
+  onSolicitudCierre: (callback: () => void) => {
+    const wrappedCallback = () => {
+      callback()
+      ipcRenderer.send('window:aviso-cierre-mostrado')
+    }
+    ipcRenderer.on('window:solicitud-cierre', wrappedCallback)
+    return () => ipcRenderer.removeListener('window:solicitud-cierre', wrappedCallback)
+  },
+  confirmarCierre: () => ipcRenderer.invoke('window:confirmar-cierre'),
   isMaximized: () => ipcRenderer.invoke('is-maximized'),
   onWindowStateChanged: (callback: (state: { isMaximized: boolean }) => void) => {
     const wrappedCallback = (_event: any, state: { isMaximized: boolean }) => callback(state)

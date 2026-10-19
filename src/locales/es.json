@@ -1056,7 +1056,13 @@
     "close": "Cerrar",
     "minimize": "Minimizar",
     "maximize": "Maximizar",
-    "restore": "Restaurar"
+    "restore": "Restaurar",
+    "salir": {
+      "titulo": "¿Salir de Boorie?",
+      "mensaje": "Se cerrará la red abierta y se detendrá cualquier simulación o respuesta en curso. Tus redes guardadas en el proyecto no se pierden.",
+      "confirmar": "Salir",
+      "cancelar": "Cancelar"
+    }
   },
   "descargo": {
     "titulo": "Antes de empezar",

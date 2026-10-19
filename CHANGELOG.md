@@ -11,7 +11,7 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 
 ## [1.50.0] - 2026-10-15
 
-Las redes guardadas por EPANET en Windows con acentos ya cargan, y las que usan Darcy-Weisbach o tienen válvulas PBV o GPV se simulan como son.
+Las redes guardadas por EPANET en Windows con acentos ya cargan, y las que usan Darcy-Weisbach o tienen válvulas PBV o GPV se simulan como son. Además, Boorie pregunta antes de cerrarse y el panel derecho del visor se puede volver a abrir.
 
 - **Una red guardada por EPANET en Windows con algún acento ya carga.** Bastaba una «ó» en un
   comentario del `.inp` —«Patrón de Inyección»— para que «Cargar red hidráulica» se quedara en
@@ -50,6 +50,15 @@ Las redes guardadas por EPANET en Windows con acentos ya cargan, y las que usan 
 - En esas redes, un escenario con **fugas** avisa de que no se puede combinar con ellas —EPANET
   no modela fugas— en lugar de dar una cifra. En los resultados de energía y de población
   afectada, la trazabilidad dice qué motor resolvió la red.
+- **Boorie pregunta antes de cerrarse.** Bastaba un clic de más en la «x» de arriba a la
+  derecha —o Ctrl+Q, Alt+F4 o cerrar desde la barra de tareas— para salir de golpe y perder la
+  red abierta y la simulación o respuesta que estuviera en marcha. Ahora aparece «¿Salir de
+  Boorie?»: «Salir» cierra como antes, y «Cancelar», Escape o pulsar fuera dejan todo como
+  estaba (#278).
+- **El panel derecho del visor se vuelve a abrir.** Al ocultarlo, el botón para mostrarlo de
+  nuevo quedaba cortado a media luna en el borde de la ventana y no se veía, sobre todo en
+  Esquema. Ahora es una pestaña «<<» entera pegada al borde, como la del panel izquierdo, y el
+  mapa ocupa el hueco que deja el panel en vez de dejar una franja vacía (#279).
 
 ## [1.49.0] - 2026-10-04
 

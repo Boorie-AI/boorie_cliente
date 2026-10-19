@@ -1056,7 +1056,13 @@
     "close": "Close",
     "minimize": "Minimize",
     "maximize": "Maximize",
-    "restore": "Restore"
+    "restore": "Restore",
+    "salir": {
+      "titulo": "Quit Boorie?",
+      "mensaje": "The open network will be closed and any simulation or response in progress will stop. Networks saved in your project are not lost.",
+      "confirmar": "Quit",
+      "cancelar": "Cancel"
+    }
   },
   "descargo": {
     "titulo": "Before you start",

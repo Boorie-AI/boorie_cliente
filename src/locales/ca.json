@@ -1056,7 +1056,13 @@
     "close": "Tanca",
     "minimize": "Minimitza",
     "maximize": "Maximitza",
-    "restore": "Restaura"
+    "restore": "Restaura",
+    "salir": {
+      "titulo": "Vols sortir de Boorie?",
+      "mensaje": "Es tancarà la xarxa oberta i s'aturarà qualsevol simulació o resposta en curs. Les xarxes desades al projecte no es perden.",
+      "confirmar": "Surt",
+      "cancelar": "Cancel·la"
+    }
   },
   "descargo": {
     "titulo": "Abans de començar",
