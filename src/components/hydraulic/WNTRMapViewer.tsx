@@ -457,14 +457,15 @@ export function WNTRMapViewer({
 
   // Mapbox únicamente se reajusta al cambiar la ventana. Al plegar un panel
   // lateral el contenedor crece y el lienzo se quedaba con el ancho de antes,
-  // dejando una franja vacía donde estaba el panel (#279).
+  // dejando una franja vacía donde estaba el panel (#279). Depende del token
+  // porque sin él el contenedor no se pinta, y en el paquete llega tarde, de la base.
   useEffect(() => {
     const contenedor = mapContainer.current
     if (!contenedor) return
     const observador = new ResizeObserver(() => map.current?.resize())
     observador.observe(contenedor)
     return () => observador.disconnect()
-  }, [])
+  }, [MAPBOX_ACCESS_TOKEN])
 
   /**
    * `setStyle` de Mapbox se lleva por delante todas las fuentes y capas propias,
