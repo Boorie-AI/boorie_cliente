@@ -9,6 +9,14 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **Boorie pregunta antes de cerrarse.** Bastaba un clic de más en la «x» de arriba a la
+  derecha —o Ctrl+Q, Alt+F4 o cerrar desde la barra de tareas— para salir de golpe y perder la
+  red abierta y la simulación o respuesta que estuviera en marcha. Ahora aparece «¿Salir de
+  Boorie?»: «Salir» cierra como antes, y «Cancelar», Escape o pulsar fuera dejan todo como
+  estaba (#278).
+
 ## [1.49.0] - 2026-10-04
 
 Con el servicio en la nube saturado la pantalla dice que se está esperando, el idioma de Configuración y el de la aplicación ya no se contradicen, y un enlace en una respuesta ya no puede sacar a Boorie de la aplicación.

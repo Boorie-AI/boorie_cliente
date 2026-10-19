@@ -51,6 +51,8 @@ interface Window {
     minimizeWindow: () => Promise<void>;
     maximizeWindow: () => Promise<void>;
     closeWindow: () => Promise<void>;
+    onSolicitudCierre: (callback: () => void) => () => void;
+    confirmarCierre: () => Promise<void>;
     isMaximized: () => Promise<boolean>;
     onWindowStateChanged: (callback: (state: { isMaximized: boolean }) => void) => () => void;
     sendMessage: (channel: string, data: any) => Promise<any>;
