@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Project } from '../../types/project';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import * as Dialog from '@radix-ui/react-dialog';
+import { NewProjectDialog } from './NewProjectDialog';
 import { FolderPlus, FolderOpen, Trash2, Calendar, Database, MessageSquare, Activity, Download, Upload, ArrowUpDown, RefreshCw } from 'lucide-react';
 
 interface ProjectDashboardProps {
@@ -15,7 +17,14 @@ interface ProjectDashboardProps {
      * el clic acababa en el de la tarjeta.
      */
     onOpenProject: (project: Project) => void;
+    /** Sólo para importar un proyecto exportado en JSON. */
     onCreateProject: (name: string, description: string) => void;
+    /**
+     * Lo creado con el formulario de nuevo proyecto, que es el mismo que abre el
+     * menú del chat: antes había dos y éste no pedía ni ubicación ni sistema de
+     * coordenadas.
+     */
+    onProjectCreated: (project?: { id?: string }) => void;
     /**
      * Importar un .inp: crea el proyecto, carga la red y entra en el visor. Vive
      * fuera porque quien sabe cargar una red es la vista de red (#77).
@@ -37,6 +46,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
     onSelectProject,
     onOpenProject,
     onCreateProject,
+    onProjectCreated,
     onImportNetwork,
     onDeleteProject,
     activeProjectId,
@@ -44,18 +54,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
 }) => {
     const { t } = useTranslation()
     const [isCreating, setIsCreating] = useState(false);
-    const [newName, setNewName] = useState('');
-    const [newDesc, setNewDesc] = useState('');
     const [sortBy, setSortBy] = useState<'name' | 'date'>('date');
-
-    const handleCreate = () => {
-        if (newName.trim()) {
-            onCreateProject(newName, newDesc);
-            setNewName('');
-            setNewDesc('');
-            setIsCreating(false);
-        }
-    };
 
     const handleExportProject = (project: Project, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -156,46 +155,14 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                     </div>
                 </div>
 
-                {/* Creation Form */}
-                {isCreating && (
-                    <Card className="bg-card border-border animate-in fade-in slide-in-from-top-4">
-                        <CardHeader>
-                            <CardTitle className="text-foreground">{t('projects.newProjectTitle')}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid gap-2">
-                                <label className="text-sm font-medium text-foreground">{t('projects.name')}</label>
-                                <input
-                                    type="text"
-                                    value={newName}
-                                    onChange={(e) => setNewName(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                                    placeholder={t('projects.nameExample')}
-                                    autoFocus
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <label className="text-sm font-medium text-foreground">{t('projects.description')}</label>
-                                <textarea
-                                    value={newDesc}
-                                    onChange={(e) => setNewDesc(e.target.value)}
-                                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                                    placeholder={t('projects.descriptionHint')}
-                                    rows={3}
-                                />
-                            </div>
-                        </CardContent>
-                        <CardFooter className="justify-end gap-2">
-                            <Button variant="ghost" onClick={() => setIsCreating(false)} className="text-muted-foreground hover:text-foreground">
-                                {t('projects.cancel')}
-                            </Button>
-                            <Button onClick={handleCreate} disabled={!newName.trim()} className="bg-blue-600 hover:bg-blue-700">
-                                {t('projects.createProject')}
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                )}
+                <Dialog.Root open={isCreating} onOpenChange={setIsCreating}>
+                    {isCreating && (
+                        <NewProjectDialog
+                            onClose={() => setIsCreating(false)}
+                            onProjectCreated={onProjectCreated}
+                        />
+                    )}
+                </Dialog.Root>
 
                 {/* Projects Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -204,7 +171,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
                             <RefreshCw className="h-16 w-16 mx-auto mb-4 opacity-50 animate-spin" />
                             <p className="text-xl font-medium">{t('projects.loading')}</p>
                         </div>
-                    ) : sortedProjects.length === 0 && !isCreating ? (
+                    ) : sortedProjects.length === 0 ? (
                         <div className="col-span-full text-center py-20 text-muted-foreground border-2 border-dashed border-border rounded-xl">
                             <FolderOpen className="h-16 w-16 mx-auto mb-4 opacity-50" />
                             <p className="text-xl font-medium">{t('projects.noProjects')}</p>
