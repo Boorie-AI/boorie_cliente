@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { conOpacidad, construirGrafo, lecturaNudo, lecturaTramo, NUDO_BASE, tieneCoordenadasUtiles, TRAMO_BASE, valorEnPaso } from './topologia'
+import { conOpacidad, construirGrafo, LIENZO, lecturaNudo, lecturaTramo, NUDO_BASE, tieneCoordenadasUtiles, TRAMO_BASE, TRAMO_TIPICO_EN_NUDOS, valorEnPaso } from './topologia'
 
 const RED = {
   nodes: [
@@ -44,6 +44,30 @@ describe('una red sin coordenadas sigue siendo visualizable', () => {
 })
 
 describe('escalado al lienzo', () => {
+  // Una malla de 100×100 nudos a 10 m: en un lienzo fijo de 1000 cada tramo
+  // medía 10 unidades, menos que el diámetro de un nudo (16), y la red era una
+  // mancha de nudos y flechas solapados a cualquier zoom (#280).
+  it('en una red densa, el tramo típico deja hueco entre nudos', () => {
+    const lado = 100
+    const nodes = Array.from({ length: lado * lado }, (_, i) => ({ id: `N${i}`, x: (i % lado) * 10, y: Math.floor(i / lado) * 10 }))
+    const links = nodes.filter((_, i) => i % lado < lado - 1).map(n => {
+      const i = Number(n.id.slice(1))
+      return { id: `P${i}`, from: n.id, to: `N${i + 1}` }
+    })
+    const g = construirGrafo({ nodes, links })
+    const a = g.nodes.find(n => n.id === 'N0')!
+    const b = g.nodes.find(n => n.id === 'N1')!
+    expect(Math.hypot(a.x! - b.x!, a.y! - b.y!)).toBeCloseTo(TRAMO_TIPICO_EN_NUDOS * NUDO_BASE)
+  })
+
+  it('una red pequeña sigue ocupando el lienzo mínimo', () => {
+    const g = construirGrafo({
+      nodes: [{ id: 'A', x: 0, y: 0 }, { id: 'B', x: 1000, y: 0 }, { id: 'C', x: 2000, y: 0 }],
+      links: [{ id: 'P1', from: 'A', to: 'B' }, { id: 'P2', from: 'B', to: 'C' }],
+    })
+    expect(g.nodes.find(n => n.id === 'C')!.x).toBeCloseTo(LIENZO)
+  })
+
   it('conserva la proporción sea cual sea el tamaño de la red', () => {
     // Misma forma, tres órdenes de magnitud de diferencia: el resultado debe ser
     // el mismo. El «x * 10» que había antes sólo servía para un rango concreto.
@@ -108,7 +132,20 @@ describe('simbología y resultados', () => {
     const p1 = g.edges.find(e => e.id === 'P1')!
     expect(p1.from).toBe('J1')
     expect(p1.to).toBe('R1')
-    expect(p1.arrows).toBe('to')
+    expect(p1.arrows?.middle.enabled).toBe(true)
+  })
+
+  // La flecha fija de vis medía 21-39 px contra 8 px de nudo y tapaba la red (#280).
+  it('la flecha de caudal crece con el tamaño de nudo', () => {
+    const res = { link_results: { P1: { flowrate: 1 } } }
+    const normal = construirGrafo(RED, res, 0, null, null, { nodeSize: 8 }).edges.find(e => e.id === 'P1')!
+    const grande = construirGrafo(RED, res, 0, null, null, { nodeSize: 16 }).edges.find(e => e.id === 'P1')!
+    expect(grande.arrows!.middle.scaleFactor).toBeGreaterThan(normal.arrows!.middle.scaleFactor)
+    expect(normal.arrows!.middle.scaleFactor).toBeLessThan(1)
+  })
+
+  it('sin simulación los tubos no llevan flecha', () => {
+    expect(construirGrafo(RED).edges.find(e => e.id === 'P1')!.arrows).toBeUndefined()
   })
 
   it('el grosor crece con el caudal pero tiene tope', () => {

@@ -20,6 +20,7 @@ import { comprobarSoporteSatelite } from '@/utils/webgl'
 import { construirEscala, type Simbologia } from '@/services/network/simbologia'
 import { nudoVisible, tramoVisible, type CapasVisibles } from '@/services/network/capas'
 import { lecturaNudo, lecturaTramo, valorEnPaso } from '@/services/network/topologia'
+import { LADO_IMAGEN_FLECHA, tamanoFlechaMapa } from '@/services/network/flechas'
 import { formatearMagnitud, type Magnitud } from '@/services/network/unidades'
 import { useProjectStore } from '@/stores/projectStore'
 import { CRSSelector } from './CRSSelector'
@@ -154,6 +155,35 @@ function FichaMagnitud({ rotulo, valor, magnitud }: { rotulo: string; valor?: nu
   const texto = formatearMagnitud(valor, magnitud)
   if (!texto) return null
   return <div>{rotulo}: <span className="font-medium">{texto}</span></div>
+}
+
+const FLECHA_CAUDAL = 'flecha-caudal'
+
+/**
+ * Flecha oscura con borde blanco, apuntando a +x: en un símbolo sobre una línea,
+ * Mapbox alinea ese eje con el sentido en que está dibujado el tramo (de `from`
+ * a `to`). El contraste del borde la hace visible sobre calles y sobre satélite.
+ */
+function imagenFlechaCaudal(): ImageData | null {
+  const lado = LADO_IMAGEN_FLECHA * 2
+  const lienzo = document.createElement('canvas')
+  lienzo.width = lado
+  lienzo.height = lado
+  const ctx = lienzo.getContext('2d')
+  if (!ctx) return null
+  ctx.beginPath()
+  ctx.moveTo(lado - 6, lado / 2)
+  ctx.lineTo(6, 12)
+  ctx.lineTo(lado * 0.25, lado / 2)
+  ctx.lineTo(6, lado - 12)
+  ctx.closePath()
+  ctx.fillStyle = '#1f2937'
+  ctx.strokeStyle = '#ffffff'
+  ctx.lineWidth = 5
+  ctx.lineJoin = 'round'
+  ctx.fill()
+  ctx.stroke()
+  return ctx.getImageData(0, 0, lado, lado)
 }
 
 export function WNTRMapViewer({
@@ -694,7 +724,7 @@ export function WNTRMapViewer({
     })
 
     // Remove existing layers if any
-    const layersToRemove = ['network-nodes', 'network-links', 'node-labels']
+    const layersToRemove = ['network-arrows', 'network-nodes', 'network-links', 'node-labels']
     layersToRemove.forEach(layerId => {
       if (map.current?.getLayer(layerId)) {
         map.current.removeLayer(layerId)
@@ -886,6 +916,35 @@ export function WNTRMapViewer({
       });
     }
 
+    // Sentido del caudal (#280, #282): una flecha en el centro de cada tramo con
+    // resultados, del tamaño relativo al nudo y girada si el caudal es negativo.
+    // Mapbox descarta las que chocan entre sí, así que al alejar quedan menos y al
+    // acercar aparecen todas, en vez de tapar la red.
+    if (!map.current.hasImage(FLECHA_CAUDAL)) {
+      const imagen = imagenFlechaCaudal()
+      if (imagen) map.current.addImage(FLECHA_CAUDAL, imagen, { pixelRatio: 2 })
+    }
+    if (!map.current.getLayer('network-arrows') && map.current.hasImage(FLECHA_CAUDAL)) {
+      map.current.addLayer({
+        id: 'network-arrows',
+        type: 'symbol',
+        source: 'network-links',
+        filter: ['any', ['==', ['typeof', ['get', 'flowrate']], 'number'], ['==', ['get', 'type'], 'pump']],
+        layout: {
+          'symbol-placement': 'line-center',
+          'icon-image': FLECHA_CAUDAL,
+          'icon-size': tamanoFlechaMapa(mapSettings.nodeSize),
+          'icon-rotate': ['case', ['<', ['coalesce', ['get', 'flowrate'], 0], 0], 180, 0],
+          'icon-rotation-alignment': 'map',
+          'icon-allow-overlap': false,
+          'icon-ignore-placement': true
+        },
+        paint: {
+          'icon-opacity': mapSettings.opacity
+        }
+      });
+    }
+
     if (!map.current.getLayer('network-nodes')) {
       map.current.addLayer({
         id: 'network-nodes',
@@ -980,6 +1039,9 @@ export function WNTRMapViewer({
     map.current.setPaintProperty('network-nodes', 'circle-radius', highlightRadius(highlightedNodes, mapSettings.nodeSize))
     map.current.setPaintProperty('network-nodes', 'circle-stroke-width', highlightStrokeWidth(highlightedNodes))
     map.current.setPaintProperty('network-nodes', 'circle-stroke-color', highlightStrokeColor(highlightedNodes))
+    if (map.current.getLayer('network-arrows')) {
+      map.current.setLayoutProperty('network-arrows', 'icon-size', tamanoFlechaMapa(mapSettings.nodeSize))
+    }
   }, [highlightedNodes, mapSettings.nodeSize, networkData])
 
   // La opacidad se aplica sobre las capas ya montadas: `addNetworkToMap` sólo
@@ -994,6 +1056,9 @@ export function WNTRMapViewer({
     if (map.current.getLayer('network-links')) {
       map.current.setPaintProperty('network-links', 'line-opacity', mapSettings.opacity)
     }
+    if (map.current.getLayer('network-arrows')) {
+      map.current.setPaintProperty('network-arrows', 'icon-opacity', mapSettings.opacity)
+    }
   }, [mapSettings.opacity, networkData])
 
   // Al perder el sistema de coordenadas hay que retirar lo pintado: si no, la
@@ -1001,7 +1066,7 @@ export function WNTRMapViewer({
   // se puede situar.
   useEffect(() => {
     if (conversion || !map.current) return
-    for (const capa of ['node-labels', 'network-nodes', 'network-links']) {
+    for (const capa of ['node-labels', 'network-arrows', 'network-nodes', 'network-links']) {
       if (map.current.getLayer(capa)) map.current.removeLayer(capa)
     }
     for (const fuente of ['network-nodes', 'network-links']) {
