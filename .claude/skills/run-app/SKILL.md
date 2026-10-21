@@ -61,7 +61,7 @@ Las capturas van a `/tmp/boorie-driver/shots/` (o `SCREENSHOT_DIR`).
 | `launch` | arranca la app y espera a que haya ventana |
 | `click <sel>` | click real de Playwright (el bueno, ver Trampas) |
 | `clicktext <texto>` | click por texto visible |
-| `mouse <x> <y>` | clic de ratón en coordenadas, sin las comprobaciones de `click`, y dice qué elemento había en ese punto: sirve para ver si algo encima se traga el clic |
+| `mouse <x> <y>` | clic de ratón en coordenadas, sin las comprobaciones de `click`, y dice qué elemento había en ese punto antes del clic: sirve para ver si algo encima se traga el clic |
 | `set <sel> :: <valor>` | escribe en un input controlado por React |
 | `waitfor <sel>` | espera a que exista el selector, 30 s |
 | `scrollto <texto>` | lleva a la vista el elemento que empieza por ese texto |
@@ -69,8 +69,13 @@ Las capturas van a `/tmp/boorie-driver/shots/` (o `SCREENSHOT_DIR`).
 | `text [sel]` | vuelca `innerText` |
 | `evaljs <expr>` | evalúa en la página y devuelve JSON |
 | `pickfile <ruta>` | el siguiente `showOpenDialog` del main devuelve esa ruta sin abrir el diálogo nativo |
+| `resize <ancho> <alto>` | fija el área de contenido de la ventana y devuelve el viewport real (no baja de 800×600, el `minWidth/minHeight` de `electron/main.ts`) |
+| `zoom <factor>` | `setZoomFactor` en todas las ventanas: simula el escalado del sistema (1.25, 1.5) |
+| `audit` | pistas de maquetación de lo visible (o del diálogo abierto, si hay uno): contenido más ancho que la ventana, lo que queda fuera sin scroll que lo alcance, lo cortado por un contenedor con `overflow: hidden`, texto recortado sin `title`, objetivos de menos de 24 px e interactivos sin nombre accesible. De cada desborde da solo el elemento más externo |
+| `key <combinación>` | pulsa una tecla real (`Tab`, `Escape`, `Shift+Tab`…) y dice qué tiene el foco después |
+| `close` | pide cerrar la ventana como la «x»: la app enseña el aviso de salida en vez de cerrarse |
 | `windows` | lista las ventanas |
-| `quit` | cierra la app y termina |
+| `quit` | cierra la app sin pasar por el aviso de salida y termina |
 
 ## Llegar a la red hidráulica
 
