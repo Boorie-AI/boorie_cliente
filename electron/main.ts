@@ -171,6 +171,12 @@ import path from 'path'
 import fs from 'fs'
 import log from 'electron-log'
 import { autoUpdater } from 'electron-updater'
+import {
+  ControlCierre,
+  CANAL_SOLICITUD_CIERRE,
+  CANAL_AVISO_CIERRE_MOSTRADO,
+  CANAL_CONFIRMAR_CIERRE
+} from './cierreVentana'
 // Import PrismaClient dynamically to avoid circular dependency issues
 let PrismaClient: any
 
@@ -435,6 +441,7 @@ class AppUpdater {
 }
 
 let mainWindow: BrowserWindow
+let controlCierre: ControlCierre | null = null
 let prisma: any
 let services: ServiceContainer
 let handlers: HandlersManager
@@ -482,12 +489,27 @@ function createWindow(): void {
 
   // Listen for window state changes
   // Add window lifecycle logging
-  mainWindow.on('close', (_event) => {
-    appLogger.warn('Window close event triggered', {
-      isDestroyed: mainWindow.isDestroyed(),
-      isVisible: mainWindow.isVisible(),
-      isFocused: mainWindow.isFocused()
-    })
+  // Todas las formas de cerrar (la «x», Ctrl/Cmd+Q, Ctrl/Cmd+W, Alt+F4, la
+  // barra de tareas) pasan por aquí; la pregunta la hace el renderer.
+  const ventana = mainWindow
+  // destroy() y no close(): close() espera a que el renderer conteste, y si
+  // estamos aquí es porque no lo hace.
+  const forzarSalida = () => {
+    if (!ventana.isDestroyed()) ventana.destroy()
+    app.quit()
+  }
+  const control = new ControlCierre(() => {
+    appLogger.warn('El renderer no mostró el aviso de cierre: se sale sin preguntar')
+    forzarSalida()
+  })
+  controlCierre = control
+  ventana.on('close', (event) => {
+    const decision = control.alIntentarCerrar()
+    appLogger.info('Window close event triggered', { decision })
+    if (decision === 'permitir') return
+    event.preventDefault()
+    if (decision === 'forzar') return forzarSalida()
+    ventana.webContents.send(CANAL_SOLICITUD_CIERRE)
   })
 
   mainWindow.on('closed', () => {
@@ -497,10 +519,12 @@ function createWindow(): void {
 
   mainWindow.on('unresponsive', () => {
     appLogger.error('Window became unresponsive')
+    control.rendererNoResponde()
   })
 
   mainWindow.on('responsive', () => {
     appLogger.info('Window became responsive again')
+    control.rendererResponde()
   })
 
   mainWindow.on('maximize', () => {
@@ -579,6 +603,7 @@ function createWindow(): void {
 
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
     appLogger.error('Render process gone: ' + details.reason, new Error(`Exit code: ${details.exitCode}`))
+    control.rendererNoResponde()
 
     // Handle different exit codes
     if (details.exitCode === 11) {
@@ -830,6 +855,18 @@ function setupBasicIPCHandlers(): void {
     mainWindow?.close()
   })
 
+  ipcMain.on(CANAL_AVISO_CIERRE_MOSTRADO, () => {
+    controlCierre?.avisoMostrado()
+  })
+
+  // Se sale de la aplicación, no sólo de la ventana: en macOS cerrar la
+  // ventana no termina el proceso, y el aviso dice «Salir de Boorie».
+  ipcMain.handle(CANAL_CONFIRMAR_CIERRE, () => {
+    appLogger.info('IPC: el usuario confirma la salida')
+    controlCierre?.confirmar()
+    app.quit()
+  })
+
   ipcMain.handle('is-maximized', () => {
     const maximized = mainWindow?.isMaximized() || false
     appLogger.info('IPC: is-maximized called', { maximized })
@@ -901,7 +938,10 @@ app.on('window-all-closed', () => {
   }
 })
 
-app.on('before-quit', async () => {
+// En 'will-quit' y no en 'before-quit': éste llega antes de cerrar las
+// ventanas, y si el usuario cancela el aviso de salida la aplicación sigue
+// abierta, así que la limpieza dejaría Boorie sin base de datos ni Milvus.
+app.on('will-quit', async () => {
   appLogger.info('Application shutting down')
 
   try {

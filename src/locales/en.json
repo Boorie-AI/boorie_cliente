@@ -1056,7 +1056,13 @@
     "close": "Close",
     "minimize": "Minimize",
     "maximize": "Maximize",
-    "restore": "Restore"
+    "restore": "Restore",
+    "salir": {
+      "titulo": "Quit Boorie?",
+      "mensaje": "The open network will be closed and any simulation or response in progress will stop. Networks saved in your project are not lost.",
+      "confirmar": "Quit",
+      "cancelar": "Cancel"
+    }
   },
   "descargo": {
     "titulo": "Before you start",
@@ -1363,7 +1369,15 @@
     "suggested": "Suggested",
     "unconfirmed": " (unconfirmed)",
     "cannotPlace": "This network cannot be placed on the map: {{motivo}}",
-    "unsavedHint": "This network is not saved in the project yet: the system applies now, but it will have to be declared again if you close without saving it."
+    "unsavedHint": "This network is not saved in the project yet: the system applies now, but it will have to be declared again if you close without saving it.",
+    "description": "Declare the EPSG the .inp coordinates are in. Boorie reprojects to WGS84 to place the network on the map; the original file is not modified.",
+    "projectTitle": "Project coordinate system",
+    "projectDescription": "The project’s networks will open on the map with this system, except those with their own declared one. The .inp does not say which system its coordinates are in.",
+    "noDefault": "No default system",
+    "projectField": "Coordinate system of the networks",
+    "projectNone": "Not declared: chosen when each network is opened",
+    "projectHint": "For example, EPSG:32717 (UTM 17S) for a network in southern Ecuador.",
+    "fromProject": "From the project"
   },
   "migration": {
     "calculations": "Calculations",

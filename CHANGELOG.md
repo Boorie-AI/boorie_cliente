@@ -9,6 +9,57 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.50.0] - 2026-10-15
+
+Las redes guardadas por EPANET en Windows con acentos ya cargan, y las que usan Darcy-Weisbach o tienen válvulas PBV o GPV se simulan como son. Además, Boorie pregunta antes de cerrarse y el panel derecho del visor se puede volver a abrir.
+
+- **Una red guardada por EPANET en Windows con algún acento ya carga.** Bastaba una «ó» en un
+  comentario del `.inp` —«Patrón de Inyección»— para que «Cargar red hidráulica» se quedara en
+  `'utf-8' codec can't decode byte 0xf3` y no se viera nada de la red. Ahora se lee en la
+  codificación en que se guardó, y un nudo con «ñ» en el nombre conserva su nombre en todos los
+  análisis.
+- **Las redes con Darcy-Weisbach se simulan con Darcy-Weisbach.** El motor de simulación no
+  admite esa fórmula, y Boorie la cambiaba por Hazen-Williams sin decirlo: en la simulación, con
+  una conversión aproximada de la rugosidad; en escenarios, resiliencia y energía, leyendo la
+  rugosidad en milímetros como si fuera la C de Hazen-Williams. Las presiones y caudales salían
+  con éxito y no eran los de la red. Ahora esas redes se resuelven con EPANET, que sí la admite.
+- **Las válvulas PBV y GPV se simulan.** Una red con una válvula rompedora de presión (PBV) no
+  se podía simular, y una de propósito general (GPV) se sustituía en silencio por una tubería de
+  1 m. Esas redes también van por EPANET y cada válvula hace lo que dice su consigna o su curva.
+  Las PRV, PSV, FCV y TCV siguen como estaban.
+- **Un sistema de coordenadas equivocado ya no bloquea el mapa.** Declarar, por ejemplo,
+  EPSG:4326 sobre una red en coordenadas UTM hace que los metros se lean como grados; el mapa
+  fallaba al intentar dibujarla y, como el sistema se guarda con la red, volvía a fallar cada
+  vez que se abría, sin dejar llegar al selector para corregirlo. Ahora no la dibuja, avisa de
+  que con ese sistema la red cae fuera del planeta y deja elegir otro.
+- **El sistema de coordenadas se puede declarar una vez por proyecto.** El `.inp` no dice en qué
+  sistema están sus coordenadas, y había que elegirlo red a red al abrir cada una en el mapa.
+  Ahora el proyecto tiene un campo «Sistema de coordenadas de las redes»: todas sus redes se
+  abren ya situadas con él, salvo las que tengan uno propio.
+- **El aviso de que la red cae fuera del país del proyecto ya salta.** El proyecto guarda el
+  país por su nombre y la comprobación lo buscaba por código, así que no avisaba nunca. La lista
+  de países incluye ahora Ecuador, Bolivia, Brasil, Costa Rica, Guatemala, Portugal y Estados
+  Unidos, y al editar el proyecto el país se elige de la lista.
+- **Las listas desplegables se leen en el tema oscuro.** Las opciones salían en blanco sobre
+  blanco y sólo se veían al pasar el ratón por encima.
+- **Un paso hidráulico de `0:00` ya no hace eterna la simulación.** EPANET lo interpreta como
+  el paso de patrones o el de informe, el menor, pero el motor de Boorie lo tomaba como un
+  segundo: un día eran 86.400 pasos, y el análisis de fallo de una red de 6.700 nudos se cortaba
+  a los tres minutos con «Resilience analysis timeout». Ahora se resuelve como en EPANET y tarda
+  medio minuto.
+- En esas redes, un escenario con **fugas** avisa de que no se puede combinar con ellas —EPANET
+  no modela fugas— en lugar de dar una cifra. En los resultados de energía y de población
+  afectada, la trazabilidad dice qué motor resolvió la red.
+- **Boorie pregunta antes de cerrarse.** Bastaba un clic de más en la «x» de arriba a la
+  derecha —o Ctrl+Q, Alt+F4 o cerrar desde la barra de tareas— para salir de golpe y perder la
+  red abierta y la simulación o respuesta que estuviera en marcha. Ahora aparece «¿Salir de
+  Boorie?»: «Salir» cierra como antes, y «Cancelar», Escape o pulsar fuera dejan todo como
+  estaba (#278).
+- **El panel derecho del visor se vuelve a abrir.** Al ocultarlo, el botón para mostrarlo de
+  nuevo quedaba cortado a media luna en el borde de la ventana y no se veía, sobre todo en
+  Esquema. Ahora es una pestaña «<<» entera pegada al borde, como la del panel izquierdo, y el
+  mapa ocupa el hueco que deja el panel en vez de dejar una franja vacía (#279).
+
 ## [1.49.0] - 2026-10-04
 
 Con el servicio en la nube saturado la pantalla dice que se está esperando, el idioma de Configuración y el de la aplicación ya no se contradicen, y un enlace en una respuesta ya no puede sacar a Boorie de la aplicación.

@@ -1056,7 +1056,13 @@
     "close": "Cerrar",
     "minimize": "Minimizar",
     "maximize": "Maximizar",
-    "restore": "Restaurar"
+    "restore": "Restaurar",
+    "salir": {
+      "titulo": "¿Salir de Boorie?",
+      "mensaje": "Se cerrará la red abierta y se detendrá cualquier simulación o respuesta en curso. Tus redes guardadas en el proyecto no se pierden.",
+      "confirmar": "Salir",
+      "cancelar": "Cancelar"
+    }
   },
   "descargo": {
     "titulo": "Antes de empezar",
@@ -1363,7 +1369,15 @@
     "suggested": "Sugerido",
     "unconfirmed": " (sin confirmar)",
     "cannotPlace": "Esta red no se puede situar en el mapa: {{motivo}}",
-    "unsavedHint": "Esta red todavía no está guardada en el proyecto: el sistema se aplica ahora, pero habrá que volver a declararlo si cierras sin guardarla."
+    "unsavedHint": "Esta red todavía no está guardada en el proyecto: el sistema se aplica ahora, pero habrá que volver a declararlo si cierras sin guardarla.",
+    "description": "Declara el EPSG en el que están las coordenadas del .inp. Boorie reproyecta a WGS84 para situar la red sobre el mapa; el fichero original no se modifica.",
+    "projectTitle": "Sistema de coordenadas del proyecto",
+    "projectDescription": "Las redes del proyecto se abrirán en el mapa con este sistema, salvo las que tengan uno propio declarado. El .inp no dice en qué sistema están sus coordenadas.",
+    "noDefault": "Sin sistema por defecto",
+    "projectField": "Sistema de coordenadas de las redes",
+    "projectNone": "Sin declarar: se elige al abrir cada red",
+    "projectHint": "Por ejemplo, EPSG:32717 (UTM 17S) para una red en el sur de Ecuador.",
+    "fromProject": "Del proyecto"
   },
   "migration": {
     "calculations": "Cálculos",

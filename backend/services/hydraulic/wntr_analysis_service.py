@@ -10,6 +10,8 @@ import networkx as nx
 import wntr.metrics.economic
 import wntr.metrics.hydraulic
 import wntr.metrics.topographic
+from simulador import simular
+from texto_inp import leer_inp
 import warnings
 
 # Suppress specific WNTR warnings that are informational only
@@ -20,23 +22,9 @@ class WNTRAnalysisService:
     def __init__(self):
         pass
 
-    def _prepare_wntr_simulator(self, wn):
-        """Prepare network for WNTRSimulator (fix incompatibilities)"""
-        # 1. H-W Headloss (D-W not supported by WNTRSimulator)
-        if str(wn.options.hydraulic.headloss).upper() in ['D-W', 'DARCY-WEISBACH', 'DW']:
-            wn.options.hydraulic.headloss = 'H-W'
-            
-        # 2. GPVs -> Pipes (GPV not supported by WNTRSimulator)
-        if len(wn.gpv_name_list) > 0:
-            gpv_names = list(wn.gpv_name_list)
-            for name in gpv_names:
-                gpv = wn.get_link(name)
-                u, v = gpv.start_node_name, gpv.end_node_name
-                wn.remove_link(name)
-                # Add proxy pipe: 1m length, 300mm diameter, 130 roughness (smooth H-W)
-                wn.add_pipe(name, u, v, length=1.0, diameter=0.3, roughness=130, check_valve=False)
-        
-        # 3. Fix invalid timesteps (prevent 'float modulo' zero division errors)
+    def _simular(self, wn):
+        """Prepare network for the simulator (fix incompatibilities) and run it"""
+        # Fix invalid timesteps (prevent 'float modulo' zero division errors)
         # Ensure hydraulic and report timesteps are valid (>=1 second)
         # Default to 1 hour (3600s) if 0 or missing
         try:
@@ -48,7 +36,7 @@ class WNTRAnalysisService:
             # Fallback if attributes missing
             pass
 
-        return wntr.sim.WNTRSimulator(wn)
+        return simular(wn)
 
     def load_network(self, inp_file):
         """Load network with robust handling for backdrop units"""
@@ -57,8 +45,7 @@ class WNTRAnalysisService:
         
         try:
             # Create a localized temporary file copy to attempt fixes
-            with open(inp_file, 'r', encoding='utf-8', errors='ignore') as f:
-                lines = f.readlines()
+            lines = leer_inp(inp_file)[0].splitlines(keepends=True)
             
             # Stateful parsing to handle [BACKDROP] section correctly
             fixed_lines = []
@@ -91,7 +78,7 @@ class WNTRAnalysisService:
             
             # Write key changes to a temporary file
             fd, temp_path = tempfile.mkstemp(suffix='.inp', text=True)
-            with os.fdopen(fd, 'w') as f:
+            with os.fdopen(fd, 'w', encoding='utf-8') as f:
                 f.writelines(fixed_lines)
             
             try:
@@ -192,8 +179,7 @@ class WNTRAnalysisService:
             options = options or {}
             
             # Example criticality: pressure deficient nodes under normal conditions
-            sim = self._prepare_wntr_simulator(wn)
-            results = sim.run_sim()
+            results = self._simular(wn)
             
             pressure = results.node['pressure']
             min_pressure_threshold = float(options.get('min_pressure', 10.0)) # meters
@@ -253,8 +239,7 @@ class WNTRAnalysisService:
             min_pressure_threshold = float(options.get('min_pressure', 10.0))
             
             # --- Hydraulic (Todini) ---
-            sim = self._prepare_wntr_simulator(wn)
-            results = sim.run_sim()
+            results = self._simular(wn)
             
             head = results.node['head']
             pressure = results.node['pressure']

@@ -170,6 +170,8 @@ export interface HydraulicProject {
     region: string
     city?: string
     coordinates?: [number, number]
+    /** Sistema de coordenadas por defecto de las redes del proyecto. */
+    epsg?: string | null
   }
   regulations: Regulation[]
   network?: WNTRModel

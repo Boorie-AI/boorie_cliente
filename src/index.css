@@ -132,9 +132,14 @@
     --input: 220 13% 91%;
     --ring: 214 58.8% 55.3%;
     --radius: 0.75rem;
+    color-scheme: light;
   }
  
   .dark {
+    /* Sin esto Chromium pinta los controles nativos —la lista de un <select>,
+       las barras de desplazamiento— en claro, y las opciones heredaban el texto
+       claro del tema: blanco sobre blanco hasta pasar el ratón por encima. */
+    color-scheme: dark;
     --background: 224 71.4% 4.1%;
     --foreground: 210 20% 98%;
     --card: 224 71.4% 4.1%;
@@ -170,6 +175,14 @@
   
   html {
     scroll-behavior: smooth;
+  }
+
+  /* Las opciones heredan el color del <select>, que muchos ponen con clases del
+     tema; el fondo de la lista lo pone el sistema. Se fijan los dos. */
+  select option,
+  select optgroup {
+    background-color: hsl(var(--popover));
+    color: hsl(var(--popover-foreground));
   }
 }
 

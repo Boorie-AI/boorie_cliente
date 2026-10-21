@@ -2662,7 +2662,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
           < button
             onClick={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
             className="absolute left-0 top-4 z-20 bg-card text-foreground p-1 rounded-r-md border-r border-y border-border hover:bg-muted shadow-md flex items-center justify-center w-6 h-8"
-            title={isLeftSidebarCollapsed ? "Show Sidebar" : "Hide Sidebar"}
+            title={isLeftSidebarCollapsed ? t('sidebar.expandSidebar') : t('sidebar.collapseSidebar')}
           >
             {isLeftSidebarCollapsed ? ">>" : "<<"}
           </button >

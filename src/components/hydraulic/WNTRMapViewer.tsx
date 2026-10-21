@@ -26,6 +26,7 @@ import { CRSSelector } from './CRSSelector'
 // visor registraba las suyas, dos visores podian pintar la misma red con
 // definiciones distintas del mismo EPSG (#36).
 import {
+  cabeEnLaTierra,
   calcularLimites,
   nombreCRS,
   reproyectarLimites,
@@ -454,6 +455,18 @@ export function WNTRMapViewer({
     // from Settings (DB) and may not be available yet on first mount.
   }, [MAPBOX_ACCESS_TOKEN])
 
+  // Mapbox únicamente se reajusta al cambiar la ventana. Al plegar un panel
+  // lateral el contenedor crece y el lienzo se quedaba con el ancho de antes,
+  // dejando una franja vacía donde estaba el panel (#279). Depende del token
+  // porque sin él el contenedor no se pinta, y en el paquete llega tarde, de la base.
+  useEffect(() => {
+    const contenedor = mapContainer.current
+    if (!contenedor) return
+    const observador = new ResizeObserver(() => map.current?.resize())
+    observador.observe(contenedor)
+    return () => observador.disconnect()
+  }, [MAPBOX_ACCESS_TOKEN])
+
   /**
    * `setStyle` de Mapbox se lleva por delante todas las fuentes y capas propias,
    * asi que al cambiar el mapa base hay que volver a pintar la red. Vive en una
@@ -591,6 +604,7 @@ export function WNTRMapViewer({
   const [epsgDeclarado, setEpsgDeclarado] = useState<string | null>(null)
   const [mostrarSelectorCRS, setMostrarSelectorCRS] = useState(false)
   const paisProyecto = useProjectStore(s => s.currentProject?.location?.country ?? null)
+  const epsgProyecto = useProjectStore(s => s.currentProject?.location?.epsg ?? null)
 
   useEffect(() => {
     setEpsgDeclarado(networkData?.coordinate_system?.declared_epsg ?? null)
@@ -601,7 +615,10 @@ export function WNTRMapViewer({
     [networkData]
   )
 
-  const crs = useMemo(() => resolverCRS(epsgDeclarado, limitesRed), [epsgDeclarado, limitesRed])
+  const crs = useMemo(
+    () => resolverCRS(epsgDeclarado, limitesRed, epsgProyecto),
+    [epsgDeclarado, limitesRed, epsgProyecto]
+  )
 
   /**
    * Escala de color del paso que se está mostrando. Sale de los datos: los
@@ -630,6 +647,7 @@ export function WNTRMapViewer({
         limites,
         centroide,
         cordura: validarCordura(centroide, paisProyecto),
+        dibujable: cabeEnLaTierra(limites),
       }
     } catch (e) {
       logger.error('No se pudo reproyectar la red:', e)
@@ -676,6 +694,10 @@ export function WNTRMapViewer({
     // falta declarar el EPSG.
     if (!conversion) {
       logger.warn('Red sin sistema de coordenadas resuelto: no se dibuja', { motivo: crs.motivo })
+      return
+    }
+    if (!conversion.dibujable) {
+      logger.warn('La red reproyectada no cabe en la Tierra: no se dibuja', { limites: conversion.limites })
       return
     }
     const geoConversion = conversion
@@ -1047,7 +1069,7 @@ export function WNTRMapViewer({
 
     // El GeoJSON es WGS84 por definicion, asi que exportar sin CRS declarado
     // produciria un fichero con coordenadas falsas.
-    if (!conversion) {
+    if (!conversion || !conversion.dibujable) {
       setError(t('messages.crsBeforeExport'))
       return
     }
@@ -1134,7 +1156,7 @@ export function WNTRMapViewer({
               <>
                 <button
                   onClick={() => {
-                    if (map.current && networkData && conversion) {
+                    if (map.current && networkData && conversion?.dibujable) {
                       const geoConversion = conversion
 
                       // Get the first few nodes to check their coordinates
@@ -1251,7 +1273,9 @@ export function WNTRMapViewer({
                 <div className="flex items-center gap-2 ml-5 text-muted-foreground">
                   <Globe2 className="w-3 h-3" />
                   <span>
-                    {crs.origen === 'declarado' ? t('crs.declared') : t('crs.suggested')}: {crs.epsg} —{' '}
+                    {crs.origen === 'declarado'
+                      ? t('crs.declared')
+                      : crs.origen === 'proyecto' ? t('crs.fromProject') : t('crs.suggested')}: {crs.epsg} —{' '}
                     {nombreCRS(crs.epsg)}
                     {crs.origen === 'sugerido' && t('crs.unconfirmed')}
                   </span>

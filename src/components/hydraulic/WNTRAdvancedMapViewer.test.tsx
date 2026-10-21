@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { WNTRAdvancedMapViewer } from './WNTRAdvancedMapViewer'
 
 /**
@@ -104,5 +104,26 @@ describe('los resultados de simular desde el mapa suben al armazón', () => {
     expect(() =>
       act(() => (propsDelMapa.onSimulationResults as (r: unknown) => void)(RESULTADOS))
     ).not.toThrow()
+  })
+})
+
+/**
+ * El botón del panel derecho vivía dentro del panel: al plegarlo a ancho 0 quedaba
+ * recortado por la raíz del visor y no había forma de ver dónde volver a abrirlo.
+ */
+describe('el panel derecho se puede volver a mostrar (#279)', () => {
+  it('plegado, el botón sigue fuera del panel y lo despliega', () => {
+    render(<WNTRAdvancedMapViewer networkData={RED as never} />)
+    const panel = screen.getByTestId('panel').parentElement!.parentElement!
+
+    fireEvent.click(screen.getByRole('button', { name: 'Contraer barra lateral' }))
+
+    expect(panel.className).toContain('w-0')
+    const mostrar = screen.getByRole('button', { name: 'Expandir barra lateral' })
+    expect(panel.contains(mostrar)).toBe(false)
+
+    fireEvent.click(mostrar)
+
+    expect(panel.className).toContain('w-80')
   })
 })
