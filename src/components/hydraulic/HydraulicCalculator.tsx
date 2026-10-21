@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { cifrasSignificativas } from '@/services/network/unidades'
 import { esAdimensional, rangoEnUnidad } from '@/../backend/services/hydraulic/unidadesDeCalculo'
 import { logger } from '@/utils/logger'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useClarity } from '@/components/ClarityProvider'
 import {
   Calculator,
@@ -39,6 +39,13 @@ export function HydraulicCalculator() {
   const [selectedFormula, setSelectedFormula] = useState<HydraulicFormula | null>(null)
   const [inputs, setInputs] = useState<Record<string, { value: string; unit: string }>>({})
   const [result, setResult] = useState<CalculationResult | null>(null)
+  const resultadosRef = useRef<HTMLDivElement>(null)
+
+  // Con la ventana estrecha los resultados quedan debajo de los datos, fuera de
+  // la vista al pulsar «Calcular»; con 'nearest' no se mueve nada si ya se ven.
+  useEffect(() => {
+    if (result) resultadosRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
+  }, [result])
   const [calculating, setCalculating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState<string>('head_loss')
@@ -256,15 +263,15 @@ export function HydraulicCalculator() {
   }, [activeCategory, formulas])
   
   return (
-    <div className="flex-1 flex flex-col bg-background h-full">
+    <div className="flex-1 flex flex-col bg-background h-full min-w-0">
       {/* Fixed Header */}
       <div className="border-b border-border bg-background">
         {/* Title Bar */}
-        <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex items-center justify-between gap-4 px-4 py-3 xl:px-6 xl:py-4">
           <div className="flex items-center gap-3">
-            <Calculator className="w-6 h-6 text-primary" />
+            <Calculator className="w-6 h-6 text-primary shrink-0" />
             <div>
-              <h1 className="text-2xl font-bold text-foreground">
+              <h1 className="text-xl xl:text-2xl font-bold text-foreground">
                 {t('calculator.title')}
               </h1>
               <p className="text-sm text-muted-foreground">
@@ -272,7 +279,7 @@ export function HydraulicCalculator() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3 shrink-0">
             <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-100/80 dark:bg-emerald-950/30">
               <Code2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
               <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">{t('calculator.engine')}</span>
@@ -285,7 +292,7 @@ export function HydraulicCalculator() {
         </div>
         
         {/* Category Navigation */}
-        <div className="flex gap-0 px-6 bg-muted/20">
+        <div className="flex gap-0 px-2 xl:px-6 bg-muted/20 overflow-x-auto scrollbar-thin">
           {categories.map((category) => {
             const Icon = category.icon
             const isActive = activeCategory === category.id
@@ -294,7 +301,8 @@ export function HydraulicCalculator() {
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
                 className={cn(
-                  "px-6 py-4 flex items-center gap-3 border-b-3 transition-all",
+                  "px-3 py-3 xl:px-6 xl:py-4 flex items-center gap-2 xl:gap-3 border-b-3 transition-all",
+                  "text-sm xl:text-base whitespace-nowrap shrink-0",
                   "hover:bg-accent/50",
                   isActive
                     ? "border-primary text-primary bg-background font-semibold"
@@ -310,20 +318,20 @@ export function HydraulicCalculator() {
       </div>
       
       {/* Full Screen Content Area with overflow hidden */}
-      <div className="flex-1 flex p-6 gap-6 bg-muted/10 overflow-hidden">
+      <div className="flex-1 flex p-3 gap-3 xl:p-6 xl:gap-6 bg-muted/10 overflow-hidden min-h-0">
         {/* Formula Selector */}
-        <div className="w-80 bg-card rounded-xl border border-border shadow-xs flex flex-col h-full">
-          <div className="p-4 border-b border-border shrink-0">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+        <div className="w-56 xl:w-80 shrink-0 bg-card rounded-xl border border-border shadow-xs flex flex-col h-full">
+          <div className="p-3 xl:p-4 border-b border-border shrink-0">
+            <h2 className="text-base xl:text-lg font-semibold text-foreground flex items-center gap-2">
               <currentCategory.icon className={cn("w-5 h-5", currentCategory.color)} />
               {t(`calc.cat.${currentCategory.clave}`)}
             </h2>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-xs xl:text-sm text-muted-foreground mt-1">
               {t(`calc.catDesc.${currentCategory.descripcion}`)}
             </p>
           </div>
           
-          <div className="flex-1 p-4 overflow-y-auto scrollbar-visible">
+          <div className="flex-1 p-2 xl:p-4 overflow-y-auto scrollbar-visible">
             <div className="space-y-2">
               {currentFormulas.map((formula, index) => (
                 <button
@@ -333,16 +341,16 @@ export function HydraulicCalculator() {
                     selectFormula(formula)
                   }}
                   className={cn(
-                    "w-full p-4 rounded-lg text-left transition-all",
+                    "w-full p-3 xl:p-4 rounded-lg text-left transition-all",
                     "border-2",
                     selectedFormulaIndex === index
                       ? "bg-primary text-primary-foreground border-primary shadow-lg"
                       : "bg-background hover:bg-accent border-border hover:border-primary/50"
                   )}
                 >
-                  <div className="font-semibold mb-1">{t(formula.nameKey)}</div>
+                  <div className="text-sm xl:text-base font-semibold mb-1">{t(formula.nameKey)}</div>
                   <div className={cn(
-                    "text-sm font-mono",
+                    "text-xs xl:text-sm font-mono break-words",
                     selectedFormulaIndex === index
                       ? "text-primary-foreground/90"
                       : "text-muted-foreground"
@@ -356,29 +364,31 @@ export function HydraulicCalculator() {
         </div>
         
         {/* Main Calculation Area */}
-        <div className="flex-1 bg-card rounded-xl border border-border shadow-xs flex h-full">
+        <div className="flex-1 min-w-0 bg-card rounded-xl border border-border shadow-xs flex h-full">
           {selectedFormula ? (
-            <div className="flex-1 flex">
+            // Por debajo de xl no caben las tres columnas: los resultados bajan
+            // debajo de los datos y es toda la zona la que hace scroll.
+            <div className="flex-1 min-w-0 flex flex-col xl:flex-row overflow-y-auto xl:overflow-hidden scrollbar-thin scrollbar-thumb-border">
               {/* Input Panel */}
-              <div className="flex-1 border-r border-border overflow-hidden flex flex-col">
-                <div className="flex-1 p-8 overflow-y-auto scrollbar-visible">
+              <div className="xl:flex-1 min-w-0 border-b xl:border-b-0 xl:border-r border-border xl:overflow-hidden flex flex-col">
+                <div className="xl:flex-1 p-4 xl:p-8 xl:overflow-y-auto scrollbar-thin scrollbar-thumb-border">
                   <div className="max-w-2xl mx-auto">
-                    <div className="mb-8">
-                      <h2 className="text-2xl font-bold text-foreground mb-2">
+                    <div className="mb-6 xl:mb-8">
+                      <h2 className="text-xl xl:text-2xl font-bold text-foreground mb-2">
                         {t(selectedFormula.nameKey)}
                       </h2>
-                      <div className="font-mono text-xl text-primary bg-primary/10 px-4 py-2 rounded-lg inline-block">
+                      <div className="font-mono text-base xl:text-xl text-primary bg-primary/10 px-3 py-2 xl:px-4 rounded-lg inline-block max-w-full break-words">
                         {selectedFormula.equation}
                       </div>
                     </div>
                   
-                  <div className="space-y-6">
-                    <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <div className="space-y-4 xl:space-y-6">
+                    <h3 className="text-base xl:text-lg font-semibold text-foreground flex items-center gap-2">
                       <Droplets className="w-5 h-5 text-primary" />
                       {t('calculator.inputs')}
                     </h3>
                     
-                    <div className="grid gap-6">
+                    <div className="grid grid-cols-1 gap-4 xl:gap-6">
                       {selectedFormula.parameters.map((param) => {
                         /* El rango se dice en la unidad elegida en el desplegable,
                            no en la unidad estándar en que está escrito. Con mm
@@ -388,16 +398,16 @@ export function HydraulicCalculator() {
                         const rango = rangoEnUnidad(param, unidad)
 
                         return (
-                        <div key={param.symbol} className="bg-muted/50 p-6 rounded-lg border border-border">
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex-1">
-                              <label className="text-base font-semibold text-foreground flex items-center gap-2">
-                                <span className="text-primary font-mono text-lg bg-primary/10 px-2 py-1 rounded">
+                        <div key={param.symbol} className="bg-muted/50 p-4 xl:p-6 rounded-lg border border-border">
+                          <div className="flex items-start justify-between mb-3 xl:mb-4">
+                            <div className="flex-1 min-w-0">
+                              <label className="text-sm xl:text-base font-semibold text-foreground flex items-center gap-2">
+                                <span className="text-primary font-mono text-base xl:text-lg bg-primary/10 px-2 py-1 rounded shrink-0">
                                   {param.symbol}
                                 </span>
                                 {t(param.nameKey)}
                               </label>
-                              <p className="text-sm text-muted-foreground mt-1">
+                              <p className="text-xs xl:text-sm text-muted-foreground mt-1">
                                 {t(param.descriptionKey)}
                               </p>
                               {rango && (
@@ -423,7 +433,7 @@ export function HydraulicCalculator() {
                               value={inputs[param.symbol]?.value || ''}
                               onChange={(e) => handleInputChange(param.symbol, 'value', e.target.value)}
                               className={cn(
-                                "flex-1 px-4 py-3 rounded-lg text-base",
+                                "flex-1 min-w-0 px-3 py-2 xl:px-4 xl:py-3 rounded-lg text-sm xl:text-base",
                                 "bg-background border-2 border-border",
                                 "focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-primary",
                                 "placeholder:text-muted-foreground"
@@ -440,7 +450,7 @@ export function HydraulicCalculator() {
                                 value={unidad}
                                 onChange={(e) => handleInputChange(param.symbol, 'unit', e.target.value)}
                                 className={cn(
-                                  "px-4 py-3 rounded-lg text-base font-medium",
+                                  "px-3 py-2 xl:px-4 xl:py-3 rounded-lg text-sm xl:text-base font-medium",
                                   "bg-background border-2 border-border",
                                   "focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-primary"
                                 )}
@@ -450,7 +460,7 @@ export function HydraulicCalculator() {
                                 ))}
                               </select>
                             ) : esAdimensional(unidad) ? null : (
-                              <span className="px-4 py-3 text-base font-medium text-muted-foreground shrink-0">
+                              <span className="px-3 py-2 xl:px-4 xl:py-3 text-sm xl:text-base font-medium text-muted-foreground shrink-0">
                                 {unidad}
                               </span>
                             )}
@@ -469,7 +479,7 @@ export function HydraulicCalculator() {
                       onClick={handleCalculate}
                       disabled={calculating}
                       className={cn(
-                        "w-full py-4 rounded-lg font-semibold text-lg",
+                        "w-full py-3 xl:py-4 rounded-lg font-semibold text-base xl:text-lg",
                         "bg-primary text-primary-foreground",
                         "hover:bg-primary/90 transition-all",
                         "disabled:opacity-50 disabled:cursor-not-allowed",
@@ -495,13 +505,13 @@ export function HydraulicCalculator() {
               </div>
               
               {/* Results Panel */}
-              <div className="w-96 bg-muted/20 flex flex-col">
-                <div className="p-8 pb-4">
-                  <h3 className="text-lg font-semibold text-foreground">
+              <div ref={resultadosRef} className="xl:w-80 2xl:w-96 shrink-0 bg-muted/20 flex flex-col">
+                <div className="p-4 pb-3 xl:p-8 xl:pb-4">
+                  <h3 className="text-base xl:text-lg font-semibold text-foreground">
                     {t('calculator.results')}
                   </h3>
                 </div>
-                <div className="flex-1 px-8 pb-8 overflow-y-auto scrollbar-visible">
+                <div className="xl:flex-1 px-4 pb-4 xl:px-8 xl:pb-8 xl:overflow-y-auto scrollbar-thin scrollbar-thumb-border">
                 
                 {error && (
                   <div className="p-4 rounded-lg bg-destructive/10 text-destructive flex items-start gap-2 mb-4">
@@ -512,8 +522,8 @@ export function HydraulicCalculator() {
                 
                 {result ? (
                   <div className="space-y-6">
-                    <div className="bg-card p-6 rounded-lg border border-border">
-                      <div className="flex items-center justify-between mb-4">
+                    <div className="bg-card p-4 xl:p-6 rounded-lg border border-border">
+                      <div className="flex items-center justify-between mb-3 xl:mb-4">
                         <h4 className="font-semibold text-foreground">{t('calculator.result')}</h4>
                         <div className="flex gap-2">
                           <button
@@ -530,7 +540,7 @@ export function HydraulicCalculator() {
                           `toFixed(4)` un caudal en m³/s quedaba en 0.0017 —dos
                           cifras— y una longitud arrastraba cuatro decimales que
                           sobran (#89). */}
-                      <div className="text-3xl font-bold text-primary">
+                      <div className="text-2xl xl:text-3xl font-bold text-primary break-words">
                         {cifrasSignificativas(result.result.value, 6)} {result.result.unit}
                       </div>
                       {/* Segunda tanda del #108: la calculadora quedó fuera de
@@ -540,8 +550,8 @@ export function HydraulicCalculator() {
                     </div>
                     
                     {result.intermediateSteps && result.intermediateSteps.length > 0 && (
-                      <div className="bg-card p-6 rounded-lg border border-border">
-                        <h4 className="font-semibold text-foreground mb-4">{t('calculator.steps')}</h4>
+                      <div className="bg-card p-4 xl:p-6 rounded-lg border border-border">
+                        <h4 className="font-semibold text-foreground mb-3 xl:mb-4">{t('calculator.steps')}</h4>
                         <div className="space-y-3">
                           {result.intermediateSteps.map((step, index) => (
                             <div key={index} className="text-sm">
@@ -549,7 +559,7 @@ export function HydraulicCalculator() {
                               {/* Cada paso con su unidad, que no siempre es la
                                   del resultado final: aquí es donde se comprueba
                                   el cálculo, y un número suelto no se comprueba. */}
-                              <div className="font-mono text-foreground bg-muted px-2 py-1 rounded mt-1">
+                              <div className="font-mono text-foreground bg-muted px-2 py-1 rounded mt-1 break-words">
                                 {step.formula} = {cifrasSignificativas(step.result, 6)}
                                 {step.unit ? ` ${step.unit}` : ''}
                               </div>
