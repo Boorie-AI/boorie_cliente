@@ -299,7 +299,7 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
             paso: un estado estacionario no tiene nada que reproducir (#45). */}
         {hayLineaTiempo && (
         <Card className="m-0 rounded-none bg-card border-t border-border z-10">
-          <CardContent className="p-4">
+          <CardContent className="p-3 xl:p-4">
             <div className="space-y-3">
               {/* Momento de la simulación. Antes decía una fecha fija con zona
                   horaria australiana, que no salía de ningún dato. */}
@@ -315,14 +315,19 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                 </span>
               </div>
 
-              {/* Controls and Timeline */}
-              <div className="flex items-center gap-4">
+              {/* Controles arriba y deslizador debajo, a todo el ancho: en la misma
+                  fila, con la columna del mapa estrecha, el deslizador se quedaba
+                  en 100 px y las marcas empujaban el selector de velocidad encima
+                  del panel derecho. */}
+              <div className="flex items-center justify-between gap-2">
                 {/* Playback Controls */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 xl:gap-2">
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={skipToStart}
+                    aria-label={t('viewer.irAlInicio')}
+                    title={t('viewer.irAlInicio')}
                     className="text-foreground hover:bg-accent p-2"
                   >
                     <SkipBack className="h-4 w-4" />
@@ -331,6 +336,8 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                     size="sm"
                     variant="ghost"
                     onClick={togglePlayback}
+                    aria-label={visualizationSettings.isPlaying ? t('viewer.pausar') : t('viewer.reproducir')}
+                    title={visualizationSettings.isPlaying ? t('viewer.pausar') : t('viewer.reproducir')}
                     className="text-foreground hover:bg-accent p-2"
                   >
                     {visualizationSettings.isPlaying ? (
@@ -343,6 +350,8 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                     size="sm"
                     variant="ghost"
                     onClick={stopPlayback}
+                    aria-label={t('viewer.parar')}
+                    title={t('viewer.parar')}
                     className="text-foreground hover:bg-accent p-2"
                   >
                     <Square className="h-4 w-4" />
@@ -351,35 +360,13 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                     size="sm"
                     variant="ghost"
                     onClick={skipToEnd}
+                    aria-label={t('viewer.irAlFinal')}
+                    title={t('viewer.irAlFinal')}
                     className="text-foreground hover:bg-accent p-2"
                   >
                     <SkipForward className="h-4 w-4" />
                   </Button>
                 </div>
-
-                {/* Timeline Slider */}
-                <div className="flex-1 space-y-2">
-                  <div className="relative">
-                    <Slider
-                      value={[visualizationSettings.timeStep]}
-                      onValueChange={([value]) => irAPaso(value)}
-                      max={timeline.linea.pasos - 1}
-                      step={1}
-                      className="w-full"
-                    />
-                  </div>
-
-                  {/* Marcas del eje, repartidas sobre los pasos que hay de
-                      verdad. Antes eran 00:00 a 22:00 fijas, al margen de la
-                      duración y del paso de reporte del modelo. */}
-                  <div className="flex justify-between text-xs text-muted-foreground px-1 tabular-nums">
-                    {timeline.marcas.map(marca => (
-                      <span key={marca.paso}>{marca.texto}</span>
-                    ))}
-                  </div>
-                </div>
-
-
 
                 {/* Velocidad de reproducción: estaba sólo en la tarjeta que el
                     panel duplicaba, y al retirarla baja aquí, junto al resto de
@@ -389,13 +376,42 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
                   onChange={e =>
                     setVisualizationSettings(prev => ({ ...prev, playbackSpeed: Number(e.target.value) }))
                   }
-                  className="rounded-md border border-border bg-muted px-2 py-1 text-xs text-foreground"
+                  className="shrink-0 rounded-md border border-border bg-muted px-2 py-1 text-xs text-foreground"
                   title={t('viewer.playbackSpeed')}
+                  aria-label={t('viewer.playbackSpeed')}
                 >
                   {[0.5, 1, 2, 4].map(v => (
                     <option key={v} value={v}>{v}x</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Timeline Slider */}
+              <div className="@container space-y-2">
+                <div className="relative">
+                  <Slider
+                    value={[visualizationSettings.timeStep]}
+                    onValueChange={([value]) => irAPaso(value)}
+                    max={timeline.linea.pasos - 1}
+                    step={1}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Marcas del eje, repartidas sobre los pasos que hay de
+                    verdad. Antes eran 00:00 a 22:00 fijas, al margen de la
+                    duración y del paso de reporte del modelo. */}
+                <div className="flex justify-between text-xs text-muted-foreground px-1 tabular-nums">
+                  {/* Si la columna es estrecha, una de cada dos (siempre la última). */}
+                  {timeline.marcas.map((marca, i) => (
+                    <span
+                      key={marca.paso}
+                      className={i % 2 === 1 && i !== timeline.marcas.length - 1 ? 'hidden @lg:inline' : undefined}
+                    >
+                      {marca.texto}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </CardContent>
