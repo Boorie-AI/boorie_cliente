@@ -11,6 +11,14 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 
 ## [Unreleased]
 
+- **Las flechas de sentido del caudal se ven en el mapa y en el esquema, del tamaño del nudo.**
+  En el mapa no había ninguna; en el esquema eran de tamaño fijo, más grandes que los nudos, y en
+  una red densa tapaban tuberías y nudos. Ahora cada tramo con resultados lleva una flecha en su
+  centro que mide lo que el diámetro del nudo y crece o se achica con «Tamaño de nudo». En el
+  mapa, al alejar, se ocultan las que se pisan y, al acercar, aparecen todas. El esquema separa
+  los nudos lo suficiente para que, al acercarse, se distingan nudos, tramos y flechas.
+- La barra del reproductor de la simulación ya no monta el selector de velocidad encima del
+  panel derecho, y sus botones tienen nombre para el lector de pantalla.
 - **Boorie se ve entera en pantallas pequeñas.** En la ventana de 1200×800 con la que abre, el
   chat se salía por la derecha y dejaba fuera el menú ⋯ y el botón de copiar. En el visor de red,
   el panel derecho y el botón para volver a abrirlo caían fuera de la ventana. A 800×600,

@@ -1,5 +1,6 @@
 import { nudoVisible, tramoVisible, type CapasVisibles } from './capas'
 import { etiquetaMagnitud } from './unidades'
+import { escalaFlechaEsquema } from './flechas'
 
 /**
  * Grafo topológico de la red para el visor de vis-network (#37).
@@ -67,7 +68,7 @@ export interface TramoGrafo {
   color: string
   width: number
   dashes: boolean
-  arrows?: string
+  arrows?: { middle: { enabled: boolean; scaleFactor: number } }
 }
 
 export interface GrafoRed {
@@ -239,16 +240,40 @@ export function tieneCoordenadasUtiles(nodes: NodoRed[]): boolean {
   return anchura > 0 || altura > 0
 }
 
-/** Lienzo de destino en unidades de vis-network. */
-const LIENZO = 1000
+/** Lado mínimo del lienzo en unidades de vis-network. */
+export const LIENZO = 1000
+
+/**
+ * Largo del tramo típico (la mediana) en el lienzo, en radios de nudo. Con el
+ * lienzo fijo de 1000, en una red de 6.700 nudos el tramo medía menos que un
+ * nudo: los nudos se solapaban a cualquier zoom y las flechas, del tamaño del
+ * nudo, tapaban la red (#280). Así hay hueco para nudo, flecha y nudo.
+ */
+export const TRAMO_TIPICO_EN_NUDOS = 6
+
+function medianaDeTramos(nodes: NodoRed[], links: TramoRed[]): number | null {
+  const posicion = new Map(nodes.map(n => [n.id, coordenadas(n)]))
+  const largos: number[] = []
+  for (const l of links) {
+    const a = posicion.get(l.from)
+    const b = posicion.get(l.to)
+    if (!a || !b) continue
+    const d = Math.hypot(a[0] - b[0], a[1] - b[1])
+    if (d > 0) largos.push(d)
+  }
+  if (largos.length === 0) return null
+  largos.sort((x, y) => x - y)
+  return largos[Math.floor(largos.length / 2)]
+}
 
 /**
  * Escala las coordenadas al lienzo conservando la proporción. Sin esto, una red
  * de 40 unidades de lado saldría del tamaño de un sello y otra de 3.000 metros
  * desbordaría: el `x * 10` que había antes sólo funcionaba para el rango con el
- * que se probó.
+ * que se probó. La red ocupa al menos `LIENZO`, y más si hace falta para que el
+ * tramo típico no quede por debajo de `TRAMO_TIPICO_EN_NUDOS` radios de nudo.
  */
-function escalar(nodes: NodoRed[]) {
+function escalar(nodes: NodoRed[], links: TramoRed[]) {
   const puntos = nodes.map(coordenadas).filter((c): c is [number, number] => c !== null)
   const xs = puntos.map(p => p[0])
   const ys = puntos.map(p => p[1])
@@ -256,7 +281,11 @@ function escalar(nodes: NodoRed[]) {
   const minY = Math.min(...ys)
   const anchura = Math.max(...xs) - minX
   const altura = Math.max(...ys) - minY
-  const escala = LIENZO / Math.max(anchura, altura, 1e-9)
+  const mediana = medianaDeTramos(nodes, links)
+  const escala = Math.max(
+    LIENZO / Math.max(anchura, altura, 1e-9),
+    mediana ? (TRAMO_TIPICO_EN_NUDOS * NUDO_BASE) / mediana : 0
+  )
 
   // La Y se invierte porque en vis-network crece hacia abajo y en un .inp hacia
   // el norte: sin invertirla, la red saldría reflejada.
@@ -312,7 +341,7 @@ export function construirGrafo(
   }
 
   const conCoordenadas = tieneCoordenadasUtiles(nodosVisibles)
-  const proyectar = conCoordenadas ? escalar(nodosVisibles) : null
+  const proyectar = conCoordenadas ? escalar(nodosVisibles, datos.links) : null
 
   const nodes: NodoGrafo[] = nodosVisibles.map(n => {
     const tipo = String(n.type ?? 'junction')
@@ -400,7 +429,11 @@ export function construirGrafo(
         color: conOpacidad(porEscalaTramo ?? estilo.color, opacidad),
         width: grosor * escalaTramo,
         dashes: tipo === 'valve' && String(l.status ?? '').toUpperCase() === 'CLOSED',
-        ...(typeof caudal === 'number' || tipo === 'pump' ? { arrows: 'to' } : {}),
+        // En medio del tramo y no en la punta, donde quedaba encima del nudo; y
+        // del tamaño del nudo, no el fijo de vis, que tapaba la red (#280).
+        ...(typeof caudal === 'number' || tipo === 'pump'
+          ? { arrows: { middle: { enabled: true, scaleFactor: escalaFlechaEsquema(NUDO_BASE * escalaNudo, grosor * escalaTramo) } } }
+          : {}),
       }
     })
 
