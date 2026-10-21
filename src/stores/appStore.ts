@@ -30,6 +30,12 @@ export interface AppState {
   seccionRed: SeccionRed | null
   theme: 'dark' | 'light'
   sidebarCollapsed: boolean
+  /**
+   * Hay una red abierta en el visor. La red vive en el estado del visor, no en
+   * un store; esto es solo para que el aviso al salir no hable de una red
+   * abierta cuando no la hay. No se persiste.
+   */
+  redAbierta: boolean
   showOnboarding: boolean
   onboardingStep: number
   settingsTab: string
@@ -56,6 +62,7 @@ export interface AppState {
    */
   ajustarVistaInicial: (estado: { hayProyecto: boolean; hayRed: boolean }) => void
   toggleSidebar: () => void
+  setRedAbierta: (abierta: boolean) => void
   setTheme: (theme: AppState['theme']) => void
   setActiveAIProvider: (provider: AppState['activeAIProvider']) => void
   setActiveModel: (model: string) => void
@@ -79,6 +86,7 @@ export const useAppStore = create<AppState>()(
         seccionRed: null,
         theme: 'light',
         sidebarCollapsed: false,
+        redAbierta: false,
         showOnboarding: false,
         onboardingStep: 0,
         settingsTab: 'general',
@@ -181,6 +189,8 @@ export const useAppStore = create<AppState>()(
             set({ currentView: 'projects' })
           }
         },
+
+        setRedAbierta: (abierta) => set({ redAbierta: abierta }),
 
         toggleSidebar: async () => {
           const newState = !get().sidebarCollapsed

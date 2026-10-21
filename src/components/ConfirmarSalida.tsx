@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import * as Dialog from '@radix-ui/react-dialog'
 import { LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useAppStore } from '@/stores/appStore'
 
 /**
  * Pregunta antes de salir de Boorie (#278). El main para cualquier intento de
@@ -13,6 +14,7 @@ import { Button } from '@/components/ui/button'
 export function ConfirmarSalida() {
   const { t } = useTranslation()
   const [abierto, setAbierto] = useState(false)
+  const redAbierta = useAppStore(s => s.redAbierta)
 
   useEffect(() => window.electronAPI?.onSolicitudCierre?.(() => setAbierto(true)), [])
 
@@ -35,7 +37,7 @@ export function ConfirmarSalida() {
             {t('window.salir.titulo')}
           </Dialog.Title>
           <Dialog.Description className="text-sm text-muted-foreground">
-            {t('window.salir.mensaje')}
+            {t(redAbierta ? 'window.salir.mensaje' : 'window.salir.mensajeSinRed')}
           </Dialog.Description>
           <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-5">
             <Button variant="outline" autoFocus onClick={() => setAbierto(false)}>

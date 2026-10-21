@@ -72,6 +72,8 @@ interface WNTRAdvancedMapViewerProps {
   networkFilePath?: string | null;
 }
 
+const ESTRECHO = '(max-width: 1099px)';
+
 export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
   networkData: externalNetworkData,
   simulationResults: externalSimulationResults,
@@ -226,7 +228,17 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
 
   const skipToEnd = () => irAPaso(timeline.linea.pasos - 1);
 
-  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
+  // Por debajo de 1100 px no caben la barra lateral, los dos paneles y el mapa:
+  // el panel derecho se pliega solo y el usuario lo puede volver a abrir.
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(
+    () => window.matchMedia(ESTRECHO).matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(ESTRECHO);
+    const alCambiar = (e: MediaQueryListEvent) => { if (e.matches) setIsRightSidebarCollapsed(true); };
+    mq.addEventListener('change', alCambiar);
+    return () => mq.removeEventListener('change', alCambiar);
+  }, []);
 
   return (
     // `h-full`, no `h-screen`: este visor vive dentro del hueco que deja la barra
@@ -241,8 +253,8 @@ export const WNTRAdvancedMapViewer: React.FC<WNTRAdvancedMapViewerProps> = ({
         <button
           onClick={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
           className="absolute right-0 top-4 z-20 bg-card text-foreground p-1 rounded-l-md border-l border-y border-border hover:bg-muted shadow-md flex items-center justify-center w-6 h-8"
-          title={isRightSidebarCollapsed ? t('sidebar.expandSidebar') : t('sidebar.collapseSidebar')}
-          aria-label={isRightSidebarCollapsed ? t('sidebar.expandSidebar') : t('sidebar.collapseSidebar')}
+          title={isRightSidebarCollapsed ? t('networkView.mostrarPanelVisualizacion') : t('networkView.ocultarPanelVisualizacion')}
+          aria-label={isRightSidebarCollapsed ? t('networkView.mostrarPanelVisualizacion') : t('networkView.ocultarPanelVisualizacion')}
         >
           {isRightSidebarCollapsed ? '<<' : '>>'}
         </button>

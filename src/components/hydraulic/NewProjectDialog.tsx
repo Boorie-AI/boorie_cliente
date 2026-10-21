@@ -85,6 +85,7 @@ export function NewProjectDialog({ onClose, onProjectCreated }: NewProjectDialog
             <Dialog.Close asChild>
               <button
                 type="button"
+                aria-label={t('window.close')}
                 className={cn(
                   "p-2 rounded-lg hover:bg-accent",
                   "transition-colors"

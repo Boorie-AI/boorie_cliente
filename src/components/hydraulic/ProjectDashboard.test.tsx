@@ -12,6 +12,7 @@ const props = (parcial: Record<string, unknown> = {}) => ({
   onSelectProject: vi.fn(),
   onOpenProject: vi.fn(),
   onCreateProject: vi.fn(),
+  onProjectCreated: vi.fn(),
   onImportNetwork: vi.fn(),
   onDeleteProject: vi.fn(),
   ...parcial,
@@ -51,5 +52,16 @@ describe('la raíz de proyectos', () => {
 
     expect(p.onImportNetwork).toHaveBeenCalledTimes(1)
     expect(p.onCreateProject).not.toHaveBeenCalled()
+  })
+
+  // Había dos formularios de crear proyecto, y el de aquí no pedía ubicación ni
+  // sistema de coordenadas: ahora es el mismo que abre el menú del chat.
+  it('«Nuevo proyecto» abre el formulario completo, con el sistema de coordenadas', () => {
+    render(<ProjectDashboard {...props()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Nuevo proyecto/ }))
+
+    expect(screen.getByRole('dialog', { name: 'Nuevo proyecto hidráulico' })).toBeInTheDocument()
+    expect(screen.getByText('Sistema de coordenadas de las redes')).toBeInTheDocument()
   })
 })

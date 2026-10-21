@@ -9,6 +9,38 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **Boorie se ve entera en pantallas pequeñas.** En la ventana de 1200×800 con la que abre, el
+  chat se salía por la derecha y dejaba fuera el menú ⋯ y el botón de copiar. En el visor de red,
+  el panel derecho y el botón para volver a abrirlo caían fuera de la ventana. A 800×600,
+  «Ayuda y comentarios» quedaba por debajo del borde. Ahora todo cabe: la cabecera del chat y la
+  del visor pasan a dos líneas cuando hace falta, la barra lateral hace scroll y, por debajo de
+  1100 px de ancho, el panel derecho del visor arranca plegado.
+- **El mapa aparece aunque al abrir la red no hubiera sitio para él.** Con la ventana estrecha y
+  los dos paneles abiertos, el mapa se quedaba en «El mapa no cabe donde está» aunque después se
+  plegara un panel. Ahora se dibuja, con la red, en cuanto tiene hueco.
+- **La calculadora se adapta al tamaño de la ventana.** Con tres columnas fijas, a 1200 px a los
+  datos de entrada les quedaban unos 170 px y a 800 px no se veían. Ahora la letra y los
+  márgenes se ajustan al ancho, y en ventanas estrechas los resultados aparecen debajo de los
+  datos y se desplazan a la vista al calcular.
+- **Un solo formulario para crear proyectos.** El de la vista Proyectos no pedía ni ubicación ni
+  sistema de coordenadas; ahora es el mismo que el del menú del chat.
+- **El sistema de coordenadas de un proyecto existente se cambia desde el visor de red.** Antes
+  solo se podía elegir al crear el proyecto. Bajo el sistema de la red aparece el del proyecto,
+  con «cambiar», y al reabrir el selector se ve cuál está elegido.
+- **El selector de coordenadas propone los sistemas del país del proyecto.** Elegir Ecuador no
+  cambiaba nada: la lista seguía empezando por Colombia y el UTM 17S había que buscarlo. Ahora
+  salen primero los sistemas nacionales y los husos UTM del país.
+- **El aviso al salir solo habla de la red abierta cuando hay una.** Desde el chat o la
+  calculadora decía «Se cerrará la red abierta» sin ninguna red abierta.
+- El botón «Aplicar» del selector de coordenadas ya se traduce al inglés y al catalán, el texto
+  «Sin declarar» se lee bien en el tema claro, las unidades del fichero salen traducidas
+  («pies», no «feet») y los dos botones que pliegan los paneles del visor dicen cuál pliegan.
+- En el visor de red, los campos de duración, paso de tiempo y calidad del agua y los
+  interruptores de capas y de etiquetas tienen nombre para el lector de pantalla, y se activan
+  pulsando también su texto, no solo el control.
+
 ## [1.50.0] - 2026-10-15
 
 Las redes guardadas por EPANET en Windows con acentos ya cargan, y las que usan Darcy-Weisbach o tienen válvulas PBV o GPV se simulan como son. Además, Boorie pregunta antes de cerrarse y el panel derecho del visor se puede volver a abrir.

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import { ConfirmarSalida } from './ConfirmarSalida'
+import { useAppStore } from '@/stores/appStore'
 
 let solicitar: (() => void) | null
 let api: { onSolicitudCierre: ReturnType<typeof vi.fn>; confirmarCierre: ReturnType<typeof vi.fn> }
@@ -36,12 +37,24 @@ describe('ConfirmarSalida (#278)', () => {
   })
 
   it('R1: al intentar cerrar aparece el aviso con el texto acordado', async () => {
+    useAppStore.setState({ redAbierta: true })
     render(<ConfirmarSalida />)
     pedirCierre()
     const dialogo = await screen.findByRole('dialog')
     expect(dialogo).toHaveTextContent('¿Salir de Boorie?')
     expect(dialogo).toHaveTextContent('Se cerrará la red abierta y se detendrá cualquier simulación o respuesta en curso. Tus redes guardadas en el proyecto no se pierden.')
     expect(api.confirmarCierre).not.toHaveBeenCalled()
+  })
+
+  // Decía «se cerrará la red abierta» también desde el chat o la calculadora,
+  // sin ninguna red abierta.
+  it('sin red abierta no habla de cerrarla', async () => {
+    useAppStore.setState({ redAbierta: false })
+    render(<ConfirmarSalida />)
+    pedirCierre()
+    const dialogo = await screen.findByRole('dialog')
+    expect(dialogo).toHaveTextContent('Se detendrá cualquier simulación o respuesta en curso. Tus redes guardadas en el proyecto no se pierden.')
+    expect(dialogo).not.toHaveTextContent('red abierta')
   })
 
   it('R3: «Salir» confirma el cierre', async () => {
