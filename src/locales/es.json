@@ -509,6 +509,10 @@
     "pickFormulaOf": "Elige una fórmula de {{categoria}}"
   },
   "networkView": {
+    "mostrarPanelSimulacion": "Mostrar el panel de simulación",
+    "ocultarPanelSimulacion": "Ocultar el panel de simulación",
+    "mostrarPanelVisualizacion": "Mostrar el panel de visualización",
+    "ocultarPanelVisualizacion": "Ocultar el panel de visualización",
     "tabs": {
       "simulate": "Simulación",
       "analyze": "Análisis",
@@ -1060,6 +1064,7 @@
     "salir": {
       "titulo": "¿Salir de Boorie?",
       "mensaje": "Se cerrará la red abierta y se detendrá cualquier simulación o respuesta en curso. Tus redes guardadas en el proyecto no se pierden.",
+      "mensajeSinRed": "Se detendrá cualquier simulación o respuesta en curso. Tus redes guardadas en el proyecto no se pierden.",
       "confirmar": "Salir",
       "cancelar": "Cancelar"
     }
@@ -1365,6 +1370,12 @@
     "projected": "proyectadas",
     "undetermined": "sin determinar",
     "units": " • unidades: {{unidades}}",
+    "unidadesMapa": {
+      "feet": "pies",
+      "meters": "metros",
+      "degrees": "grados",
+      "none": "sin unidades"
+    },
     "declared": "Declarado",
     "suggested": "Sugerido",
     "unconfirmed": " (sin confirmar)",
@@ -1377,7 +1388,14 @@
     "projectField": "Sistema de coordenadas de las redes",
     "projectNone": "Sin declarar: se elige al abrir cada red",
     "projectHint": "Por ejemplo, EPSG:32717 (UTM 17S) para una red en el sur de Ecuador.",
-    "fromProject": "Del proyecto"
+    "fromProject": "Del proyecto",
+    "apply": "Aplicar",
+    "saving": "Guardando…",
+    "noMatch": "Ningún sistema coincide con «{{busqueda}}».",
+    "projectLine": "Proyecto",
+    "projectLineNone": "sin sistema por defecto",
+    "projectSaveFailed": "No se pudo guardar el sistema del proyecto.",
+    "declareShort": "Declarar EPSG"
   },
   "migration": {
     "calculations": "Cálculos",
@@ -1456,7 +1474,6 @@
     "ollamaFound": "Ollama responde: {{count}} modelos de embeddings de {{total}} en total.",
     "ollamaFailed": "No se pudo conectar con Ollama: {{motivo}}",
     "checkFailed": "No se pudo comprobar la conexión: {{motivo}}",
-    "mapBadSize": "El mapa no cabe donde está: revisa el tamaño de la ventana.",
     "mapInitFailed": "No se pudo arrancar el mapa: {{motivo}}",
     "mapInitCheck": "No se pudo arrancar el mapa. Revisa la configuración de Mapbox.",
     "missingInputs": "Faltan datos de entrada: {{campos}}",

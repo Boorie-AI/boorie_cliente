@@ -371,6 +371,32 @@ export function codigoPais(pais: string | null | undefined): string | null {
   return porNombre?.codigo ?? OTROS_NOMBRES[valor] ?? null
 }
 
+/**
+ * Sistemas habituales del país, en el orden en que se ofrecen: los nacionales y
+ * después los husos UTM que cruzan su envolvente, primero los del hemisferio en
+ * el que está la mayor parte. Vacío si el país no se reconoce.
+ */
+export function sistemasDelPais(pais: string | null | undefined): string[] {
+  const codigo = codigoPais(pais)
+  const env = codigo ? ENVOLVENTES_PAIS[codigo] : undefined
+  if (!codigo || !env) return []
+
+  const nacionales = Object.keys(NOMBRES).filter(epsg => NOMBRES[epsg].pais === codigo)
+  const huso = (lon: number) => Math.min(60, Math.floor((lon + 180) / 6) + 1)
+  const hemisferios = [
+    { prefijo: 326, extension: Math.max(0, env.maxLat) },
+    { prefijo: 327, extension: Math.max(0, -env.minLat) },
+  ].filter(h => h.extension > 0).sort((a, b) => b.extension - a.extension)
+
+  const husos: string[] = []
+  for (const { prefijo } of hemisferios) {
+    for (let zona = huso(env.minLon); zona <= huso(env.maxLon); zona++) {
+      husos.push(`EPSG:${prefijo}${String(zona).padStart(2, '0')}`)
+    }
+  }
+  return [...nacionales, ...husos]
+}
+
 export interface Cordura {
   ok: boolean
   /** Texto para la interfaz cuando algo no cuadra; vacio cuando `ok`. */

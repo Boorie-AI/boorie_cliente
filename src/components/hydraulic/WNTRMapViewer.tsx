@@ -11,7 +11,8 @@ import {
   Loader2,
   AlertCircle,
   MapPin,
-  Globe2
+  Globe2,
+  FolderOpen
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { useMapboxToken } from '@/hooks/useMapboxToken'
@@ -268,6 +269,10 @@ export function WNTRMapViewer({
     [selectedLink, networkData, simulationResults, currentTimeStep]
   )
 
+  // Solo cambia si el mapa no se pudo crear por falta de hueco, y solo a true:
+  // de otro modo el mapa se destruiría y se recrearía al plegar un panel.
+  const [hayHueco, setHayHueco] = useState(false)
+
   // Initialize map
   useEffect(() => {
     logger.debug('Map initialization useEffect triggered')
@@ -288,9 +293,10 @@ export function WNTRMapViewer({
       left: containerRect.left
     })
 
+    // Con la ventana estrecha y los paneles abiertos el hueco puede medir 0 al
+    // montar; el ResizeObserver de abajo vuelve a lanzar esto cuando lo tenga.
     if (containerRect.width === 0 || containerRect.height === 0) {
-      logger.error('Map container has zero dimensions:', containerRect)
-      setError(t('messages.mapBadSize'))
+      logger.debug('Map container has zero dimensions, waiting for space:', containerRect)
       return
     }
 
@@ -453,7 +459,7 @@ export function WNTRMapViewer({
     }
     // Re-run when the token resolves/changes: it now loads asynchronously
     // from Settings (DB) and may not be available yet on first mount.
-  }, [MAPBOX_ACCESS_TOKEN])
+  }, [MAPBOX_ACCESS_TOKEN, hayHueco])
 
   // Mapbox únicamente se reajusta al cambiar la ventana. Al plegar un panel
   // lateral el contenedor crece y el lienzo se quedaba con el ancho de antes,
@@ -462,7 +468,10 @@ export function WNTRMapViewer({
   useEffect(() => {
     const contenedor = mapContainer.current
     if (!contenedor) return
-    const observador = new ResizeObserver(() => map.current?.resize())
+    const observador = new ResizeObserver(([entrada]) => {
+      map.current?.resize()
+      if (!map.current && entrada.contentRect.width > 0 && entrada.contentRect.height > 0) setHayHueco(true)
+    })
     observador.observe(contenedor)
     return () => observador.disconnect()
   }, [MAPBOX_ACCESS_TOKEN])
@@ -605,6 +614,17 @@ export function WNTRMapViewer({
   const [mostrarSelectorCRS, setMostrarSelectorCRS] = useState(false)
   const paisProyecto = useProjectStore(s => s.currentProject?.location?.country ?? null)
   const epsgProyecto = useProjectStore(s => s.currentProject?.location?.epsg ?? null)
+  const hayProyecto = useProjectStore(s => !!s.currentProject)
+  const [mostrarSelectorCRSProyecto, setMostrarSelectorCRSProyecto] = useState(false)
+
+  // El sistema del proyecto se edita aquí, donde se ve su efecto: las redes sin
+  // sistema propio se dibujan con él en cuanto se guarda.
+  const guardarEpsgProyecto = async (epsg: string | null) => {
+    const { currentProject, updateProject } = useProjectStore.getState()
+    if (!currentProject) return
+    const ok = await updateProject(currentProject.id, { location: { ...currentProject.location, epsg } })
+    if (!ok) throw new Error(t('crs.projectSaveFailed'))
+  }
 
   useEffect(() => {
     setEpsgDeclarado(networkData?.coordinate_system?.declared_epsg ?? null)
@@ -1003,7 +1023,7 @@ export function WNTRMapViewer({
         })
       }
     }
-  }, [networkData, simulationResults, showNetworkOverlay, mapSettings, currentTimeStep, addNetworkToMap])
+  }, [networkData, simulationResults, showNetworkOverlay, mapSettings, currentTimeStep, addNetworkToMap, hayHueco])
 
   const handleFileUpload = async () => {
     try {
@@ -1137,10 +1157,10 @@ export function WNTRMapViewer({
 
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-background">
+    <div className="flex-1 flex flex-col h-full min-w-0 bg-background">
       {/* Header */}
-      <div className="border-b border-border p-6">
-        <div className="flex items-center justify-between">
+      <div className="border-b border-border px-8 py-4 xl:py-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold text-foreground">{t('mapViewer.title')}</h1>
             <p className="text-muted-foreground mt-1">
@@ -1151,7 +1171,7 @@ export function WNTRMapViewer({
           {/* Cargar un .inp desde aqui solo tiene sentido cuando no hay red: con
               una cargada, el boton competia con la red que ya se esta viendo. El
               del estado vacio («No Network Loaded») sigue siendo la via. */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {networkData && (
               <>
                 <button
@@ -1178,7 +1198,7 @@ export function WNTRMapViewer({
                     }
                   }}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg",
+                    "flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap",
                     "bg-secondary text-secondary-foreground hover:bg-secondary/80",
                     "transition-colors"
                   )}
@@ -1223,7 +1243,7 @@ export function WNTRMapViewer({
                   title={t('mapViewer.crsTitle')}
                 >
                   <Globe2 className="w-4 h-4" />
-                  {crs.epsg ?? 'Declarar EPSG'}
+                  {crs.epsg ?? t('crs.declareShort')}
                 </button>
               </>
             )}
@@ -1233,7 +1253,7 @@ export function WNTRMapViewer({
         {/* Network Summary */}
         {networkData && (
           <div className="mt-4 space-y-2">
-            <div className="flex gap-4 text-sm">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
               <span className="text-muted-foreground">
                 <strong className="text-foreground">{networkData.summary.junctions}</strong> {t('mapViewer.junctions')}
               </span>
@@ -1265,7 +1285,10 @@ export function WNTRMapViewer({
                     : networkData.coordinate_system?.type === 'projected'
                       ? t('crs.projected')
                       : t('crs.undetermined')}
-                  {networkData.coordinate_system?.units && t('crs.units', { unidades: networkData.coordinate_system.units })}
+                  {/* Los cuatro valores de [MAP] UNITS de EPANET; otro, tal cual. */}
+                  {networkData.coordinate_system?.units && t('crs.units', {
+                    unidades: t(`crs.unidadesMapa.${networkData.coordinate_system.units}`, { defaultValue: networkData.coordinate_system.units })
+                  })}
                 </span>
               </div>
 
@@ -1325,6 +1348,22 @@ export function WNTRMapViewer({
                       </>
                     )}
                   </span>
+                </div>
+              )}
+
+              {hayProyecto && (
+                <div className="flex items-center gap-2 ml-5 text-muted-foreground">
+                  <FolderOpen className="w-3 h-3" />
+                  <span>
+                    {t('crs.projectLine')}:{' '}
+                    {epsgProyecto ? `${epsgProyecto} — ${nombreCRS(epsgProyecto)}` : t('crs.projectLineNone')}
+                  </span>
+                  <button
+                    onClick={() => setMostrarSelectorCRSProyecto(true)}
+                    className="underline hover:text-foreground"
+                  >
+                    {t('mapViewer.change')}
+                  </button>
                 </div>
               )}
 
@@ -1502,6 +1541,18 @@ export function WNTRMapViewer({
         networkId={networkId}
         onDeclarado={setEpsgDeclarado}
       />
+
+      {mostrarSelectorCRSProyecto && (
+        <CRSSelector
+          abierto
+          ambito="proyecto"
+          pais={paisProyecto}
+          onCerrar={() => setMostrarSelectorCRSProyecto(false)}
+          limites={limitesRed}
+          epsgActual={epsgProyecto}
+          onDeclarado={guardarEpsgProyecto}
+        />
+      )}
 
       {/* Error Display */}
       {error && (

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { WNTRAdvancedMapViewer } from './WNTRAdvancedMapViewer'
 
@@ -107,23 +107,45 @@ describe('los resultados de simular desde el mapa suben al armazón', () => {
   })
 })
 
+// happy-dom simula una ventana de 1024 px, y por debajo de 1100 el panel
+// derecho arranca plegado: cada test dice en qué ventana está.
+const ventana = (estrecha: boolean) =>
+  vi.spyOn(window, 'matchMedia').mockImplementation(media => ({
+    matches: estrecha, media, addEventListener: vi.fn(), removeEventListener: vi.fn(),
+  }) as unknown as MediaQueryList)
+
 /**
  * El botón del panel derecho vivía dentro del panel: al plegarlo a ancho 0 quedaba
  * recortado por la raíz del visor y no había forma de ver dónde volver a abrirlo.
  */
 describe('el panel derecho se puede volver a mostrar (#279)', () => {
+  afterEach(() => { vi.restoreAllMocks() })
+
   it('plegado, el botón sigue fuera del panel y lo despliega', () => {
+    ventana(false)
     render(<WNTRAdvancedMapViewer networkData={RED as never} />)
     const panel = screen.getByTestId('panel').parentElement!.parentElement!
 
-    fireEvent.click(screen.getByRole('button', { name: 'Contraer barra lateral' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ocultar el panel de visualización' }))
 
     expect(panel.className).toContain('w-0')
-    const mostrar = screen.getByRole('button', { name: 'Expandir barra lateral' })
+    const mostrar = screen.getByRole('button', { name: 'Mostrar el panel de visualización' })
     expect(panel.contains(mostrar)).toBe(false)
 
     fireEvent.click(mostrar)
 
+    expect(panel.className).toContain('w-80')
+  })
+
+  // A 800 px, con la barra lateral y los dos paneles abiertos, el mapa se
+  // quedaba sin ancho y el panel derecho y su botón caían fuera de la ventana.
+  it('en una ventana estrecha arranca plegado y se puede abrir', () => {
+    ventana(true)
+    render(<WNTRAdvancedMapViewer networkData={RED as never} />)
+    const panel = screen.getByTestId('panel').parentElement!.parentElement!
+
+    expect(panel.className).toContain('w-0')
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar el panel de visualización' }))
     expect(panel.className).toContain('w-80')
   })
 })

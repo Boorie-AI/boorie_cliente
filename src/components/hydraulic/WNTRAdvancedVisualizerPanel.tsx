@@ -221,13 +221,15 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
             </div>
           )}
 
-          <div className="flex items-center justify-between">
+          {/* Toda la fila es la etiqueta: nombra el interruptor para el lector
+              de pantalla y hace clicable el texto, no solo los 36×20 px. */}
+          <label className="flex items-center justify-between cursor-pointer">
             <span className="text-sm">{t('viewer.nodeLabels')}</span>
             <Switch
               checked={settings.showLabels}
               onCheckedChange={checked => handleSettingChange('showLabels', checked)}
             />
-          </div>
+          </label>
 
           {settings.vista === 'mapa' && (
             <div className="space-y-2">
@@ -292,7 +294,13 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
         </CardHeader>
         <CardContent className="space-y-2">
           {CAPAS.map(capa => (
-            <div key={capa.tipo} className="flex items-center justify-between">
+            <label
+              key={capa.tipo}
+              className={cn(
+                'flex items-center justify-between',
+                cuentas[capa.tipo] === 0 ? 'cursor-not-allowed' : 'cursor-pointer'
+              )}
+            >
               <span
                 className={cn(
                   'text-sm',
@@ -306,12 +314,13 @@ export const WNTRAdvancedVisualizerPanel: React.FC<WNTRAdvancedVisualizerPanelPr
                 // Un tipo que la red no tiene se deshabilita en vez de esconderse:
                 // así se ve que existe y que esta red no lo usa.
                 disabled={cuentas[capa.tipo] === 0}
+                aria-label={t(`layers.${capa.tipo}`)}
                 checked={settings.capas[capa.tipo]}
                 onCheckedChange={checked =>
                   handleSettingChange('capas', { ...settings.capas, [capa.tipo]: checked })
                 }
               />
-            </div>
+            </label>
           ))}
 
           {hayCapasOcultas(settings.capas) && (

@@ -41,7 +41,7 @@ export function ProjectCRSField({ epsg, pais, onChange }: ProjectCRSFieldProps) 
             <span className="ml-2 text-muted-foreground">{nombreCRS(epsg)}</span>
           </span>
         ) : (
-          <span className="text-muted-foreground">{t('crs.projectNone')}</span>
+          <span className="text-foreground/80">{t('crs.projectNone')}</span>
         )}
       </button>
       <p className="mt-1 text-xs text-muted-foreground">{t('crs.projectHint')}</p>

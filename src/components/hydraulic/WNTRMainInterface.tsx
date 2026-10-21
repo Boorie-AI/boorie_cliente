@@ -317,6 +317,12 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     }
   }, [toViewModel, selectProjectGlobal]);
 
+  const handleProjectCreated = useCallback(async (created?: { id?: string }) => {
+    if (!created?.id) return;
+    setProjects(prev => [toViewModel(created), ...prev]);
+    await selectProjectGlobal(created.id);
+  }, [toViewModel, selectProjectGlobal]);
+
   /**
    * Importar un .inp desde la raíz de proyectos (#77). El qué está en
    * `importarRed`, que es donde puede probarse; aquí sólo se le pasan los tres
@@ -452,6 +458,12 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
 
   // Core state
   const [networkData, setNetworkData] = useState<NetworkData | null>(null);
+  const setRedAbierta = useAppStore(s => s.setRedAbierta);
+  // Al salir del visor la red se pierde con su estado, así que deja de estar abierta.
+  useEffect(() => {
+    setRedAbierta(!!networkData);
+    return () => setRedAbierta(false);
+  }, [networkData, setRedAbierta]);
   /** Red cuyo historial de versiones se está mirando (#38). */
   const [historialDe, setHistorialDe] = useState<{ id: string; nombre: string } | null>(null);
   /** Instantáneas del proyecto activo (#38). */
@@ -1127,6 +1139,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
           onSelectProject={handleSelectProject}
           onOpenProject={handleOpenProject}
           onCreateProject={handleCreateProject}
+          onProjectCreated={handleProjectCreated}
           onImportNetwork={handleImportNetwork}
           onDeleteProject={handleDeleteProject}
           activeProjectId={activeProjectId}
@@ -1301,7 +1314,7 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
     return (
       <div className="flex h-[calc(100vh-65px)] overflow-hidden bg-background">
         {/* Left Sidebar - Controls & Results */}
-        <div className={`shrink-0 border-r bg-card flex flex-col h-full shadow-lg z-10 transition-all duration-300 ${isLeftSidebarCollapsed ? 'w-0 overflow-hidden' : 'w-[400px]'}`}>
+        <div className={`shrink-0 border-r bg-card flex flex-col h-full shadow-lg z-10 transition-all duration-300 ${isLeftSidebarCollapsed ? 'w-0 overflow-hidden' : 'w-80 xl:w-[400px]'}`}>
           <div className="p-4 border-b flex items-center justify-between bg-muted/30">
             <div className="flex items-center gap-2 overflow-hidden">
               <Database className="h-4 w-4 shrink-0 text-primary" />
@@ -1343,38 +1356,38 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                     </p>
 
                     <div className="grid grid-cols-2 gap-2 mt-2">
-                      <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.sim.duration')}</div>
+                      <label className="block bg-background p-2 rounded border cursor-text">
+                        <span className="block text-[10px] text-muted-foreground mb-1">{t('networkView.sim.duration')}</span>
                         <input
                           type="number"
                           min={0}
                           value={simulationDuration}
                           onChange={(e) => setSimulationDuration(sinNegativos(e.target.value))}
-                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
+                          className="w-full py-0.5 bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         />
-                      </div>
-                      <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.sim.timestep')}</div>
+                      </label>
+                      <label className="block bg-background p-2 rounded border cursor-text">
+                        <span className="block text-[10px] text-muted-foreground mb-1">{t('networkView.sim.timestep')}</span>
                         <input
                           type="number"
                           min={0}
                           value={simulationTimestep}
                           onChange={(e) => setSimulationTimestep(sinNegativos(e.target.value))}
-                          className="w-full bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
+                          className="w-full py-0.5 bg-transparent font-mono text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         />
-                      </div>
+                      </label>
                     </div>
 
                     {/* Qué se sigue en la simulación de calidad. Antes sólo se
                         pedía la edad del agua porque era lo único que el motor
                         sabía dar. */}
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="bg-background p-2 rounded border">
-                        <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.waterQuality')}</div>
+                      <label className="block bg-background p-2 rounded border cursor-pointer">
+                        <span className="block text-[10px] text-muted-foreground mb-1">{t('networkView.waterQuality')}</span>
                         <select
                           value={qualityParameter}
                           onChange={(e) => setQualityParameter(e.target.value as 'AGE' | 'TRACE' | 'CHEMICAL')}
-                          className="w-full bg-transparent text-sm border-b border-border focus:outline-hidden focus:border-primary"
+                          className="w-full py-0.5 bg-transparent text-sm border-b border-border focus:outline-hidden focus:border-primary"
                         >
                           <option value="AGE">{t('networkView.waterAge')}</option>
                           <option value="TRACE" disabled={fuentesDeTrazado.length === 0}>
@@ -1382,20 +1395,20 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
                           </option>
                           <option value="CHEMICAL">{t('networkView.fileSubstance')}</option>
                         </select>
-                      </div>
+                      </label>
                       {qualityParameter === 'TRACE' && (
-                        <div className="bg-background p-2 rounded border">
-                          <div className="text-[10px] text-muted-foreground mb-1">{t('networkView.traceSource')}</div>
+                        <label className="block bg-background p-2 rounded border cursor-pointer">
+                          <span className="block text-[10px] text-muted-foreground mb-1">{t('networkView.traceSource')}</span>
                           <select
                             value={fuenteElegida}
                             onChange={(e) => setTraceNode(e.target.value)}
-                            className="w-full bg-transparent text-sm border-b border-border focus:outline-hidden focus:border-primary"
+                            className="w-full py-0.5 bg-transparent text-sm border-b border-border focus:outline-hidden focus:border-primary"
                           >
                             {fuentesDeTrazado.map(id => (
                               <option key={id} value={id}>{id}</option>
                             ))}
                           </select>
-                        </div>
+                        </label>
                       )}
                     </div>
                   </div>
@@ -2657,12 +2670,15 @@ export const WNTRMainInterface: React.FC<WNTRMainInterfaceProps> = ({
         </div >
 
         {/* Main Content - The Map */}
-        < div className="flex-1 h-full relative font-sans" >
+        {/* min-w-0: sin él, el ancho mínimo del visor empujaba el panel derecho
+            y su interruptor fuera de la ventana por debajo de ~1400 px. */}
+        < div className="flex-1 h-full min-w-0 relative font-sans" >
           {/* Sidebar Toggle Button */}
           < button
             onClick={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
             className="absolute left-0 top-4 z-20 bg-card text-foreground p-1 rounded-r-md border-r border-y border-border hover:bg-muted shadow-md flex items-center justify-center w-6 h-8"
-            title={isLeftSidebarCollapsed ? t('sidebar.expandSidebar') : t('sidebar.collapseSidebar')}
+            title={isLeftSidebarCollapsed ? t('networkView.mostrarPanelSimulacion') : t('networkView.ocultarPanelSimulacion')}
+            aria-label={isLeftSidebarCollapsed ? t('networkView.mostrarPanelSimulacion') : t('networkView.ocultarPanelSimulacion')}
           >
             {isLeftSidebarCollapsed ? ">>" : "<<"}
           </button >

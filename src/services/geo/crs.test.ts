@@ -14,6 +14,7 @@ import {
   pareceGeografico,
   reproyectarLimites,
   resolverCRS,
+  sistemasDelPais,
   sugerirCRS,
   validarCordura,
 } from './crs'
@@ -228,6 +229,28 @@ describe('catálogo y normalización', () => {
 
   it('un EPSG no soportado falla al crear el transformador en vez de devolver algo falso', () => {
     expect(() => crearTransformador('EPSG:999999')).toThrow(/no soportado/i)
+  })
+})
+
+describe('sistemas del país', () => {
+  // Elegir Ecuador en el selector no cambiaba nada: la lista seguía empezando
+  // por Colombia y el 17S había que buscarlo a mano.
+  it('Ecuador ofrece sus husos UTM, primero los del sur', () => {
+    const ec = sistemasDelPais('Ecuador')
+    expect(ec.slice(0, 4)).toEqual(['EPSG:32715', 'EPSG:32716', 'EPSG:32717', 'EPSG:32718'])
+    expect(ec).toContain('EPSG:32617')
+  })
+
+  it('los sistemas nacionales van antes que los husos', () => {
+    const es = sistemasDelPais('España')
+    expect(es.slice(0, 3)).toEqual(['EPSG:25829', 'EPSG:25830', 'EPSG:25831'])
+    expect(es).toContain('EPSG:32630')
+    expect(es.some(e => e.startsWith('EPSG:327'))).toBe(false)
+  })
+
+  it('sin país, o con uno que no se reconoce, no propone nada', () => {
+    expect(sistemasDelPais(null)).toEqual([])
+    expect(sistemasDelPais('Atlántida')).toEqual([])
   })
 })
 

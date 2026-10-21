@@ -29,6 +29,7 @@ import {
   normalizarEPSG,
   pareceEsquematico,
   reproyectarLimites,
+  sistemasDelPais,
   validarCordura,
   type LimitesProyectados,
 } from '@/services/geo/crs'
@@ -45,11 +46,12 @@ interface CRSSelectorProps {
    * el mapa, pero no hay dónde recordar el sistema hasta que se guarde.
    */
   networkId?: string | null
-  onDeclarado: (epsg: string | null) => void
+  /** Si devuelve una promesa que falla, el error se enseña y la ventana sigue abierta. */
+  onDeclarado: (epsg: string | null) => void | Promise<void>
   /**
    * `proyecto`: se elige el sistema por defecto de las redes de un proyecto, que
    * puede no ser el abierto (al crearlo todavía no existe), así que el país llega
-   * por `pais` y no se guarda nada aquí: lo guarda el formulario del proyecto.
+   * por `pais` y no se guarda nada aquí: lo guarda quien recibe `onDeclarado`.
    */
   ambito?: 'red' | 'proyecto'
   pais?: string | null
@@ -83,14 +85,24 @@ export function CRSSelector({
   const resultados = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
     if (!q) {
-      // Sin búsqueda se enseñan los sistemas con nombre propio: los 120 husos de
-      // golpe no ayudan a nadie, y quien busca el suyo escribe «18N» o «32618».
-      return catalogo.filter(c => !/^EPSG:32[67]\d{2}$/.test(c.epsg)).slice(0, 40)
+      // Sin búsqueda: el elegido (aunque sea un huso, para que al volver a abrir
+      // se vea), los habituales del país y los sistemas con nombre propio. Los
+      // 120 husos de golpe no ayudan a nadie; quien busca otro escribe «18N».
+      const delPais = sistemasDelPais(paisProyecto)
+      const orden = [
+        ...(epsgActual ? [epsgActual] : []),
+        ...delPais,
+        ...catalogo.filter(c => !/^EPSG:32[67]\d{2}$/.test(c.epsg)).map(c => c.epsg),
+      ]
+      return [...new Set(orden)]
+        .map(epsg => catalogo.find(c => c.epsg === epsg))
+        .filter((c): c is (typeof catalogo)[number] => !!c)
+        .slice(0, 40 + delPais.length)
     }
     return catalogo
       .filter(c => c.epsg.toLowerCase().includes(q) || c.nombre.toLowerCase().includes(q))
       .slice(0, 60)
-  }, [busqueda, catalogo])
+  }, [busqueda, catalogo, epsgActual, paisProyecto])
 
   /** Código escrito a mano que no está en el catálogo pero sí se puede usar. */
   const codigoLibre = useMemo(() => {
@@ -126,7 +138,7 @@ export function CRSSelector({
         const res = await window.electronAPI.networkRepository.declareCRS({ networkId, epsg })
         if (!res?.success) throw new Error(res?.error || 'No se pudo guardar el sistema de coordenadas')
       }
-      onDeclarado(epsg)
+      await onDeclarado(epsg)
       onCerrar()
     } catch (e) {
       logger.error('Error declarando el CRS de la red:', e)
@@ -202,7 +214,7 @@ export function CRSSelector({
 
             {resultados.length === 0 && !codigoLibre && (
               <p className="px-3 py-4 text-center text-sm text-muted-foreground">
-                Ningún sistema coincide con «{busqueda}».
+                {t('crs.noMatch', { busqueda })}
               </p>
             )}
           </div>
@@ -260,7 +272,7 @@ export function CRSSelector({
               {t('crs.cancel')}
             </Button>
             <Button size="sm" disabled={!seleccion || guardando} onClick={() => declarar(seleccion)}>
-              {guardando ? 'Guardando…' : 'Aplicar'}
+              {guardando ? t('crs.saving') : t('crs.apply')}
             </Button>
           </div>
         </div>

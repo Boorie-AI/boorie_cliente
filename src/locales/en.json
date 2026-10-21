@@ -509,6 +509,10 @@
     "pickFormulaOf": "Choose a formula from {{categoria}}"
   },
   "networkView": {
+    "mostrarPanelSimulacion": "Show the simulation panel",
+    "ocultarPanelSimulacion": "Hide the simulation panel",
+    "mostrarPanelVisualizacion": "Show the display panel",
+    "ocultarPanelVisualizacion": "Hide the display panel",
     "tabs": {
       "simulate": "Simulation",
       "analyze": "Analysis",
@@ -1060,6 +1064,7 @@
     "salir": {
       "titulo": "Quit Boorie?",
       "mensaje": "The open network will be closed and any simulation or response in progress will stop. Networks saved in your project are not lost.",
+      "mensajeSinRed": "Any simulation or response in progress will stop. Networks saved in your project are not lost.",
       "confirmar": "Quit",
       "cancelar": "Cancel"
     }
@@ -1365,6 +1370,12 @@
     "projected": "projected",
     "undetermined": "undetermined",
     "units": " • units: {{unidades}}",
+    "unidadesMapa": {
+      "feet": "feet",
+      "meters": "metres",
+      "degrees": "degrees",
+      "none": "no units"
+    },
     "declared": "Declared",
     "suggested": "Suggested",
     "unconfirmed": " (unconfirmed)",
@@ -1377,7 +1388,14 @@
     "projectField": "Coordinate system of the networks",
     "projectNone": "Not declared: chosen when each network is opened",
     "projectHint": "For example, EPSG:32717 (UTM 17S) for a network in southern Ecuador.",
-    "fromProject": "From the project"
+    "fromProject": "From the project",
+    "apply": "Apply",
+    "saving": "Saving…",
+    "noMatch": "No system matches “{{busqueda}}”.",
+    "projectLine": "Project",
+    "projectLineNone": "no default system",
+    "projectSaveFailed": "The project system could not be saved.",
+    "declareShort": "Declare EPSG"
   },
   "migration": {
     "calculations": "Calculations",
@@ -1456,7 +1474,6 @@
     "ollamaFound": "Ollama answers: {{count}} embedding models out of {{total}}.",
     "ollamaFailed": "Could not connect to Ollama: {{motivo}}",
     "checkFailed": "The connection could not be checked: {{motivo}}",
-    "mapBadSize": "The map does not fit where it is: check the window size.",
     "mapInitFailed": "The map could not be started: {{motivo}}",
     "mapInitCheck": "The map could not be started. Check your Mapbox settings.",
     "missingInputs": "Missing inputs: {{campos}}",

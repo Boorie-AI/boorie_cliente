@@ -121,10 +121,13 @@ export function Sidebar() {
             )}
           </button>
         </Tooltip.Trigger>
+        {/* En un portal: la navegación hace scroll y recortaría el tooltip. */}
         {(sidebarCollapsed || bloqueada) && (
-          <Tooltip.Content side="right" className="px-2 py-1 bg-popover text-popover-foreground text-sm rounded-md border border-border shadow-md max-w-xs">
-            {ayuda}
-          </Tooltip.Content>
+          <Tooltip.Portal>
+            <Tooltip.Content side="right" className="z-50 px-2 py-1 bg-popover text-popover-foreground text-sm rounded-md border border-border shadow-md max-w-xs">
+              {ayuda}
+            </Tooltip.Content>
+          </Tooltip.Portal>
         )}
       </Tooltip.Root>
     )
@@ -166,6 +169,7 @@ export function Sidebar() {
             <Tooltip.Trigger asChild>
               <button
                 onClick={toggleSidebar}
+                aria-label={sidebarCollapsed ? t('sidebar.expandSidebar') : t('sidebar.collapseSidebar')}
                 className={cn(
                   "p-2 rounded-lg transition-colors",
                   "hover:bg-accent text-muted-foreground hover:text-foreground",
@@ -182,8 +186,9 @@ export function Sidebar() {
         </div>
 
         {/* Navegación en tres bloques: lo que pertenece al proyecto, lo que es
-            independiente de él y lo que es del sistema (#35). */}
-        <div className="p-3 space-y-4 shrink-0">
+            independiente de él y lo que es del sistema (#35). Encoge y hace
+            scroll en vez de empujar «Ayuda» fuera de la ventana a 800×600. */}
+        <div className="p-3 space-y-4 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-border">
           {BLOQUES.map(bloque => (
             <div key={bloque.id} className="space-y-1">
               {!sidebarCollapsed && (
@@ -225,7 +230,7 @@ export function Sidebar() {
 
         {/* Conversaciones del ámbito en el que está el chat */}
         {currentView === 'chat' && !sidebarCollapsed && (
-          <div className="flex-1 flex flex-col p-3 overflow-hidden border-t border-border/50">
+          <div className="flex-1 min-h-32 flex flex-col p-3 overflow-hidden border-t border-border/50">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-3 mb-3 mt-2 shrink-0">
               {t(ambitoChat === 'proyecto' ? 'sidebar.chatsDelProyecto' : 'sidebar.recentChats')}
             </h3>

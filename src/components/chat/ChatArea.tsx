@@ -98,7 +98,7 @@ export function ChatArea() {
   return (
     <div className="h-full flex bg-background">
       {/* Main chat area - centered, full width to let thinking text breathe */}
-      <div className="flex-1 flex flex-col min-h-0 w-full mx-auto">
+      <div className="flex-1 flex flex-col min-h-0 min-w-0 w-full mx-auto">
         {/* Header with conversation info and model selector */}
         <div className="shrink-0 border-b border-border/50 bg-card z-10">
           <ChatHeader conversation={activeConversation} />
@@ -126,8 +126,9 @@ export function ChatArea() {
         </div>
       </div>
 
-      {/* Project conversations list - fixed sidebar */}
-      <div className="shrink-0">
+      {/* Por debajo de xl no cabe junto a la barra lateral sin aplastar el chat,
+          y la barra ya lista los chats recientes. */}
+      <div className="shrink-0 hidden xl:block">
         <ProjectConversationsList
           projectId={activeConversation.projectId}
           currentConversationId={activeConversation.id}

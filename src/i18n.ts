@@ -31,4 +31,9 @@ i18n
     },
   })
 
+// Los lectores de pantalla y la partición de palabras leen el idioma de <html>,
+// que se quedaba en «en» aunque la aplicación estuviera en castellano.
+document.documentElement.lang = i18n.language
+i18n.on('languageChanged', idioma => { document.documentElement.lang = idioma })
+
 export default i18n

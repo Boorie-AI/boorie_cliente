@@ -509,6 +509,10 @@
     "pickFormulaOf": "Tria una fórmula de {{categoria}}"
   },
   "networkView": {
+    "mostrarPanelSimulacion": "Mostra el tauler de simulació",
+    "ocultarPanelSimulacion": "Amaga el tauler de simulació",
+    "mostrarPanelVisualizacion": "Mostra el tauler de visualització",
+    "ocultarPanelVisualizacion": "Amaga el tauler de visualització",
     "tabs": {
       "simulate": "Simulació",
       "analyze": "Anàlisi",
@@ -1060,6 +1064,7 @@
     "salir": {
       "titulo": "Vols sortir de Boorie?",
       "mensaje": "Es tancarà la xarxa oberta i s'aturarà qualsevol simulació o resposta en curs. Les xarxes desades al projecte no es perden.",
+      "mensajeSinRed": "S'aturarà qualsevol simulació o resposta en curs. Les xarxes desades al projecte no es perden.",
       "confirmar": "Surt",
       "cancelar": "Cancel·la"
     }
@@ -1365,6 +1370,12 @@
     "projected": "projectades",
     "undetermined": "sense determinar",
     "units": " • unitats: {{unidades}}",
+    "unidadesMapa": {
+      "feet": "peus",
+      "meters": "metres",
+      "degrees": "graus",
+      "none": "sense unitats"
+    },
     "declared": "Declarat",
     "suggested": "Suggerit",
     "unconfirmed": " (sense confirmar)",
@@ -1377,7 +1388,14 @@
     "projectField": "Sistema de coordenades de les xarxes",
     "projectNone": "Sense declarar: es tria en obrir cada xarxa",
     "projectHint": "Per exemple, EPSG:32717 (UTM 17S) per a una xarxa al sud de l’Equador.",
-    "fromProject": "Del projecte"
+    "fromProject": "Del projecte",
+    "apply": "Aplica",
+    "saving": "Desant…",
+    "noMatch": "Cap sistema coincideix amb «{{busqueda}}».",
+    "projectLine": "Projecte",
+    "projectLineNone": "sense sistema per defecte",
+    "projectSaveFailed": "No s’ha pogut desar el sistema del projecte.",
+    "declareShort": "Declara l’EPSG"
   },
   "migration": {
     "calculations": "Càlculs",
@@ -1456,7 +1474,6 @@
     "ollamaFound": "Ollama respon: {{count}} models d’embeddings de {{total}} en total.",
     "ollamaFailed": "No s’ha pogut connectar amb Ollama: {{motivo}}",
     "checkFailed": "No s’ha pogut comprovar la connexió: {{motivo}}",
-    "mapBadSize": "El mapa no cap on és: revisa la mida de la finestra.",
     "mapInitFailed": "No s’ha pogut arrencar el mapa: {{motivo}}",
     "mapInitCheck": "No s’ha pogut arrencar el mapa. Revisa la configuració de Mapbox.",
     "missingInputs": "Falten dades d’entrada: {{campos}}",

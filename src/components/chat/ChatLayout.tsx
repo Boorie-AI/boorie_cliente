@@ -49,7 +49,7 @@ export function ChatLayout() {
       <Sidebar />
       <div
         className={cn(
-          "flex-1 flex flex-col transition-all duration-300 ease-in-out h-full min-h-0",
+          "flex-1 flex flex-col transition-all duration-300 ease-in-out h-full min-h-0 min-w-0",
           "border-l border-border/50",
           sidebarCollapsed ? "ml-16" : "ml-64"
         )}
