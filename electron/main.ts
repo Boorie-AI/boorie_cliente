@@ -407,7 +407,8 @@ import { HandlersManager } from './handlers'
 import { appLogger } from '../backend/utils/logger'
 import { findPythonForMilvus } from '../backend/services/hydraulic/pythonDetector'
 import { reconstruirSiHaceFalta } from '../backend/services/hydraulic/hybridSearch'
-import { startMilvusServer, stopMilvusServer } from './services/milvusProcess'
+import { alArrancarMilvus, startMilvusServer, stopMilvusServer } from './services/milvusProcess'
+import { MilvusService } from '../backend/services/milvus.service'
 import { ensureProductionSchema } from './esquemaProduccion'
 import { urlConEspera, activarWAL } from './baseSqlite'
 import { protegerNavegacion } from './navegacionSegura'
@@ -754,13 +755,12 @@ async function initializeApplication(): Promise<void> {
     // isn't writable in the packaged app). Previously nothing spawned this
     // process outside of the dev-only dev-runner.js, so Milvus was never
     // running in the installed app (root cause of issues #19/#20/#21).
-    try {
-      // Milvus necesita el venv gestionado (el que tiene milvus_lite), no el
-      // Python del sistema que WNTR puede estar usando.
-      startMilvusServer(findPythonForMilvus(), milvusDataDir)
-    } catch (error) {
+    alArrancarMilvus(() => MilvusService.getInstance().olvidarConexion())
+    // Milvus necesita el venv gestionado (el que tiene milvus_lite), no el
+    // Python del sistema que WNTR puede estar usando.
+    startMilvusServer(findPythonForMilvus(), milvusDataDir).catch(error =>
       appLogger.warn('Failed to start embedded Milvus Lite server', error as Error)
-    }
+    )
 
     // En segundo plano: con una base grande son minutos, y la ventana no tiene por qué esperar.
     reconstruirSiHaceFalta(prisma).catch(error =>
@@ -938,14 +938,36 @@ app.on('window-all-closed', () => {
   }
 })
 
+// Tope de la limpieza al salir: si algo se cuelga, Boorie tiene que cerrarse igual.
+const PLAZO_LIMPIEZA_MS = 15_000
+let limpiezaAlSalir: Promise<void> | null = null
+let limpiezaTerminada = false
+
 // En 'will-quit' y no en 'before-quit': éste llega antes de cerrar las
 // ventanas, y si el usuario cancela el aviso de salida la aplicación sigue
 // abierta, así que la limpieza dejaría Boorie sin base de datos ni Milvus.
-app.on('will-quit', async () => {
+// Electron no espera a un manejador async: hay que parar la salida y volver
+// a pedirla al terminar, o Milvus muere antes de cerrar su WAL.
+app.on('will-quit', (event) => {
+  if (limpiezaTerminada) return
+  event.preventDefault()
+  if (!limpiezaAlSalir) {
+    const tope = new Promise<void>(resolve => setTimeout(() => {
+      appLogger.warn(`La limpieza al salir no terminó en ${PLAZO_LIMPIEZA_MS / 1000} s: se sale igual`)
+      resolve()
+    }, PLAZO_LIMPIEZA_MS))
+    limpiezaAlSalir = Promise.race([limpiarAlSalir(), tope]).finally(() => {
+      limpiezaTerminada = true
+      app.quit()
+    })
+  }
+})
+
+async function limpiarAlSalir(): Promise<void> {
   appLogger.info('Application shutting down')
 
   try {
-    stopMilvusServer()
+    await stopMilvusServer()
 
     // Cleanup handlers
     if (handlers) {
@@ -967,7 +989,7 @@ app.on('will-quit', async () => {
   } catch (error) {
     appLogger.error('Error during application shutdown', error as Error)
   }
-})
+}
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error: any) => {

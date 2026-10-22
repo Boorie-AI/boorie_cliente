@@ -762,6 +762,16 @@ export class MilvusService {
         return this.connected && !this.unavailable;
     }
 
+    /**
+     * Milvus se ha relanzado y escucha en otro puerto. Sin esto `connected` seguía en true con
+     * el cliente apuntando al proceso muerto, y todo fallaba hasta reiniciar Boorie.
+     */
+    public olvidarConexion(): void {
+        this.connected = false;
+        this.unavailable = false;
+        this.connectionAttempted = false;
+    }
+
     /** Lo que se arregla solo con esperar: un plazo vencido, Milvus arrancando o saturado. */
     private static esTransitorio(error: unknown): boolean {
         const texto = String((error as any)?.message ?? error);

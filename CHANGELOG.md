@@ -11,6 +11,13 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 
 ## [Unreleased]
 
+- **La base de conocimiento ya no se queda sin servicio en Windows tras un cierre desafortunado.**
+  Al cerrar Boorie, la base vectorial (Milvus) se terminaba a la fuerza, sin acabar de escribir
+  lo pendiente. Si el cierre caía a mitad de una escritura, desde entonces Milvus se caía unos
+  segundos después de cada arranque y el chat avisaba de «Milvus unavailable». Ahora Boorie le
+  pide que pare y espera a que termine. El asistente de instalación actualiza `milvus-lite` a la
+  3.2.2, que al arrancar descarta lo que quedó a medias en vez de caerse. Si Milvus se cae de
+  todos modos, Boorie lo relanza hasta dos veces y deja en el registro dónde se cayó.
 - Cuando la base vectorial (Milvus) no arranca, el motivo queda en el registro de Boorie
   (`main.log`). Antes solo salía por la consola, que en la app instalada no se guarda, y el
   aviso «Milvus unavailable» no se podía diagnosticar con el registro que manda el usuario.
