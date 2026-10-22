@@ -21,15 +21,60 @@ Esta misma instancia es la BD vectorial compartida para:
 """
 from __future__ import annotations
 
+import faulthandler
 import os
+import platform
 import signal
 import sys
-import time
+import threading
+from importlib import metadata
 from pathlib import Path
 from urllib.parse import urlparse
 
+PAQUETES_NATIVOS = ("milvus-lite", "pymilvus", "faiss-cpu", "pyarrow", "numpy", "grpcio")
+
+
+def _versiones() -> str:
+    partes = [f"Python {platform.python_version()} ({platform.platform()})"]
+    for nombre in PAQUETES_NATIVOS:
+        try:
+            partes.append(f"{nombre} {metadata.version(nombre)}")
+        except metadata.PackageNotFoundError:
+            partes.append(f"{nombre} ausente")
+    return ", ".join(partes)
+
+
+def _parar_al_cerrar_la_entrada(stop: threading.Event) -> None:
+    """Boorie pide parar cerrándonos la entrada estándar.
+
+    En Windows no hay SIGTERM: kill() es TerminateProcess y Milvus moría sin
+    cerrar su WAL. Cerrar la entrada funciona igual en todos los sistemas, y
+    también llega si Boorie muere sin avisar. Sólo cuando lo lanza Boorie: a
+    mano, con la entrada en /dev/null, pararía nada más arrancar.
+    """
+    if os.environ.get("BOORIE_MILVUS_PARAR_CON_STDIN") != "1":
+        return
+
+    def _leer() -> None:
+        try:
+            while sys.stdin.readline():
+                pass
+        except Exception:  # noqa: BLE001 — una entrada rota también es la orden de parar
+            pass
+        stop.set()
+
+    threading.Thread(target=_leer, name="parar-con-stdin", daemon=True).start()
+
 
 def main() -> int:
+    # Un abort() en código nativo (faiss, pyarrow) no deja traza de Python: el
+    # proceso desaparece con 0xC0000409 en Windows. Esto vuelca dónde estaba.
+    faulthandler.enable()
+    print(f"[milvus] {_versiones()}", flush=True)
+
+    stop = threading.Event()
+    _parar_al_cerrar_la_entrada(stop)
+
     try:
         from milvus_lite.server_manager import server_manager_instance
     except Exception as e:
@@ -40,10 +85,9 @@ def main() -> int:
         )
         # Quedamos en idle — la app cae a fail-soft (search devuelve [] sin spam).
         try:
-            while True:
-                time.sleep(3600)
+            stop.wait()
         except KeyboardInterrupt:
-            return 0
+            pass
         return 0
 
     # En dev, los datos viven junto al repo (data/boorie-milvus). En la app
@@ -83,17 +127,16 @@ def main() -> int:
     print(f"[milvus] Milvus Lite listo en {address} (port file: {port_file})", flush=True)
 
     # Esperar señales de terminación y parar limpiamente.
-    stop = {"flag": False}
-
     def _signal(_sig, _frame):
-        stop["flag"] = True
+        stop.set()
 
     signal.signal(signal.SIGINT, _signal)
     signal.signal(signal.SIGTERM, _signal)
 
     try:
-        while not stop["flag"]:
-            time.sleep(1)
+        # Con plazo para que las señales lleguen: un wait() sin plazo no las atiende.
+        while not stop.wait(1):
+            pass
     finally:
         try:
             if port_file.exists():
@@ -103,8 +146,9 @@ def main() -> int:
         try:
             # El servidor vive en hilos de este proceso: release_all() los para.
             server_manager_instance.release_all()
-        except Exception:
-            pass
+            print("[milvus] parado", flush=True)
+        except Exception as e:  # noqa: BLE001
+            print(f"[milvus] release_all() lanzó: {e}", flush=True)
 
     return 0
 

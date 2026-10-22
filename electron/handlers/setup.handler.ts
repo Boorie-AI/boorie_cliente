@@ -50,6 +50,11 @@ const REQUIRED_PACKAGES: {
   optional?: boolean
   /** Paquetes del mismo grupo se instalan en una única orden de pip. */
   group?: string
+  /**
+   * Por debajo de esta versión se da por no instalado. pip sólo corre para lo
+   * que falta, así que sin esto un paquete viejo no se actualizaba nunca.
+   */
+  minVersion?: string
 }[] = [
   { name: 'wntr',                           pip: 'wntr>=0.5.0',                            importName: 'wntr' },
   { name: 'numpy',                          pip: 'numpy>=1.20',                            importName: 'numpy' },
@@ -57,7 +62,9 @@ const REQUIRED_PACKAGES: {
   { name: 'pandas',                         pip: 'pandas>=1.3',                            importName: 'pandas' },
   { name: 'networkx',                       pip: 'networkx>=2.6',                          importName: 'networkx' },
   { name: 'matplotlib',                     pip: 'matplotlib>=3.4',                        importName: 'matplotlib' },
-  { name: 'milvus-lite',                    pip: 'milvus-lite>=2.5.1',                     importName: 'milvus_lite', optional: true },
+  // 3.2.2 y no menos: hasta la 3.2.0 no valida el WAL al recuperarse, y en Windows, donde Boorie
+  // lo mataba al cerrar, un WAL a medio escribir hacía abortar a Milvus en cada arranque.
+  { name: 'milvus-lite',                    pip: 'milvus-lite>=3.2.2',                     importName: 'milvus_lite', optional: true, minVersion: '3.2.2' },
   // milvus-lite 3.x NO declara pymilvus entre sus dependencias, pero su
   // adaptador gRPC hace `from pymilvus.grpc_gen import milvus_pb2_grpc`. Sin
   // él, `import milvus_lite` funciona y el servidor muere al arrancar: el RAG
@@ -233,11 +240,22 @@ interface PackageProblem {
  * por una DLL de Windows se reportaba como un opaco "verification-failed" y no
  * había forma de diagnosticarlo desde el equipo del usuario.
  */
+export function comprobacionDeImport(pkg: { name: string; importName: string; minVersion?: string }): string {
+  if (!pkg.minVersion) return `import ${pkg.importName}`
+  const minima = pkg.minVersion.split('.').map(Number)
+  return [
+    `import ${pkg.importName}, re, importlib.metadata as m`,
+    `v = m.version('${pkg.name}')`,
+    `t = tuple(int(x) for x in re.findall(r'\\d+', v)[:${minima.length}])`,
+    `assert t >= (${minima.join(', ')},), '${pkg.name} ' + v + ' es anterior a la ${pkg.minVersion}'`,
+  ].join('; ')
+}
+
 async function checkPackagesInstalled(pythonPath: string): Promise<PackageProblem[]> {
   const problems: PackageProblem[] = []
   for (const pkg of REQUIRED_PACKAGES) {
     const result = await new Promise<{ ok: boolean; stderr: string }>((resolve) => {
-      const p = spawn(pythonPath, ['-c', `import ${pkg.importName}`], {
+      const p = spawn(pythonPath, ['-c', comprobacionDeImport(pkg)], {
         stdio: ['ignore', 'ignore', 'pipe'],
         windowsHide: true,
       })
@@ -427,7 +445,7 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
         missing: milvusMissing,
         optionalMissing: optionalMissing.filter((n) => !milvusMissing.includes(n)),
         problems: problems.filter((p) => milvusMissing.includes(p.name)),
-        message: `WNTR funciona, pero falta ${milvusMissing.join(' y ')} para el indexado RAG: ` +
+        message: `WNTR funciona, pero falta o hay que actualizar ${milvusMissing.join(' y ')} para el indexado RAG: ` +
           'sin ellos Milvus no arranca y los documentos quedan sin indexar.',
       }
     }
@@ -644,7 +662,7 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
     resetPythonPathCache()
     try {
       const milvusDataDir = path.join(app.getPath('userData'), 'data')
-      startMilvusServer(venvPython, milvusDataDir)
+      await startMilvusServer(venvPython, milvusDataDir)
     } catch {
       // non-fatal — MilvusService will just stay "unavailable" and RAG degrades gracefully
     }
