@@ -1,6 +1,7 @@
 import { spawn, ChildProcess } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
+import log from 'electron-log'
 
 /**
  * Owns the lifecycle of the embedded Milvus Lite server process
@@ -24,27 +25,33 @@ function resolveScriptPath(): string {
 export function startMilvusServer(pythonPath: string, dataDir: string): void {
   const scriptPath = resolveScriptPath()
   if (!fs.existsSync(scriptPath)) {
-    console.warn(`[Milvus] start_milvus.py not found at ${scriptPath}, skipping`)
+    log.warn(`[Milvus] start_milvus.py not found at ${scriptPath}, skipping`)
     return
   }
 
   stopMilvusServer()
 
-  console.log(`[Milvus] Starting Milvus Lite: ${pythonPath} ${scriptPath} (data dir: ${dataDir})`)
+  // A electron-log y no a la consola: en la app instalada la consola no se
+  // guarda, y sin esto un Milvus que no arranca no deja rastro en main.log.
+  log.info(`[Milvus] Starting Milvus Lite: ${pythonPath} ${scriptPath} (data dir: ${dataDir})`)
   const child = spawn(pythonPath, [scriptPath], {
     stdio: 'pipe',
     env: { ...process.env, BOORIE_DATA_DIR: dataDir },
   })
   milvusProcess = child
 
-  child.stdout?.on('data', (d) => console.log(`[Milvus] ${d.toString().trim()}`))
-  child.stderr?.on('data', (d) => console.log(`[Milvus] ${d.toString().trim()}`))
-  child.on('exit', (code) => {
-    console.log(`[Milvus] process exited with code ${code}`)
-    if (milvusProcess === child) milvusProcess = null
+  child.stdout?.on('data', (d) => log.info(`[Milvus] ${d.toString().trim()}`))
+  child.stderr?.on('data', (d) => log.info(`[Milvus] ${d.toString().trim()}`))
+  child.on('exit', (code, signal) => {
+    if (milvusProcess === child) {
+      log.warn(`[Milvus] process exited with code ${code}${signal ? ` (signal ${signal})` : ''}`)
+      milvusProcess = null
+    } else {
+      log.info(`[Milvus] process stopped (code ${code}${signal ? `, signal ${signal}` : ''})`)
+    }
   })
   child.on('error', (err) => {
-    console.warn('[Milvus] failed to start process:', err.message)
+    log.warn(`[Milvus] failed to start process: ${err.message}`)
     if (milvusProcess === child) milvusProcess = null
   })
 }
