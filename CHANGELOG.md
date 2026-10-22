@@ -11,6 +11,9 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 
 ## [Unreleased]
 
+- Cuando la base vectorial (Milvus) no arranca, el motivo queda en el registro de Boorie
+  (`main.log`). Antes solo salía por la consola, que en la app instalada no se guarda, y el
+  aviso «Milvus unavailable» no se podía diagnosticar con el registro que manda el usuario.
 - **Las flechas de sentido del caudal se ven en el mapa y en el esquema, del tamaño del nudo.**
   En el mapa no había ninguna; en el esquema eran de tamaño fijo, más grandes que los nudos, y en
   una red densa tapaban tuberías y nudos. Ahora cada tramo con resultados lleva una flecha en su
