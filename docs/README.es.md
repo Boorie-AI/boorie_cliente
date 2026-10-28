@@ -39,15 +39,23 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.49.0
+### 🚀 Última Versión - v1.50.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.49.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.49.0/Boorie-1.49.0-arm64.dmg) | ~324 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.49.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.49.0/Boorie-Setup-1.49.0.exe) | ~252 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.49.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.49.0/Boorie-1.49.0.AppImage) | ~403 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.50.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.50.0/Boorie-1.50.0-arm64.dmg) | ~324 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.50.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.50.0/Boorie-Setup-1.50.0.exe) | ~252 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.50.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.50.0/Boorie-1.50.0.AppImage) | ~403 MB |
 
 
+
+### 📝 Novedades en v1.50.0
+- Las redes guardadas por EPANET en Windows con acentos ya cargan, y las que usan Darcy-Weisbach o tienen válvulas PBV o GPV se simulan como son, con EPANET.
+- Un sistema de coordenadas equivocado ya no bloquea el mapa, el sistema se puede declarar una vez por proyecto y cambiar desde el visor, y el aviso de red fuera del país ya salta.
+- Boorie pregunta antes de cerrarse, el panel derecho del visor se vuelve a abrir y las flechas de caudal se ven en el mapa y en el esquema, del tamaño del nudo.
+- Boorie se ve entera en pantallas pequeñas, la calculadora se adapta a la ventana y hay un solo formulario para crear proyectos.
+- En Windows, la base de conocimiento ya no se queda en «Milvus unavailable» tras un cierre desafortunado.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.50.0).
 
 ### 📝 Novedades en v1.49.0
 - Con el servicio en la nube saturado, la pantalla dice que se está esperando —por ejemplo «NVIDIA está saturado; se vuelve a intentar en 8 s (2 de 4)», con cuenta atrás— en vez de sólo «pensando».
@@ -502,12 +510,12 @@
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.49.0.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.49.0.AppImage`
-3. Ejecuta: `./Boorie-1.49.0.AppImage`
+1. Descarga `Boorie-1.50.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.50.0.AppImage`
+3. Ejecuta: `./Boorie-1.50.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.49.0.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.50.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
