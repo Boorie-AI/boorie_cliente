@@ -328,6 +328,12 @@ completa.
 > `latest-linux.yml` inalcanzable. Se distingue en un segundo:
 > `curl -sI .../latest-linux.yml` — si da 200, era eso, y basta relanzar. Pasó en la v1.31.0.
 
+> **Recién publicada, la versión anterior todavía no la ve.** Durante unos minutos el
+> actualizador responde `Update for version <anterior> is not available`, como si no hubiera
+> nada nuevo, aunque la release ya sea `latest` y el feed de GitHub la muestre: es la caché de
+> GitHub, no la release. Hay que esperar unos minutos y relanzar; no hace falta tocar nada.
+> Pasó en la v1.50.0 y en la v1.50.1, y las dos veces funcionó al repetir la prueba.
+
 **Cómo cerrar esa ventana sin manos.** Boorie no tiene marco: el botón de cerrar lo dibuja el
 renderer, así que no hay ventana nativa que un `wmctrl` pueda cerrar, y bajo Wayland tampoco se
 puede leer el estado de las ventanas desde fuera. Se lanza el paquete con puerto de depuración
