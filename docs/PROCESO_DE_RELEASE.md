@@ -86,7 +86,7 @@ actualiza después, el tag apunta a descargas de la versión anterior.
       instrucciones de instalación**. Es lo que se olvidaba: quedaron citando la `1.15.0`
       durante media docena de releases porque el ciclo sólo tocaba el bloque de cabecera.
 - [ ] `docs/CONTRIBUTORS.md` — `npm run contribuidores` rehace la tabla de quienes han escrito
-      código a partir del historial de git; `npm run contribuidores -- --comprobar` sólo dice
+      código, y desde cuándo, a partir del historial de git; sólo cambia cuando llega alguien nuevo; `npm run contribuidores -- --comprobar` sólo dice
       si está al día. Si alguien sale dos veces, sus identidades se juntan en `.mailmap`. Lo que
       no deja rastro en git —pruebas, validación— se añade a mano fuera de la tabla. El fichero
       lo enlazaba `CONTRIBUTING.md` sin que existiera, y se creó con este paso para que no se
