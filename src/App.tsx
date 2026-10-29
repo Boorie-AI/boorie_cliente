@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ChatLayout } from '@/components/chat/ChatLayout'
 import { CustomTopBar } from '@/components/CustomTopBar'
 import { ConfirmarSalida } from '@/components/ConfirmarSalida'
+import { AvisoVersionNueva } from '@/components/AvisoVersionNueva'
 import { GlobalErrorTracker } from '@/components/GlobalErrorTracker'
 import { ProjectMismatchDialog } from '@/components/project/ProjectMismatchDialog'
 import { MigracionAvisoDialog } from '@/components/project/MigracionAvisoDialog'
@@ -116,6 +117,7 @@ function App() {
       <GlobalErrorTracker />
       <CustomTopBar />
       <ConfirmarSalida />
+      <AvisoVersionNueva />
       {/* Antes que nada y por encima de todo: hasta que se acepte, no se usa
           Boorie (#108). Va aquí y no dentro del contenido para que ninguna
           vista pueda quedar por delante. */}

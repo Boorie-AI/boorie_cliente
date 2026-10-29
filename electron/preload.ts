@@ -43,6 +43,13 @@ const electronAPI = {
     return () => ipcRenderer.removeListener('window:solicitud-cierre', wrappedCallback)
   },
   confirmarCierre: () => ipcRenderer.invoke('window:confirmar-cierre'),
+  // Canales definidos en electron/avisoVersionNueva.ts (#310).
+  versionPendiente: () => ipcRenderer.invoke('actualizacion:version-pendiente'),
+  onVersionNueva: (callback: (nueva: { version: string; url: string }) => void) => {
+    const wrappedCallback = (_event: Electron.IpcRendererEvent, nueva: { version: string; url: string }) => callback(nueva)
+    ipcRenderer.on('actualizacion:version-nueva', wrappedCallback)
+    return () => ipcRenderer.removeListener('actualizacion:version-nueva', wrappedCallback)
+  },
   isMaximized: () => ipcRenderer.invoke('is-maximized'),
   onWindowStateChanged: (callback: (state: { isMaximized: boolean }) => void) => {
     const wrappedCallback = (_event: any, state: { isMaximized: boolean }) => callback(state)

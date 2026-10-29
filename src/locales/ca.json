@@ -1067,6 +1067,12 @@
       "mensajeSinRed": "S'aturarà qualsevol simulació o resposta en curs. Les xarxes desades al projecte no es perden.",
       "confirmar": "Surt",
       "cancelar": "Cancel·la"
+    },
+    "versionNueva": {
+      "mensaje": "Hi ha una versió nova de Boorie, la {{version}}.",
+      "detalle": "Al Mac s'instal·la a mà: descarrega el .dmg de la pàgina de la versió.",
+      "ver": "Mostra la versió",
+      "cerrar": "Ara no"
     }
   },
   "descargo": {
