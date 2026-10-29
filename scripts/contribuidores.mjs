@@ -3,6 +3,10 @@
 // en .mailmap. Sólo toca lo que hay entre las dos marcas: lo de fuera se
 // escribe a mano.
 //
+// Sólo lleva la persona y su primera contribución, que no cambian con cada
+// commit: con el número de commits o la última fecha, la lista quedaba atrás
+// en cuanto se integraba cualquier cosa y --comprobar fallaba siempre.
+//
 //   npm run contribuidores               reescribe la lista
 //   npm run contribuidores -- --comprobar  sale con 1 si no está al día
 import { execFileSync } from 'node:child_process'
@@ -25,10 +29,8 @@ if (git('rev-parse', '--is-shallow-repository') === 'true') {
 const personas = new Map()
 for (const linea of git('log', '--use-mailmap', '--no-merges', '--format=%aN\t%ad', '--date=format:%Y-%m', 'HEAD').split('\n')) {
   const [nombre, mes] = linea.split('\t')
-  const p = personas.get(nombre) ?? { nombre, desde: mes, hasta: mes, commits: 0 }
+  const p = personas.get(nombre) ?? { nombre, desde: mes }
   if (mes < p.desde) p.desde = mes
-  if (mes > p.hasta) p.hasta = mes
-  p.commits++
   personas.set(nombre, p)
 }
 
@@ -37,15 +39,15 @@ const mes = (aaaamm) => {
   return `${MESES[Number(m) - 1]} de ${a}`
 }
 
-// Por orden de llegada al proyecto, que no cambia con cada commit.
+// Por orden de llegada al proyecto.
 const filas = [...personas.values()]
   .sort((a, b) => a.desde.localeCompare(b.desde) || a.nombre.localeCompare(b.nombre, 'es'))
-  .map(p => `| ${p.nombre} | ${mes(p.desde)} | ${mes(p.hasta)} | ${p.commits} |`)
+  .map(p => `| ${p.nombre} | ${mes(p.desde)} |`)
 
 const bloque = [
   INICIO,
-  '| Persona | Primera contribución | Última contribución | Commits |',
-  '|---|---|---|---|',
+  '| Persona | Desde |',
+  '|---|---|',
   ...filas,
   FIN,
 ].join('\n')
