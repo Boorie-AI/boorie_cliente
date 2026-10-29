@@ -9,6 +9,13 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **En Mac, Boorie avisa de que hay una versión nueva.** Allí no se actualiza sola, y hasta
+  ahora nadie se enteraba de que había otra versión. Ahora, al abrirla, sale un aviso con la
+  versión nueva y un enlace a su página para descargar el `.dmg`. Si el Mac ya no puede
+  instalarla —una versión que pide un macOS más reciente—, no se avisa.
+
 ## [1.51.0] - 2026-10-29
 
 Boorie pasa a Electron 45, con parches de seguridad hasta la primavera de 2027, y los diálogos de abrir y guardar recuerdan la última carpeta. En Mac hace falta macOS 13 o posterior.
