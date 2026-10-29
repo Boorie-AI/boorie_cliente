@@ -61,7 +61,7 @@ Para contribuir documentos a la base de conocimiento:
 2. **Sigue el formato**: Usa la plantilla proporcionada
 3. **Cita fuentes**: Incluye referencias verificables
 4. **Revisa la precisión**: Verifica datos y fórmulas
-5. **Envía PR**: Siguiendo [CONTRIBUTING.md](../CONTRIBUTING.md)
+5. **Envía PR**: Siguiendo [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## 🔍 Proceso de Validación
 

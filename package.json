@@ -6,6 +6,7 @@
   "desktopName": "boorie.desktop",
   "scripts": {
     "dev": "node scripts/dev-runner.js",
+    "contribuidores": "node scripts/contribuidores.mjs",
     "dev:vite": "vite",
     "dev:electron": "npm run build:electron-ts && wait-on http://localhost:3000 && electron .",
     "build": "npm run build:vite && npm run build:electron",
