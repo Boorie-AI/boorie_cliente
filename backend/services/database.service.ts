@@ -14,8 +14,8 @@ import { metadataParaGuardar } from './hydraulic/agentic/limitesDeModelo';
  * llavero; si no, vacía, y la clave se queda en memoria para la sesión salvo que
  * el usuario haya pedido guardarla sin cifrar.
  */
-function columnaDeClave(proveedor: string, clave: string, permitirSinCifrar = false): string {
-    const valor = valorParaGuardar(clave, { permitirSinCifrar });
+async function columnaDeClave(proveedor: string, clave: string, permitirSinCifrar = false): Promise<string> {
+    const valor = await valorParaGuardar(clave, { permitirSinCifrar });
     guardarClaveDeSesion(proveedor, valor === null ? clave : null);
     return valor ?? '';
 }
@@ -25,9 +25,9 @@ function columnaDeClave(proveedor: string, clave: string, permitirSinCifrar = fa
  * Lo que viene de `getAIProviders` ya trae el estado y la clave descifrada: recalcularlo
  * sobre ella diría «sin cifrar» de una cifrada y «sin clave» de una ilegible.
  */
-export function proveedorSinClave<T extends { name: string; apiKey?: string | null }>(fila: T): Omit<T, 'apiKey'> & EstadoPublicoClave {
+export async function proveedorSinClave<T extends { name: string; apiKey?: string | null }>(fila: T): Promise<Omit<T, 'apiKey'> & EstadoPublicoClave> {
     if ('estadoClave' in fila) return sinCampoClave<T>(fila) as Omit<T, 'apiKey'> & EstadoPublicoClave;
-    return { ...sinCampoClave(fila), ...estadoPublico(fila.name, fila.apiKey) };
+    return { ...sinCampoClave(fila), ...(await estadoPublico(fila.name, fila.apiKey)) };
 }
 
 export function sinCampoClave<T extends object>(datos: T): Omit<T, 'apiKey'> {
@@ -86,12 +86,12 @@ export class DatabaseService {
 
             // La clave va descifrada porque esto sólo lo usa el proceso principal;
             // lo que sale hacia la interfaz pasa antes por `proveedorSinClave`.
-            const result = providers.map(provider => ({
+            const result = await Promise.all(providers.map(async provider => ({
                 id: provider.id,
                 name: provider.name,
                 type: provider.type as "local" | "api",
-                apiKey: claveUtilizable(provider.name, provider.apiKey),
-                ...estadoPublico(provider.name, provider.apiKey),
+                apiKey: await claveUtilizable(provider.name, provider.apiKey),
+                ...(await estadoPublico(provider.name, provider.apiKey)),
                 isActive: provider.isActive,
                 enabled: provider.isActive,
                 isConnected: provider.isConnected,
@@ -101,7 +101,7 @@ export class DatabaseService {
                 updatedAt: new Date(),
                 baseUrl: provider.config ? (JSON.parse(provider.config as string)).baseUrl : undefined,
                 models: provider.models
-            }));
+            })));
 
             return {
                 success: true,
@@ -123,7 +123,7 @@ export class DatabaseService {
                 data: {
                     name: data.name,
                     type: data.type,
-                    apiKey: data.apiKey ? columnaDeClave(data.name, data.apiKey) : data.apiKey,
+                    apiKey: data.apiKey ? await columnaDeClave(data.name, data.apiKey) : data.apiKey,
                     isActive: data.isActive || false,
                     isConnected: data.isConnected || false,
                     config: data.config
@@ -172,7 +172,7 @@ export class DatabaseService {
     async escribirClave(id: string, clave: string, otros: Record<string, unknown> = {}, opciones: { permitirSinCifrar?: boolean } = {}) {
         const actual = await this.prisma.aIProvider.findUnique({ where: { id } });
         if (!actual) throw new Error('AI provider not found');
-        const apiKey = columnaDeClave(actual.name, clave, opciones.permitirSinCifrar);
+        const apiKey = await columnaDeClave(actual.name, clave, opciones.permitirSinCifrar);
         const provider = await this.prisma.$transaction(async (tx) => {
             await tx.$queryRawUnsafe('PRAGMA secure_delete=ON');
             return tx.aIProvider.update({ where: { id }, data: { ...otros, apiKey } });
@@ -202,7 +202,7 @@ export class DatabaseService {
         const filas = await this.prisma.aIProvider.findMany({ select: { name: true, apiKey: true, isActive: true } });
         for (const fila of filas) {
             if (fila.name.toLowerCase() !== nombre.toLowerCase() || !fila.isActive) continue;
-            const clave = claveUtilizable(fila.name, fila.apiKey);
+            const clave = await claveUtilizable(fila.name, fila.apiKey);
             if (clave) return clave;
         }
         return null;

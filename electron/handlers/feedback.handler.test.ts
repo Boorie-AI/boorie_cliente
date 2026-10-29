@@ -16,13 +16,14 @@ type Callback = (error: Error | null, stdout: string, stderr: string) => void
 const handlers: Record<string, Handler> = {}
 const openExternal = vi.fn(async (_url: string) => {})
 const writeText = vi.fn()
-const writeImage = vi.fn()
+const write = vi.fn(async (_items: unknown[]) => {})
 const execFile = vi.fn()
 
 vi.mock('electron', () => ({
   ipcMain: { handle: (canal: string, fn: Handler) => { handlers[canal] = fn } },
   shell: { openExternal: (url: string) => openExternal(url) },
-  clipboard: { writeText: (t: string) => writeText(t), writeImage: (i: unknown) => writeImage(i) },
+  clipboard: { writeText: async (t: string) => writeText(t), write: (items: unknown[]) => write(items) },
+  ClipboardItem: class { constructor(public items: Record<string, Blob>) {} },
   app: { getVersion: () => '1.44.0' },
 }))
 
@@ -48,7 +49,7 @@ fs.writeFileSync(
   Array.from({ length: 40 }, (_, i) => `setup linea ${i} en /home/maria/x`).join('\n'),
 )
 
-const imagen = { isEmpty: () => false }
+const imagen = { isEmpty: () => false, toPNG: () => Buffer.from('png') }
 const ventana = { webContents: { capturePage: vi.fn(async () => imagen) } }
 registerFeedbackHandlers(() => ventana as unknown as BrowserWindow, userData)
 
@@ -184,7 +185,9 @@ describe('captura de pantalla (R32, D9)', () => {
     expect(await invocar('feedback:snapshot')).toEqual({ success: true })
     expect(ventana.webContents.capturePage).toHaveBeenCalledTimes(1)
     expect(await invocar('feedback:copy-snapshot')).toEqual({ success: true })
-    expect(writeImage).toHaveBeenCalledWith(imagen)
+    const [item] = write.mock.calls[0][0] as { items: Record<string, Blob> }[]
+    expect(Object.keys(item.items)).toEqual(['image/png'])
+    expect(Buffer.from(await item.items['image/png'].arrayBuffer()).toString()).toBe('png')
     await invocar('feedback:discard-snapshot')
     expect(await invocar('feedback:copy-snapshot')).toEqual({ success: false, error: 'no-snapshot' })
   })

@@ -141,7 +141,7 @@ export async function corregirProveedores(prisma: PrismaCorreccion, cifrador: Ci
       if (f.type !== 'api' || !f.isActive) continue
       // Sin clave o con una ilegible (base de otro equipo): apagado. La
       // ilegible no se borra; vuelve a valer si la base vuelve a su equipo.
-      if (leerClave(f.apiKey, cifrador).clave) continue
+      if ((await leerClave(f.apiKey, cifrador)).clave) continue
       await tx.aIProvider.update({ where: { id: f.id }, data: { isActive: false, isConnected: false } })
       f.isActive = false
       resultado.desactivadas.push(f.name)

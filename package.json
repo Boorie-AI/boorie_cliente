@@ -57,7 +57,7 @@
     "@vitest/ui": "^4.1.8",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
-    "electron": "^42.11.18",
+    "electron": "^45.1.0",
     "electron-builder": "^26.8.1",
     "eslint": "^8.56.0",
     "eslint-plugin-react-hooks": "^4.6.0",
@@ -224,7 +224,8 @@
     ],
     "mac": {
       "target": "dmg",
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "minimumSystemVersion": "13.0"
     },
     "win": {
       "target": [

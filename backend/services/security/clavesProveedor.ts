@@ -21,8 +21,8 @@
 export interface Cifrador {
   /** Si se puede cifrar de verdad, no sólo ofuscar con una clave fija. */
   disponible(): boolean
-  cifrar(texto: string): Buffer
-  descifrar(cifrado: Buffer): string
+  cifrar(texto: string): Promise<Buffer>
+  descifrar(cifrado: Buffer): Promise<string>
 }
 
 export type EstadoClave = 'ok' | 'ilegible' | 'sinCifrado' | 'sesion'
@@ -40,43 +40,46 @@ export const PREFIJO_CIFRADA = 'enc:v1:'
 export const PREFIJO_PLANO = 'plano:v1:'
 
 interface SafeStorageMinimo {
-  isEncryptionAvailable(): boolean
-  encryptString(texto: string): Buffer
-  decryptString(cifrado: Buffer): string
+  isAsyncEncryptionAvailable(): Promise<boolean>
+  encryptStringAsync(texto: string): Promise<Buffer>
+  decryptStringAsync(cifrado: Buffer): Promise<{ result: string }>
   getSelectedStorageBackend?: () => string
 }
 
 /**
- * `safeStorage` como cifrador.
+ * `safeStorage` como cifrador, con su API asíncrona: la síncrona está obsoleta
+ * desde Electron 45 y desaparece en la 46 (#307). Lo cifrado con una se
+ * descifra con la otra; se comprobó con la clave guardada en una base real.
+ *
+ * La disponibilidad se mira una vez, al crearlo: después del `ready`, que es
+ * cuando el llavero ya se puede consultar.
  *
  * En Linux sin llavero reconocido Electron elige `basic_text` y
- * `isEncryptionAvailable()` sigue diciendo que sí: cifra con una contraseña
+ * `safeStorage` sigue diciendo que sí: cifra con una contraseña
  * fija escrita en el propio Chromium, que es ofuscar. Ahí se trata como si no
  * hubiera cifrado, para no decirle al usuario que su clave está protegida.
  * `unknown` es lo que devuelve antes del `ready`, cuando tampoco se puede.
  */
-export function cifradorDeSafeStorage(safeStorage: SafeStorageMinimo, plataforma: string = process.platform): Cifrador {
+export async function cifradorDeSafeStorage(safeStorage: SafeStorageMinimo, plataforma: string = process.platform): Promise<Cifrador> {
+  let disponible = false
+  try {
+    const backend = plataforma === 'linux' ? safeStorage.getSelectedStorageBackend?.() : undefined
+    disponible = backend !== 'basic_text' && backend !== 'unknown' && await safeStorage.isAsyncEncryptionAvailable()
+  } catch {
+    disponible = false
+  }
   return {
-    disponible() {
-      try {
-        if (!safeStorage.isEncryptionAvailable()) return false
-        if (plataforma !== 'linux') return true
-        const backend = safeStorage.getSelectedStorageBackend?.()
-        return backend !== 'basic_text' && backend !== 'unknown'
-      } catch {
-        return false
-      }
-    },
-    cifrar: texto => safeStorage.encryptString(texto),
-    descifrar: cifrado => safeStorage.decryptString(cifrado),
+    disponible: () => disponible,
+    cifrar: texto => safeStorage.encryptStringAsync(texto),
+    descifrar: async cifrado => (await safeStorage.decryptStringAsync(cifrado)).result,
   }
 }
 
 /** Sin llavero: es lo que hay fuera de Electron y hasta que el main configura el suyo. */
 export const SIN_CIFRADO: Cifrador = {
   disponible: () => false,
-  cifrar: () => { throw new Error('Cifrado no disponible') },
-  descifrar: () => { throw new Error('Cifrado no disponible') },
+  cifrar: async () => { throw new Error('Cifrado no disponible') },
+  descifrar: async () => { throw new Error('Cifrado no disponible') },
 }
 
 let cifradorActivo: Cifrador = SIN_CIFRADO
@@ -112,13 +115,13 @@ export function olvidarClavesDeSesion(): void {
 }
 
 /** Lo que va a la columna para una clave, o `null` si no se puede guardar (queda para la sesión). */
-export function valorParaGuardar(
+export async function valorParaGuardar(
   clave: string,
   opciones: { cifrador?: Cifrador; permitirSinCifrar?: boolean } = {}
-): string | null {
+): Promise<string | null> {
   const cifrador = opciones.cifrador ?? cifradorActivo
   if (!clave) return ''
-  if (cifrador.disponible()) return PREFIJO_CIFRADA + cifrador.cifrar(clave).toString('base64')
+  if (cifrador.disponible()) return PREFIJO_CIFRADA + (await cifrador.cifrar(clave)).toString('base64')
   return opciones.permitirSinCifrar ? PREFIJO_PLANO + clave : null
 }
 
@@ -130,11 +133,11 @@ export function valorParaGuardar(
  * Configuración pida volver a pegarla sin perder nada si la base vuelve a su
  * equipo.
  */
-export function leerClave(valor: string | null | undefined, cifrador: Cifrador = cifradorActivo): ClaveLeida {
+export async function leerClave(valor: string | null | undefined, cifrador: Cifrador = cifradorActivo): Promise<ClaveLeida> {
   if (!valor) return { clave: null, estado: null, heredada: false }
   if (valor.startsWith(PREFIJO_CIFRADA)) {
     try {
-      const clave = cifrador.descifrar(Buffer.from(valor.slice(PREFIJO_CIFRADA.length), 'base64'))
+      const clave = await cifrador.descifrar(Buffer.from(valor.slice(PREFIJO_CIFRADA.length), 'base64'))
       return clave ? { clave, estado: 'ok', heredada: false } : { clave: null, estado: 'ilegible', heredada: false }
     } catch {
       return { clave: null, estado: 'ilegible', heredada: false }
@@ -163,8 +166,8 @@ export interface EstadoPublicoClave {
  * necesita: el chat la busca aquí, y el input de Configuración es de sólo
  * escritura.
  */
-export function estadoPublico(proveedor: string, valor: string | null | undefined, cifrador: Cifrador = cifradorActivo): EstadoPublicoClave {
-  const leida = leerClave(valor, cifrador)
+export async function estadoPublico(proveedor: string, valor: string | null | undefined, cifrador: Cifrador = cifradorActivo): Promise<EstadoPublicoClave> {
+  const leida = await leerClave(valor, cifrador)
   const sesion = claveDeSesion(proveedor)
   // La de la sesión es la que se acaba de pegar: manda sobre una ilegible.
   if (!leida.clave && sesion) return { tieneClave: true, estadoClave: 'sesion', finClave: finDeClave(sesion) }
@@ -173,8 +176,8 @@ export function estadoPublico(proveedor: string, valor: string | null | undefine
 }
 
 /** La clave utilizable de un proveedor: la de la base y, si no hay, la de la sesión. */
-export function claveUtilizable(proveedor: string, valor: string | null | undefined, cifrador: Cifrador = cifradorActivo): string | null {
-  return leerClave(valor, cifrador).clave ?? claveDeSesion(proveedor)
+export async function claveUtilizable(proveedor: string, valor: string | null | undefined, cifrador: Cifrador = cifradorActivo): Promise<string | null> {
+  return (await leerClave(valor, cifrador)).clave ?? claveDeSesion(proveedor)
 }
 
 const oyentesDeClave = new Set<(proveedor: string) => void>()

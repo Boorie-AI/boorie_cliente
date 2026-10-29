@@ -11,6 +11,13 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 
 ## [Unreleased]
 
+- **Boorie pasa a Electron 45**, que tendrá parches de seguridad hasta la primavera de 2027;
+  la versión anterior, la 42, ya no los recibe. **En Mac hace falta macOS 13 (Ventura) o
+  posterior**: con macOS 12 la aplicación sigue funcionando, pero no podrá actualizarse a esta
+  versión.
+- **Los diálogos de abrir y guardar recuerdan la última carpeta.** Al cargar varias redes o
+  documentos seguidos, cada diálogo se abre donde estaba el anterior, y lo que se exporta se
+  propone en esa misma carpeta.
 - **Electron al día en seguridad.** Boorie pasa a Electron 42.11.18, que deja de confiar en
   unos certificados de eMudhra que habían sido comprometidos y trae los últimos parches de
   Chromium para esta versión.

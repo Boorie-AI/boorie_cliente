@@ -90,8 +90,8 @@ describe('las claves en claro de una versión anterior (R3)', () => {
 
     expect(r.cifradas).toBe(2)
     const filas = await prisma.aIProvider.findMany()
-    expect(leerClave(filas.find(f => f.name === 'nvidia')!.apiKey, c).clave).toBe(CLAVE_NVIDIA)
-    expect(leerClave(filas.find(f => f.name === 'OpenAI')!.apiKey, c).clave).toBe(CLAVE_OPENAI)
+    expect((await leerClave(filas.find(f => f.name === 'nvidia')!.apiKey, c)).clave).toBe(CLAVE_NVIDIA)
+    expect((await leerClave(filas.find(f => f.name === 'OpenAI')!.apiKey, c)).clave).toBe(CLAVE_OPENAI)
     expect(filas.find(f => f.name === 'ollama')!.apiKey).toBe('')
 
     const bytes = bytesDeLaBase()
@@ -126,11 +126,11 @@ describe('las claves en claro de una versión anterior (R3)', () => {
     await migrarClaves(prisma as never, c, silencio)
     const fila = (await prisma.aIProvider.findFirst({ where: { name: 'nvidia' } }))!
     expect(fila.apiKey!.startsWith('enc:v1:')).toBe(true)
-    expect(leerClave(fila.apiKey, c).clave).toBe(CLAVE_NVIDIA)
+    expect((await leerClave(fila.apiKey, c)).clave).toBe(CLAVE_NVIDIA)
   })
 
   it('una clave cifrada en otro equipo no se toca', async () => {
-    const ajena = 'enc:v1:' + cifradorDePrueba('equipo-b').cifrar(CLAVE_NVIDIA).toString('base64')
+    const ajena = 'enc:v1:' + (await cifradorDePrueba('equipo-b').cifrar(CLAVE_NVIDIA)).toString('base64')
     await proveedor('nvidia', ajena)
     await migrarClaves(prisma as never, cifradorDePrueba('equipo-a'), silencio)
     expect((await prisma.aIProvider.findFirst({ where: { name: 'nvidia' } }))!.apiKey).toBe(ajena)
@@ -151,7 +151,7 @@ describe('una sola clave de NVIDIA (R10, D4)', () => {
     const r = await migrarClaves(prisma as never, c, silencio)
 
     expect(r.guardrailsMovida).toBe(true)
-    expect(leerClave((await prisma.aIProvider.findFirst({ where: { name: 'nvidia' } }))!.apiKey, c).clave).toBe(CLAVE_GUARDRAILS)
+    expect((await leerClave((await prisma.aIProvider.findFirst({ where: { name: 'nvidia' } }))!.apiKey, c)).clave).toBe(CLAVE_GUARDRAILS)
     expect(await leerAjustes()).toEqual({ judgeProvider: 'nvidia-api', judgeModel: 'm' })
     expect(bytesDeLaBase()).not.toContain(CLAVE_GUARDRAILS)
   })
@@ -165,7 +165,7 @@ describe('una sola clave de NVIDIA (R10, D4)', () => {
     const r = await migrarClaves(prisma as never, c, { warn: m => avisos.push(m), info: () => {} })
 
     expect(r.guardrailsDescartada).toBe(true)
-    expect(leerClave((await prisma.aIProvider.findFirst({ where: { name: 'nvidia' } }))!.apiKey, c).clave).toBe(CLAVE_NVIDIA)
+    expect((await leerClave((await prisma.aIProvider.findFirst({ where: { name: 'nvidia' } }))!.apiKey, c)).clave).toBe(CLAVE_NVIDIA)
     expect((await leerAjustes()).nvidiaApiKey).toBeUndefined()
     expect(avisos).toHaveLength(1)
     expect(avisos.join()).not.toContain('nvapi-')
@@ -193,7 +193,7 @@ describe('guardar una clave desde Configuración (R1, R2)', () => {
     expect(await db.claveDeProveedor('NVIDIA')).toBe(CLAVE_NVIDIA)
     const { data } = await db.getAIProviders()
     expect(data[0].apiKey).toBe(CLAVE_NVIDIA)
-    expect(JSON.stringify(proveedorSinClave({ name: 'nvidia', apiKey: (await prisma.aIProvider.findFirst())!.apiKey }))).not.toContain(CLAVE_NVIDIA)
+    expect(JSON.stringify(await proveedorSinClave({ name: 'nvidia', apiKey: (await prisma.aIProvider.findFirst())!.apiKey }))).not.toContain(CLAVE_NVIDIA)
   })
 
   it('la interfaz recibe el estado de lo guardado, no el de la clave ya descifrada', async () => {
@@ -201,10 +201,10 @@ describe('guardar una clave desde Configuración (R1, R2)', () => {
     const cifrada = await proveedor('nvidia', '')
     const db = new DatabaseService(prisma)
     await db.escribirClave(cifrada.id, CLAVE_NVIDIA)
-    await proveedor('openai', 'enc:v1:' + cifradorDePrueba('equipo-b').cifrar(CLAVE_OPENAI).toString('base64'))
+    await proveedor('openai', 'enc:v1:' + (await cifradorDePrueba('equipo-b').cifrar(CLAVE_OPENAI)).toString('base64'))
 
     const { data } = await db.getAIProviders()
-    const publicos = data.map(proveedorSinClave)
+    const publicos = await Promise.all(data.map(proveedorSinClave))
 
     expect(publicos.find(p => p.name === 'nvidia')).toMatchObject({ tieneClave: true, estadoClave: 'ok' })
     expect(publicos.find(p => p.name === 'openai')).toMatchObject({ tieneClave: false, estadoClave: 'ilegible' })
