@@ -9,18 +9,22 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.51.0] - 2026-10-29
 
-- **Boorie pasa a Electron 45**, que tendrá parches de seguridad hasta la primavera de 2027;
-  la versión anterior, la 42, ya no los recibe. **En Mac hace falta macOS 13 (Ventura) o
-  posterior**: con macOS 12 la aplicación sigue funcionando, pero no podrá actualizarse a esta
-  versión.
+Boorie pasa a Electron 45, con parches de seguridad hasta la primavera de 2027, y los diálogos de abrir y guardar recuerdan la última carpeta. En Mac hace falta macOS 13 o posterior.
+
+- **Electron 45.** La versión de Electron que llevaba Boorie, la 42, ya no recibe parches de
+  seguridad. La 45 los recibirá hasta la primavera de 2027 y ya no confía en unos certificados
+  de eMudhra que fueron comprometidos.
+- **En Mac hace falta macOS 13 (Ventura) o posterior.** Electron 45 ya no funciona en macOS 12:
+  ahí Boorie 1.50.1 sigue funcionando, pero esta versión no se puede instalar.
 - **Los diálogos de abrir y guardar recuerdan la última carpeta.** Al cargar varias redes o
   documentos seguidos, cada diálogo se abre donde estaba el anterior, y lo que se exporta se
-  propone en esa misma carpeta.
-- **Electron al día en seguridad.** Boorie pasa a Electron 42.11.18, que deja de confiar en
-  unos certificados de eMudhra que habían sido comprometidos y trae los últimos parches de
-  Chromium para esta versión.
+  propone en esa misma carpeta. Al abrir la aplicación empiezan en Descargas.
+- **Las sesiones de Google y Microsoft se guardan cifradas con el llavero del sistema.** En
+  Windows y Linux se guardaban sólo codificadas, porque Boorie preguntaba por el llavero antes
+  de que estuviera disponible. Las sesiones ya iniciadas siguen valiendo y quedan cifradas la
+  próxima vez que se renueven.
 
 ## [1.50.1] - 2026-10-29
 
