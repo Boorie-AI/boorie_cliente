@@ -9,6 +9,17 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [1.50.1] - 2026-10-29
+
+En una instalación nueva, los proveedores de IA ya aparecen desde el primer arranque.
+
+- **Los proveedores de IA aparecen desde el primer arranque.** De vez en cuando, la primera vez
+  que se abría Boorie tras instalarlo, «Configuración de IA» salía sin ningún proveedor —ni
+  OpenAI, ni Anthropic, ni NVIDIA, ni Ollama— y no había dónde poner una clave ni qué modelo
+  elegir. Se arreglaba solo al volver a abrir la aplicación. Ahora la base de datos se prepara
+  de una vez y los proveedores se crean siempre en el primer arranque. El mismo fallo podía
+  hacer que, en esa primera sesión, no se guardara algún ajuste.
+
 ## [1.50.0] - 2026-10-28
 
 Las redes guardadas por EPANET en Windows con acentos ya cargan, y las que usan Darcy-Weisbach o tienen válvulas PBV o GPV se simulan como son. Boorie pregunta antes de cerrarse, se ve entera en pantallas pequeñas y dibuja las flechas de caudal del tamaño del nudo, y en Windows la base de conocimiento ya no se queda sin servicio tras un cierre desafortunado.
