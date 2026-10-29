@@ -39,15 +39,20 @@
 
 ## 📦 Descargar e Instalar
 
-### 🚀 Última Versión - v1.50.1
+### 🚀 Última Versión - v1.51.0
 
 | Plataforma | Arquitectura | Descarga | Tamaño |
 |------------|-------------|----------|--------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.50.1-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.50.1/Boorie-1.50.1-arm64.dmg) | ~324 MB |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.50.1.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.50.1/Boorie-Setup-1.50.1.exe) | ~252 MB |
-| 🐧 **Linux** | x64 | [Boorie-1.50.1.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.50.1/Boorie-1.50.1.AppImage) | ~403 MB |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.51.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.51.0/Boorie-1.51.0-arm64.dmg) | ~324 MB |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.51.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.51.0/Boorie-Setup-1.51.0.exe) | ~252 MB |
+| 🐧 **Linux** | x64 | [Boorie-1.51.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.51.0/Boorie-1.51.0.AppImage) | ~403 MB |
 
 
+
+### 📝 Novedades en v1.51.0
+- Boorie pasa a Electron 45, con parches de seguridad hasta la primavera de 2027 (la 42 ya no los recibe), y deja de confiar en unos certificados de eMudhra comprometidos. **En Mac hace falta macOS 13 (Ventura) o posterior.**
+- Los diálogos de abrir y guardar recuerdan la última carpeta, y las sesiones de Google y Microsoft se guardan cifradas con el llavero del sistema también en Windows y Linux.
+- Ver las [notas completas de la release](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.51.0).
 
 ### 📝 Novedades en v1.50.1
 - En una instalación nueva, los proveedores de IA aparecen desde el primer arranque. De vez en cuando, la primera vez que se abría Boorie, «Configuración de IA» salía sin ningún proveedor y no había dónde poner una clave; se arreglaba al volver a abrirla.
@@ -516,12 +521,12 @@ Necesita macOS 13 (Ventura) o posterior.
 4. Ejecuta Boorie desde Aplicaciones
 
 #### Linux
-1. Descarga `Boorie-1.50.1.AppImage` del enlace anterior
-2. Dale permisos de ejecución: `chmod +x Boorie-1.50.1.AppImage`
-3. Ejecuta: `./Boorie-1.50.1.AppImage`
+1. Descarga `Boorie-1.51.0.AppImage` del enlace anterior
+2. Dale permisos de ejecución: `chmod +x Boorie-1.51.0.AppImage`
+3. Ejecuta: `./Boorie-1.51.0.AppImage`
 
 #### Windows
-1. Descarga `Boorie-Setup-1.50.1.exe` del enlace anterior
+1. Descarga `Boorie-Setup-1.51.0.exe` del enlace anterior
 2. Ejecuta el instalador y sigue el asistente
 3. Inicia Boorie desde el Menú Inicio o el acceso directo del Escritorio
 
