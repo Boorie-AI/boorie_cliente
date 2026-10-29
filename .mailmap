@@ -1,0 +1,9 @@
+# Una persona, un nombre: git agrupa aquí las identidades con que ha firmado
+# commits (otro correo, una errata en el nombre). Lo usan `git shortlog` y
+# `npm run contribuidores`. Formato: Nombre <correo> Nombre usado <correo usado>
+Rayne Flores <rayne.flores@tribucorp.es> <rayneflores39@gmail.com>
+Rayne Flores <rayne.flores@tribucorp.es> Ing. Rayne Flores <rayne.flores@tribucorp.es>
+Javier Molina Romero <javier.molina@tribucorp.es> <javier.molina@dckstudios.com>
+Javier Molina Romero <javier.molina@tribucorp.es> Javier Molia Romero <javier.molina@dckstudios.com>
+Cristina Cruz <cristina.cruz@tribucorp.es> Cristina-Cruz <cristina.cruz@tribucorp.es>
+Alejandro Arcas <alejandroarcasdev@gmail.com> alejandroArcasDev <alejandroarcasdev@gmail.com>
