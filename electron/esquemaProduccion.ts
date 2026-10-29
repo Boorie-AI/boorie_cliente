@@ -432,16 +432,28 @@ export const SENTENCIAS_ESQUEMA: string[] = [
  * Aplica el esquema. Cada sentencia va aparte porque las que sobran —una columna
  * que ya está, una tabla que ya existe— tienen que poder fallar sin detener a las
  * demás.
+ *
+ * Todas van en una transacción, que Prisma ejecuta en una sola conexión, para que
+ * las demás del pool vean el esquema entero o nada. Los índices únicos se crean al
+ * final, y una conexión que leyera el esquema entre una tabla y su índice lo
+ * guardaba en caché sin el índice: SQLite rechaza entonces el `INSERT … ON
+ * CONFLICT` de los `upsert` al prepararlo, sin recargar el esquema, hasta que esa
+ * conexión ejecuta otra cosa. Dejaba sin proveedores de IA el primer arranque (#301).
  */
 export async function ensureProductionSchema(prismaClient: {
-  $executeRawUnsafe: (sql: string) => Promise<unknown>
+  $transaction: <T>(
+    fn: (tx: { $executeRawUnsafe: (sql: string) => Promise<unknown> }) => Promise<T>,
+    options?: { maxWait?: number; timeout?: number }
+  ) => Promise<T>
 }): Promise<void> {
-  for (const sql of SENTENCIAS_ESQUEMA) {
-    try {
-      await prismaClient.$executeRawUnsafe(sql)
-    } catch (error) {
-      // Avisa y sigue: la tabla puede existir ya, o la columna estar puesta.
-      console.warn('Schema statement warning:', (error as Error).message?.substring(0, 100))
+  await prismaClient.$transaction(async (tx) => {
+    for (const sql of SENTENCIAS_ESQUEMA) {
+      try {
+        await tx.$executeRawUnsafe(sql)
+      } catch (error) {
+        // Avisa y sigue: la tabla puede existir ya, o la columna estar puesta.
+        console.warn('Schema statement warning:', (error as Error).message?.substring(0, 100))
+      }
     }
-  }
+  }, { maxWait: 30_000, timeout: 120_000 })
 }
