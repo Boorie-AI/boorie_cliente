@@ -1067,6 +1067,12 @@
       "mensajeSinRed": "Se detendrá cualquier simulación o respuesta en curso. Tus redes guardadas en el proyecto no se pierden.",
       "confirmar": "Salir",
       "cancelar": "Cancelar"
+    },
+    "versionNueva": {
+      "mensaje": "Hay una versión nueva de Boorie, la {{version}}.",
+      "detalle": "En Mac se instala a mano: descarga el .dmg de la página de la versión.",
+      "ver": "Ver la versión",
+      "cerrar": "Ahora no"
     }
   },
   "descargo": {

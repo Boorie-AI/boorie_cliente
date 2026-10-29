@@ -103,6 +103,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # En Mac la app sólo avisa de que hay versión nueva (#310). Para que no avise en un
+      # macOS que ya no puede instalarla, latest-mac.yml lleva la versión mínima, que
+      # electron-builder no escribe: electron-updater la compara con os.release(), que es
+      # la de Darwin (macOS 13 = Darwin 22), y por eso se suma 9 a la de package.json.
+      - name: Versión mínima de macOS en latest-mac.yml
+        if: matrix.os == 'macos-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DARWIN=$(node -p "Number(require('./package.json').build.mac.minimumSystemVersion.split('.')[0]) + 9")
+          printf '\nminimumSystemVersion: %s.0.0\n' "$DARWIN" >> dist-electron/latest-mac.yml
+          cat dist-electron/latest-mac.yml
+          gh release upload "${{ needs.preparar-release.outputs.tag }}" dist-electron/latest-mac.yml --clobber
+
       - name: Build and publish (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: npx electron-builder --linux --publish always

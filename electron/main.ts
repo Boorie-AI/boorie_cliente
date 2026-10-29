@@ -177,6 +177,7 @@ import {
   CANAL_AVISO_CIERRE_MOSTRADO,
   CANAL_CONFIRMAR_CIERRE
 } from './cierreVentana'
+import { avisarDeVersionNueva, CANAL_VERSION_NUEVA, CANAL_VERSION_PENDIENTE, type VersionNueva } from './avisoVersionNueva'
 // Import PrismaClient dynamically to avoid circular dependency issues
 let PrismaClient: any
 
@@ -432,10 +433,19 @@ const isDev = !app.isPackaged
 
 appLogger.info('Application starting', { isPackaged: app.isPackaged, isDev })
 
+let versionPendiente: () => VersionNueva | null = () => null
+
 class AppUpdater {
   constructor() {
     appLogger.info('AppUpdater initialized')
-    if (!isDev) {
+    if (isDev) return
+    if (process.platform === 'darwin') {
+      versionPendiente = avisarDeVersionNueva(
+        autoUpdater,
+        nueva => mainWindow?.webContents.send(CANAL_VERSION_NUEVA, nueva),
+        error => appLogger.warn('No se pudo comprobar si hay versión nueva', { error: String(error) })
+      )
+    } else {
       autoUpdater.checkForUpdatesAndNotify()
     }
   }
@@ -866,6 +876,8 @@ function setupBasicIPCHandlers(): void {
     controlCierre?.confirmar()
     app.quit()
   })
+
+  ipcMain.handle(CANAL_VERSION_PENDIENTE, () => versionPendiente())
 
   ipcMain.handle('is-maximized', () => {
     const maximized = mainWindow?.isMaximized() || false

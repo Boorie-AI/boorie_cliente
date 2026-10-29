@@ -53,6 +53,8 @@ interface Window {
     closeWindow: () => Promise<void>;
     onSolicitudCierre: (callback: () => void) => () => void;
     confirmarCierre: () => Promise<void>;
+    versionPendiente: () => Promise<{ version: string; url: string } | null>;
+    onVersionNueva: (callback: (nueva: { version: string; url: string }) => void) => () => void;
     isMaximized: () => Promise<boolean>;
     onWindowStateChanged: (callback: (state: { isMaximized: boolean }) => void) => () => void;
     sendMessage: (channel: string, data: any) => Promise<any>;
