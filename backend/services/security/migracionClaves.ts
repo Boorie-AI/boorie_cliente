@@ -56,16 +56,16 @@ export async function migrarClaves(prisma: PrismaMigracion, cifrador: Cifrador, 
   for (const fila of filas) {
     if (!fila.apiKey || fila.apiKey.startsWith(PREFIJO_CIFRADA)) continue
     if (!cifrador.disponible()) continue
-    const { clave } = leerClave(fila.apiKey, cifrador)
+    const { clave } = await leerClave(fila.apiKey, cifrador)
     if (!clave) continue
-    cambios.push({ id: fila.id, apiKey: valorParaGuardar(clave, { cifrador })! })
+    cambios.push({ id: fila.id, apiKey: (await valorParaGuardar(clave, { cifrador }))! })
   }
 
   if (claveGuardrails) {
     const nvidia = filas.find(f => f.name.toLowerCase() === 'nvidia')
-    const yaTiene = nvidia && (leerClave(nvidia.apiKey, cifrador).estado !== null)
+    const yaTiene = nvidia && ((await leerClave(nvidia.apiKey, cifrador)).estado !== null)
     if (nvidia && !yaTiene) {
-      const valor = valorParaGuardar(claveGuardrails, { cifrador })
+      const valor = await valorParaGuardar(claveGuardrails, { cifrador })
       if (valor) {
         cambios.push({ id: nvidia.id, apiKey: valor })
         resultado.guardrailsMovida = true

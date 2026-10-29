@@ -19,17 +19,24 @@ export interface EncryptedTokenData {
 
 export class TokenSecurityService {
   private logger = databaseLogger
-  private isEncryptionAvailable: boolean
+  private disponible: Promise<boolean> | null = null
 
-  constructor() {
-    // Check if safeStorage is available (requires user to be logged into OS)
-    this.isEncryptionAvailable = safeStorage.isEncryptionAvailable()
-
-    if (!this.isEncryptionAvailable) {
-      this.logger.warn('OS-level encryption not available, tokens will be stored with basic encoding')
-    } else {
-      this.logger.info('OS-level encryption available for secure token storage')
-    }
+  /**
+   * Se pregunta la primera vez que hace falta y no al construir el servicio,
+   * que ocurre al importar el módulo, antes del `ready`: ahí el llavero aún no
+   * responde, y con la API síncrona eso dejaba los tokens en base64 (comprobado
+   * en Linux; en Windows lo dice la documentación). La asíncrona, la única desde
+   * Electron 46, ya no se puede consultar en el constructor (#307).
+   */
+  private cifradoDisponible(): Promise<boolean> {
+    this.disponible ??= safeStorage.isAsyncEncryptionAvailable()
+      .catch(() => false)
+      .then(disponible => {
+        if (disponible) this.logger.info('OS-level encryption available for secure token storage')
+        else this.logger.warn('OS-level encryption not available, tokens will be stored with basic encoding')
+        return disponible
+      })
+    return this.disponible
   }
 
   /**
@@ -41,9 +48,9 @@ export class TokenSecurityService {
         throw new Error('Token cannot be empty')
       }
 
-      if (this.isEncryptionAvailable) {
+      if (await this.cifradoDisponible()) {
         // Use Electron's safeStorage for OS-level encryption
-        const encrypted = safeStorage.encryptString(token)
+        const encrypted = await safeStorage.encryptStringAsync(token)
         return encrypted.toString('base64')
       } else {
         // Fallback to base64 encoding (not secure, but prevents plain text storage)
@@ -65,10 +72,15 @@ export class TokenSecurityService {
         throw new Error('Encrypted token cannot be empty')
       }
 
-      if (this.isEncryptionAvailable) {
-        // Use Electron's safeStorage for OS-level decryption
-        const buffer = Buffer.from(encryptedToken, 'base64')
-        return safeStorage.decryptString(buffer)
+      const buffer = Buffer.from(encryptedToken, 'base64')
+      if (await this.cifradoDisponible()) {
+        try {
+          return (await safeStorage.decryptStringAsync(buffer)).result
+        } catch {
+          // Guardado sólo en base64 por una versión anterior (ver `cifradoDisponible`):
+          // se lee así y queda cifrado la próxima vez que se guarde.
+          return buffer.toString('utf8')
+        }
       } else {
         // Fallback to base64 decoding
         return Buffer.from(encryptedToken, 'base64').toString('utf8')
@@ -277,15 +289,16 @@ export class TokenSecurityService {
   /**
    * Gets encryption status information
    */
-  getEncryptionInfo(): {
+  async getEncryptionInfo(): Promise<{
     isAvailable: boolean
     method: string
     status: string
-  } {
+  }> {
+    const disponible = await this.cifradoDisponible()
     return {
-      isAvailable: this.isEncryptionAvailable,
-      method: this.isEncryptionAvailable ? 'OS-level encryption' : 'Base64 encoding',
-      status: this.isEncryptionAvailable ? 'Secure' : 'Fallback'
+      isAvailable: disponible,
+      method: disponible ? 'OS-level encryption' : 'Base64 encoding',
+      status: disponible ? 'Secure' : 'Fallback'
     }
   }
 }

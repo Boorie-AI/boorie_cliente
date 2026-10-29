@@ -572,9 +572,9 @@ function createWindow(): void {
   })
 
   // Log console messages from the renderer
-  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+  mainWindow.webContents.on('console-message', ({ level, message, lineNumber, sourceId }) => {
     console.log(`Renderer console [${level}]:`, message)
-    if (line) console.log(`  at line ${line} in ${sourceId}`)
+    if (lineNumber) console.log(`  at line ${lineNumber} in ${sourceId}`)
   })
 
   // Listen for resource loading failures
@@ -694,7 +694,7 @@ async function initializeApplication(): Promise<void> {
      * estar leído antes de que nada decida si sale de la máquina. Si algo de
      * esto falla, la aplicación arranca igual: sin consentimiento no sale nada.
      */
-    const cifrador = cifradorDeSafeStorage(safeStorage)
+    const cifrador = await cifradorDeSafeStorage(safeStorage)
     configurarCifrador(cifrador)
     if (!cifrador.disponible()) {
       appLogger.warn('No hay llavero del sistema: las claves de los proveedores no se pueden guardar cifradas')

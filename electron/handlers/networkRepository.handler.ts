@@ -1,4 +1,5 @@
-import { app, dialog, ipcMain } from 'electron'
+import { app, ipcMain } from 'electron'
+import { elegirParaAbrir, elegirParaGuardar } from '../dialogosArchivo'
 import { readFile, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
@@ -537,7 +538,7 @@ export class NetworkRepositoryHandler {
       texto.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, '_').slice(0, 60)
 
     const guardarPaquete = async (contenido: string, sugerido: string) => {
-      const r = await dialog.showSaveDialog({
+      const r = await elegirParaGuardar({
         title: 'Exportar para otra instalación de Boorie',
         defaultPath: `${nombreSeguro(sugerido)}.boorie.json`,
         filters: [{ name: 'Paquete de Boorie', extensions: ['json'] }],
@@ -570,7 +571,7 @@ export class NetworkRepositoryHandler {
 
     ipcMain.handle('network-version:import', async (_, projectId: string) => {
       try {
-        const elegido = await dialog.showOpenDialog({
+        const elegido = await elegirParaAbrir({
           title: 'Importar un paquete de Boorie',
           properties: ['openFile'],
           filters: [{ name: 'Paquete de Boorie', extensions: ['json'] }],

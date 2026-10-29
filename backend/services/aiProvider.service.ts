@@ -90,7 +90,7 @@ export class AIProviderService {
         })
         // La del entorno sólo se escribe si cambia: reescribirla en cada arranque
         // sería un punto de control de la base por proveedor y arranque.
-        if (p.apiKey && claveUtilizable(fila.name, fila.apiKey) !== p.apiKey) {
+        if (p.apiKey && await claveUtilizable(fila.name, fila.apiKey) !== p.apiKey) {
           await this.databaseService.escribirClave(fila.id, p.apiKey)
         }
         this.logger.debug(`Ensured provider ${p.name} exists`)
@@ -272,7 +272,7 @@ export class AIProviderService {
       this.ultimaPruebaNvidia = null
       this.ultimaPrueba.delete(fila.name.toLowerCase())
       if (fila.type === 'api') await this.olvidarModeloElegido(fila.name)
-      return { success: true, data: estadoPublico(fila.name, fila.apiKey) }
+      return { success: true, data: await estadoPublico(fila.name, fila.apiKey) }
     } catch (error) {
       this.logger.error('Failed to save API key', error as Error, { id })
       return { success: false, error: error instanceof Error ? error.message : 'Failed to save API key' }

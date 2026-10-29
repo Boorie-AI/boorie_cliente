@@ -9,10 +9,10 @@ export function cifradorDePrueba(maquina = 'equipo-a', disponible = true): Cifra
   const marca = `${maquina}|`
   return {
     disponible: () => disponible,
-    cifrar: texto => Buffer.from(marca + Buffer.from(texto, 'utf8').toString('hex').split('').reverse().join(''), 'utf8'),
-    descifrar: cifrado => {
+    cifrar: async texto => Buffer.from(marca + Buffer.from(texto, 'utf8').toString('hex').split('').reverse().join(''), 'utf8'),
+    descifrar: async cifrado => {
       const t = cifrado.toString('utf8')
-      if (!t.startsWith(marca)) throw new Error('Error while decrypting the ciphertext provided to safeStorage.decryptString.')
+      if (!t.startsWith(marca)) throw new Error('Error while decrypting the ciphertext provided to safeStorage.decryptStringAsync.')
       return Buffer.from(t.slice(marca.length).split('').reverse().join(''), 'hex').toString('utf8')
     },
   }

@@ -27,7 +27,7 @@ export class AIProviderHandler {
         
         if (result.success) {
           logger.success(`IPC: Retrieved ${result.data?.length || 0} AI providers`)
-          return (result.data ?? []).map(proveedorSinClave)
+          return Promise.all((result.data ?? []).map(proveedorSinClave))
         } else {
           logger.error('IPC: Failed to get AI providers', new Error(result.error))
           return []

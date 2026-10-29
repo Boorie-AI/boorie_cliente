@@ -1,4 +1,5 @@
-import { ipcMain, dialog, app } from 'electron'
+import { ipcMain, app } from 'electron'
+import { elegirParaAbrir, elegirParaGuardar } from '../dialogosArchivo'
 import { claveUtilizable } from '../../backend/services/security/clavesProveedor'
 import * as fs from 'fs/promises'
 import * as path from 'path'
@@ -53,7 +54,7 @@ export function registerChatAttachmentHandler(prisma?: PrismaClient) {
 
   ipcMain.handle('chat:pickAttachment', async (event) => {
     try {
-      const result = await dialog.showOpenDialog({
+      const result = await elegirParaAbrir({
         properties: ['openFile'],
         filters: [
           { name: 'Documents', extensions: ['pdf', 'txt', 'md', 'docx', 'doc'] },
@@ -141,7 +142,7 @@ async function hayClaveDeOpenAI(prismaClient: PrismaClient): Promise<boolean> {
   const proveedor = await prismaClient.aIProvider.findFirst({
     where: { name: { contains: 'OpenAI' }, isActive: true },
   })
-  return Boolean(proveedor && claveUtilizable(proveedor.name, proveedor.apiKey))
+  return Boolean(proveedor && await claveUtilizable(proveedor.name, proveedor.apiKey))
 }
 
 /** Un trozo indexado es el que tiene embedding; los demás no cuentan para el grafo. */
@@ -214,7 +215,7 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
   }) => {
     try {
       // Open file dialog
-      const result = await dialog.showOpenDialog({
+      const result = await elegirParaAbrir({
         properties: ['openFile', 'multiSelections'],
         filters: [
           { name: 'Documents', extensions: ['pdf', 'txt', 'md', 'docx', 'doc'] },
@@ -1293,7 +1294,7 @@ export function registerWisdomHandlers(prisma?: PrismaClient) {
   // Additional handlers for bulk upload and folder operations
   ipcMain.handle('wisdom:selectFolder', async () => {
     try {
-      const result = await dialog.showOpenDialog({
+      const result = await elegirParaAbrir({
         properties: ['openDirectory']
       })
 
@@ -2290,7 +2291,7 @@ export function registerWisdomExtendedHandlers(prisma?: PrismaClient) {
       }
 
       // Ask user where to save
-      const saveResult = await dialog.showSaveDialog({
+      const saveResult = await elegirParaGuardar({
         title: 'Export Documents',
         defaultPath: `boorie-wisdom-export-${Date.now()}.${format}`,
         filters: format === 'json'

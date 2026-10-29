@@ -1,4 +1,5 @@
-import { ipcMain, dialog } from 'electron'
+import { ipcMain } from 'electron'
+import { elegirParaAbrir, elegirParaGuardar } from '../dialogosArchivo'
 import * as fs from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
@@ -107,7 +108,7 @@ export function setupWNTRHandlers(prisma?: import('@prisma/client').PrismaClient
       }
 
       // Show file dialog
-      const result = await dialog.showOpenDialog({
+      const result = await elegirParaAbrir({
         title: 'Select EPANET Input File',
         filters: [
           { name: 'EPANET Files', extensions: ['inp'] },
@@ -253,7 +254,7 @@ export function setupWNTRHandlers(prisma?: import('@prisma/client').PrismaClient
       }
 
       // Show save dialog
-      const result = await dialog.showSaveDialog({
+      const result = await elegirParaGuardar({
         title: 'Export Network as JSON',
         filters: [
           { name: 'JSON Files', extensions: ['json'] },
@@ -282,7 +283,7 @@ export function setupWNTRHandlers(prisma?: import('@prisma/client').PrismaClient
   ipcMain.handle('wntr:save-inp-file', async (event, content: string, fileName?: string) => {
     try {
       // Show save dialog
-      const result = await dialog.showSaveDialog({
+      const result = await elegirParaGuardar({
         title: 'Save EPANET Input File',
         filters: [
           { name: 'EPANET Files', extensions: ['inp'] },

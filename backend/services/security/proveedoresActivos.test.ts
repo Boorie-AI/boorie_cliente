@@ -71,7 +71,7 @@ describe('al arrancar', () => {
     const c = cifradorDePrueba()
     await crear('openai')
     await crear('anthropic')
-    await crear('nvidia', { apiKey: valorParaGuardar(CLAVE, { cifrador: c }) })
+    await crear('nvidia', { apiKey: await valorParaGuardar(CLAVE, { cifrador: c }) })
     await crear('ollama', { type: 'local' })
 
     const r = await corregirProveedores(prisma as never, c, silencio)
@@ -82,7 +82,7 @@ describe('al arrancar', () => {
   })
 
   it('apaga el de una clave ilegible (base de otro equipo) pero no la borra', async () => {
-    const deOtro = valorParaGuardar(CLAVE, { cifrador: cifradorDePrueba('otro-equipo') })!
+    const deOtro = (await valorParaGuardar(CLAVE, { cifrador: cifradorDePrueba('otro-equipo') }))!
     await crear('anthropic', { apiKey: deOtro })
 
     await corregirProveedores(prisma as never, cifradorDePrueba(), silencio)
@@ -95,7 +95,7 @@ describe('al arrancar', () => {
   it('une «OpenAI» con «openai»: rescata su clave y sus modelos, y no deja dos filas', async () => {
     const c = cifradorDePrueba()
     await crear('openai')
-    const duplicada = await crear('OpenAI', { apiKey: valorParaGuardar(CLAVE, { cifrador: c }), isActive: false, lastTestResult: 'success' })
+    const duplicada = await crear('OpenAI', { apiKey: await valorParaGuardar(CLAVE, { cifrador: c }), isActive: false, lastTestResult: 'success' })
     await prisma.aIModel.create({ data: { providerId: duplicada.id, modelId: 'gpt-x', modelName: 'gpt-x', isSelected: true } })
     await crear('Google', { isActive: false })
 
@@ -105,7 +105,7 @@ describe('al arrancar', () => {
     const filas = await prisma.aIProvider.findMany({ include: { models: true }, orderBy: { name: 'asc' } })
     expect(filas.map(f => f.name)).toEqual(['google', 'openai'])
     const openai = filas.find(f => f.name === 'openai')!
-    expect(openai.apiKey).toBe(valorParaGuardar(CLAVE, { cifrador: c }))
+    expect(openai.apiKey).toBe(await valorParaGuardar(CLAVE, { cifrador: c }))
     expect(openai.lastTestResult).toBe('success')
     expect(openai.models.map(m => m.modelId)).toEqual(['gpt-x'])
   })
@@ -122,7 +122,7 @@ describe('al arrancar', () => {
 
   it('el de un proveedor con clave se queda', async () => {
     const c = cifradorDePrueba()
-    await crear('anthropic', { apiKey: valorParaGuardar(CLAVE, { cifrador: c }) })
+    await crear('anthropic', { apiKey: await valorParaGuardar(CLAVE, { cifrador: c }) })
     await elegir('Anthropic')
 
     await corregirProveedores(prisma as never, c, silencio)
@@ -179,7 +179,7 @@ describe('el interruptor', () => {
   it('«Probar» con una clave rechazada lo apaga, y el que redacta vuelve al automático', async () => {
     const s = servicio()
     const fila = await crear('anthropic', { isActive: true, lastTestResult: 'success' })
-    await prisma.aIProvider.update({ where: { id: fila.id }, data: { apiKey: valorParaGuardar(CLAVE) } })
+    await prisma.aIProvider.update({ where: { id: fila.id }, data: { apiKey: await valorParaGuardar(CLAVE) } })
     await elegir('Anthropic')
     anthropicDice(401)
 
@@ -193,7 +193,7 @@ describe('el interruptor', () => {
   it('sin red no se sabe nada de la clave: no lo apaga', async () => {
     const s = servicio()
     const fila = await crear('anthropic', { isActive: true, lastTestResult: 'success' })
-    await prisma.aIProvider.update({ where: { id: fila.id }, data: { apiKey: valorParaGuardar(CLAVE) } })
+    await prisma.aIProvider.update({ where: { id: fila.id }, data: { apiKey: await valorParaGuardar(CLAVE) } })
     vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('fetch failed') }))
 
     const r = await s.testProviderConnection(fila.id)
@@ -212,7 +212,7 @@ describe('el interruptor', () => {
   it('el chat no encuentra la clave de un proveedor apagado', async () => {
     const db = new DatabaseService(prisma)
     configurarCifrador(cifradorDePrueba())
-    await crear('anthropic', { isActive: false, apiKey: valorParaGuardar(CLAVE) })
+    await crear('anthropic', { isActive: false, apiKey: await valorParaGuardar(CLAVE) })
     expect(await db.claveDeProveedor('anthropic')).toBeNull()
     await prisma.aIProvider.update({ where: { name: 'anthropic' }, data: { isActive: true } })
     expect(await db.claveDeProveedor('Anthropic')).toBe(CLAVE)

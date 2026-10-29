@@ -1,4 +1,5 @@
-import { ipcMain, BrowserWindow, app, dialog } from 'electron'
+import { ipcMain, BrowserWindow, app } from 'electron'
+import { elegirParaAbrir } from '../dialogosArchivo'
 import { spawn } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
@@ -736,9 +737,7 @@ export function registerSetupHandlers(getMainWindow: () => BrowserWindow | null,
     const filters = process.platform === 'win32'
       ? [{ name: 'Python', extensions: ['exe'] }]
       : [{ name: 'Todos los archivos', extensions: ['*'] }]
-    const result = window
-      ? await dialog.showOpenDialog(window, { properties: ['openFile'], filters })
-      : await dialog.showOpenDialog({ properties: ['openFile'], filters })
+    const result = await elegirParaAbrir({ properties: ['openFile'], filters }, window)
     if (result.canceled || result.filePaths.length === 0) return { success: false, canceled: true }
     return { success: true, path: result.filePaths[0] }
   })

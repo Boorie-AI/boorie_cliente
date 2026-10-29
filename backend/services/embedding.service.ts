@@ -90,7 +90,7 @@ export class EmbeddingService {
     private async claveDeOpenAI(): Promise<string | null> {
         const filas = await this.prisma.aIProvider.findMany({ where: { name: { contains: 'OpenAI' }, isActive: true } });
         for (const f of filas) {
-            const clave = claveUtilizable(f.name, f.apiKey);
+            const clave = await claveUtilizable(f.name, f.apiKey);
             if (clave) return clave;
         }
         return process.env.OPENAI_API_KEY || null;
@@ -154,7 +154,7 @@ export class EmbeddingService {
         });
 
         const claveOpenAI = openaiProvider
-            ? claveUtilizable(openaiProvider.name, openaiProvider.apiKey) || process.env.OPENAI_API_KEY
+            ? await claveUtilizable(openaiProvider.name, openaiProvider.apiKey) || process.env.OPENAI_API_KEY
             : null;
         if (openaiProvider && claveOpenAI && hayConsentimiento('openai')) {
             try {

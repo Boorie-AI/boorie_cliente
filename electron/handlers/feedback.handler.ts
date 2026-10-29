@@ -1,4 +1,4 @@
-import { ipcMain, shell, clipboard, app, type BrowserWindow, type NativeImage, type WebContents } from 'electron'
+import { ipcMain, shell, clipboard, ClipboardItem, app, type BrowserWindow, type NativeImage, type WebContents } from 'electron'
 import { execFile } from 'child_process'
 import * as fs from 'fs'
 import * as os from 'os'
@@ -147,7 +147,7 @@ export function registerFeedbackHandlers(getMainWindow: () => BrowserWindow | nu
     if (!r) return { success: false, error: 'invalid-form' }
     if (!esUrlPermitida(r.ajustado.url)) return { success: false, error: 'url-not-allowed' }
     // Lo que no cabe en el enlace no se pierde: queda entero en el portapapeles.
-    if (r.ajustado.recortado) clipboard.writeText(textoParaCopiar(r.completo))
+    if (r.ajustado.recortado) await clipboard.writeText(textoParaCopiar(r.completo))
     try {
       await shell.openExternal(r.ajustado.url)
       return { success: true, recortado: r.ajustado.recortado }
@@ -159,7 +159,7 @@ export function registerFeedbackHandlers(getMainWindow: () => BrowserWindow | nu
   ipcMain.handle('feedback:copy', async (_e, form: unknown, opciones: unknown) => {
     const r = await prepararReporte(userDataDir, form, opciones)
     if (!r) return { success: false, error: 'invalid-form' }
-    clipboard.writeText(textoParaCopiar(r.completo))
+    await clipboard.writeText(textoParaCopiar(r.completo))
     return { success: true }
   })
 
@@ -177,7 +177,7 @@ export function registerFeedbackHandlers(getMainWindow: () => BrowserWindow | nu
 
   ipcMain.handle('feedback:copy-snapshot', async () => {
     if (!captura || captura.isEmpty()) return { success: false, error: 'no-snapshot' }
-    clipboard.writeImage(captura)
+    await clipboard.write([new ClipboardItem({ 'image/png': new Blob([captura.toPNG()], { type: 'image/png' }) })])
     return { success: true }
   })
 

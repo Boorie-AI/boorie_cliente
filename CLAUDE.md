@@ -79,7 +79,7 @@ Optional variables:
 
 ### Tech Stack
 - **Frontend**: React 18 + TypeScript + Vite + TailwindCSS + Zustand + Radix UI
-- **Backend**: Electron 28 + TypeScript + Prisma ORM + PostgreSQL
+- **Backend**: Electron 45 + TypeScript + Prisma ORM + PostgreSQL
 - **IPC**: Secure context-isolated communication via preload script
 - **Hydraulics**: Python WNTR integration for network analysis
 - **Visualization**: vis-network for hydraulic network diagrams, Mapbox for geographic views

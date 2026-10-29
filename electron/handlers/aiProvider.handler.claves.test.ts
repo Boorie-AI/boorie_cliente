@@ -101,8 +101,8 @@ describe('el estado de una clave según dónde está', () => {
       getAllProviders: async () => ({
         success: true,
         data: [
-          { id: '1', name: 'nvidia', apiKey: valorParaGuardar(CLAVE, { cifrador: c }) },
-          { id: '2', name: 'openai', apiKey: valorParaGuardar(CLAVE, { cifrador: cifradorDePrueba('otro') }) },
+          { id: '1', name: 'nvidia', apiKey: await valorParaGuardar(CLAVE, { cifrador: c }) },
+          { id: '2', name: 'openai', apiKey: await valorParaGuardar(CLAVE, { cifrador: cifradorDePrueba('otro') }) },
           { id: '3', name: 'anthropic', apiKey: 'sk-ant-FAKEheredada0123456789abcdef' },
         ] as never,
       }),

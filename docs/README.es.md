@@ -508,6 +508,8 @@
 ### Instrucciones de Instalación
 
 #### macOS
+Necesita macOS 13 (Ventura) o posterior.
+
 1. Descarga el archivo DMG del enlace anterior
 2. Abre el archivo DMG descargado
 3. Arrastra Boorie.app a tu carpeta Aplicaciones
@@ -607,7 +609,7 @@ Ver todas las versiones disponibles: [**GitHub Releases**](https://github.com/Bo
 - **Frontend**: React 18 + TypeScript + Vite + TailwindCSS
 - **Gestión de Estado**: Zustand + React Context
 - **Componentes UI**: Primitivos Radix UI
-- **Backend**: Electron 28 + TypeScript + Prisma ORM
+- **Backend**: Electron 45 + TypeScript + Prisma ORM
 - **Base de Datos**: SQLite con soporte de encriptación
 - **Analíticas**: Integración Microsoft Clarity
 - **Hidráulica**: Integración Python WNTR
