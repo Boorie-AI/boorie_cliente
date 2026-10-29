@@ -9,6 +9,12 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
+## [Unreleased]
+
+- **Electron al día en seguridad.** Boorie pasa a Electron 42.11.18, que deja de confiar en
+  unos certificados de eMudhra que habían sido comprometidos y trae los últimos parches de
+  Chromium para esta versión.
+
 ## [1.50.1] - 2026-10-29
 
 En una instalación nueva, los proveedores de IA ya aparecen desde el primer arranque.
