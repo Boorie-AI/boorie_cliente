@@ -562,6 +562,11 @@ const electronAPI = {
     discardSnapshot: () => ipcRenderer.invoke('feedback:discard-snapshot'),
   },
 
+  encuesta: {
+    pendiente: () => ipcRenderer.invoke('encuesta:pendiente'),
+    abrirGithub: (respuestas: Record<string, string>) => ipcRenderer.invoke('encuesta:abrir-github', respuestas),
+  },
+
   // NVIDIA NeMo Guardrails
   guardrails: {
     getSettings: () => ipcRenderer.invoke('guardrails:getSettings'),

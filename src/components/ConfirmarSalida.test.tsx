@@ -61,7 +61,7 @@ describe('ConfirmarSalida (#278)', () => {
     render(<ConfirmarSalida />)
     pedirCierre()
     fireEvent.click(await screen.findByRole('button', { name: 'Salir' }))
-    expect(api.confirmarCierre).toHaveBeenCalledTimes(1)
+    await vi.waitFor(() => expect(api.confirmarCierre).toHaveBeenCalledTimes(1))
   })
 
   it('R4: «Cancelar» cierra el aviso sin salir', async () => {
@@ -92,5 +92,87 @@ describe('ConfirmarSalida (#278)', () => {
     const { unmount } = render(<ConfirmarSalida />)
     unmount()
     expect(solicitar).toBeNull()
+  })
+})
+
+describe('encuesta de uso obligatoria al salir (#13)', () => {
+  let encuesta: { pendiente: ReturnType<typeof vi.fn>; abrirGithub: ReturnType<typeof vi.fn> }
+
+  beforeEach(() => {
+    encuesta = {
+      pendiente: vi.fn(async () => ({ decision: 'pedir', noPublicada: false })),
+      abrirGithub: vi.fn(async () => ({ success: true, recortado: false })),
+    }
+    ;(window.electronAPI as unknown as Record<string, unknown>).encuesta = encuesta
+  })
+
+  afterEach(() => {
+    delete (window.electronAPI as unknown as Record<string, unknown>).encuesta
+  })
+
+  async function salirHastaLaEncuesta() {
+    render(<ConfirmarSalida />)
+    pedirCierre()
+    fireEvent.click(await screen.findByRole('button', { name: 'Salir' }))
+    return screen.findByRole('dialog', { name: /encuesta de uso/i })
+  }
+
+  it('tras «Salir» enseña la encuesta obligatoria con el descargo y aún no cierra', async () => {
+    const dialogo = await salirHastaLaEncuesta()
+    expect(dialogo).toHaveTextContent('Boorie no usa tus respuestas')
+    expect(dialogo).toHaveTextContent('conocer a las personas que descargan la aplicación')
+    expect(dialogo).toHaveTextContent('Es obligatoria')
+    expect(dialogo).not.toHaveTextContent('opcional')
+    expect(screen.queryByRole('button', { name: /omitir/i })).not.toBeInTheDocument()
+    expect(api.confirmarCierre).not.toHaveBeenCalled()
+  })
+
+  it('si se abrió GitHub pero no se publicó, la vuelve a pedir avisando', async () => {
+    encuesta.pendiente.mockResolvedValueOnce({ decision: 'pedir', noPublicada: true })
+    const dialogo = await salirHastaLaEncuesta()
+    expect(dialogo).toHaveTextContent('no encontramos tu encuesta publicada')
+  })
+
+  it('sin conexión para comprobarlo, sale sin pedirla', async () => {
+    encuesta.pendiente.mockResolvedValueOnce({ decision: 'aplazar' })
+    render(<ConfirmarSalida />)
+    pedirCierre()
+    fireEvent.click(await screen.findByRole('button', { name: 'Salir' }))
+    await vi.waitFor(() => expect(api.confirmarCierre).toHaveBeenCalledTimes(1))
+  })
+
+  it('si ya está publicada, «Salir» cierra sin encuesta', async () => {
+    encuesta.pendiente.mockResolvedValueOnce({ decision: 'completada', issue: 402 })
+    render(<ConfirmarSalida />)
+    pedirCierre()
+    fireEvent.click(await screen.findByRole('button', { name: 'Salir' }))
+    await vi.waitFor(() => expect(api.confirmarCierre).toHaveBeenCalledTimes(1))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('«Salir sin enviar» cierra sin enviar nada', async () => {
+    await salirHastaLaEncuesta()
+    fireEvent.click(screen.getByRole('button', { name: 'Salir sin enviar' }))
+    expect(api.confirmarCierre).toHaveBeenCalledTimes(1)
+    expect(encuesta.abrirGithub).not.toHaveBeenCalled()
+  })
+
+  it('Escape no la descarta: hay que elegir', async () => {
+    const dialogo = await salirHastaLaEncuesta()
+    fireEvent.keyDown(dialogo, { key: 'Escape' })
+    expect(screen.getByRole('dialog', { name: /encuesta de uso/i })).toBeInTheDocument()
+    expect(api.confirmarCierre).not.toHaveBeenCalled()
+  })
+
+  it('no se puede enviar hasta responder las obligatorias', async () => {
+    await salirHastaLaEncuesta()
+    expect(screen.getByRole('button', { name: 'Enviar en GitHub y salir' })).toBeDisabled()
+    expect(screen.getByText(/Faltan \d+ respuestas obligatorias/)).toBeInTheDocument()
+  })
+
+  it('volver a cerrar la ventana con la encuesta delante sale sin enviarla', async () => {
+    await salirHastaLaEncuesta()
+    pedirCierre()
+    expect(api.confirmarCierre).toHaveBeenCalledTimes(1)
   })
 })

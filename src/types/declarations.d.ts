@@ -84,6 +84,7 @@ interface Window {
       consultas?: (peticion: { pregunta: string; idioma: string; proveedor: string; modelo: string }) => Promise<{ success: boolean; consultas?: string[]; motivo?: string; error?: string }>;
     };
     feedback?: import('./feedback').FeedbackAPI;
+    encuesta?: import('./feedback').EncuestaAPI;
     nube?: {
       estado: () => Promise<{ version: number; consentimientos: Record<string, { version: number; fecha: string }> }>;
       aceptar: (proveedor: string) => Promise<{ success: boolean; error?: string }>;

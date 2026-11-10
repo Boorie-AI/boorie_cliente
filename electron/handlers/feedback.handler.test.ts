@@ -206,3 +206,39 @@ describe('escucharConsolaDelRenderer (D5)', () => {
     expect(r.cuerpo).not.toContain('hola')
   })
 })
+
+describe('encuesta de uso al salir (#13)', () => {
+  const fichero = path.join(userData, 'encuesta-uso.json')
+  beforeEach(() => { if (fs.existsSync(fichero)) fs.unlinkSync(fichero) })
+
+  async function respuestas() {
+    const { PREGUNTAS } = await import('../../backend/services/feedback/encuestaUso')
+    return Object.fromEntries(PREGUNTAS.map(p => [p.id, p.opciones ? p.opciones[0] : 'x']))
+  }
+
+  it('sin envíos hay que pedirla', async () => {
+    expect(await handlers['encuesta:pendiente']({})).toEqual({ decision: 'pedir', noPublicada: false })
+  })
+
+  it('abre issues/new con las respuestas y una referencia que queda registrada', async () => {
+    openExternal.mockClear()
+    const r = await handlers['encuesta:abrir-github']({}, { ...(await respuestas()), sector: 'Academia', 'rol-academia': 'Docente' })
+    expect(r).toEqual({ success: true, recortado: false })
+    const body = new URL(openExternal.mock.calls[0][0]).searchParams.get('body')!
+    expect(body).toContain('### Rol en Academia\n\nDocente')
+    const ref = body.match(/<!-- boorie-encuesta:([0-9a-f]{16}) -->/)![1]
+    expect(JSON.parse(fs.readFileSync(fichero, 'utf-8')).envios[0].ref).toBe(ref)
+  })
+
+  it('si el navegador no se abre, no registra el envío', async () => {
+    openExternal.mockRejectedValueOnce(new Error('sin navegador'))
+    expect(await handlers['encuesta:abrir-github']({}, await respuestas())).toEqual({ success: false, error: 'open-failed' })
+    expect(fs.existsSync(fichero)).toBe(false)
+  })
+
+  it('no abre nada si faltan respuestas', async () => {
+    openExternal.mockClear()
+    expect(await handlers['encuesta:abrir-github']({}, { pais: 'Chile' })).toEqual({ success: false, error: 'invalid-form' })
+    expect(openExternal).not.toHaveBeenCalled()
+  })
+})

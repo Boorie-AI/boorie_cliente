@@ -1792,5 +1792,278 @@
       "detalle": "Aquesta conversa respon amb {{proveedor}}: la pregunta, l'adjunt, els fragments i el context de la xarxa surten d'aquest equip.",
       "mensaje": "enviat a {{proveedor}}"
     }
+  },
+  "encuesta": {
+    "titulo": "Abans de marxar: enquesta d'ús",
+    "subtitulo": "És obligatòria i te la demanarem en sortir fins que l'enviïs. Són uns minuts i ens ajuden a saber qui fa servir Boorie.",
+    "descargo": "Boorie no fa servir les teves respostes: no es desen a l'aplicació, l'assistent no les llegeix ni canvien com funciona. Tenen un propòsit general: conèixer les persones que descarreguen l'aplicació.",
+    "descargoPublico": "En enviar s'obre GitHub amb les teves respostes i ets tu qui les publica, com un issue públic del repositori de Boorie: qualsevol les podrà llegir i cal un compte de GitHub.",
+    "elige": "Tria una opció",
+    "faltan_one": "Falta {{count}} resposta obligatòria",
+    "faltan_other": "Falten {{count}} respostes obligatòries",
+    "lista": "Tot a punt per enviar",
+    "enviar": "Enviar a GitHub i sortir",
+    "salir": "Sortir",
+    "error": "No s'ha pogut obrir GitHub. Torna-ho a provar; si surts sense enviar-la, te la tornarem a demanar.",
+    "recortado": "L'enquesta no cabia sencera a l'enllaç: el text complet és al porta-retalls. Enganxa'l a GitHub abans de publicar.",
+    "secciones": {
+      "identificacion": "Identificació",
+      "uso": "Ús general",
+      "inicio": "Primers passos",
+      "funcionalidad": "Funcionalitat",
+      "diseno": "Disseny i experiència",
+      "problemas": "Problemes tècnics",
+      "sugerencias": "Suggeriments",
+      "valoracion": "Valoració final"
+    },
+    "p": {
+      "nombre-completo": {
+        "l": "Nom complet",
+        "ph": "P. ex.: María González López"
+      },
+      "pais": {
+        "l": "País",
+        "o": [
+          "Xile",
+          "Colòmbia",
+          "El Salvador",
+          "Perú",
+          "Altre"
+        ]
+      },
+      "institucion": {
+        "l": "Institució",
+        "ph": "P. ex.: Universitat de Xile, Empresa XYZ, Ministeri de Salut"
+      },
+      "sector": {
+        "l": "Sector al qual pertanys",
+        "o": [
+          "Acadèmia",
+          "Aigua potable i sanejament (APyS)"
+        ]
+      },
+      "rol-academia": {
+        "l": "Rol a l'acadèmia",
+        "o": [
+          "No s'hi aplica",
+          "Docent",
+          "Estudiant de grau",
+          "Estudiant de postgrau",
+          "Investigador",
+          "Director acadèmic"
+        ]
+      },
+      "rol-apys": {
+        "l": "Rol a APyS",
+        "o": [
+          "No s'hi aplica",
+          "Operador",
+          "Tècnic especialitzat",
+          "Supervisor tècnic",
+          "Coordinador operatiu"
+        ]
+      },
+      "cargo": {
+        "l": "Càrrec",
+        "ph": "P. ex.: Cap d'àrea, Analista de dades, Coordinador de projectes"
+      },
+      "area-trabajo": {
+        "l": "Àrea de treball",
+        "ph": "P. ex.: Recerca i desenvolupament, Operacions, Docència"
+      },
+      "frecuencia": {
+        "l": "Amb quina freqüència fas servir l'aplicació?",
+        "ph": "P. ex.: Diàriament, setmanalment, ocasionalment"
+      },
+      "tiempo-uso": {
+        "l": "Des de quan la fas servir?",
+        "ph": "P. ex.: Des de fa 2 setmanes, des de fa 3 mesos"
+      },
+      "proposito": {
+        "l": "Per a què la fas servir principalment?",
+        "ph": "P. ex.: Feina, estudi, ús personal"
+      },
+      "dispositivo": {
+        "l": "Quin tipus de dispositiu fas servir per accedir a l'aplicació?",
+        "o": [
+          "Telèfon mòbil",
+          "Ordinador de sobretaula",
+          "Portàtil",
+          "Tauleta",
+          "Altre"
+        ]
+      },
+      "uso": {
+        "l": "La fas servir de manera personal o per a feina/estudi?",
+        "o": [
+          "Personal",
+          "Feina",
+          "Estudi",
+          "Mixt"
+        ]
+      },
+      "instalacion": {
+        "l": "Com de fàcil va ser instal·lar o obrir l'aplicació per primera vegada?",
+        "o": [
+          "Molt fàcil",
+          "Fàcil",
+          "Regular",
+          "Difícil",
+          "Molt difícil"
+        ]
+      },
+      "entendimiento": {
+        "l": "Vas poder entendre ràpidament per a què serveix?",
+        "o": [
+          "Sí, totalment",
+          "Sí, en part",
+          "Més o menys",
+          "No gaire",
+          "No"
+        ]
+      },
+      "primer-uso": {
+        "l": "Et va resultar fàcil fer el teu primer ús o interacció?",
+        "o": [
+          "Molt fàcil",
+          "Fàcil",
+          "Regular",
+          "Difícil",
+          "Molt difícil"
+        ]
+      },
+      "inicio-confuso": {
+        "l": "Hi va haver algun pas que et resultés confús en començar?",
+        "ph": "Descriu el pas que et va generar dubtes. Si no n'hi va haver cap, escriu «No»."
+      },
+      "mejorar-inicio": {
+        "l": "Què milloraries del procés d'inici?",
+        "ph": "Escriu el teu suggeriment."
+      },
+      "cumple-esperativas": {
+        "l": "L'aplicació compleix el que esperaves?",
+        "o": [
+          "Sí, totalment",
+          "Sí, en part",
+          "Regular",
+          "No gaire",
+          "No"
+        ]
+      },
+      "funcion-util": {
+        "l": "Quina funció et resulta més útil?",
+        "ph": "Descriu la funció que més fas servir."
+      },
+      "funciones-no-uso": {
+        "l": "Hi ha alguna funció que no facis servir perquè et sembla difícil?",
+        "ph": "Indica quina i per què."
+      },
+      "rapidez": {
+        "l": "Sents que l'aplicació respon de manera ràpida?",
+        "o": [
+          "Sempre",
+          "Gairebé sempre",
+          "A vegades",
+          "Rarament",
+          "Mai"
+        ]
+      },
+      "errores": {
+        "l": "Has trobat errors o fallades durant l'ús?",
+        "ph": "Descriu l'error, si n'hi va haver. Si no, escriu «No»."
+      },
+      "navegacion": {
+        "l": "Com de fàcil és navegar dins de l'aplicació?",
+        "o": [
+          "Molt fàcil",
+          "Fàcil",
+          "Regular",
+          "Difícil",
+          "Molt difícil"
+        ]
+      },
+      "diseno": {
+        "l": "Consideres que el disseny és clar i ordenat?",
+        "o": [
+          "Sí, totalment",
+          "Sí, en part",
+          "Regular",
+          "No gaire",
+          "No"
+        ]
+      },
+      "satisfaccion": {
+        "l": "Com de satisfet estàs amb l'experiència general?",
+        "o": [
+          "Molt satisfet",
+          "Satisfet",
+          "Neutral",
+          "Insatisfet",
+          "Molt insatisfet"
+        ]
+      },
+      "utilidad": {
+        "l": "La informació o les respostes que reps et semblen útils?",
+        "ph": "Explica breument la teva resposta."
+      },
+      "confianza": {
+        "l": "L'aplicació et genera confiança per fer-la servir sovint?",
+        "o": [
+          "Sí, molta confiança",
+          "Sí, bastant",
+          "Regular",
+          "Poca confiança",
+          "Gens de confiança"
+        ]
+      },
+      "login": {
+        "l": "Has tingut problemes en iniciar sessió?",
+        "ph": "Si no, escriu «No»."
+      },
+      "cierre": {
+        "l": "L'aplicació s'ha tancat sola o ha presentat fallades?",
+        "ph": "Descriu el problema, si va passar."
+      },
+      "conexion": {
+        "l": "Has tingut problemes de connexió o de càrrega?",
+        "ph": "Descriu què va passar."
+      },
+      "lentitud": {
+        "l": "Alguna part de l'aplicació triga massa a respondre?",
+        "ph": "Indica en quina part passa."
+      },
+      "reinicio": {
+        "l": "Has hagut de reiniciar l'aplicació per un error?",
+        "ph": "Explica si va passar."
+      },
+      "mejoras": {
+        "l": "Què t'agradaria que l'aplicació fes millor?",
+        "ph": "Escriu el teu suggeriment."
+      },
+      "nueva-funcion": {
+        "l": "Quina funció nova t'agradaria que tingués?",
+        "ph": "Descriu la idea."
+      },
+      "cambiar-diseno": {
+        "l": "Què canviaries del disseny o de la manera d'ús?",
+        "ph": "Comparteix la teva opinió."
+      },
+      "recomendar": {
+        "l": "Com de probable és que recomanis l'aplicació?",
+        "o": [
+          "Molt probable",
+          "Probable",
+          "Neutral",
+          "Poc probable",
+          "Gens probable"
+        ]
+      },
+      "experiencia-general": {
+        "l": "Com qualificaries la teva experiència general?",
+        "ph": "Escriu una breu valoració final."
+      }
+    },
+    "salirSinEnviar": "Sortir sense enviar",
+    "noPublicada": "L'última vegada es va obrir GitHub, però no hem trobat la teva enquesta publicada. Per donar-la per completada cal prémer «Submit new issue» a GitHub."
   }
 }

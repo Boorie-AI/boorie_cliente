@@ -1792,5 +1792,278 @@
       "detalle": "Esta conversación responde con {{proveedor}}: la pregunta, el adjunto, los fragmentos y el contexto de la red salen de este equipo.",
       "mensaje": "enviado a {{proveedor}}"
     }
+  },
+  "encuesta": {
+    "titulo": "Antes de irte: encuesta de uso",
+    "subtitulo": "Es obligatoria y te la pediremos al salir hasta que la envíes. Son unos minutos y nos ayudan a saber quién usa Boorie.",
+    "descargo": "Boorie no usa tus respuestas: no se guardan en la aplicación, no las lee el asistente ni cambian cómo funciona. Tienen un propósito general: conocer a las personas que descargan la aplicación.",
+    "descargoPublico": "Al enviar se abre GitHub con tus respuestas y eres tú quien las publica, como un issue público del repositorio de Boorie: cualquiera podrá leerlas y hace falta una cuenta de GitHub.",
+    "elige": "Elige una opción",
+    "faltan_one": "Falta {{count}} respuesta obligatoria",
+    "faltan_other": "Faltan {{count}} respuestas obligatorias",
+    "lista": "Todo listo para enviar",
+    "enviar": "Enviar en GitHub y salir",
+    "salir": "Salir",
+    "error": "No se pudo abrir GitHub. Inténtalo de nuevo; si sales sin enviarla, te la volveremos a pedir.",
+    "recortado": "La encuesta no cabía entera en el enlace: el texto completo está en el portapapeles. Pégalo en GitHub antes de publicar.",
+    "secciones": {
+      "identificacion": "Identificación",
+      "uso": "Uso general",
+      "inicio": "Primeros pasos",
+      "funcionalidad": "Funcionalidad",
+      "diseno": "Diseño y experiencia",
+      "problemas": "Problemas técnicos",
+      "sugerencias": "Sugerencias",
+      "valoracion": "Valoración final"
+    },
+    "p": {
+      "nombre-completo": {
+        "l": "Nombre completo",
+        "ph": "Ej: María González López"
+      },
+      "pais": {
+        "l": "País",
+        "o": [
+          "Chile",
+          "Colombia",
+          "El Salvador",
+          "Perú",
+          "Otro"
+        ]
+      },
+      "institucion": {
+        "l": "Institución",
+        "ph": "Ej: Universidad de Chile, Empresa XYZ, Ministerio de Salud"
+      },
+      "sector": {
+        "l": "Sector al que pertenece",
+        "o": [
+          "Academia",
+          "APyS (Agua Potable y Saneamiento)"
+        ]
+      },
+      "rol-academia": {
+        "l": "Rol en Academia",
+        "o": [
+          "No aplica",
+          "Docente",
+          "Estudiante pregrado",
+          "Estudiante posgrado",
+          "Investigador",
+          "Director académico"
+        ]
+      },
+      "rol-apys": {
+        "l": "Rol en APyS",
+        "o": [
+          "No aplica",
+          "Operador",
+          "Técnico especializado",
+          "Supervisor técnico",
+          "Coordinador operativo"
+        ]
+      },
+      "cargo": {
+        "l": "Cargo",
+        "ph": "Ej: Jefe de área, Analista de datos, Coordinador de proyectos"
+      },
+      "area-trabajo": {
+        "l": "Área de trabajo",
+        "ph": "Ej: Investigación y Desarrollo, Operaciones, Docencia"
+      },
+      "frecuencia": {
+        "l": "¿Con qué frecuencia usas la aplicación?",
+        "ph": "Ejemplo: Diario, semanalmente, ocasionalmente"
+      },
+      "tiempo-uso": {
+        "l": "¿Desde hace cuánto tiempo la usas?",
+        "ph": "Ejemplo: Desde hace 2 semanas, desde hace 3 meses"
+      },
+      "proposito": {
+        "l": "¿Para qué la utilizas principalmente?",
+        "ph": "Ejemplo: Trabajo, estudio, uso personal"
+      },
+      "dispositivo": {
+        "l": "¿Qué tipo de dispositivo usas para acceder a la aplicación?",
+        "o": [
+          "Teléfono móvil",
+          "Computadora de escritorio",
+          "Portátil",
+          "Tablet",
+          "Otro"
+        ]
+      },
+      "uso": {
+        "l": "¿La usas de forma personal o para trabajo/estudio?",
+        "o": [
+          "Personal",
+          "Trabajo",
+          "Estudio",
+          "Mixto"
+        ]
+      },
+      "instalacion": {
+        "l": "¿Qué tan fácil fue instalar o abrir la aplicación por primera vez?",
+        "o": [
+          "Muy fácil",
+          "Fácil",
+          "Regular",
+          "Difícil",
+          "Muy difícil"
+        ]
+      },
+      "entendimiento": {
+        "l": "¿Pudiste entender rápidamente para qué sirve?",
+        "o": [
+          "Sí, totalmente",
+          "Sí, en parte",
+          "Más o menos",
+          "No mucho",
+          "No"
+        ]
+      },
+      "primer-uso": {
+        "l": "¿Encontraste fácil crear tu primer uso o interacción?",
+        "o": [
+          "Muy fácil",
+          "Fácil",
+          "Regular",
+          "Difícil",
+          "Muy difícil"
+        ]
+      },
+      "inicio-confuso": {
+        "l": "¿Hubo algún paso que te resultó confuso al comenzar?",
+        "ph": "Describe el paso que te generó duda. Si no hubo ninguno, escribe «No»."
+      },
+      "mejorar-inicio": {
+        "l": "¿Qué mejorarías del proceso de inicio?",
+        "ph": "Escribe tu sugerencia."
+      },
+      "cumple-esperativas": {
+        "l": "¿La aplicación cumple con lo que esperabas?",
+        "o": [
+          "Sí, totalmente",
+          "Sí, en parte",
+          "Regular",
+          "No mucho",
+          "No"
+        ]
+      },
+      "funcion-util": {
+        "l": "¿Qué función te resulta más útil?",
+        "ph": "Describe la función que más usas."
+      },
+      "funciones-no-uso": {
+        "l": "¿Hay alguna función que no uses porque te parece difícil?",
+        "ph": "Indica cuál y por qué."
+      },
+      "rapidez": {
+        "l": "¿Sientes que la aplicación responde de manera rápida?",
+        "o": [
+          "Siempre",
+          "Casi siempre",
+          "A veces",
+          "Rara vez",
+          "Nunca"
+        ]
+      },
+      "errores": {
+        "l": "¿Has encontrado errores o fallos durante el uso?",
+        "ph": "Describe el error, si ocurrió. Si no, escribe «No»."
+      },
+      "navegacion": {
+        "l": "¿Qué tan fácil es navegar dentro de la aplicación?",
+        "o": [
+          "Muy fácil",
+          "Fácil",
+          "Regular",
+          "Difícil",
+          "Muy difícil"
+        ]
+      },
+      "diseno": {
+        "l": "¿Consideras que el diseño es claro y ordenado?",
+        "o": [
+          "Sí, totalmente",
+          "Sí, en parte",
+          "Regular",
+          "No mucho",
+          "No"
+        ]
+      },
+      "satisfaccion": {
+        "l": "¿Qué tan satisfecho estás con la experiencia general?",
+        "o": [
+          "Muy satisfecho",
+          "Satisfecho",
+          "Neutral",
+          "Insatisfecho",
+          "Muy insatisfecho"
+        ]
+      },
+      "utilidad": {
+        "l": "¿La información o las respuestas que recibes te parecen útiles?",
+        "ph": "Explica brevemente tu respuesta."
+      },
+      "confianza": {
+        "l": "¿La aplicación te genera confianza para usarla de forma frecuente?",
+        "o": [
+          "Sí, mucha confianza",
+          "Sí, bastante",
+          "Regular",
+          "Poca confianza",
+          "Nada de confianza"
+        ]
+      },
+      "login": {
+        "l": "¿Has tenido problemas al iniciar sesión?",
+        "ph": "Si no, escribe «No»."
+      },
+      "cierre": {
+        "l": "¿La aplicación se ha cerrado sola o ha presentado fallos?",
+        "ph": "Describe el problema, si ocurrió."
+      },
+      "conexion": {
+        "l": "¿Has tenido problemas de conexión o carga?",
+        "ph": "Describe qué pasó."
+      },
+      "lentitud": {
+        "l": "¿Alguna parte de la aplicación tarda demasiado en responder?",
+        "ph": "Indica en qué parte ocurre."
+      },
+      "reinicio": {
+        "l": "¿Has necesitado reiniciar la aplicación por un error?",
+        "ph": "Explica si ocurrió."
+      },
+      "mejoras": {
+        "l": "¿Qué te gustaría que la aplicación hiciera mejor?",
+        "ph": "Escribe tu sugerencia."
+      },
+      "nueva-funcion": {
+        "l": "¿Qué función nueva te gustaría que tuviera?",
+        "ph": "Describe la idea."
+      },
+      "cambiar-diseno": {
+        "l": "¿Qué cambiarías del diseño o la forma de uso?",
+        "ph": "Comparte tu opinión."
+      },
+      "recomendar": {
+        "l": "¿Qué tan probable es que recomiendes la aplicación?",
+        "o": [
+          "Muy probable",
+          "Probable",
+          "Neutral",
+          "Poco probable",
+          "Nada probable"
+        ]
+      },
+      "experiencia-general": {
+        "l": "¿Cómo calificarías tu experiencia general?",
+        "ph": "Escribe una breve valoración final."
+      }
+    },
+    "salirSinEnviar": "Salir sin enviar",
+    "noPublicada": "La última vez se abrió GitHub, pero no encontramos tu encuesta publicada. Para darla por completada hay que pulsar «Submit new issue» en GitHub."
   }
 }

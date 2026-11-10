@@ -46,3 +46,12 @@ export interface FeedbackAPI {
   copySnapshot: () => Resultado
   discardSnapshot: () => Resultado
 }
+
+export interface EncuestaAPI {
+  pendiente: () => Promise<
+    | { decision: 'completada'; issue?: number }
+    | { decision: 'pedir'; noPublicada: boolean }
+    | { decision: 'aplazar' }
+  >
+  abrirGithub: (respuestas: Record<string, string>) => Resultado<{ recortado: boolean }>
+}

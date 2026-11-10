@@ -1,5 +1,6 @@
 import { ipcMain, shell, clipboard, ClipboardItem, app, type BrowserWindow, type NativeImage, type WebContents } from 'electron'
 import { execFile } from 'child_process'
+import { randomUUID } from 'crypto'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
@@ -13,6 +14,8 @@ import {
   type Entorno,
   type Formulario,
 } from '../../backend/services/feedback/plantilla'
+import { normalizarRespuestas, urlDeEncuesta } from '../../backend/services/feedback/encuestaUso'
+import { comprobarEncuesta, registrarEnvio } from '../../backend/services/feedback/encuestaEstado'
 import { findPythonPath, getManagedVenvDir } from '../../backend/services/hydraulic/pythonDetector'
 
 /**
@@ -184,5 +187,28 @@ export function registerFeedbackHandlers(getMainWindow: () => BrowserWindow | nu
   ipcMain.handle('feedback:discard-snapshot', async () => {
     captura = null
     return { success: true }
+  })
+
+  // Encuesta de uso: obligatoria. Se pide en cada salida hasta que su issue
+  // aparece en GitHub. Al arrancar se comprueba ya, para que salir no espere.
+  void comprobarEncuesta(userDataDir).catch(() => {})
+  ipcMain.handle('encuesta:pendiente', async () => {
+    try { return await comprobarEncuesta(userDataDir) } catch { return { decision: 'aplazar' } }
+  })
+
+  ipcMain.handle('encuesta:abrir-github', async (_e, raw: unknown) => {
+    const respuestas = normalizarRespuestas(raw)
+    if (!respuestas) return { success: false, error: 'invalid-form' }
+    const ref = randomUUID().replace(/-/g, '').slice(0, 16)
+    const r = urlDeEncuesta(respuestas, app.getVersion(), ref)
+    if (!esUrlPermitida(r.url)) return { success: false, error: 'url-not-allowed' }
+    if (r.recortado) await clipboard.writeText(r.completo)
+    try {
+      await shell.openExternal(r.url)
+    } catch {
+      return { success: false, error: 'open-failed' }
+    }
+    try { registrarEnvio(userDataDir, ref) } catch { /* sin referencia no se podrá confirmar: se volverá a pedir */ }
+    return { success: true, recortado: r.recortado }
   })
 }
