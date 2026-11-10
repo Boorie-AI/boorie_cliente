@@ -9,8 +9,15 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
 `docs/PROCESO_DE_RELEASE.md`; por qué el historial vive aquí, en
 `docs/ACERCA_DE_HISTORIAL_VERSIONES.md`.
 
-## [Unreleased]
+## [1.52.0] - 2026-11-10
 
+WNTR vuelve a instalarse en equipos nuevos, en Mac Boorie avisa de que hay una versión nueva y, al salir, se pide la encuesta de uso.
+
+- **WNTR vuelve a instalarse en una instalación nueva.** Desde el 1 de noviembre, al preparar
+  el entorno de Python en un equipo nuevo, WNTR no llegaba a cargar y la red hidráulica no
+  funcionaba: una de sus dependencias dejó de traer un paquete que WNTR necesita sin
+  declararlo. Ahora Boorie lo instala aparte. Los entornos que ya funcionaban no se ven
+  afectados, y uno que se quedó a medias se arregla al volver a preparar el entorno.
 - **En Mac, Boorie avisa de que hay una versión nueva.** Allí no se actualiza sola, y hasta
   ahora nadie se enteraba de que había otra versión. Ahora, al abrirla, sale un aviso con la
   versión nueva y un enlace a su página para descargar el `.dmg`. Si el Mac ya no puede
@@ -19,6 +26,8 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   que la aplicación no usa las respuestas: solo sirven para conocer a quienes la descargan. Se
   envía como issue en GitHub y se vuelve a pedir en cada salida hasta que el issue aparece
   publicado.
+- **Seguridad:** `follow-redirects` 1.16.3, que corrige una vulnerabilidad alta
+  (GHSA-mrwp-f3q8-3g9p).
 
 ## [1.51.0] - 2026-10-29
 
