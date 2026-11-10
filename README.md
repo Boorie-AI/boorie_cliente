@@ -39,16 +39,17 @@
 
 ## 📦 Download & Install
 
-### 🚀 Latest Release - v1.51.0
+### 🚀 Latest Release - v1.52.0
 
 | Platform | Architecture | Download |
 |----------|-------------|----------|
-| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.51.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.51.0/Boorie-1.51.0-arm64.dmg) |
-| 🪟 **Windows** | x64 | [Boorie-Setup-1.51.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.51.0/Boorie-Setup-1.51.0.exe) |
-| 🐧 **Linux** | x64 | [Boorie-1.51.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.51.0/Boorie-1.51.0.AppImage) |
+| 🍎 **macOS** | ARM64 (M1/M2/M3) | [Boorie-1.52.0-arm64.dmg](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.52.0/Boorie-1.52.0-arm64.dmg) |
+| 🪟 **Windows** | x64 | [Boorie-Setup-1.52.0.exe](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.52.0/Boorie-Setup-1.52.0.exe) |
+| 🐧 **Linux** | x64 | [Boorie-1.52.0.AppImage](https://github.com/Boorie-AI/boorie_cliente/releases/download/v1.52.0/Boorie-1.52.0.AppImage) |
 
 ### 📝 What's New
 
+- **v1.52.0**: WNTR installs again on new computers: since 1 November one of its dependencies stopped bringing a package WNTR needs without declaring it, so on a fresh install the hydraulic network did not work; Boorie now installs it itself. On Mac, Boorie now tells you when there is a new version, with a link to download it. And when quitting, Boorie asks for the usage survey, with a notice that the app does not use the answers; it is asked again on every quit until it has been published. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.52.0).
 - **v1.51.0**: Boorie moves to Electron 45, which gets security patches until spring 2027 (version 42 no longer does) and no longer trusts some compromised eMudhra certificates. **On Mac it now needs macOS 13 (Ventura) or later.** The open and save dialogs remember the last folder used, and Google and Microsoft sessions are stored encrypted with the system keychain on Windows and Linux too. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.51.0).
 - **v1.50.1**: On a fresh install, the AI providers now appear from the very first launch. Occasionally, the first time Boorie was opened, «AI configuration» showed no providers at all —no OpenAI, Anthropic, NVIDIA or Ollama— so there was nowhere to enter a key; it fixed itself on the next launch. The database is now prepared in one go and the providers are always created on first launch. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.50.1).
 - **v1.50.0**: EPANET networks saved on Windows with accents (cp1252) now load, and networks using Darcy-Weisbach or with PBV and GPV valves are simulated as they are, with EPANET. A wrong coordinate system no longer locks the map, a project can declare the coordinate system for all its networks, and the out-of-country warning works. Boorie asks before closing, the viewer's right panel can be reopened, flow arrows are drawn on the map and the schematic at the size of the node, and the whole app fits on small screens, with a calculator that adapts to the window and a single project form. On Windows, the knowledge base no longer stays unavailable («Milvus unavailable») after an unlucky shutdown. See the [full release notes](https://github.com/Boorie-AI/boorie_cliente/releases/tag/v1.50.0).
@@ -137,12 +138,12 @@ Requires macOS 13 (Ventura) or later.
 4. Launch Boorie from Applications
 
 #### Linux
-1. Download `Boorie-1.51.0.AppImage` from the link above
-2. Make it executable: `chmod +x Boorie-1.51.0.AppImage`
-3. Run: `./Boorie-1.51.0.AppImage`
+1. Download `Boorie-1.52.0.AppImage` from the link above
+2. Make it executable: `chmod +x Boorie-1.52.0.AppImage`
+3. Run: `./Boorie-1.52.0.AppImage`
 
 #### Windows
-1. Download `Boorie-Setup-1.51.0.exe` from the link above
+1. Download `Boorie-Setup-1.52.0.exe` from the link above
 2. Run the installer and follow the setup wizard
 3. Launch Boorie from the Start Menu or Desktop shortcut
 
