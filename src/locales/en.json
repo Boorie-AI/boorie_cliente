@@ -1792,5 +1792,278 @@
       "detalle": "This conversation is answered by {{proveedor}}: the question, the attachment, the excerpts and the network context leave this computer.",
       "mensaje": "sent to {{proveedor}}"
     }
+  },
+  "encuesta": {
+    "titulo": "Before you go: usage survey",
+    "subtitulo": "It is required and we will ask for it every time you quit until you send it. It takes a few minutes and helps us learn who uses Boorie.",
+    "descargo": "Boorie does not use your answers: they are not stored in the app, the assistant does not read them and they do not change how it works. Their purpose is general: getting to know the people who download the app.",
+    "descargoPublico": "Sending opens GitHub with your answers and you are the one who publishes them, as a public issue in the Boorie repository: anyone will be able to read them and a GitHub account is required.",
+    "elige": "Choose an option",
+    "faltan_one": "{{count}} required answer missing",
+    "faltan_other": "{{count}} required answers missing",
+    "lista": "Ready to send",
+    "enviar": "Send on GitHub and quit",
+    "salir": "Quit",
+    "error": "GitHub could not be opened. Try again; if you quit without sending it, we will ask again.",
+    "recortado": "The survey did not fit in the link: the full text is on the clipboard. Paste it on GitHub before publishing.",
+    "secciones": {
+      "identificacion": "About you",
+      "uso": "General use",
+      "inicio": "Getting started",
+      "funcionalidad": "Features",
+      "diseno": "Design and experience",
+      "problemas": "Technical issues",
+      "sugerencias": "Suggestions",
+      "valoracion": "Final rating"
+    },
+    "p": {
+      "nombre-completo": {
+        "l": "Full name",
+        "ph": "E.g.: María González López"
+      },
+      "pais": {
+        "l": "Country",
+        "o": [
+          "Chile",
+          "Colombia",
+          "El Salvador",
+          "Peru",
+          "Other"
+        ]
+      },
+      "institucion": {
+        "l": "Institution",
+        "ph": "E.g.: University of Chile, XYZ Company, Ministry of Health"
+      },
+      "sector": {
+        "l": "Sector you belong to",
+        "o": [
+          "Academia",
+          "Water supply and sanitation (APyS)"
+        ]
+      },
+      "rol-academia": {
+        "l": "Role in academia",
+        "o": [
+          "Not applicable",
+          "Lecturer",
+          "Undergraduate student",
+          "Graduate student",
+          "Researcher",
+          "Academic director"
+        ]
+      },
+      "rol-apys": {
+        "l": "Role in water supply and sanitation",
+        "o": [
+          "Not applicable",
+          "Operator",
+          "Specialist technician",
+          "Technical supervisor",
+          "Operations coordinator"
+        ]
+      },
+      "cargo": {
+        "l": "Position",
+        "ph": "E.g.: Head of department, Data analyst, Project coordinator"
+      },
+      "area-trabajo": {
+        "l": "Work area",
+        "ph": "E.g.: Research and development, Operations, Teaching"
+      },
+      "frecuencia": {
+        "l": "How often do you use the app?",
+        "ph": "E.g.: Daily, weekly, occasionally"
+      },
+      "tiempo-uso": {
+        "l": "How long have you been using it?",
+        "ph": "E.g.: For 2 weeks, for 3 months"
+      },
+      "proposito": {
+        "l": "What do you mainly use it for?",
+        "ph": "E.g.: Work, study, personal use"
+      },
+      "dispositivo": {
+        "l": "What kind of device do you use to access the app?",
+        "o": [
+          "Mobile phone",
+          "Desktop computer",
+          "Laptop",
+          "Tablet",
+          "Other"
+        ]
+      },
+      "uso": {
+        "l": "Do you use it for personal use or for work/study?",
+        "o": [
+          "Personal",
+          "Work",
+          "Study",
+          "Mixed"
+        ]
+      },
+      "instalacion": {
+        "l": "How easy was it to install or open the app for the first time?",
+        "o": [
+          "Very easy",
+          "Easy",
+          "Fair",
+          "Hard",
+          "Very hard"
+        ]
+      },
+      "entendimiento": {
+        "l": "Could you quickly understand what it is for?",
+        "o": [
+          "Yes, completely",
+          "Yes, partly",
+          "More or less",
+          "Not much",
+          "No"
+        ]
+      },
+      "primer-uso": {
+        "l": "Was it easy to get through your first use or interaction?",
+        "o": [
+          "Very easy",
+          "Easy",
+          "Fair",
+          "Hard",
+          "Very hard"
+        ]
+      },
+      "inicio-confuso": {
+        "l": "Was any step confusing when you started?",
+        "ph": "Describe the step that confused you. If none, write \"No\"."
+      },
+      "mejorar-inicio": {
+        "l": "What would you improve about getting started?",
+        "ph": "Write your suggestion."
+      },
+      "cumple-esperativas": {
+        "l": "Does the app meet your expectations?",
+        "o": [
+          "Yes, completely",
+          "Yes, partly",
+          "Fair",
+          "Not much",
+          "No"
+        ]
+      },
+      "funcion-util": {
+        "l": "Which feature do you find most useful?",
+        "ph": "Describe the feature you use most."
+      },
+      "funciones-no-uso": {
+        "l": "Is there any feature you do not use because it seems hard?",
+        "ph": "Say which one and why."
+      },
+      "rapidez": {
+        "l": "Do you feel the app responds quickly?",
+        "o": [
+          "Always",
+          "Almost always",
+          "Sometimes",
+          "Rarely",
+          "Never"
+        ]
+      },
+      "errores": {
+        "l": "Have you found errors or failures while using it?",
+        "ph": "Describe the error, if any. If not, write \"No\"."
+      },
+      "navegacion": {
+        "l": "How easy is it to navigate the app?",
+        "o": [
+          "Very easy",
+          "Easy",
+          "Fair",
+          "Hard",
+          "Very hard"
+        ]
+      },
+      "diseno": {
+        "l": "Do you think the design is clear and tidy?",
+        "o": [
+          "Yes, completely",
+          "Yes, partly",
+          "Fair",
+          "Not much",
+          "No"
+        ]
+      },
+      "satisfaccion": {
+        "l": "How satisfied are you with the overall experience?",
+        "o": [
+          "Very satisfied",
+          "Satisfied",
+          "Neutral",
+          "Dissatisfied",
+          "Very dissatisfied"
+        ]
+      },
+      "utilidad": {
+        "l": "Do you find the information or answers you get useful?",
+        "ph": "Briefly explain your answer."
+      },
+      "confianza": {
+        "l": "Does the app give you enough confidence to use it often?",
+        "o": [
+          "Yes, a lot",
+          "Yes, quite a lot",
+          "Fair",
+          "Little confidence",
+          "No confidence"
+        ]
+      },
+      "login": {
+        "l": "Have you had problems signing in?",
+        "ph": "If not, write \"No\"."
+      },
+      "cierre": {
+        "l": "Has the app closed on its own or failed?",
+        "ph": "Describe the problem, if it happened."
+      },
+      "conexion": {
+        "l": "Have you had connection or loading problems?",
+        "ph": "Describe what happened."
+      },
+      "lentitud": {
+        "l": "Does any part of the app take too long to respond?",
+        "ph": "Say where it happens."
+      },
+      "reinicio": {
+        "l": "Have you had to restart the app because of an error?",
+        "ph": "Explain if it happened."
+      },
+      "mejoras": {
+        "l": "What would you like the app to do better?",
+        "ph": "Write your suggestion."
+      },
+      "nueva-funcion": {
+        "l": "What new feature would you like it to have?",
+        "ph": "Describe the idea."
+      },
+      "cambiar-diseno": {
+        "l": "What would you change about the design or how it is used?",
+        "ph": "Share your opinion."
+      },
+      "recomendar": {
+        "l": "How likely are you to recommend the app?",
+        "o": [
+          "Very likely",
+          "Likely",
+          "Neutral",
+          "Unlikely",
+          "Very unlikely"
+        ]
+      },
+      "experiencia-general": {
+        "l": "How would you rate your overall experience?",
+        "ph": "Write a short final assessment."
+      }
+    },
+    "salirSinEnviar": "Quit without sending",
+    "noPublicada": "Last time GitHub was opened, but we could not find your survey published. To complete it, press «Submit new issue» on GitHub."
   }
 }

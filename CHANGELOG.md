@@ -15,6 +15,10 @@ versión —qué ficheros hay que tocar y qué comprobar en los artefactos— es
   ahora nadie se enteraba de que había otra versión. Ahora, al abrirla, sale un aviso con la
   versión nueva y un enlace a su página para descargar el `.dmg`. Si el Mac ya no puede
   instalarla —una versión que pide un macOS más reciente—, no se avisa.
+- **Encuesta de uso al salir.** Al salir de Boorie se pide la encuesta de uso, con un aviso de
+  que la aplicación no usa las respuestas: solo sirven para conocer a quienes la descargan. Se
+  envía como issue en GitHub y se vuelve a pedir en cada salida hasta que el issue aparece
+  publicado.
 
 ## [1.51.0] - 2026-10-29
 
