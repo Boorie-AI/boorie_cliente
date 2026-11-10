@@ -3,7 +3,7 @@ import { spawnSync } from 'child_process'
 
 vi.mock('electron', () => ({ ipcMain: { handle: vi.fn() }, app: { getPath: vi.fn() } }))
 
-import { comprobacionDeImport } from './setup.handler'
+import { comprobacionDeImport, REQUIRED_PACKAGES } from './setup.handler'
 
 const python = ['python3', 'python'].find(p => spawnSync(p, ['--version']).status === 0)
 
@@ -11,6 +11,15 @@ function ejecutar(codigo: string) {
   const r = spawnSync(python!, ['-c', codigo], { encoding: 'utf8' })
   return { ok: r.status === 0, stderr: r.stderr }
 }
+
+describe('REQUIRED_PACKAGES', () => {
+  // wntr importa six sin declararlo; desde python-dateutil 4.0.0 nadie lo trae (#318).
+  it('instala six como obligatorio', () => {
+    const six = REQUIRED_PACKAGES.find(p => p.name === 'six')
+    expect(six).toMatchObject({ importName: 'six' })
+    expect(six?.optional).toBeFalsy()
+  })
+})
 
 describe('comprobacionDeImport', () => {
   it('sin versión mínima sólo importa', () => {

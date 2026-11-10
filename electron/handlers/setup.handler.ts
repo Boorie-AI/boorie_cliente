@@ -44,7 +44,7 @@ import {
 // dejaba numpy 1.x, pip daba el wntr por instalado y luego `import wntr`
 // fallaba. matplotlib está en la lista porque wntr lo importa al cargarse:
 // sin verificarlo, un fallo suyo se manifestaba como "wntr no instalado".
-const REQUIRED_PACKAGES: {
+export const REQUIRED_PACKAGES: {
   name: string
   pip: string
   importName: string
@@ -58,6 +58,8 @@ const REQUIRED_PACKAGES: {
   minVersion?: string
 }[] = [
   { name: 'wntr',                           pip: 'wntr>=0.5.0',                            importName: 'wntr' },
+  // wntr hace `import six` sin declararlo; llegaba por python-dateutil, que lo dejó en la 4.0.0 (#318).
+  { name: 'six',                            pip: 'six',                                    importName: 'six' },
   { name: 'numpy',                          pip: 'numpy>=1.20',                            importName: 'numpy' },
   { name: 'scipy',                          pip: 'scipy>=1.7',                             importName: 'scipy' },
   { name: 'pandas',                         pip: 'pandas>=1.3',                            importName: 'pandas' },
